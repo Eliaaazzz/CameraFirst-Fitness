@@ -1,0 +1,12 @@
+.gradle
+build
+out
+target
+.idea
+*.iml
+*.log
+.DS_Store
+.gradle*
+HELP.md
+.env
+.env
