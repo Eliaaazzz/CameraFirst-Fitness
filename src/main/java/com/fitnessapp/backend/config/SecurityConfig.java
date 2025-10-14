@@ -19,11 +19,12 @@ public class SecurityConfig {
                     "/actuator/health/**",
                     "/swagger-ui.html",
                     "/swagger-ui/**",
-                    "/v3/api-docs/**").permitAll()
+                    "/v3/api-docs/**",
+                    "/api/yt/**",
+                    "/api/admin/**").permitAll()
                 .anyRequest().authenticated()
             )
             .httpBasic(Customizer.withDefaults());
         return http.build();
     }
 }
-

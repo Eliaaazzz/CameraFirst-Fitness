@@ -1,0 +1,120 @@
+Project fitnessapp_mvp {
+  database_type: "PostgreSQL"
+}
+
+Table users {
+  id uuid [pk]
+  email varchar(255) [not null, unique]
+  time_bucket int [not null, note: 'Preferred session length (mins): 15/20/30/45']
+  level varchar(20) [not null, note: 'beginner|intermediate|advanced']
+  diet_tilt varchar(50)
+  created_at timestamptz [not null]
+}
+
+Table workout_video {
+  id uuid [pk]
+  youtube_id varchar(20) [not null, unique]
+  title varchar(255) [not null]
+  duration_minutes int [not null]
+  level varchar(20) [not null]
+  equipment text[] [not null, note: 'bodyweight,dumbbells,mat,resistance_bands,kettlebell,barbell,pull_up_bar']
+  body_part text[] [not null, note: 'chest,shoulders,biceps,triceps,back,abs,obliques,forearms,glutes,quads,hamstrings,calves,full_body,cardio']
+  thumbnail_url text
+  view_count bigint [not null]
+  last_validated_at timestamptz
+  created_at timestamptz [not null]
+  Note: 'Indexes: GIN(equipment), GIN(body_part), GIN(title gin_trgm_ops)'
+}
+
+Table recipe {
+  id uuid [pk]
+  title varchar(255) [not null]
+  image_url text
+  time_minutes int [not null]
+  difficulty varchar(20) [not null]
+  nutrition_summary jsonb
+  steps jsonb [not null]
+  swaps jsonb [not null]
+  created_at timestamptz [not null]
+  Note: 'Indexes: GIN(steps), GIN(title gin_trgm_ops)'
+}
+
+Table ingredient {
+  id uuid [pk]
+  name varchar(120) [not null, unique]
+}
+
+Table recipe_ingredient {
+  recipe_id uuid [not null]
+  ingredient_id uuid [not null]
+  quantity numeric(10,2)
+  unit varchar(50)
+  indexes {
+    (recipe_id, ingredient_id) [pk]
+    ingredient_id [name: 'idx_recipe_ingredient_ingredient']
+  }
+}
+
+Table image_query {
+  id uuid [pk]
+  user_id uuid
+  type varchar(50) [not null]
+  detected_hints jsonb [not null]
+  created_at timestamptz [not null]
+  indexes {
+    user_id [name: 'idx_image_query_user']
+  }
+}
+
+Table retrieval_result {
+  id uuid [pk]
+  query_id uuid [not null]
+  item_type varchar(50) [not null]
+  item_id uuid [not null]
+  rank int [not null]
+  score numeric(6,3)
+  latency_ms int
+  created_at timestamptz [not null]
+  indexes {
+    (query_id, rank) [unique, name: 'uq_retrieval_result_rank']
+    query_id [name: 'idx_retrieval_result_query']
+  }
+}
+
+Table user_saved_workout {
+  user_id uuid [not null]
+  workout_id uuid [not null]
+  saved_at timestamptz [not null]
+  indexes {
+    (user_id, workout_id) [pk]
+  }
+}
+
+Table user_saved_recipe {
+  user_id uuid [not null]
+  recipe_id uuid [not null]
+  saved_at timestamptz [not null]
+  indexes {
+    (user_id, recipe_id) [pk]
+  }
+}
+
+Table feedback {
+  id uuid [pk]
+  user_id uuid
+  item_type varchar(20) [not null]
+  item_id uuid [not null]
+  rating int [note: '1..5']
+  notes text
+  created_at timestamptz [not null]
+}
+
+Ref: image_query.user_id > users.id
+Ref: retrieval_result.query_id > image_query.id
+Ref: user_saved_workout.user_id > users.id
+Ref: user_saved_workout.workout_id > workout_video.id
+Ref: user_saved_recipe.user_id > users.id
+Ref: user_saved_recipe.recipe_id > recipe.id
+Ref: recipe_ingredient.recipe_id > recipe.id
+Ref: recipe_ingredient.ingredient_id > ingredient.id
+Ref: feedback.user_id > users.id

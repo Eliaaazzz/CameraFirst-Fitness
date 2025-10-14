@@ -1,7 +1,6 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: fitness_app_postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-fitness_mvp}
       POSTGRES_USER: ${POSTGRES_USER:-fitnessuser}
@@ -18,7 +17,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: fitness_app_redis
     ports:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
@@ -30,7 +28,6 @@ services:
 
   app:
     build: .
-    container_name: fitness_app_backend
     ports:
       - "8080:8080"
     env_file:

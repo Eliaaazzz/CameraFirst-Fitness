@@ -164,7 +164,7 @@ WITH iq AS (
     VALUES (
         (SELECT id FROM users WHERE email = 'demo+intermediate@fitnessapp.com'),
         'workout',
-        '[\"dumbbells\",\"strength\"]'
+        '["dumbbells","strength"]'
     )
     RETURNING id
 )
