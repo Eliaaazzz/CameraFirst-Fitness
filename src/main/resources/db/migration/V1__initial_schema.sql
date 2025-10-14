@@ -94,13 +94,39 @@ CREATE TABLE feedback (
 );
 
 -- Indexes
+-- Workout video indexes (for filtering and search)
 CREATE INDEX idx_workout_equipment ON workout_video USING GIN (equipment);
 CREATE INDEX idx_workout_body_part ON workout_video USING GIN (body_part);
 CREATE INDEX idx_workout_title_trgm ON workout_video USING GIN (title gin_trgm_ops);
+CREATE INDEX idx_workout_level ON workout_video(level);
+CREATE INDEX idx_workout_duration ON workout_video(duration_minutes);
+
+-- Recipe indexes (for filtering and search)
 CREATE INDEX idx_recipe_steps_gin ON recipe USING GIN (steps);
 CREATE INDEX idx_recipe_title_trgm ON recipe USING GIN (title gin_trgm_ops);
+CREATE INDEX idx_recipe_difficulty ON recipe(difficulty);
+CREATE INDEX idx_recipe_time ON recipe(time_minutes);
+
+-- Ingredient indexes (for fuzzy matching photo detections)
+CREATE INDEX idx_ingredient_name_trgm ON ingredient USING GIN (name gin_trgm_ops);
+
+-- Recipe-ingredient indexes (for reverse lookups: ingredient -> recipes)
+CREATE INDEX idx_recipe_ingredient_ingredient ON recipe_ingredient(ingredient_id);
+
+-- Image query indexes (for user history and hint searches)
 CREATE INDEX idx_image_query_user ON image_query(user_id);
+CREATE INDEX idx_image_query_type ON image_query(type);
+CREATE INDEX idx_image_query_created ON image_query(created_at DESC);
+CREATE INDEX idx_image_query_hints ON image_query USING GIN (detected_hints);
+
+-- Retrieval result indexes (for query result lookups)
 CREATE INDEX idx_retrieval_result_query ON retrieval_result(query_id);
+CREATE INDEX idx_retrieval_result_item ON retrieval_result(item_type, item_id);
+
+-- Feedback indexes (for analytics)
+CREATE INDEX idx_feedback_item ON feedback(item_type, item_id);
+CREATE INDEX idx_feedback_user ON feedback(user_id);
+CREATE INDEX idx_feedback_rating ON feedback(rating);
 
 -- Sample data
 INSERT INTO users (email, time_bucket, level, diet_tilt)
