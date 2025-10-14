@@ -1,7 +1,7 @@
 package com.fitnessapp.backend.youtube;
 
+import com.fitnessapp.backend.youtube.dto.DurationResponse;
 import com.fitnessapp.backend.youtube.dto.VideoMetadata;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -28,12 +28,9 @@ public class YouTubeController {
     }
 
     @GetMapping("/parseDuration")
-    public Map<String, Object> parseDuration(@RequestParam("iso") String iso) {
+    public DurationResponse parseDuration(@RequestParam("iso") String iso) {
         int minutes = youTubeService.parseDuration(iso);
-        Map<String, Object> resp = new HashMap<>();
-        resp.put("iso", iso);
-        resp.put("minutes", minutes);
-        return resp;
+        return new DurationResponse(iso, minutes);
     }
 }
 
