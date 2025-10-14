@@ -7,12 +7,13 @@
 | Equipment | bodyweight, dumbbells, mat, resistance_bands, kettlebell, barbell, pull_up_bar | Primary equipment needed for the session | 20-min total body workout using only bodyweight |
 | Level | beginner, intermediate, advanced | Skill/conditioning level suitable for the workout | Low-impact Pilates flow (beginner) |
 | Time (minutes) | 15, 20, 30, 45 | Approximate total runtime excluding cool-down ads | 20-minute HIIT circuit |
-| Body Part | upper, lower, core, full_body, cardio | Dominant muscle group or focus area | Glute activation class (lower) |
+| Body Part | chest, shoulders, biceps, triceps, back, abs, obliques, forearms, glutes, quads, hamstrings, calves, full_body, cardio | Dominant muscle group or focus area | Dumbbell press (chest, triceps) |
 | Diet Tilt | lighter (<400 cal), high_protein (>25g), vegetarian, vegan, quick (<20 min) | Narrative to help users align recipes with goals | Overnight oats with chia (quick, vegetarian) |
 
 ## Workout Tagging Rules
 - Always assign exactly one `Level` and `Time` value.
 - Multiple `Body Part` tags may be used when evenly targeted (e.g., upper + core).
+- Prefer specific muscle groups when focus is clear (e.g., `chest`, `biceps`); use meta tags like `full_body` or `cardio` for general sessions.
 - If the instructor calls out optional equipment, include it in `equipment[]` with a note in descriptions.
 - `full_body` is meant for evenly distributed sessions; reserve `cardio` for heart-rate focused routines.
 
@@ -20,7 +21,7 @@
 | YouTube Title | Equipment | Level | Time | Body Part | Notes |
 | --- | --- | --- | --- | --- | --- |
 | "15-Minute Low Impact HIIT" | bodyweight | beginner | 15 | full_body, cardio | Great for users with joint sensitivity |
-| "Dumbbell Strength Burn" | dumbbells | intermediate | 30 | upper, core | Pair with playlists for progressive overload |
+| "Dumbbell Strength Burn" | dumbbells | intermediate | 30 | chest, triceps | Pair with playlists for progressive overload |
 | "Advanced Plyometric Ladder" | bodyweight | advanced | 20 | full_body, cardio | Ensure readiness for high-impact moves |
 
 ## Recipe Tagging Rules
