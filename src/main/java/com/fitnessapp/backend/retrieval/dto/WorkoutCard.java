@@ -1,6 +1,7 @@
-package com.fitnessapp.backend.youtube.dto;
+package com.fitnessapp.backend.retrieval.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 import lombok.Builder;
 import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
@@ -9,14 +10,13 @@ import lombok.extern.jackson.Jacksonized;
 @Builder
 @Jacksonized
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class VideoMetadata {
+public class WorkoutCard {
     String youtubeId;
     String title;
-    String description;
+    Integer durationMinutes;
+    String level;
+    List<String> equipment;
+    List<String> bodyParts;
     String thumbnailUrl;
-    String channelId;
-    String channelTitle;
-    int durationSeconds;
-    int durationMinutes;
-    long viewCount;
+    Long viewCount;
 }

@@ -15,5 +15,12 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
          "where i.name in :names group by r having count(distinct i.name) >= :minCount")
   List<Recipe> findByIngredientsContaining(@Param("names") Collection<String> names,
                                            @Param("minCount") long minCount);
-}
 
+  @Query("select distinct r from Recipe r join r.ingredients ri join ri.ingredient i " +
+         "where lower(i.name) in :names")
+  List<Recipe> findByIngredientsContainingAny(@Param("names") Collection<String> names);
+
+  List<Recipe> findByTimeMinutesLessThanEqualAndDifficultyIgnoreCase(Integer timeMinutes, String difficulty);
+
+  boolean existsByTitleIgnoreCase(String title);
+}

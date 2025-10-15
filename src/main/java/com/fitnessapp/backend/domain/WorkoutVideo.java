@@ -44,6 +44,15 @@ public class WorkoutVideo {
   @Column(name = "thumbnail_url")
   private String thumbnailUrl;
 
+  @Column(name = "channel_id", length = 50)
+  private String channelId;
+
+  @Column(name = "channel_title")
+  private String channelTitle;
+
+  @Column(name = "channel_subscriber_count")
+  private Long channelSubscriberCount;
+
   @Column(name = "view_count", nullable = false)
   private Long viewCount;
 
@@ -53,4 +62,3 @@ public class WorkoutVideo {
   @Column(name = "created_at", insertable = false, updatable = false)
   private OffsetDateTime createdAt;
 }
-
