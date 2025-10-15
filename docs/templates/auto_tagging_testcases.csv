@@ -1,0 +1,21 @@
+Title,Expected_Equipment[],Expected_Level,Expected_BodyPart[],Expected_DurationMinutes,Notes
+15 Min Dumbbell HIIT,[dumbbells],intermediate,[full_body],15,
+Beginner Full Body Mat Flow,[mat],beginner,[full_body],,
+Advanced Upper Body Dumbbell Blast (20-minute),[dumbbells],advanced,[upper],20,
+No-Equipment Cardio Core,[bodyweight],intermediate,[core],,
+Resistance Band Glute Burn – 30 mins,[resistance_bands],intermediate,[lower],30,
+20-minute Arms & Abs,[],intermediate,[upper|core],20,
+Beginner Lower Body Dumbbell Sculpt 25min,[dumbbells],beginner,[lower],25,
+Total Body Strength with Bands,[resistance_bands],intermediate,[full_body],,
+Intermediate Mat Pilates Core 30-Min,[mat],intermediate,[core],30,
+Expert Chest & Triceps Dumbbell Workout,[dumbbells],advanced,[upper],,
+Yoga Mat Flow – No Equipment (20 min),[bodyweight],intermediate,[full_body],20,Bodyweight overrides mat
+Quick Leg Day at Home 15-min,[],intermediate,[lower],15,
+Back & Biceps Strength – 40 minutes,[],intermediate,[upper],40,
+Core Crusher: Abs + Obliques 18min,[],intermediate,[core],18,
+Beginner Total Body Resistance Band Circuit,[resistance_bands],beginner,[full_body],,
+30 Min Shoulders & Arms Dumbbell Pump,[dumbbells],intermediate,[upper],30,
+Advanced Lower Body Mat Burner,[mat],advanced,[lower],,
+15–20 minute Full Body Express,[],intermediate,[full_body],15,Pick first number in range
+Elite Plyo Total Body (No Equipment),[bodyweight],advanced,[full_body],,
+Upper Body Calisthenics – 25 minutes,[],intermediate,[upper],25,

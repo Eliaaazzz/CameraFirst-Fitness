@@ -1,7 +1,9 @@
 package com.fitnessapp.backend.repository;
 
 import com.fitnessapp.backend.domain.WorkoutVideo;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -13,5 +15,8 @@ public interface WorkoutVideoRepository extends JpaRepository<WorkoutVideo, UUID
   // Postgres-specific: check if array contains the given equipment value
   @Query(value = "select * from workout_video w where w.equipment @> ARRAY[cast(:equipment as text)]", nativeQuery = true)
   List<WorkoutVideo> findByEquipmentContaining(@Param("equipment") String equipment);
-}
 
+  Optional<WorkoutVideo> findByYoutubeId(String youtubeId);
+
+  List<WorkoutVideo> findByLastValidatedAtAfter(OffsetDateTime timestamp);
+}

@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.youtube.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 import lombok.Builder;
 import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
@@ -9,14 +10,13 @@ import lombok.extern.jackson.Jacksonized;
 @Builder
 @Jacksonized
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class VideoMetadata {
-    String youtubeId;
-    String title;
-    String description;
-    String thumbnailUrl;
-    String channelId;
-    String channelTitle;
-    int durationSeconds;
-    int durationMinutes;
-    long viewCount;
+public class PlaylistImportResult {
+    String playlistId;
+    String playlistAlias;
+    int requestedCount;
+    int importedCount;
+    int updatedCount;
+    int rejectedCount;
+    int inspectedCount;
+    List<String> reviewNotes;
 }

@@ -137,6 +137,25 @@ public class YouTubeService {
         }
     }
 
+    public int parseDurationSeconds(@Nullable String isoDuration) {
+        if (isoDuration == null || isoDuration.isBlank()) {
+            return 0;
+        }
+        try {
+            long seconds = Duration.parse(isoDuration).getSeconds();
+            if (seconds > Integer.MAX_VALUE) {
+                return Integer.MAX_VALUE;
+            }
+            if (seconds < Integer.MIN_VALUE) {
+                return Integer.MIN_VALUE;
+            }
+            return (int) seconds;
+        } catch (DateTimeParseException ex) {
+            log.warn("Invalid ISO duration received: {}", isoDuration);
+            return 0;
+        }
+    }
+
     private String normalizeVideoId(@Nullable String videoId) {
         if (videoId == null) {
             return "";
@@ -169,14 +188,21 @@ public class YouTubeService {
         String thumbnail = thumbnails != null && thumbnails.getHigh() != null
                 ? thumbnails.getHigh().getUrl()
                 : null;
+        String isoDuration = video.getContentDetails() != null ? video.getContentDetails().getDuration() : null;
+        int durationSeconds = parseDurationSeconds(isoDuration);
+        int durationMinutes = durationSeconds > 0
+                ? Math.max(1, (int) Math.ceil(durationSeconds / 60.0))
+                : parseDuration(isoDuration);
 
         return VideoMetadata.builder()
                 .youtubeId(videoId)
                 .title(snippet != null ? snippet.getTitle() : null)
                 .description(snippet != null ? snippet.getDescription() : null)
                 .thumbnailUrl(thumbnail)
+                .channelId(snippet != null ? snippet.getChannelId() : null)
                 .channelTitle(snippet != null ? snippet.getChannelTitle() : null)
-                .durationMinutes(parseDuration(video.getContentDetails() != null ? video.getContentDetails().getDuration() : null))
+                .durationSeconds(durationSeconds)
+                .durationMinutes(durationMinutes)
                 .viewCount(video.getStatistics() != null && video.getStatistics().getViewCount() != null
                         ? video.getStatistics().getViewCount().longValue()
                         : 0L)

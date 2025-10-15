@@ -11,6 +11,8 @@ app:
     api-key: ${YOUTUBE_API_KEY:}
     quota:
       warnings-enabled: true
+  spoonacular:
+    api-key: ${SPOONACULAR_API_KEY:}
 
 management:
   endpoints:
@@ -104,3 +106,13 @@ management:
 
 server:
   port: ${SERVER_PORT:8080}
+
+
+
+
+
+
+
+
+
+
