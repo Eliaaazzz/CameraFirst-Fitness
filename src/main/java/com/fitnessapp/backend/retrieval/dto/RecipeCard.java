@@ -1,6 +1,8 @@
 package com.fitnessapp.backend.retrieval.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
+import java.util.Map;
 import lombok.Builder;
 import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
@@ -15,4 +17,6 @@ public class RecipeCard {
     Integer timeMinutes;
     String difficulty;
     String imageUrl;
+    List<RecipeStep> steps;
+    Map<String, Object> nutrition;
 }

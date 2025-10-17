@@ -1,0 +1,1624 @@
+{
+  "recipes": [
+    {
+      "title": "Chicken Power Bowl 01",
+      "primaryIngredient": "chicken",
+      "timeMinutes": 28,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/chicken_01.jpg",
+      "ingredients": [
+        "chicken breast",
+        "olive oil",
+        "garlic",
+        "spinach",
+        "lemon"
+      ],
+      "steps": [
+        "Prep the chicken.",
+        "Heat a skillet with olive oil.",
+        "Cook the chicken until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 420,
+        "protein": 38,
+        "carbs": 32,
+        "fat": 14
+      }
+    },
+    {
+      "title": "Chicken Skillet 02",
+      "primaryIngredient": "chicken",
+      "timeMinutes": 31,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/chicken_02.jpg",
+      "ingredients": [
+        "chicken breast",
+        "olive oil",
+        "garlic",
+        "spinach",
+        "lemon"
+      ],
+      "steps": [
+        "Prep the chicken.",
+        "Heat a skillet with olive oil.",
+        "Cook the chicken until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 420,
+        "protein": 38,
+        "carbs": 32,
+        "fat": 14
+      }
+    },
+    {
+      "title": "Chicken Sheet Pan 03",
+      "primaryIngredient": "chicken",
+      "timeMinutes": 34,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/chicken_03.jpg",
+      "ingredients": [
+        "chicken breast",
+        "olive oil",
+        "garlic",
+        "spinach",
+        "lemon"
+      ],
+      "steps": [
+        "Prep the chicken.",
+        "Heat a skillet with olive oil.",
+        "Cook the chicken until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 420,
+        "protein": 38,
+        "carbs": 32,
+        "fat": 14
+      }
+    },
+    {
+      "title": "Chicken Stir-Fry 04",
+      "primaryIngredient": "chicken",
+      "timeMinutes": 37,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/chicken_04.jpg",
+      "ingredients": [
+        "chicken breast",
+        "olive oil",
+        "garlic",
+        "spinach",
+        "lemon"
+      ],
+      "steps": [
+        "Prep the chicken.",
+        "Heat a skillet with olive oil.",
+        "Cook the chicken until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 420,
+        "protein": 38,
+        "carbs": 32,
+        "fat": 14
+      }
+    },
+    {
+      "title": "Chicken Taco Bowl 05",
+      "primaryIngredient": "chicken",
+      "timeMinutes": 28,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/chicken_05.jpg",
+      "ingredients": [
+        "chicken breast",
+        "olive oil",
+        "garlic",
+        "spinach",
+        "lemon"
+      ],
+      "steps": [
+        "Prep the chicken.",
+        "Heat a skillet with olive oil.",
+        "Cook the chicken until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 420,
+        "protein": 38,
+        "carbs": 32,
+        "fat": 14
+      }
+    },
+    {
+      "title": "Chicken One-Pot Dinner 06",
+      "primaryIngredient": "chicken",
+      "timeMinutes": 31,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/chicken_06.jpg",
+      "ingredients": [
+        "chicken breast",
+        "olive oil",
+        "garlic",
+        "spinach",
+        "lemon"
+      ],
+      "steps": [
+        "Prep the chicken.",
+        "Heat a skillet with olive oil.",
+        "Cook the chicken until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 420,
+        "protein": 38,
+        "carbs": 32,
+        "fat": 14
+      }
+    },
+    {
+      "title": "Chicken Weeknight Meal 07",
+      "primaryIngredient": "chicken",
+      "timeMinutes": 34,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/chicken_07.jpg",
+      "ingredients": [
+        "chicken breast",
+        "olive oil",
+        "garlic",
+        "spinach",
+        "lemon"
+      ],
+      "steps": [
+        "Prep the chicken.",
+        "Heat a skillet with olive oil.",
+        "Cook the chicken until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 420,
+        "protein": 38,
+        "carbs": 32,
+        "fat": 14
+      }
+    },
+    {
+      "title": "Chicken High-Protein Plate 08",
+      "primaryIngredient": "chicken",
+      "timeMinutes": 37,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/chicken_08.jpg",
+      "ingredients": [
+        "chicken breast",
+        "olive oil",
+        "garlic",
+        "spinach",
+        "lemon"
+      ],
+      "steps": [
+        "Prep the chicken.",
+        "Heat a skillet with olive oil.",
+        "Cook the chicken until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 420,
+        "protein": 38,
+        "carbs": 32,
+        "fat": 14
+      }
+    },
+    {
+      "title": "Chicken Fuel-Up Bowl 09",
+      "primaryIngredient": "chicken",
+      "timeMinutes": 28,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/chicken_09.jpg",
+      "ingredients": [
+        "chicken breast",
+        "olive oil",
+        "garlic",
+        "spinach",
+        "lemon"
+      ],
+      "steps": [
+        "Prep the chicken.",
+        "Heat a skillet with olive oil.",
+        "Cook the chicken until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 420,
+        "protein": 38,
+        "carbs": 32,
+        "fat": 14
+      }
+    },
+    {
+      "title": "Chicken Meal Prep 10",
+      "primaryIngredient": "chicken",
+      "timeMinutes": 31,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/chicken_10.jpg",
+      "ingredients": [
+        "chicken breast",
+        "olive oil",
+        "garlic",
+        "spinach",
+        "lemon"
+      ],
+      "steps": [
+        "Prep the chicken.",
+        "Heat a skillet with olive oil.",
+        "Cook the chicken until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 420,
+        "protein": 38,
+        "carbs": 32,
+        "fat": 14
+      }
+    },
+    {
+      "title": "Pasta Power Bowl 01",
+      "primaryIngredient": "pasta",
+      "timeMinutes": 25,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/pasta_01.jpg",
+      "ingredients": [
+        "whole wheat pasta",
+        "cherry tomatoes",
+        "garlic",
+        "olive oil",
+        "parmesan"
+      ],
+      "steps": [
+        "Prep the pasta.",
+        "Heat a skillet with olive oil.",
+        "Cook the pasta until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 480,
+        "protein": 18,
+        "carbs": 62,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Pasta Skillet 02",
+      "primaryIngredient": "pasta",
+      "timeMinutes": 28,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/pasta_02.jpg",
+      "ingredients": [
+        "whole wheat pasta",
+        "cherry tomatoes",
+        "garlic",
+        "olive oil",
+        "parmesan"
+      ],
+      "steps": [
+        "Prep the pasta.",
+        "Heat a skillet with olive oil.",
+        "Cook the pasta until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 480,
+        "protein": 18,
+        "carbs": 62,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Pasta Sheet Pan 03",
+      "primaryIngredient": "pasta",
+      "timeMinutes": 31,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/pasta_03.jpg",
+      "ingredients": [
+        "whole wheat pasta",
+        "cherry tomatoes",
+        "garlic",
+        "olive oil",
+        "parmesan"
+      ],
+      "steps": [
+        "Prep the pasta.",
+        "Heat a skillet with olive oil.",
+        "Cook the pasta until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 480,
+        "protein": 18,
+        "carbs": 62,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Pasta Stir-Fry 04",
+      "primaryIngredient": "pasta",
+      "timeMinutes": 34,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/pasta_04.jpg",
+      "ingredients": [
+        "whole wheat pasta",
+        "cherry tomatoes",
+        "garlic",
+        "olive oil",
+        "parmesan"
+      ],
+      "steps": [
+        "Prep the pasta.",
+        "Heat a skillet with olive oil.",
+        "Cook the pasta until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 480,
+        "protein": 18,
+        "carbs": 62,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Pasta Taco Bowl 05",
+      "primaryIngredient": "pasta",
+      "timeMinutes": 25,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/pasta_05.jpg",
+      "ingredients": [
+        "whole wheat pasta",
+        "cherry tomatoes",
+        "garlic",
+        "olive oil",
+        "parmesan"
+      ],
+      "steps": [
+        "Prep the pasta.",
+        "Heat a skillet with olive oil.",
+        "Cook the pasta until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 480,
+        "protein": 18,
+        "carbs": 62,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Pasta One-Pot Dinner 06",
+      "primaryIngredient": "pasta",
+      "timeMinutes": 28,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/pasta_06.jpg",
+      "ingredients": [
+        "whole wheat pasta",
+        "cherry tomatoes",
+        "garlic",
+        "olive oil",
+        "parmesan"
+      ],
+      "steps": [
+        "Prep the pasta.",
+        "Heat a skillet with olive oil.",
+        "Cook the pasta until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 480,
+        "protein": 18,
+        "carbs": 62,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Pasta Weeknight Meal 07",
+      "primaryIngredient": "pasta",
+      "timeMinutes": 31,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/pasta_07.jpg",
+      "ingredients": [
+        "whole wheat pasta",
+        "cherry tomatoes",
+        "garlic",
+        "olive oil",
+        "parmesan"
+      ],
+      "steps": [
+        "Prep the pasta.",
+        "Heat a skillet with olive oil.",
+        "Cook the pasta until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 480,
+        "protein": 18,
+        "carbs": 62,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Pasta High-Protein Plate 08",
+      "primaryIngredient": "pasta",
+      "timeMinutes": 34,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/pasta_08.jpg",
+      "ingredients": [
+        "whole wheat pasta",
+        "cherry tomatoes",
+        "garlic",
+        "olive oil",
+        "parmesan"
+      ],
+      "steps": [
+        "Prep the pasta.",
+        "Heat a skillet with olive oil.",
+        "Cook the pasta until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 480,
+        "protein": 18,
+        "carbs": 62,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Pasta Fuel-Up Bowl 09",
+      "primaryIngredient": "pasta",
+      "timeMinutes": 25,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/pasta_09.jpg",
+      "ingredients": [
+        "whole wheat pasta",
+        "cherry tomatoes",
+        "garlic",
+        "olive oil",
+        "parmesan"
+      ],
+      "steps": [
+        "Prep the pasta.",
+        "Heat a skillet with olive oil.",
+        "Cook the pasta until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 480,
+        "protein": 18,
+        "carbs": 62,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Pasta Meal Prep 10",
+      "primaryIngredient": "pasta",
+      "timeMinutes": 28,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/pasta_10.jpg",
+      "ingredients": [
+        "whole wheat pasta",
+        "cherry tomatoes",
+        "garlic",
+        "olive oil",
+        "parmesan"
+      ],
+      "steps": [
+        "Prep the pasta.",
+        "Heat a skillet with olive oil.",
+        "Cook the pasta until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 480,
+        "protein": 18,
+        "carbs": 62,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Eggs Power Bowl 01",
+      "primaryIngredient": "eggs",
+      "timeMinutes": 18,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/eggs_01.jpg",
+      "ingredients": [
+        "eggs",
+        "baby spinach",
+        "mushrooms",
+        "feta",
+        "olive oil"
+      ],
+      "steps": [
+        "Prep the eggs.",
+        "Heat a skillet with olive oil.",
+        "Cook the eggs until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 320,
+        "protein": 24,
+        "carbs": 18,
+        "fat": 18
+      }
+    },
+    {
+      "title": "Eggs Skillet 02",
+      "primaryIngredient": "eggs",
+      "timeMinutes": 21,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/eggs_02.jpg",
+      "ingredients": [
+        "eggs",
+        "baby spinach",
+        "mushrooms",
+        "feta",
+        "olive oil"
+      ],
+      "steps": [
+        "Prep the eggs.",
+        "Heat a skillet with olive oil.",
+        "Cook the eggs until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 320,
+        "protein": 24,
+        "carbs": 18,
+        "fat": 18
+      }
+    },
+    {
+      "title": "Eggs Sheet Pan 03",
+      "primaryIngredient": "eggs",
+      "timeMinutes": 24,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/eggs_03.jpg",
+      "ingredients": [
+        "eggs",
+        "baby spinach",
+        "mushrooms",
+        "feta",
+        "olive oil"
+      ],
+      "steps": [
+        "Prep the eggs.",
+        "Heat a skillet with olive oil.",
+        "Cook the eggs until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 320,
+        "protein": 24,
+        "carbs": 18,
+        "fat": 18
+      }
+    },
+    {
+      "title": "Eggs Stir-Fry 04",
+      "primaryIngredient": "eggs",
+      "timeMinutes": 27,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/eggs_04.jpg",
+      "ingredients": [
+        "eggs",
+        "baby spinach",
+        "mushrooms",
+        "feta",
+        "olive oil"
+      ],
+      "steps": [
+        "Prep the eggs.",
+        "Heat a skillet with olive oil.",
+        "Cook the eggs until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 320,
+        "protein": 24,
+        "carbs": 18,
+        "fat": 18
+      }
+    },
+    {
+      "title": "Eggs Taco Bowl 05",
+      "primaryIngredient": "eggs",
+      "timeMinutes": 18,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/eggs_05.jpg",
+      "ingredients": [
+        "eggs",
+        "baby spinach",
+        "mushrooms",
+        "feta",
+        "olive oil"
+      ],
+      "steps": [
+        "Prep the eggs.",
+        "Heat a skillet with olive oil.",
+        "Cook the eggs until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 320,
+        "protein": 24,
+        "carbs": 18,
+        "fat": 18
+      }
+    },
+    {
+      "title": "Eggs One-Pot Dinner 06",
+      "primaryIngredient": "eggs",
+      "timeMinutes": 21,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/eggs_06.jpg",
+      "ingredients": [
+        "eggs",
+        "baby spinach",
+        "mushrooms",
+        "feta",
+        "olive oil"
+      ],
+      "steps": [
+        "Prep the eggs.",
+        "Heat a skillet with olive oil.",
+        "Cook the eggs until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 320,
+        "protein": 24,
+        "carbs": 18,
+        "fat": 18
+      }
+    },
+    {
+      "title": "Eggs Weeknight Meal 07",
+      "primaryIngredient": "eggs",
+      "timeMinutes": 24,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/eggs_07.jpg",
+      "ingredients": [
+        "eggs",
+        "baby spinach",
+        "mushrooms",
+        "feta",
+        "olive oil"
+      ],
+      "steps": [
+        "Prep the eggs.",
+        "Heat a skillet with olive oil.",
+        "Cook the eggs until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 320,
+        "protein": 24,
+        "carbs": 18,
+        "fat": 18
+      }
+    },
+    {
+      "title": "Eggs High-Protein Plate 08",
+      "primaryIngredient": "eggs",
+      "timeMinutes": 27,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/eggs_08.jpg",
+      "ingredients": [
+        "eggs",
+        "baby spinach",
+        "mushrooms",
+        "feta",
+        "olive oil"
+      ],
+      "steps": [
+        "Prep the eggs.",
+        "Heat a skillet with olive oil.",
+        "Cook the eggs until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 320,
+        "protein": 24,
+        "carbs": 18,
+        "fat": 18
+      }
+    },
+    {
+      "title": "Eggs Fuel-Up Bowl 09",
+      "primaryIngredient": "eggs",
+      "timeMinutes": 18,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/eggs_09.jpg",
+      "ingredients": [
+        "eggs",
+        "baby spinach",
+        "mushrooms",
+        "feta",
+        "olive oil"
+      ],
+      "steps": [
+        "Prep the eggs.",
+        "Heat a skillet with olive oil.",
+        "Cook the eggs until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 320,
+        "protein": 24,
+        "carbs": 18,
+        "fat": 18
+      }
+    },
+    {
+      "title": "Eggs Meal Prep 10",
+      "primaryIngredient": "eggs",
+      "timeMinutes": 21,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/eggs_10.jpg",
+      "ingredients": [
+        "eggs",
+        "baby spinach",
+        "mushrooms",
+        "feta",
+        "olive oil"
+      ],
+      "steps": [
+        "Prep the eggs.",
+        "Heat a skillet with olive oil.",
+        "Cook the eggs until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 320,
+        "protein": 24,
+        "carbs": 18,
+        "fat": 18
+      }
+    },
+    {
+      "title": "Beef Power Bowl 01",
+      "primaryIngredient": "beef",
+      "timeMinutes": 35,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/beef_01.jpg",
+      "ingredients": [
+        "lean ground beef",
+        "bell pepper",
+        "onion",
+        "black beans",
+        "cilantro"
+      ],
+      "steps": [
+        "Prep the beef.",
+        "Heat a skillet with olive oil.",
+        "Cook the beef until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 540,
+        "protein": 40,
+        "carbs": 36,
+        "fat": 24
+      }
+    },
+    {
+      "title": "Beef Skillet 02",
+      "primaryIngredient": "beef",
+      "timeMinutes": 38,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/beef_02.jpg",
+      "ingredients": [
+        "lean ground beef",
+        "bell pepper",
+        "onion",
+        "black beans",
+        "cilantro"
+      ],
+      "steps": [
+        "Prep the beef.",
+        "Heat a skillet with olive oil.",
+        "Cook the beef until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 540,
+        "protein": 40,
+        "carbs": 36,
+        "fat": 24
+      }
+    },
+    {
+      "title": "Beef Sheet Pan 03",
+      "primaryIngredient": "beef",
+      "timeMinutes": 41,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/beef_03.jpg",
+      "ingredients": [
+        "lean ground beef",
+        "bell pepper",
+        "onion",
+        "black beans",
+        "cilantro"
+      ],
+      "steps": [
+        "Prep the beef.",
+        "Heat a skillet with olive oil.",
+        "Cook the beef until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 540,
+        "protein": 40,
+        "carbs": 36,
+        "fat": 24
+      }
+    },
+    {
+      "title": "Beef Stir-Fry 04",
+      "primaryIngredient": "beef",
+      "timeMinutes": 44,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/beef_04.jpg",
+      "ingredients": [
+        "lean ground beef",
+        "bell pepper",
+        "onion",
+        "black beans",
+        "cilantro"
+      ],
+      "steps": [
+        "Prep the beef.",
+        "Heat a skillet with olive oil.",
+        "Cook the beef until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 540,
+        "protein": 40,
+        "carbs": 36,
+        "fat": 24
+      }
+    },
+    {
+      "title": "Beef Taco Bowl 05",
+      "primaryIngredient": "beef",
+      "timeMinutes": 35,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/beef_05.jpg",
+      "ingredients": [
+        "lean ground beef",
+        "bell pepper",
+        "onion",
+        "black beans",
+        "cilantro"
+      ],
+      "steps": [
+        "Prep the beef.",
+        "Heat a skillet with olive oil.",
+        "Cook the beef until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 540,
+        "protein": 40,
+        "carbs": 36,
+        "fat": 24
+      }
+    },
+    {
+      "title": "Beef One-Pot Dinner 06",
+      "primaryIngredient": "beef",
+      "timeMinutes": 38,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/beef_06.jpg",
+      "ingredients": [
+        "lean ground beef",
+        "bell pepper",
+        "onion",
+        "black beans",
+        "cilantro"
+      ],
+      "steps": [
+        "Prep the beef.",
+        "Heat a skillet with olive oil.",
+        "Cook the beef until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 540,
+        "protein": 40,
+        "carbs": 36,
+        "fat": 24
+      }
+    },
+    {
+      "title": "Beef Weeknight Meal 07",
+      "primaryIngredient": "beef",
+      "timeMinutes": 41,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/beef_07.jpg",
+      "ingredients": [
+        "lean ground beef",
+        "bell pepper",
+        "onion",
+        "black beans",
+        "cilantro"
+      ],
+      "steps": [
+        "Prep the beef.",
+        "Heat a skillet with olive oil.",
+        "Cook the beef until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 540,
+        "protein": 40,
+        "carbs": 36,
+        "fat": 24
+      }
+    },
+    {
+      "title": "Beef High-Protein Plate 08",
+      "primaryIngredient": "beef",
+      "timeMinutes": 44,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/beef_08.jpg",
+      "ingredients": [
+        "lean ground beef",
+        "bell pepper",
+        "onion",
+        "black beans",
+        "cilantro"
+      ],
+      "steps": [
+        "Prep the beef.",
+        "Heat a skillet with olive oil.",
+        "Cook the beef until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 540,
+        "protein": 40,
+        "carbs": 36,
+        "fat": 24
+      }
+    },
+    {
+      "title": "Beef Fuel-Up Bowl 09",
+      "primaryIngredient": "beef",
+      "timeMinutes": 35,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/beef_09.jpg",
+      "ingredients": [
+        "lean ground beef",
+        "bell pepper",
+        "onion",
+        "black beans",
+        "cilantro"
+      ],
+      "steps": [
+        "Prep the beef.",
+        "Heat a skillet with olive oil.",
+        "Cook the beef until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 540,
+        "protein": 40,
+        "carbs": 36,
+        "fat": 24
+      }
+    },
+    {
+      "title": "Beef Meal Prep 10",
+      "primaryIngredient": "beef",
+      "timeMinutes": 38,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/beef_10.jpg",
+      "ingredients": [
+        "lean ground beef",
+        "bell pepper",
+        "onion",
+        "black beans",
+        "cilantro"
+      ],
+      "steps": [
+        "Prep the beef.",
+        "Heat a skillet with olive oil.",
+        "Cook the beef until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 540,
+        "protein": 40,
+        "carbs": 36,
+        "fat": 24
+      }
+    },
+    {
+      "title": "Salmon Power Bowl 01",
+      "primaryIngredient": "salmon",
+      "timeMinutes": 30,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/salmon_01.jpg",
+      "ingredients": [
+        "salmon fillet",
+        "broccoli",
+        "olive oil",
+        "lemon",
+        "quinoa"
+      ],
+      "steps": [
+        "Prep the salmon.",
+        "Heat a skillet with olive oil.",
+        "Cook the salmon until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 460,
+        "protein": 34,
+        "carbs": 28,
+        "fat": 20
+      }
+    },
+    {
+      "title": "Salmon Skillet 02",
+      "primaryIngredient": "salmon",
+      "timeMinutes": 33,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/salmon_02.jpg",
+      "ingredients": [
+        "salmon fillet",
+        "broccoli",
+        "olive oil",
+        "lemon",
+        "quinoa"
+      ],
+      "steps": [
+        "Prep the salmon.",
+        "Heat a skillet with olive oil.",
+        "Cook the salmon until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 460,
+        "protein": 34,
+        "carbs": 28,
+        "fat": 20
+      }
+    },
+    {
+      "title": "Salmon Sheet Pan 03",
+      "primaryIngredient": "salmon",
+      "timeMinutes": 36,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/salmon_03.jpg",
+      "ingredients": [
+        "salmon fillet",
+        "broccoli",
+        "olive oil",
+        "lemon",
+        "quinoa"
+      ],
+      "steps": [
+        "Prep the salmon.",
+        "Heat a skillet with olive oil.",
+        "Cook the salmon until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 460,
+        "protein": 34,
+        "carbs": 28,
+        "fat": 20
+      }
+    },
+    {
+      "title": "Salmon Stir-Fry 04",
+      "primaryIngredient": "salmon",
+      "timeMinutes": 39,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/salmon_04.jpg",
+      "ingredients": [
+        "salmon fillet",
+        "broccoli",
+        "olive oil",
+        "lemon",
+        "quinoa"
+      ],
+      "steps": [
+        "Prep the salmon.",
+        "Heat a skillet with olive oil.",
+        "Cook the salmon until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 460,
+        "protein": 34,
+        "carbs": 28,
+        "fat": 20
+      }
+    },
+    {
+      "title": "Salmon Taco Bowl 05",
+      "primaryIngredient": "salmon",
+      "timeMinutes": 30,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/salmon_05.jpg",
+      "ingredients": [
+        "salmon fillet",
+        "broccoli",
+        "olive oil",
+        "lemon",
+        "quinoa"
+      ],
+      "steps": [
+        "Prep the salmon.",
+        "Heat a skillet with olive oil.",
+        "Cook the salmon until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 460,
+        "protein": 34,
+        "carbs": 28,
+        "fat": 20
+      }
+    },
+    {
+      "title": "Salmon One-Pot Dinner 06",
+      "primaryIngredient": "salmon",
+      "timeMinutes": 33,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/salmon_06.jpg",
+      "ingredients": [
+        "salmon fillet",
+        "broccoli",
+        "olive oil",
+        "lemon",
+        "quinoa"
+      ],
+      "steps": [
+        "Prep the salmon.",
+        "Heat a skillet with olive oil.",
+        "Cook the salmon until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 460,
+        "protein": 34,
+        "carbs": 28,
+        "fat": 20
+      }
+    },
+    {
+      "title": "Salmon Weeknight Meal 07",
+      "primaryIngredient": "salmon",
+      "timeMinutes": 36,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/salmon_07.jpg",
+      "ingredients": [
+        "salmon fillet",
+        "broccoli",
+        "olive oil",
+        "lemon",
+        "quinoa"
+      ],
+      "steps": [
+        "Prep the salmon.",
+        "Heat a skillet with olive oil.",
+        "Cook the salmon until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 460,
+        "protein": 34,
+        "carbs": 28,
+        "fat": 20
+      }
+    },
+    {
+      "title": "Salmon High-Protein Plate 08",
+      "primaryIngredient": "salmon",
+      "timeMinutes": 39,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/salmon_08.jpg",
+      "ingredients": [
+        "salmon fillet",
+        "broccoli",
+        "olive oil",
+        "lemon",
+        "quinoa"
+      ],
+      "steps": [
+        "Prep the salmon.",
+        "Heat a skillet with olive oil.",
+        "Cook the salmon until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 460,
+        "protein": 34,
+        "carbs": 28,
+        "fat": 20
+      }
+    },
+    {
+      "title": "Salmon Fuel-Up Bowl 09",
+      "primaryIngredient": "salmon",
+      "timeMinutes": 30,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/salmon_09.jpg",
+      "ingredients": [
+        "salmon fillet",
+        "broccoli",
+        "olive oil",
+        "lemon",
+        "quinoa"
+      ],
+      "steps": [
+        "Prep the salmon.",
+        "Heat a skillet with olive oil.",
+        "Cook the salmon until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 460,
+        "protein": 34,
+        "carbs": 28,
+        "fat": 20
+      }
+    },
+    {
+      "title": "Salmon Meal Prep 10",
+      "primaryIngredient": "salmon",
+      "timeMinutes": 33,
+      "difficulty": "intermediate",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/salmon_10.jpg",
+      "ingredients": [
+        "salmon fillet",
+        "broccoli",
+        "olive oil",
+        "lemon",
+        "quinoa"
+      ],
+      "steps": [
+        "Prep the salmon.",
+        "Heat a skillet with olive oil.",
+        "Cook the salmon until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 460,
+        "protein": 34,
+        "carbs": 28,
+        "fat": 20
+      }
+    },
+    {
+      "title": "Tofu Power Bowl 01",
+      "primaryIngredient": "tofu",
+      "timeMinutes": 26,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/tofu_01.jpg",
+      "ingredients": [
+        "firm tofu",
+        "broccoli",
+        "snap peas",
+        "soy sauce",
+        "sesame oil"
+      ],
+      "steps": [
+        "Prep the tofu.",
+        "Heat a skillet with olive oil.",
+        "Cook the tofu until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 360,
+        "protein": 22,
+        "carbs": 34,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Tofu Skillet 02",
+      "primaryIngredient": "tofu",
+      "timeMinutes": 29,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/tofu_02.jpg",
+      "ingredients": [
+        "firm tofu",
+        "broccoli",
+        "snap peas",
+        "soy sauce",
+        "sesame oil"
+      ],
+      "steps": [
+        "Prep the tofu.",
+        "Heat a skillet with olive oil.",
+        "Cook the tofu until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 360,
+        "protein": 22,
+        "carbs": 34,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Tofu Sheet Pan 03",
+      "primaryIngredient": "tofu",
+      "timeMinutes": 32,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/tofu_03.jpg",
+      "ingredients": [
+        "firm tofu",
+        "broccoli",
+        "snap peas",
+        "soy sauce",
+        "sesame oil"
+      ],
+      "steps": [
+        "Prep the tofu.",
+        "Heat a skillet with olive oil.",
+        "Cook the tofu until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 360,
+        "protein": 22,
+        "carbs": 34,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Tofu Stir-Fry 04",
+      "primaryIngredient": "tofu",
+      "timeMinutes": 35,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/tofu_04.jpg",
+      "ingredients": [
+        "firm tofu",
+        "broccoli",
+        "snap peas",
+        "soy sauce",
+        "sesame oil"
+      ],
+      "steps": [
+        "Prep the tofu.",
+        "Heat a skillet with olive oil.",
+        "Cook the tofu until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 360,
+        "protein": 22,
+        "carbs": 34,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Tofu Taco Bowl 05",
+      "primaryIngredient": "tofu",
+      "timeMinutes": 26,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/tofu_05.jpg",
+      "ingredients": [
+        "firm tofu",
+        "broccoli",
+        "snap peas",
+        "soy sauce",
+        "sesame oil"
+      ],
+      "steps": [
+        "Prep the tofu.",
+        "Heat a skillet with olive oil.",
+        "Cook the tofu until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 360,
+        "protein": 22,
+        "carbs": 34,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Tofu One-Pot Dinner 06",
+      "primaryIngredient": "tofu",
+      "timeMinutes": 29,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/tofu_06.jpg",
+      "ingredients": [
+        "firm tofu",
+        "broccoli",
+        "snap peas",
+        "soy sauce",
+        "sesame oil"
+      ],
+      "steps": [
+        "Prep the tofu.",
+        "Heat a skillet with olive oil.",
+        "Cook the tofu until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 360,
+        "protein": 22,
+        "carbs": 34,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Tofu Weeknight Meal 07",
+      "primaryIngredient": "tofu",
+      "timeMinutes": 32,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/tofu_07.jpg",
+      "ingredients": [
+        "firm tofu",
+        "broccoli",
+        "snap peas",
+        "soy sauce",
+        "sesame oil"
+      ],
+      "steps": [
+        "Prep the tofu.",
+        "Heat a skillet with olive oil.",
+        "Cook the tofu until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 360,
+        "protein": 22,
+        "carbs": 34,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Tofu High-Protein Plate 08",
+      "primaryIngredient": "tofu",
+      "timeMinutes": 35,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/tofu_08.jpg",
+      "ingredients": [
+        "firm tofu",
+        "broccoli",
+        "snap peas",
+        "soy sauce",
+        "sesame oil"
+      ],
+      "steps": [
+        "Prep the tofu.",
+        "Heat a skillet with olive oil.",
+        "Cook the tofu until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 360,
+        "protein": 22,
+        "carbs": 34,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Tofu Fuel-Up Bowl 09",
+      "primaryIngredient": "tofu",
+      "timeMinutes": 26,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/tofu_09.jpg",
+      "ingredients": [
+        "firm tofu",
+        "broccoli",
+        "snap peas",
+        "soy sauce",
+        "sesame oil"
+      ],
+      "steps": [
+        "Prep the tofu.",
+        "Heat a skillet with olive oil.",
+        "Cook the tofu until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 360,
+        "protein": 22,
+        "carbs": 34,
+        "fat": 16
+      }
+    },
+    {
+      "title": "Tofu Meal Prep 10",
+      "primaryIngredient": "tofu",
+      "timeMinutes": 29,
+      "difficulty": "easy",
+      "imageUrl": "https://cdn.camera-first.dev/recipes/tofu_10.jpg",
+      "ingredients": [
+        "firm tofu",
+        "broccoli",
+        "snap peas",
+        "soy sauce",
+        "sesame oil"
+      ],
+      "steps": [
+        "Prep the tofu.",
+        "Heat a skillet with olive oil.",
+        "Cook the tofu until browned.",
+        "Fold in vegetables and seasonings.",
+        "Plate and finish with citrus."
+      ],
+      "nutrition": {
+        "calories": 360,
+        "protein": 22,
+        "carbs": 34,
+        "fat": 16
+      }
+    }
+  ]
+}

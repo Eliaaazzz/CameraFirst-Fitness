@@ -1,15 +1,20 @@
 package com.fitnessapp.backend.retrieval;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.domain.Ingredient;
 import com.fitnessapp.backend.domain.Recipe;
 import com.fitnessapp.backend.domain.RecipeIngredient;
 import com.fitnessapp.backend.retrieval.dto.RecipeCard;
+import com.fitnessapp.backend.retrieval.dto.RecipeStep;
 import com.fitnessapp.backend.repository.RecipeRepository;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -30,6 +35,7 @@ public class RecipeRetrievalService {
     private static final String DEFAULT_FALLBACK_DIFFICULTY = "easy";
 
     private final RecipeRepository repository;
+    private final ObjectMapper objectMapper;
 
     public List<RecipeCard> findRecipes(List<String> detectedIngredients, int maxTime) {
         List<String> normalizedDetected = normalizeDetected(detectedIngredients);
@@ -108,12 +114,17 @@ public class RecipeRetrievalService {
     }
 
     private RecipeCard toCard(Recipe recipe) {
+        List<RecipeStep> steps = parseSteps(recipe);
+        Map<String, Object> nutrition = parseNutrition(recipe);
+
         return RecipeCard.builder()
                 .id(recipe.getId() != null ? recipe.getId().toString() : null)
                 .title(recipe.getTitle())
                 .timeMinutes(recipe.getTimeMinutes())
                 .difficulty(recipe.getDifficulty())
                 .imageUrl(recipe.getImageUrl())
+                .steps(steps)
+                .nutrition(nutrition.isEmpty() ? null : nutrition)
                 .build();
     }
 
@@ -133,5 +144,32 @@ public class RecipeRetrievalService {
         }
         orderedRecipes.add(recipe);
         seenRecipeIds.add(id);
+    }
+
+    private List<RecipeStep> parseSteps(Recipe recipe) {
+        String stepsJson = recipe.getSteps();
+        if (!StringUtils.hasText(stepsJson)) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(stepsJson, new TypeReference<List<RecipeStep>>() {});
+        } catch (Exception ex) {
+            log.warn("Failed to parse steps for recipe {} ({}): {}", recipe.getTitle(), recipe.getId(), ex.getMessage());
+            return List.of();
+        }
+    }
+
+    private Map<String, Object> parseNutrition(Recipe recipe) {
+        String nutritionJson = recipe.getNutritionSummary();
+        if (!StringUtils.hasText(nutritionJson)) {
+            return Map.of();
+        }
+        try {
+            Map<String, Object> nutrition = objectMapper.readValue(nutritionJson, new TypeReference<LinkedHashMap<String, Object>>() {});
+            return nutrition != null ? nutrition : Map.of();
+        } catch (Exception ex) {
+            log.warn("Failed to parse nutrition for recipe {} ({}): {}", recipe.getTitle(), recipe.getId(), ex.getMessage());
+            return Map.of();
+        }
     }
 }

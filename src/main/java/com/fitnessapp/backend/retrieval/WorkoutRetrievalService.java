@@ -43,13 +43,19 @@ public class WorkoutRetrievalService {
                 .collect(Collectors.toList());
 
         List<WorkoutVideo> basePool = durationMatches.isEmpty() ? exactMatches : durationMatches;
-
-        Comparator<WorkoutVideo> comparator = Comparator
-                .comparing((WorkoutVideo video) -> levelMatches(video, level) ? 0 : 1)
-                .thenComparing(WorkoutRetrievalService::viewCountOrZero, Comparator.reverseOrder());
+        double maxViewCount = basePool.stream()
+                .mapToDouble(video -> viewCountOrZero(video))
+                .max()
+                .orElse(0D);
 
         List<WorkoutVideo> sorted = basePool.stream()
-                .sorted(comparator)
+                .map(video -> new ScoredWorkout(video, computeScore(video, level, durationPreference, maxViewCount)))
+                .sorted(Comparator
+                        .comparingDouble(ScoredWorkout::score)
+                        .reversed()
+                        .thenComparing(scored -> durationDelta(scored.video(), durationPreference))
+                        .thenComparing(scored -> viewCountOrZero(scored.video()), Comparator.reverseOrder()))
+                .map(ScoredWorkout::video)
                 .collect(Collectors.toList());
 
         return selectDiverseWorkouts(sorted, DEFAULT_RESULT_LIMIT);
@@ -64,6 +70,46 @@ public class WorkoutRetrievalService {
 
     private static long viewCountOrZero(WorkoutVideo video) {
         return video.getViewCount() == null ? 0L : video.getViewCount();
+    }
+
+    private double computeScore(WorkoutVideo video, String requestedLevel, int durationPreference, double maxViewCount) {
+        double score = 0D;
+
+        score += 1.0D; // base equipment match due to pre-filter
+        if (durationMatches(video, durationPreference)) {
+            score += 0.5D;
+        }
+        if (levelMatches(video, requestedLevel)) {
+            score += 0.3D;
+        }
+        score += viewCountBoost(video, maxViewCount);
+
+        return score;
+    }
+
+    private boolean durationMatches(WorkoutVideo video, int durationPreference) {
+        if (video.getDurationMinutes() == null) {
+            return false;
+        }
+        if (durationPreference <= 0) {
+            return true;
+        }
+        return Math.abs(video.getDurationMinutes() - durationPreference) <= DEFAULT_DURATION_TOLERANCE_MINUTES;
+    }
+
+    private int durationDelta(WorkoutVideo video, int durationPreference) {
+        if (video.getDurationMinutes() == null || durationPreference <= 0) {
+            return Integer.MAX_VALUE;
+        }
+        return Math.abs(video.getDurationMinutes() - durationPreference);
+    }
+
+    private double viewCountBoost(WorkoutVideo video, double maxViewCount) {
+        if (maxViewCount <= 0D) {
+            return 0D;
+        }
+        double ratio = viewCountOrZero(video) / maxViewCount;
+        return Math.min(ratio, 1D) * 0.2D;
     }
 
     private List<WorkoutCard> selectDiverseWorkouts(List<WorkoutVideo> videos, int desiredCount) {
@@ -113,6 +159,9 @@ public class WorkoutRetrievalService {
     private WorkoutCard toCard(WorkoutVideo video) {
         List<String> equipment = video.getEquipment();
         List<String> bodyParts = video.getBodyPart();
+        String youtubeUrl = StringUtils.hasText(video.getYoutubeId())
+                ? "https://www.youtube.com/watch?v=" + video.getYoutubeId()
+                : null;
         return WorkoutCard.builder()
                 .youtubeId(video.getYoutubeId())
                 .title(video.getTitle())
@@ -122,7 +171,11 @@ public class WorkoutRetrievalService {
                 .bodyParts(bodyParts == null ? List.of() : new ArrayList<>(bodyParts))
                 .thumbnailUrl(video.getThumbnailUrl())
                 .viewCount(video.getViewCount())
+                .youtubeUrl(youtubeUrl)
                 .build();
+    }
+
+    private record ScoredWorkout(WorkoutVideo video, double score) {
     }
 
     private String primaryBodyPart(WorkoutVideo video) {

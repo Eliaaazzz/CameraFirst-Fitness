@@ -13,5 +13,6 @@ import lombok.extern.jackson.Jacksonized;
 public class RecipeResponse {
     List<RecipeCard> recipes;
     List<String> detectedIngredients;
+    Integer maxTimeMinutes;
     Integer latencyMs;
 }
