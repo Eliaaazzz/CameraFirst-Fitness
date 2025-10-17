@@ -13,5 +13,7 @@ import lombok.extern.jackson.Jacksonized;
 public class WorkoutResponse {
     List<WorkoutCard> workouts;
     String detectedEquipment;
+    String detectedLevel;
+    Integer targetDurationMinutes;
     Integer latencyMs;
 }

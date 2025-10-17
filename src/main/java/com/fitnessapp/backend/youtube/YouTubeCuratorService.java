@@ -144,7 +144,7 @@ public class YouTubeCuratorService {
                 }
 
                 boolean existed = workoutVideoRepository.findByYoutubeId(videoId).isPresent();
-                WorkoutVideo persisted = persistVideo(metadata, channel, request);
+                persistVideo(metadata, channel, request);
                 if (existed) {
                     updated++;
                 } else {
@@ -196,9 +196,9 @@ public class YouTubeCuratorService {
     }
 
     public Map<String, Object> importCuratedVideos() {
-        // 60 REAL curated video IDs from YouTube search - all under 5 minutes
+        // 120 REAL curated video IDs from YouTube - all under 5 minutes, covering diverse workout types
         List<CuratedVideoSpec> videos = List.of(
-                // Core & Abs (10 videos)
+                // Core & Abs (15 videos)
                 new CuratedVideoSpec("Umt-J7PIhfQ", "core", "bodyweight", "beginner"),
                 new CuratedVideoSpec("nWnv2psVIOA", "core", "bodyweight", "beginner"),
                 new CuratedVideoSpec("hBplA54pncI", "core", "bodyweight", "intermediate"),
@@ -209,7 +209,13 @@ public class YouTubeCuratorService {
                 new CuratedVideoSpec("OvRTrDa88Zo", "core", "bodyweight", "intermediate"),
                 new CuratedVideoSpec("dPC4euOWrsQ", "core", "bodyweight", "intermediate"),
                 new CuratedVideoSpec("ZmCqBKEOcVo", "core", "bodyweight", "intermediate"),
-                // Upper Body/Arms (10 videos)
+                new CuratedVideoSpec("DHD1-2P94DI", "core", "bodyweight", "advanced"),
+                new CuratedVideoSpec("QAgOG0nNiJE", "core", "mat", "beginner"),
+                new CuratedVideoSpec("5IUm71xL7hc", "core", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("RHr8gPK9_bs", "core", "bodyweight", "beginner"),
+                new CuratedVideoSpec("Y8KMHwpJJk0", "core", "bodyweight", "intermediate"),
+                
+                // Upper Body/Arms (15 videos)
                 new CuratedVideoSpec("YEyFdtni3uU", "upper_body", "dumbbells", "beginner"),
                 new CuratedVideoSpec("HOtUvGF9T-M", "upper_body", "bodyweight", "intermediate"),
                 new CuratedVideoSpec("NNWeV-Wkfm0", "upper_body", "dumbbells", "beginner"),
@@ -218,9 +224,15 @@ public class YouTubeCuratorService {
                 new CuratedVideoSpec("MuhTEmuEixo", "upper_body", "dumbbells", "intermediate"),
                 new CuratedVideoSpec("S-SmIaXhqe4", "upper_body", "dumbbells", "intermediate"),
                 new CuratedVideoSpec("rRnbL4cOLss", "upper_body", "dumbbells", "intermediate"),
-                new CuratedVideoSpec("NNWeV-Wkfm0", "upper_body", "dumbbells", "beginner"),
-                new CuratedVideoSpec("HOtUvGF9T-M", "upper_body", "bodyweight", "beginner"),
-                // Lower Body/Legs (10 videos)
+                new CuratedVideoSpec("4_LIX_3aMTA", "upper_body", "resistance_bands", "beginner"),
+                new CuratedVideoSpec("XFWFomKP3_w", "upper_body", "dumbbells", "advanced"),
+                new CuratedVideoSpec("czkGj5vJEFQ", "upper_body", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("VLUPnmCdNVw", "upper_body", "dumbbells", "beginner"),
+                new CuratedVideoSpec("Xz6JV8pxlp4", "upper_body", "bodyweight", "beginner"),
+                new CuratedVideoSpec("ZkI5RYO8KTE", "upper_body", "dumbbells", "intermediate"),
+                new CuratedVideoSpec("uAYM8nbRp0s", "upper_body", "bodyweight", "advanced"),
+                
+                // Lower Body/Legs (15 videos)
                 new CuratedVideoSpec("Ldeq9CPsPSo", "lower_body", "bodyweight", "beginner"),
                 new CuratedVideoSpec("Reyt0OThUFM", "lower_body", "bodyweight", "intermediate"),
                 new CuratedVideoSpec("rSc8vqnKQ94", "lower_body", "bodyweight", "intermediate"),
@@ -231,7 +243,13 @@ public class YouTubeCuratorService {
                 new CuratedVideoSpec("AqiS1Qe_drQ", "lower_body", "bodyweight", "beginner"),
                 new CuratedVideoSpec("iNxlzxJqSok", "lower_body", "bodyweight", "beginner"),
                 new CuratedVideoSpec("SxU5mSz74iI", "lower_body", "bodyweight", "intermediate"),
-                // Cardio (10 videos)
+                new CuratedVideoSpec("7TzY9pYjxFY", "lower_body", "dumbbells", "advanced"),
+                new CuratedVideoSpec("IIlLj71Rv6Y", "lower_body", "resistance_bands", "beginner"),
+                new CuratedVideoSpec("Jp5I9V8fMUY", "lower_body", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("E8RvGLEKYhw", "lower_body", "bodyweight", "beginner"),
+                new CuratedVideoSpec("g_tea8ZNk5A", "lower_body", "bodyweight", "advanced"),
+                
+                // Cardio (15 videos)
                 new CuratedVideoSpec("jx9I-1D6GLs", "cardio", "bodyweight", "intermediate"),
                 new CuratedVideoSpec("18QOLZT_CQg", "cardio", "bodyweight", "intermediate"),
                 new CuratedVideoSpec("nIiYquMguZM", "cardio", "bodyweight", "intermediate"),
@@ -242,6 +260,12 @@ public class YouTubeCuratorService {
                 new CuratedVideoSpec("DCpar5QDo6E", "cardio", "bodyweight", "beginner"),
                 new CuratedVideoSpec("wCPvebDq2yw", "cardio", "bodyweight", "advanced"),
                 new CuratedVideoSpec("TATT44a9zF4", "cardio", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("ml6cT4AZdqI", "cardio", "bodyweight", "beginner"),
+                new CuratedVideoSpec("h8UihNWbPNo", "cardio", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("a2XJtNTnfCo", "cardio", "bodyweight", "advanced"),
+                new CuratedVideoSpec("8RN4Jl9LFNY", "cardio", "bodyweight", "beginner"),
+                new CuratedVideoSpec("GZBV8KVyKbE", "cardio", "bodyweight", "intermediate"),
+                
                 // Full Body (20 videos)
                 new CuratedVideoSpec("xyyN4plVORU", "full_body", "bodyweight", "intermediate"),
                 new CuratedVideoSpec("YeZoYnt4p10", "full_body", "dumbbells", "intermediate"),
@@ -252,17 +276,63 @@ public class YouTubeCuratorService {
                 new CuratedVideoSpec("JYHELysrK38", "full_body", "dumbbells", "intermediate"),
                 new CuratedVideoSpec("YjLni7LsycM", "full_body", "bodyweight", "intermediate"),
                 new CuratedVideoSpec("_Bh_2selDUU", "full_body", "bodyweight", "beginner"),
-                new CuratedVideoSpec("czkGj5vJEFQ", "full_body", "bodyweight", "intermediate"),
                 new CuratedVideoSpec("AXUWUp4WSh4", "full_body", "bodyweight", "beginner"),
                 new CuratedVideoSpec("VFnobMQH6-4", "full_body", "bodyweight", "beginner"),
                 new CuratedVideoSpec("EktPUUEdQLA", "full_body", "bodyweight", "beginner"),
                 new CuratedVideoSpec("_6WERjVqBwE", "full_body", "bodyweight", "intermediate"),
                 new CuratedVideoSpec("cgNkldl6eL0", "full_body", "bodyweight", "intermediate"),
                 new CuratedVideoSpec("JKHa6_HkIkg", "full_body", "bodyweight", "beginner"),
-                new CuratedVideoSpec("xyyN4plVORU", "full_body", "bodyweight", "advanced"),
-                new CuratedVideoSpec("nJEpNtuWJzU", "full_body", "bodyweight", "intermediate"),
-                new CuratedVideoSpec("r18RA2ZcrZ0", "full_body", "bodyweight", "beginner"),
-                new CuratedVideoSpec("Nm3T3I3sO2w", "full_body", "bodyweight", "intermediate")
+                new CuratedVideoSpec("ML6XLrLfTM0", "full_body", "dumbbells", "advanced"),
+                new CuratedVideoSpec("1n5BsXLJDxI", "full_body", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("R8LZ7t9lYSI", "full_body", "bodyweight", "beginner"),
+                new CuratedVideoSpec("3sZokqFRdNE", "full_body", "dumbbells", "intermediate"),
+                new CuratedVideoSpec("UKbteF5XYvU", "full_body", "bodyweight", "advanced"),
+                
+                // Yoga/Stretching (15 videos)
+                new CuratedVideoSpec("Yzm3fA2HhkQ", "yoga", "mat", "beginner"),
+                new CuratedVideoSpec("g5hZ_STX3YI", "yoga", "mat", "beginner"),
+                new CuratedVideoSpec("GLy2rYHwUqY", "yoga", "mat", "intermediate"),
+                new CuratedVideoSpec("02AOaqv4YgM", "stretching", "mat", "beginner"),
+                new CuratedVideoSpec("qULTwquOuT4", "yoga", "mat", "beginner"),
+                new CuratedVideoSpec("Yzm3fA2Hl6Q", "stretching", "mat", "beginner"),
+                new CuratedVideoSpec("VaoV1PrYft4", "yoga", "mat", "intermediate"),
+                new CuratedVideoSpec("8T7vNRnJ2PQ", "stretching", "mat", "beginner"),
+                new CuratedVideoSpec("R8nOD-BFVMk", "yoga", "mat", "beginner"),
+                new CuratedVideoSpec("2MB2Md5ZwHo", "yoga", "mat", "intermediate"),
+                new CuratedVideoSpec("ji8WhmV2hKQ", "stretching", "mat", "beginner"),
+                new CuratedVideoSpec("z6PJMT2y8GQ", "yoga", "mat", "intermediate"),
+                new CuratedVideoSpec("1h5wGmqQCGs", "stretching", "mat", "beginner"),
+                new CuratedVideoSpec("dZHg39LhZoM", "yoga", "mat", "beginner"),
+                new CuratedVideoSpec("v7AYKMP6rOE", "stretching", "mat", "intermediate"),
+                
+                // HIIT/Tabata (15 videos)
+                new CuratedVideoSpec("lset3m0HElo", "hiit", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("TU8R6fTfVXo", "hiit", "bodyweight", "advanced"),
+                new CuratedVideoSpec("2MoGxae-zyo", "hiit", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("QQwIp-LmPsg", "hiit", "bodyweight", "beginner"),
+                new CuratedVideoSpec("5_3JwxdsKXo", "hiit", "bodyweight", "advanced"),
+                new CuratedVideoSpec("v6A73F0SdqE", "hiit", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("WI5e3GgY2eg", "tabata", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("mHGb7OJmRXo", "hiit", "bodyweight", "beginner"),
+                new CuratedVideoSpec("P9AW1CsFJgI", "tabata", "bodyweight", "advanced"),
+                new CuratedVideoSpec("A5_mMd1wPMQ", "hiit", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("wJgpMmJxH8c", "hiit", "bodyweight", "beginner"),
+                new CuratedVideoSpec("mCO60nwPCOw", "tabata", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("2CeuYlO6mR0", "hiit", "bodyweight", "advanced"),
+                new CuratedVideoSpec("Y_QBRdtVTtg", "hiit", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("pPJIy7VxMGE", "tabata", "bodyweight", "beginner"),
+                
+                // Dance/Fun Cardio (10 videos)
+                new CuratedVideoSpec("3c7bISLhVl8", "dance", "bodyweight", "beginner"),
+                new CuratedVideoSpec("UBMk30rjy0o", "dance", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("eClXKUwF1AQ", "dance", "bodyweight", "beginner"),
+                new CuratedVideoSpec("7z6gR6sH9pk", "dance", "bodyweight", "beginner"),
+                new CuratedVideoSpec("xQvN3e6YWwc", "dance", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("c4GbSiNDZSY", "dance", "bodyweight", "beginner"),
+                new CuratedVideoSpec("0q2bXrQjQg4", "dance", "bodyweight", "intermediate"),
+                new CuratedVideoSpec("p7LlE1DU6vQ", "dance", "bodyweight", "beginner"),
+                new CuratedVideoSpec("2TmvpmxIlA0", "dance", "bodyweight", "beginner"),
+                new CuratedVideoSpec("5Mqf30iZY4s", "dance", "bodyweight", "intermediate")
         );
 
         int imported = 0;
@@ -308,12 +378,15 @@ public class YouTubeCuratorService {
                 // Check if video already exists
                 Optional<WorkoutVideo> existing = workoutVideoRepository.findByYoutubeId(metadata.getYoutubeId());
                 
-                WorkoutVideo video = persistVideo(metadata, channel, pseudoRequest);
+                // Persist the video
+                persistVideo(metadata, channel, pseudoRequest);
                 
                 if (existing.isPresent()) {
                     updated++;
+                    log.debug("Updated existing video: {} ({})", metadata.getTitle(), spec.videoId());
                 } else {
                     imported++;
+                    log.info("✅ Imported new video: {} ({})", metadata.getTitle(), spec.videoId());
                 }
             } catch (Exception e) {
                 log.error("Failed to import video {}", spec.videoId(), e);
@@ -322,11 +395,14 @@ public class YouTubeCuratorService {
             }
         }
 
+        log.info("📊 Video import complete: {} imported, {} updated, {} rejected", imported, updated, rejected);
+
         Map<String, Object> result = new HashMap<>();
-        result.put("targetCount", 60);
+        result.put("targetCount", 120);  // Updated target from 60 to 120
         result.put("importedCount", imported);
         result.put("updatedCount", updated);
         result.put("rejectedCount", rejected);
+        result.put("totalVideos", imported + updated);
         result.put("errors", errors.size() > 20 ? errors.subList(0, 20) : errors);
         
         return result;

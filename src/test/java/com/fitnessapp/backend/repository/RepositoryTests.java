@@ -21,7 +21,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 @DataJpaTest(properties = {
     "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.flyway.enabled=false"
+    "spring.flyway.enabled=false",
+    "app.seed.enabled=false"
 })
 class RepositoryTests {
   static PostgreSQLContainer<?> postgres;

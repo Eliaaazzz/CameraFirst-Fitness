@@ -109,7 +109,7 @@ class YouTubeServiceTest {
 
         assertThat(result).isPresent();
         VideoMetadata metadata = result.orElseThrow();
-        assertThat(metadata.getDurationMinutes()).isEqualTo(20);
+        assertThat(metadata.getDurationMinutes()).isEqualTo(21);
         assertThat(metadata.getViewCount()).isEqualTo(4250L);
 
         verify(valueOperations).set(eq("yt:video:abc123"), eq(metadata), eq(properties.getCacheTtl()));

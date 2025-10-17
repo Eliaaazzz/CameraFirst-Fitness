@@ -21,7 +21,8 @@ public class SecurityConfig {
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                     "/api/yt/**",
-                    "/api/admin/**").permitAll()
+                    "/api/admin/**",
+                    "/api/content/**").permitAll()  // Added content API for retrieval
                 .anyRequest().authenticated()
             )
             .httpBasic(Customizer.withDefaults());

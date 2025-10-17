@@ -32,13 +32,13 @@ public class Recipe {
   @Column(nullable = false, length = 20)
   private String difficulty;
 
-  @Column(name = "nutrition_summary", columnDefinition = "jsonb")
+  @Column(name = "nutrition_summary", length = 4000)
   private String nutritionSummary;
 
-  @Column(name = "steps", columnDefinition = "jsonb")
+  @Column(name = "steps", length = 4000)
   private String steps;
 
-  @Column(name = "swaps", columnDefinition = "jsonb")
+  @Column(name = "swaps", length = 1000)
   private String swaps;
 
   @Column(name = "created_at", insertable = false, updatable = false)
@@ -48,4 +48,3 @@ public class Recipe {
   @Builder.Default
   private Set<RecipeIngredient> ingredients = new HashSet<>();
 }
-

@@ -33,11 +33,11 @@ public class WorkoutVideo {
   @Column(nullable = false, length = 20)
   private String level;
 
-  @Column(columnDefinition = "text[]")
+  @Column
   @JdbcTypeCode(SqlTypes.ARRAY)
   private List<String> equipment;
 
-  @Column(name = "body_part", columnDefinition = "text[]")
+  @Column(name = "body_part")
   @JdbcTypeCode(SqlTypes.ARRAY)
   private List<String> bodyPart;
 

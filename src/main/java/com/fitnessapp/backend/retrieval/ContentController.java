@@ -9,9 +9,10 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping(path = "/api/v1", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -21,8 +22,10 @@ public class ContentController {
     private final WorkoutRetrievalService workoutService;
     private final RecipeRetrievalService recipeService;
 
-    @PostMapping("/workouts/from-image")
-    public WorkoutResponse getWorkouts(@RequestBody(required = false) ImageRequest request) {
+    @PostMapping(path = "/workouts/from-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public WorkoutResponse getWorkouts(
+            @RequestPart(name = "image", required = false) MultipartFile image,
+            @RequestPart(name = "metadata", required = false) ImageRequest metadata) {
         Instant start = Instant.now();
 
         String detectedEquipment = "dumbbells";
@@ -35,12 +38,16 @@ public class ContentController {
         return WorkoutResponse.builder()
                 .workouts(workouts)
                 .detectedEquipment(detectedEquipment)
+                .detectedLevel(detectedLevel)
+                .targetDurationMinutes(targetDuration)
                 .latencyMs((int) Math.min(elapsed.toMillis(), 150))
                 .build();
     }
 
-    @PostMapping("/recipes/from-image")
-    public RecipeResponse getRecipes(@RequestBody(required = false) ImageRequest request) {
+    @PostMapping(path = "/recipes/from-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public RecipeResponse getRecipes(
+            @RequestPart(name = "image", required = false) MultipartFile image,
+            @RequestPart(name = "metadata", required = false) ImageRequest metadata) {
         Instant start = Instant.now();
 
         List<String> detectedIngredients = List.of("chicken");
@@ -52,6 +59,7 @@ public class ContentController {
         return RecipeResponse.builder()
                 .recipes(recipes)
                 .detectedIngredients(detectedIngredients)
+                .maxTimeMinutes(maxTimeMinutes)
                 .latencyMs((int) Math.min(elapsed.toMillis(), 120))
                 .build();
     }

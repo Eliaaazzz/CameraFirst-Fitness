@@ -22,6 +22,9 @@ Backend services for the Camera First Fitness MVP. This repository includes a Sp
    - PostgreSQL: `psql postgresql://fitnessuser:dev_password@localhost:5432/fitness_mvp`
    - Redis: `redis-cli -h localhost -p 6379 ping`
 
+5. The application seeds a starter content library on boot (120 workout cards + 60 recipes).
+   - Set `APP_SEED_ENABLED=false` if you want to skip seeding (e.g., when restoring from a dump).
+
 ## Project Structure
 - `docker-compose.yml` – Docker services for PostgreSQL, Redis, and the Spring Boot app
 - `.env.example` – Template for environment-specific secrets and connection strings

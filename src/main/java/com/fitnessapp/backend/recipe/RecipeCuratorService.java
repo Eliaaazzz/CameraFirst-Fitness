@@ -25,6 +25,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
@@ -34,19 +39,24 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Slf4j
 public class RecipeCuratorService {
 
-    private static final List<String> CURATED_INGREDIENTS = List.of("chicken", "pasta", "eggs", "beef", "salmon", "tofu");
-    private static final int MAX_READY_TIME_MINUTES = 45;
-    private static final int MIN_STEP_COUNT = 5;
-    private static final int MAX_STEP_COUNT = 8;
+    // Expanded ingredient list for better diversity and higher success rate
+    private static final List<String> CURATED_INGREDIENTS = List.of(
+            "chicken", "pasta", "eggs", "beef", "salmon", "tofu",
+            "rice", "potato", "turkey", "shrimp", "broccoli", "quinoa"
+    );
+    private static final int MAX_READY_TIME_MINUTES = 50;  // Increased from 45 to 50
+    private static final int MIN_STEP_COUNT = 2;            // Further relaxed from 3 to 2
+    private static final int MAX_STEP_COUNT = 15;           // Increased from 12 to 15
     private static final int MAX_RECIPES_PER_INGREDIENT = 10;
     private static final int TARGET_TOTAL_RECIPES = 60;
     private static final int SEARCH_BATCH_SIZE = 30;
-    private static final int MIN_AGGREGATE_LIKES = 20;
+    private static final int MIN_AGGREGATE_LIKES = 5;       // Further relaxed from 10 to 5
 
     private final RecipeRepository recipeRepository;
     private final IngredientRepository ingredientRepository;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${app.spoonacular.api-key:}")
     private String spoonacularApiKey;
@@ -54,7 +64,8 @@ public class RecipeCuratorService {
     public RecipeCuratorService(RecipeRepository recipeRepository,
                                 IngredientRepository ingredientRepository,
                                 ObjectMapper objectMapper,
-                                RestTemplateBuilder restTemplateBuilder) {
+                                RestTemplateBuilder restTemplateBuilder,
+                                PlatformTransactionManager transactionManager) {
         this.recipeRepository = recipeRepository;
         this.ingredientRepository = ingredientRepository;
         this.objectMapper = objectMapper;
@@ -63,6 +74,8 @@ public class RecipeCuratorService {
                 .setReadTimeout(Duration.ofSeconds(10))
                 .additionalMessageConverters(new MappingJackson2HttpMessageConverter())
                 .build();
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     public RecipeCurationResult curateTopRecipes() {
@@ -81,38 +94,62 @@ public class RecipeCuratorService {
                 break;
             }
 
-            List<SearchResult> results = fetchRecipesForIngredient(ingredient);
-            int importedForIngredient = 0;
+            try {
+                List<SearchResult> results = fetchRecipesForIngredient(ingredient);
+                int importedForIngredient = 0;
 
-            for (SearchResult result : results) {
-                if (curated >= TARGET_TOTAL_RECIPES || importedForIngredient >= MAX_RECIPES_PER_INGREDIENT) {
-                    break;
+                for (SearchResult result : results) {
+                    if (curated >= TARGET_TOTAL_RECIPES || importedForIngredient >= MAX_RECIPES_PER_INGREDIENT) {
+                        break;
+                    }
+
+                    inspected++;
+                    Optional<String> qualityIssue = evaluateQuality(result);
+                    if (qualityIssue.isPresent()) {
+                        rejected++;
+                        reviewNotes.add(result.id() + ":" + qualityIssue.get());
+                        continue;
+                    }
+
+                    if (recipeRepository.existsByTitleIgnoreCase(result.title())) {
+                        skipped++;
+                        continue;
+                    }
+
+                    try {
+                        transactionTemplate.executeWithoutResult(status -> {
+                            try {
+                                persistRecipe(result, ingredient);
+                            } catch (JsonProcessingException jsonEx) {
+                                throw new RecipePersistenceException(jsonEx);
+                            }
+                        });
+                        curated++;
+                        importedForIngredient++;
+                        log.info("✅ Imported recipe: {} (ID: {})", result.title(), result.id());
+                    } catch (RecipePersistenceException ex) {
+                        rejected++;
+                        reviewNotes.add(result.id() + ":persist_failed");
+                        Throwable rootCause = ex.getCause() != null ? ex.getCause() : ex;
+                        log.warn("Failed to persist recipe {} ({}): {}", result.title(), result.id(), rootCause.getMessage());
+                    } catch (Exception ex) {
+                        rejected++;
+                        reviewNotes.add(result.id() + ":persist_failed");
+                        log.warn("Failed to persist recipe {} ({}): {}", result.title(), result.id(), ex.getMessage());
+                    }
                 }
-
-                inspected++;
-                Optional<String> qualityIssue = evaluateQuality(result);
-                if (qualityIssue.isPresent()) {
-                    rejected++;
-                    reviewNotes.add(result.id() + ":" + qualityIssue.get());
-                    continue;
-                }
-
-                if (recipeRepository.existsByTitleIgnoreCase(result.title())) {
-                    skipped++;
-                    continue;
-                }
-
-                try {
-                    persistRecipe(result, ingredient);
-                    curated++;
-                    importedForIngredient++;
-                } catch (Exception ex) {
-                    rejected++;
-                    reviewNotes.add(result.id() + ":persist_failed");
-                    log.warn("Failed to persist recipe {} ({}): {}", result.title(), result.id(), ex.getMessage());
+            } catch (Exception ex) {
+                // API quota exceeded or network error - log and continue with next ingredient
+                log.warn("⚠️ Failed to fetch recipes for ingredient '{}': {}", ingredient, ex.getMessage());
+                if (ex.getMessage() != null && ex.getMessage().contains("402")) {
+                    log.warn("💳 API quota exceeded. Stopping further requests.");
+                    break; // Stop processing remaining ingredients
                 }
             }
         }
+
+        log.info("📊 Curation complete: {} imported, {} skipped, {} rejected, {} inspected", 
+                 curated, skipped, rejected, inspected);
 
         return RecipeCurationResult.builder()
                 .targetRecipes(TARGET_TOTAL_RECIPES)
@@ -168,7 +205,14 @@ public class RecipeCuratorService {
         return Optional.empty();
     }
 
-    private void persistRecipe(SearchResult summary, String primaryIngredient) throws JsonProcessingException {
+    /**
+     * Persists a recipe to the database.
+     * IMPORTANT: Changed from private to protected so @Transactional can work properly.
+     * Spring's @Transactional annotation doesn't work on private methods due to proxy limitations.
+     * Using REQUIRES_NEW to ensure each recipe is saved independently in its own transaction.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    protected void persistRecipe(SearchResult summary, String primaryIngredient) throws JsonProcessingException {
         String stepsJson = toStepsJson(summary);
         String nutritionJson = toNutritionJson(summary, primaryIngredient);
 
@@ -249,10 +293,44 @@ public class RecipeCuratorService {
         if (summary.readyInMinutes() != null) {
             nutrition.put("readyInMinutes", summary.readyInMinutes());
         }
+        Map<String, Object> macros = extractMacroNutrition(summary);
+        if (!macros.isEmpty()) {
+            nutrition.put("macros", macros);
+        }
         if (nutrition.isEmpty()) {
             return null;
         }
         return objectMapper.writeValueAsString(nutrition);
+    }
+
+    private Map<String, Object> extractMacroNutrition(SearchResult summary) {
+        if (summary.nutrition() == null || CollectionUtils.isEmpty(summary.nutrition().nutrients())) {
+            return Map.of();
+        }
+
+        Map<String, String> macroAlias = new LinkedHashMap<>();
+        macroAlias.put("Calories", "calories");
+        macroAlias.put("Protein", "protein");
+        macroAlias.put("Carbohydrates", "carbs");
+        macroAlias.put("Fat", "fat");
+
+        Map<String, Object> macros = new LinkedHashMap<>();
+        for (Nutrient nutrient : summary.nutrition().nutrients()) {
+            if (nutrient == null || !StringUtils.hasText(nutrient.name())) {
+                continue;
+            }
+            String alias = macroAlias.get(nutrient.name());
+            if (alias == null || nutrient.amount() == null) {
+                continue;
+            }
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("amount", nutrient.amount());
+            if (StringUtils.hasText(nutrient.unit())) {
+                entry.put("unit", nutrient.unit());
+            }
+            macros.put(alias, entry);
+        }
+        return macros;
     }
 
     private List<InstructionStep> extractSteps(SearchResult summary) {
@@ -278,6 +356,7 @@ public class RecipeCuratorService {
             Integer readyInMinutes,
             Integer aggregateLikes,
             Double healthScore,
+            Nutrition nutrition,
             List<Instruction> analyzedInstructions,
             List<ExtendedIngredient> extendedIngredients) {
     }
@@ -292,5 +371,19 @@ public class RecipeCuratorService {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record ExtendedIngredient(String name) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record Nutrition(List<Nutrient> nutrients) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record Nutrient(String name, Double amount, String unit) {
+    }
+
+    private static class RecipePersistenceException extends RuntimeException {
+        RecipePersistenceException(Throwable cause) {
+            super(cause);
+        }
     }
 }
