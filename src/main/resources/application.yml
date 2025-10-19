@@ -32,6 +32,7 @@ management:
 logging:
   level:
     com.fitnessapp.backend: INFO
+    org.springframework.security: DEBUG
 
 springdoc:
   swagger-ui:
@@ -42,6 +43,9 @@ spring:
   config:
     activate:
       on-profile: dev
+  devtools:
+    restart:
+      enabled: false
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/fitness_mvp}
     username: ${SPRING_DATASOURCE_USERNAME:fitnessuser}
@@ -49,9 +53,8 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      # Using 'update' instead of 'validate' to handle schema evolution gracefully
-      # In production, switch to 'validate' and rely on Flyway migrations only
-      ddl-auto: update
+      # Use none to skip schema validation during development
+      ddl-auto: none
     properties:
       hibernate:
         format_sql: true
@@ -110,9 +113,6 @@ management:
 
 server:
   port: ${SERVER_PORT:8080}
-
-
-
 
 
 

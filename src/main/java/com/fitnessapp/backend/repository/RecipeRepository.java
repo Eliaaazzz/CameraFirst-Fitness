@@ -23,4 +23,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
   List<Recipe> findByTimeMinutesLessThanEqualAndDifficultyIgnoreCase(Integer timeMinutes, String difficulty);
 
   boolean existsByTitleIgnoreCase(String title);
+
+  @Query(value = "select count(*) from recipe", nativeQuery = true)
+  long countActual();
 }

@@ -1,5 +1,6 @@
 package com.fitnessapp.backend.domain;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -26,9 +27,9 @@ public class ImageQuery {
   private String type;
 
   @Column(name = "detected_hints", columnDefinition = "jsonb", nullable = false)
-  private String detectedHints;
+  @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+  private JsonNode detectedHints;
 
   @Column(name = "created_at", insertable = false, updatable = false)
   private OffsetDateTime createdAt;
 }
-

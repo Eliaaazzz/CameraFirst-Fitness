@@ -13,7 +13,7 @@ public interface WorkoutVideoRepository extends JpaRepository<WorkoutVideo, UUID
   List<WorkoutVideo> findByLevelAndDurationMinutesLessThanEqual(String level, Integer maxDuration);
 
   // Postgres-specific: check if array contains the given equipment value
-  @Query(value = "select * from workout_video w where w.equipment @> ARRAY[cast(:equipment as text)]", nativeQuery = true)
+  @Query(value = "select * from workout_video w where :equipment = ANY(w.equipment)", nativeQuery = true)
   List<WorkoutVideo> findByEquipmentContaining(@Param("equipment") String equipment);
 
   Optional<WorkoutVideo> findByYoutubeId(String youtubeId);

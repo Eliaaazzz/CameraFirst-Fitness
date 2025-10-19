@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.retrieval;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.domain.Ingredient;
 import com.fitnessapp.backend.domain.Recipe;
@@ -22,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -37,6 +39,7 @@ public class RecipeRetrievalService {
     private final RecipeRepository repository;
     private final ObjectMapper objectMapper;
 
+    @Transactional(readOnly = true)
     public List<RecipeCard> findRecipes(List<String> detectedIngredients, int maxTime) {
         List<String> normalizedDetected = normalizeDetected(detectedIngredients);
         int effectiveMaxTime = maxTime > 0 ? maxTime : Integer.MAX_VALUE;
@@ -147,12 +150,12 @@ public class RecipeRetrievalService {
     }
 
     private List<RecipeStep> parseSteps(Recipe recipe) {
-        String stepsJson = recipe.getSteps();
-        if (!StringUtils.hasText(stepsJson)) {
+        JsonNode stepsNode = recipe.getSteps();
+        if (stepsNode == null || stepsNode.isEmpty()) {
             return List.of();
         }
         try {
-            return objectMapper.readValue(stepsJson, new TypeReference<List<RecipeStep>>() {});
+            return objectMapper.convertValue(stepsNode, new TypeReference<List<RecipeStep>>() {});
         } catch (Exception ex) {
             log.warn("Failed to parse steps for recipe {} ({}): {}", recipe.getTitle(), recipe.getId(), ex.getMessage());
             return List.of();
@@ -160,12 +163,12 @@ public class RecipeRetrievalService {
     }
 
     private Map<String, Object> parseNutrition(Recipe recipe) {
-        String nutritionJson = recipe.getNutritionSummary();
-        if (!StringUtils.hasText(nutritionJson)) {
+        JsonNode nutritionNode = recipe.getNutritionSummary();
+        if (nutritionNode == null || nutritionNode.isEmpty()) {
             return Map.of();
         }
         try {
-            Map<String, Object> nutrition = objectMapper.readValue(nutritionJson, new TypeReference<LinkedHashMap<String, Object>>() {});
+            Map<String, Object> nutrition = objectMapper.convertValue(nutritionNode, new TypeReference<LinkedHashMap<String, Object>>() {});
             return nutrition != null ? nutrition : Map.of();
         } catch (Exception ex) {
             log.warn("Failed to parse nutrition for recipe {} ({}): {}", recipe.getTitle(), recipe.getId(), ex.getMessage());

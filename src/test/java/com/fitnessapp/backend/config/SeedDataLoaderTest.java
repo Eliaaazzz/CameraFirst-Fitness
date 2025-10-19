@@ -28,7 +28,7 @@ class SeedDataLoaderTest {
     @Test
     void seedsWorkoutsAndRecipes() {
         assertThat(workoutVideoRepository.count()).isGreaterThanOrEqualTo(120);
-        assertThat(recipeRepository.count()).isGreaterThanOrEqualTo(60);
+        assertThat(recipeRepository.countActual()).isGreaterThanOrEqualTo(60);
         assertThat(ingredientRepository.count()).isGreaterThanOrEqualTo(6);
     }
 }

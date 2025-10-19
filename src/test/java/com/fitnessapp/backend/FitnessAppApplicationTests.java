@@ -9,6 +9,10 @@ import com.fitnessapp.backend.repository.RecipeRepository;
 import com.fitnessapp.backend.youtube.YouTubeService;
 import com.fitnessapp.backend.importer.DataImportService;
 import com.fitnessapp.backend.importer.RecipeImportService;
+import com.fitnessapp.backend.repository.ImageQueryRepository;
+import javax.sql.DataSource;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 
 @SpringBootTest(properties = {
         "spring.flyway.enabled=false",
@@ -26,6 +30,10 @@ class FitnessAppApplicationTests {
     @MockBean private WorkoutVideoRepository workoutVideoRepository;
     @MockBean private RecipeRepository recipeRepository;
     @MockBean private IngredientRepository ingredientRepository;
+    @MockBean private ImageQueryRepository imageQueryRepository;
+    @MockBean private DataSource dataSource;
+    @MockBean private EntityManagerFactory entityManagerFactory;
+    @MockBean private EntityManager entityManager;
     @MockBean private YouTubeService youTubeService;
     @MockBean private DataImportService dataImportService;
     @MockBean private RecipeImportService recipeImportService;

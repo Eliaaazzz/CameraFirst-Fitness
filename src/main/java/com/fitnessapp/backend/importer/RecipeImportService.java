@@ -1,12 +1,13 @@
 package com.fitnessapp.backend.importer;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.domain.Ingredient;
 import com.fitnessapp.backend.domain.Recipe;
 import com.fitnessapp.backend.domain.RecipeIngredient;
 import com.fitnessapp.backend.domain.RecipeIngredientId;
 import com.fitnessapp.backend.repository.IngredientRepository;
 import com.fitnessapp.backend.repository.RecipeRepository;
-import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 @Service
@@ -26,11 +28,13 @@ public class RecipeImportService {
 
   private final RecipeRepository recipeRepo;
   private final IngredientRepository ingredientRepo;
+  private final ObjectMapper objectMapper;
   private final RestTemplate restTemplate = new RestTemplate();
 
   @Value("${app.spoonacular.api-key:}")
   private String spoonacularApiKey;
 
+  @Transactional
   public int importRecipesFromCsv(String filePath) {
     AtomicInteger counter = new AtomicInteger(0);
     try {
@@ -56,11 +60,12 @@ public class RecipeImportService {
         List<String> topIngredients = Arrays.stream(top3.split("[|,]"))
             .map(String::trim).filter(s -> !s.isBlank()).toList();
 
-        Map<String, Object> details = fetchRecipeDetails(apiSource, recipeId);
-        String steps = (String) details.getOrDefault("steps", "[]");
-        String swaps = (String) details.getOrDefault("swaps", "[]");
-        String nutrition = (String) details.getOrDefault("nutrition", null);
+        Map<String, JsonNode> details = fetchRecipeDetails(apiSource, recipeId);
+        JsonNode steps = details.getOrDefault("steps", objectMapper.createArrayNode());
+        JsonNode swaps = details.getOrDefault("swaps", objectMapper.createArrayNode());
+        JsonNode nutrition = details.get("nutrition");
 
+        // Build recipe with all ingredients BEFORE saving
         Recipe r = Recipe.builder()
             .title(title)
             .imageUrl(imageUrl)
@@ -71,20 +76,21 @@ public class RecipeImportService {
             .nutritionSummary(nutrition)
             .build();
 
-        // Save recipe first to get ID
-        r = recipeRepo.save(r);
-
+        // Attach ingredients to unsaved recipe
         for (String name : topIngredients) {
-          Ingredient ing = ingredientRepo.findByName(name).orElseGet(() -> ingredientRepo.save(Ingredient.builder().name(name).build()));
+          Ingredient ing = ingredientRepo.findByName(name)
+              .orElseGet(() -> ingredientRepo.save(Ingredient.builder().name(name).build()));
           RecipeIngredient ri = RecipeIngredient.builder()
-              .id(new RecipeIngredientId(r.getId(), ing.getId()))
               .recipe(r)
               .ingredient(ing)
               .quantity(null)
               .unit(null)
               .build();
+          ri.setId(new RecipeIngredientId(null, ing.getId()));
           r.getIngredients().add(ri);
         }
+
+        // Single save with cascade
         recipeRepo.save(r);
         int done = counter.incrementAndGet();
         if (done % 5 == 0 || done == total) {
@@ -98,8 +104,8 @@ public class RecipeImportService {
     }
   }
 
-  private Map<String, Object> fetchRecipeDetails(String apiSource, String recipeId) {
-    Map<String, Object> map = new HashMap<>();
+  private Map<String, JsonNode> fetchRecipeDetails(String apiSource, String recipeId) {
+    Map<String, JsonNode> map = new HashMap<>();
     try {
       if ("Spoonacular".equalsIgnoreCase(apiSource) && spoonacularApiKey != null && !spoonacularApiKey.isBlank()) {
         String url = "https://api.spoonacular.com/recipes/" + recipeId + "/information?includeNutrition=true&apiKey=" + spoonacularApiKey;
@@ -107,24 +113,24 @@ public class RecipeImportService {
         if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
           // Store raw JSON in fields; a proper parser can be added later
           map.put("steps", extractStepsFromSpoonacular(resp.getBody()));
-          map.put("swaps", "[]");
+          map.put("swaps", objectMapper.createArrayNode());
           map.put("nutrition", extractNutritionFromSpoonacular(resp.getBody()));
         }
       }
     } catch (Exception e) {
       log.warn("Spoonacular fetch failed for {}: {}", recipeId, e.getMessage());
     }
-    map.putIfAbsent("steps", "[]");
-    map.putIfAbsent("swaps", "[]");
+    map.putIfAbsent("steps", objectMapper.createArrayNode());
+    map.putIfAbsent("swaps", objectMapper.createArrayNode());
     return map;
   }
 
-  private static String extractStepsFromSpoonacular(String json) {
+  private JsonNode extractStepsFromSpoonacular(String json) {
     // light placeholder: keep raw minimal array, real parsing deferred
-    return "[]";
+    return objectMapper.createArrayNode();
   }
 
-  private static String extractNutritionFromSpoonacular(String json) {
+  private JsonNode extractNutritionFromSpoonacular(String json) {
     return null;
   }
 
@@ -132,4 +138,3 @@ public class RecipeImportService {
     try { return Integer.parseInt(s.trim()); } catch (Exception e) { return def; }
   }
 }
-

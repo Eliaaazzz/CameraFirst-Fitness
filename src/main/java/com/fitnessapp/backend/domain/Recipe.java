@@ -1,5 +1,6 @@
 package com.fitnessapp.backend.domain;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
@@ -32,14 +33,17 @@ public class Recipe {
   @Column(nullable = false, length = 20)
   private String difficulty;
 
-  @Column(name = "nutrition_summary", length = 4000)
-  private String nutritionSummary;
+  @Column(name = "nutrition_summary", columnDefinition = "jsonb")
+  @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+  private JsonNode nutritionSummary;
 
-  @Column(name = "steps", length = 4000)
-  private String steps;
+  @Column(name = "steps", columnDefinition = "jsonb")
+  @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+  private JsonNode steps;
 
-  @Column(name = "swaps", length = 1000)
-  private String swaps;
+  @Column(name = "swaps", columnDefinition = "jsonb")
+  @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+  private JsonNode swaps;
 
   @Column(name = "created_at", insertable = false, updatable = false)
   private OffsetDateTime createdAt;
