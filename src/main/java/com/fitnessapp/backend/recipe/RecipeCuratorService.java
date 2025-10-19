@@ -1,8 +1,10 @@
 package com.fitnessapp.backend.recipe;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fitnessapp.backend.domain.Ingredient;
 import com.fitnessapp.backend.domain.Recipe;
 import com.fitnessapp.backend.domain.RecipeIngredient;
@@ -10,6 +12,7 @@ import com.fitnessapp.backend.domain.RecipeIngredientId;
 import com.fitnessapp.backend.recipe.dto.RecipeCurationResult;
 import com.fitnessapp.backend.repository.IngredientRepository;
 import com.fitnessapp.backend.repository.RecipeRepository;
+import jakarta.persistence.EntityManager;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -21,13 +24,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.CollectionUtils;
@@ -57,6 +60,7 @@ public class RecipeCuratorService {
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
     private final TransactionTemplate transactionTemplate;
+    private final ObjectProvider<EntityManager> entityManagerProvider;
 
     @Value("${app.spoonacular.api-key:}")
     private String spoonacularApiKey;
@@ -65,7 +69,8 @@ public class RecipeCuratorService {
                                 IngredientRepository ingredientRepository,
                                 ObjectMapper objectMapper,
                                 RestTemplateBuilder restTemplateBuilder,
-                                PlatformTransactionManager transactionManager) {
+                                ObjectProvider<PlatformTransactionManager> transactionManagerProvider,
+                                ObjectProvider<EntityManager> entityManagerProvider) {
         this.recipeRepository = recipeRepository;
         this.ingredientRepository = ingredientRepository;
         this.objectMapper = objectMapper;
@@ -74,10 +79,15 @@ public class RecipeCuratorService {
                 .setReadTimeout(Duration.ofSeconds(10))
                 .additionalMessageConverters(new MappingJackson2HttpMessageConverter())
                 .build();
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        PlatformTransactionManager txManager = transactionManagerProvider.getIfAvailable();
+        this.transactionTemplate = txManager != null
+                ? new TransactionTemplate(txManager)
+                : new TransactionTemplate();
         this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        this.entityManagerProvider = entityManagerProvider;
     }
 
+    @Transactional
     public RecipeCurationResult curateTopRecipes() {
         if (!StringUtils.hasText(spoonacularApiKey)) {
             throw new IllegalStateException("Spoonacular API key is not configured");
@@ -118,20 +128,21 @@ public class RecipeCuratorService {
 
                     try {
                         transactionTemplate.executeWithoutResult(status -> {
+                            persistRecipe(result, ingredient);
                             try {
-                                persistRecipe(result, ingredient);
-                            } catch (JsonProcessingException jsonEx) {
-                                throw new RecipePersistenceException(jsonEx);
+                                recipeRepository.flush();
+                                EntityManager em = entityManagerProvider.getIfAvailable();
+                                if (em != null) {
+                                    em.clear();
+                                }
+                            } catch (Exception flushEx) {
+                                log.warn("Failed to flush persistence context after recipe {} ({}): {}",
+                                        result.title(), result.id(), flushEx.getMessage());
                             }
                         });
                         curated++;
                         importedForIngredient++;
                         log.info("✅ Imported recipe: {} (ID: {})", result.title(), result.id());
-                    } catch (RecipePersistenceException ex) {
-                        rejected++;
-                        reviewNotes.add(result.id() + ":persist_failed");
-                        Throwable rootCause = ex.getCause() != null ? ex.getCause() : ex;
-                        log.warn("Failed to persist recipe {} ({}): {}", result.title(), result.id(), rootCause.getMessage());
                     } catch (Exception ex) {
                         rejected++;
                         reviewNotes.add(result.id() + ":persist_failed");
@@ -205,16 +216,9 @@ public class RecipeCuratorService {
         return Optional.empty();
     }
 
-    /**
-     * Persists a recipe to the database.
-     * IMPORTANT: Changed from private to protected so @Transactional can work properly.
-     * Spring's @Transactional annotation doesn't work on private methods due to proxy limitations.
-     * Using REQUIRES_NEW to ensure each recipe is saved independently in its own transaction.
-     */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    protected void persistRecipe(SearchResult summary, String primaryIngredient) throws JsonProcessingException {
-        String stepsJson = toStepsJson(summary);
-        String nutritionJson = toNutritionJson(summary, primaryIngredient);
+    private void persistRecipe(SearchResult summary, String primaryIngredient) {
+        JsonNode stepsJson = toStepsJson(summary);
+        JsonNode nutritionJson = toNutritionJson(summary, primaryIngredient);
 
         Recipe recipe = Recipe.builder()
                 .title(summary.title())
@@ -222,18 +226,30 @@ public class RecipeCuratorService {
                 .timeMinutes(summary.readyInMinutes())
                 .difficulty("easy")
                 .steps(stepsJson)
-                .swaps("[]")
+                .swaps(objectMapper.createArrayNode())
                 .nutritionSummary(nutritionJson)
                 .build();
 
-        recipe = recipeRepository.save(recipe);
-        attachIngredients(recipe, summary.extendedIngredients(), primaryIngredient);
+        // Attach ingredients BEFORE saving to ensure cascade works properly
+        Set<String> ingredientNames = collectIngredientNames(summary.extendedIngredients(), primaryIngredient);
+        for (String name : ingredientNames) {
+            Ingredient ingredient = ingredientRepository.findByName(name)
+                    .orElseGet(() -> ingredientRepository.save(Ingredient.builder().name(name).build()));
+            RecipeIngredient relation = RecipeIngredient.builder()
+                    .recipe(recipe)
+                    .ingredient(ingredient)
+                    .quantity(null)
+                    .unit(null)
+                    .build();
+            relation.setId(new RecipeIngredientId(null, ingredient.getId()));
+            recipe.getIngredients().add(relation);
+        }
+
+        // Single save with cascaded ingredients
         recipeRepository.save(recipe);
     }
 
-    private void attachIngredients(Recipe recipe,
-                                   List<ExtendedIngredient> extendedIngredients,
-                                   String primaryIngredient) {
+    private Set<String> collectIngredientNames(List<ExtendedIngredient> extendedIngredients, String primaryIngredient) {
         Set<String> names = new LinkedHashSet<>();
         if (StringUtils.hasText(primaryIngredient)) {
             names.add(normalizeIngredient(primaryIngredient));
@@ -246,41 +262,29 @@ public class RecipeCuratorService {
                     .limit(5)
                     .forEach(names::add);
         }
-
-        for (String name : names) {
-            Ingredient ingredient = ingredientRepository.findByName(name)
-                    .orElseGet(() -> ingredientRepository.save(Ingredient.builder().name(name).build()));
-            RecipeIngredient relation = RecipeIngredient.builder()
-                    .id(new RecipeIngredientId(recipe.getId(), ingredient.getId()))
-                    .recipe(recipe)
-                    .ingredient(ingredient)
-                    .quantity(null)
-                    .unit(null)
-                    .build();
-            recipe.getIngredients().add(relation);
-        }
+        return names;
     }
 
     private String normalizeIngredient(String value) {
         return value.toLowerCase(Locale.ROOT).trim();
     }
 
-    private String toStepsJson(SearchResult summary) throws JsonProcessingException {
+    private JsonNode toStepsJson(SearchResult summary) {
         List<InstructionStep> steps = extractSteps(summary);
-        List<Map<String, Object>> serialized = new ArrayList<>();
+        ArrayNode serialized = objectMapper.createArrayNode();
         int fallbackNumber = 1;
         for (InstructionStep step : steps) {
-            Map<String, Object> entry = new LinkedHashMap<>();
+            ObjectNode entry = objectMapper.createObjectNode();
             int number = step.number() != null && step.number() > 0 ? step.number() : fallbackNumber++;
             entry.put("step", number);
             entry.put("instruction", step.step());
             serialized.add(entry);
         }
-        return objectMapper.writeValueAsString(serialized);
+        return serialized;
     }
 
-    private String toNutritionJson(SearchResult summary, String primaryIngredient) throws JsonProcessingException {
-        Map<String, Object> nutrition = new LinkedHashMap<>();
+    private JsonNode toNutritionJson(SearchResult summary, String primaryIngredient) {
+        ObjectNode nutrition = objectMapper.createObjectNode();
         if (StringUtils.hasText(primaryIngredient)) {
             nutrition.put("primaryIngredient", primaryIngredient);
         }
@@ -293,19 +297,16 @@ public class RecipeCuratorService {
         if (summary.readyInMinutes() != null) {
             nutrition.put("readyInMinutes", summary.readyInMinutes());
         }
-        Map<String, Object> macros = extractMacroNutrition(summary);
-        if (!macros.isEmpty()) {
-            nutrition.put("macros", macros);
+        ObjectNode macros = extractMacroNutrition(summary);
+        if (macros != null && !macros.isEmpty()) {
+            nutrition.set("macros", macros);
         }
-        if (nutrition.isEmpty()) {
-            return null;
-        }
-        return objectMapper.writeValueAsString(nutrition);
+        return nutrition.isEmpty() ? null : nutrition;
     }
 
-    private Map<String, Object> extractMacroNutrition(SearchResult summary) {
+    private ObjectNode extractMacroNutrition(SearchResult summary) {
         if (summary.nutrition() == null || CollectionUtils.isEmpty(summary.nutrition().nutrients())) {
-            return Map.of();
+            return null;
         }
 
         Map<String, String> macroAlias = new LinkedHashMap<>();
@@ -314,7 +315,7 @@ public class RecipeCuratorService {
         macroAlias.put("Carbohydrates", "carbs");
         macroAlias.put("Fat", "fat");
 
-        Map<String, Object> macros = new LinkedHashMap<>();
+        ObjectNode macros = objectMapper.createObjectNode();
         for (Nutrient nutrient : summary.nutrition().nutrients()) {
             if (nutrient == null || !StringUtils.hasText(nutrient.name())) {
                 continue;
@@ -323,14 +324,14 @@ public class RecipeCuratorService {
             if (alias == null || nutrient.amount() == null) {
                 continue;
             }
-            Map<String, Object> entry = new LinkedHashMap<>();
+            ObjectNode entry = objectMapper.createObjectNode();
             entry.put("amount", nutrient.amount());
             if (StringUtils.hasText(nutrient.unit())) {
                 entry.put("unit", nutrient.unit());
             }
-            macros.put(alias, entry);
+            macros.set(alias, entry);
         }
-        return macros;
+        return macros.isEmpty() ? null : macros;
     }
 
     private List<InstructionStep> extractSteps(SearchResult summary) {
@@ -381,9 +382,4 @@ public class RecipeCuratorService {
     private record Nutrient(String name, Double amount, String unit) {
     }
 
-    private static class RecipePersistenceException extends RuntimeException {
-        RecipePersistenceException(Throwable cause) {
-            super(cause);
-        }
-    }
 }

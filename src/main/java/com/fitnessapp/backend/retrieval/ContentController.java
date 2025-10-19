@@ -21,6 +21,7 @@ public class ContentController {
 
     private final WorkoutRetrievalService workoutService;
     private final RecipeRetrievalService recipeService;
+    private final ImageQueryService imageQueryService;
 
     @PostMapping(path = "/workouts/from-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public WorkoutResponse getWorkouts(
@@ -28,18 +29,19 @@ public class ContentController {
             @RequestPart(name = "metadata", required = false) ImageRequest metadata) {
         Instant start = Instant.now();
 
-        String detectedEquipment = "dumbbells";
-        String detectedLevel = "beginner";
-        int targetDuration = 20;
+        ImageQueryService.WorkoutDetectionResult detection = imageQueryService.detectWorkoutContext(metadata);
 
-        var workouts = workoutService.findWorkouts(detectedEquipment, detectedLevel, targetDuration);
+        var workouts = workoutService.findWorkouts(
+                detection.getEquipment(),
+                detection.getLevel(),
+                detection.getDurationMinutes());
         Duration elapsed = Duration.between(start, Instant.now());
 
         return WorkoutResponse.builder()
                 .workouts(workouts)
-                .detectedEquipment(detectedEquipment)
-                .detectedLevel(detectedLevel)
-                .targetDurationMinutes(targetDuration)
+                .detectedEquipment(detection.getEquipment())
+                .detectedLevel(detection.getLevel())
+                .targetDurationMinutes(detection.getDurationMinutes())
                 .latencyMs((int) Math.min(elapsed.toMillis(), 150))
                 .build();
     }
@@ -50,8 +52,9 @@ public class ContentController {
             @RequestPart(name = "metadata", required = false) ImageRequest metadata) {
         Instant start = Instant.now();
 
-        List<String> detectedIngredients = List.of("chicken");
-        int maxTimeMinutes = 45;
+        ImageQueryService.RecipeDetectionResult detection = imageQueryService.detectRecipeContext(metadata);
+        List<String> detectedIngredients = detection.getIngredients();
+        int maxTimeMinutes = detection.getMaxTimeMinutes();
 
         var recipes = recipeService.findRecipes(detectedIngredients, maxTimeMinutes);
         Duration elapsed = Duration.between(start, Instant.now());
