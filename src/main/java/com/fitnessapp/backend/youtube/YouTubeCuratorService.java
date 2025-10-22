@@ -18,6 +18,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -84,6 +85,73 @@ public class YouTubeCuratorService {
                     "beginner",
                     List.of("core", "abs"),
                     10)
+    );
+
+    private static final List<CuratedSearchSpec> CURATED_SEARCHES = List.of(
+            new CuratedSearchSpec(
+                    "5 minute chest workout",
+                    List.of("upper_body", "chest"),
+                    "bodyweight",
+                    "intermediate",
+                    8,
+                    20_000L,
+                    50_000L),
+            new CuratedSearchSpec(
+                    "5 minute shoulder workout",
+                    List.of("upper_body", "shoulders"),
+                    "dumbbells",
+                    "intermediate",
+                    8,
+                    15_000L,
+                    40_000L),
+            new CuratedSearchSpec(
+                    "5 minute arm workout",
+                    List.of("upper_body", "arms", "biceps", "triceps"),
+                    "dumbbells",
+                    "beginner",
+                    8,
+                    15_000L,
+                    40_000L),
+            new CuratedSearchSpec(
+                    "5 minute leg workout",
+                    List.of("lower_body", "legs"),
+                    "bodyweight",
+                    "beginner",
+                    8,
+                    15_000L,
+                    40_000L),
+            new CuratedSearchSpec(
+                    "5 minute glute workout",
+                    List.of("lower_body", "glutes"),
+                    "bodyweight",
+                    "intermediate",
+                    8,
+                    15_000L,
+                    40_000L),
+            new CuratedSearchSpec(
+                    "5 minute abs workout",
+                    List.of("core", "abs"),
+                    "bodyweight",
+                    "beginner",
+                    8,
+                    20_000L,
+                    50_000L),
+            new CuratedSearchSpec(
+                    "5 minute back workout",
+                    List.of("upper_body", "back"),
+                    "bodyweight",
+                    "intermediate",
+                    6,
+                    15_000L,
+                    40_000L),
+            new CuratedSearchSpec(
+                    "5 minute full body stretch",
+                    List.of("mobility", "stretch"),
+                    "mat",
+                    "beginner",
+                    6,
+                    10_000L,
+                    25_000L)
     );
 
     private final YouTube youtube;
@@ -340,9 +408,13 @@ public class YouTubeCuratorService {
         int rejected = 0;
         List<String> errors = new ArrayList<>();
         Map<String, ChannelMetadata> channelCache = new ConcurrentHashMap<>();
+        Set<String> processedIds = new HashSet<>();
 
         for (CuratedVideoSpec spec : videos) {
             try {
+                if (processedIds.contains(spec.videoId())) {
+                    continue;
+                }
                 Optional<VideoMetadata> metadataOpt = youTubeService.fetchVideoMetadata(spec.videoId());
                 if (metadataOpt.isEmpty()) {
                     rejected++;
@@ -351,6 +423,7 @@ public class YouTubeCuratorService {
                 }
 
                 VideoMetadata metadata = metadataOpt.get();
+                processedIds.add(metadata.getYoutubeId());
                 
                 // Basic quality filter - 5 minutes max
                 if (metadata.getDurationSeconds() > 300) {
@@ -395,15 +468,78 @@ public class YouTubeCuratorService {
             }
         }
 
+        Map<String, Integer> searchSummary = new LinkedHashMap<>();
+        for (CuratedSearchSpec spec : CURATED_SEARCHES) {
+            List<VideoMetadata> candidates = youTubeService.searchWorkoutVideos(spec.query(), spec.targetCount() * 4);
+            int savedForQuery = 0;
+            for (VideoMetadata metadata : candidates) {
+                if (metadata == null || !StringUtils.hasText(metadata.getYoutubeId())) {
+                    continue;
+                }
+                if (processedIds.contains(metadata.getYoutubeId())) {
+                    continue;
+                }
+                int durationSeconds = metadata.getDurationSeconds();
+                if (durationSeconds <= 0 || durationSeconds > 300 || durationSeconds < MIN_DURATION_SECONDS) {
+                    continue;
+                }
+
+                Optional<ChannelMetadata> channelOpt = resolveChannelMetadata(metadata.getChannelId(), channelCache);
+                if (channelOpt.isEmpty()) {
+                    rejected++;
+                    errors.add(metadata.getYoutubeId() + ":channel_missing_search");
+                    continue;
+                }
+                ChannelMetadata channel = channelOpt.get();
+
+                PlaylistImportRequest request = PlaylistImportRequest.builder()
+                        .equipment(spec.equipment())
+                        .level(spec.level())
+                        .bodyParts(spec.bodyParts())
+                        .minViewCount(spec.minViewCount())
+                        .minSubscriberCount(spec.minSubscriberCount())
+                        .maxDurationSeconds(300)
+                        .build();
+
+                Optional<String> qualityIssue = qualityIssue(metadata, channel, request);
+                if (qualityIssue.isPresent()) {
+                    rejected++;
+                    errors.add(metadata.getYoutubeId() + ":" + qualityIssue.get());
+                    continue;
+                }
+
+                processedIds.add(metadata.getYoutubeId());
+                Optional<WorkoutVideo> existing = workoutVideoRepository.findByYoutubeId(metadata.getYoutubeId());
+                persistVideo(metadata, channel, request);
+                if (existing.isPresent()) {
+                    updated++;
+                    log.debug("Updated existing video from search '{}' -> {}", spec.query(), metadata.getTitle());
+                } else {
+                    imported++;
+                    savedForQuery++;
+                    log.info("✅ Imported search video '{}' -> {} ({})", spec.query(), metadata.getTitle(), metadata.getYoutubeId());
+                }
+
+                if (savedForQuery >= spec.targetCount()) {
+                    break;
+                }
+            }
+            if (savedForQuery > 0) {
+                searchSummary.put(spec.query(), savedForQuery);
+            }
+        }
+
         log.info("📊 Video import complete: {} imported, {} updated, {} rejected", imported, updated, rejected);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("targetCount", 120);  // Updated target from 60 to 120
+        int targetCount = 120 + CURATED_SEARCHES.stream().mapToInt(CuratedSearchSpec::targetCount).sum();
+        result.put("targetCount", targetCount);  // Updated target from 60 to 120
         result.put("importedCount", imported);
         result.put("updatedCount", updated);
         result.put("rejectedCount", rejected);
         result.put("totalVideos", imported + updated);
         result.put("errors", errors.size() > 20 ? errors.subList(0, 20) : errors);
+        result.put("searchSummary", searchSummary);
         
         return result;
     }
@@ -635,5 +771,14 @@ public class YouTubeCuratorService {
                                     String bodyPart,
                                     String equipment,
                                     String level) {
+    }
+
+    private record CuratedSearchSpec(String query,
+                                     List<String> bodyParts,
+                                     String equipment,
+                                     String level,
+                                     int targetCount,
+                                     long minViewCount,
+                                     long minSubscriberCount) {
     }
 }

@@ -221,6 +221,26 @@ public class YouTubeCuratorService {
    - Record 的 getter 没有 `get` 前缀
    - 更简洁，更符合函数式编程风格
 
+4. **搜索策略扩展更多肌群覆盖**
+   ```java
+   private record CuratedSearchSpec(String query,
+                                    List<String> bodyParts,
+                                    String equipment,
+                                    String level,
+                                    int targetCount,
+                                    long minViewCount,
+                                    long minSubscriberCount) { }
+
+   for (CuratedSearchSpec spec : CURATED_SEARCHES) {
+       List<VideoMetadata> candidates =
+           youTubeService.searchWorkoutVideos(spec.query(), spec.targetCount() * 4);
+       // 质量过滤 + 去重 + persistVideo(...)
+   }
+   ```
+   - **Query 驱动**: 通过关键词（如 “5 minute chest workout”）动态拉取胸、肩、手臂、腿、臀等细分部位
+   - **质量保障**: `targetCount`、`minViewCount`、`minSubscriberCount` 限制热度和频道质量
+   - **逻辑复用**: 复用 `qualityIssue()` 与 `persistVideo()`，与固定列表共享业务规则
+
 ---
 
 ### 难点 3: Optional 模式的空值安全处理

@@ -45,13 +45,16 @@ public class RecipeCuratorService {
     // Expanded ingredient list for better diversity and higher success rate
     private static final List<String> CURATED_INGREDIENTS = List.of(
             "chicken", "pasta", "eggs", "beef", "salmon", "tofu",
-            "rice", "potato", "turkey", "shrimp", "broccoli", "quinoa"
+            "rice", "potato", "turkey", "shrimp", "broccoli", "quinoa",
+            "lentils", "black beans", "chickpeas", "spinach", "kale", "mushroom",
+            "zucchini", "bell pepper", "cauliflower", "sweet potato", "avocado",
+            "ground turkey", "pork tenderloin", "cod", "tuna", "oats", "greek yogurt"
     );
     private static final int MAX_READY_TIME_MINUTES = 50;  // Increased from 45 to 50
     private static final int MIN_STEP_COUNT = 2;            // Further relaxed from 3 to 2
     private static final int MAX_STEP_COUNT = 15;           // Increased from 12 to 15
-    private static final int MAX_RECIPES_PER_INGREDIENT = 10;
-    private static final int TARGET_TOTAL_RECIPES = 60;
+    private static final int MAX_RECIPES_PER_INGREDIENT = 12;
+    private static final int TARGET_TOTAL_RECIPES = 90;
     private static final int SEARCH_BATCH_SIZE = 30;
     private static final int MIN_AGGREGATE_LIKES = 5;       // Further relaxed from 10 to 5
 
