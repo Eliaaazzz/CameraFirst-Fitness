@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "FitnessMVP",
+    "slug": "fitness-mvp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FF6B6B"
+    },
+    "ios": {
+      "bundleIdentifier": "com.fitnessapp.mvp",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "We need camera access to help you discover workouts and recipes based on your equipment and ingredients.",
+        "NSPhotoLibraryUsageDescription": "We need photo library access so you can choose existing photos of your equipment or ingredients."
+      }
+    },
+    "android": {
+      "package": "com.fitnessapp.mvp",
+      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE", "READ_MEDIA_IMAGES"],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF6B6B"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

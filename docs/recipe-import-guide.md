@@ -7,7 +7,7 @@ This guide explains how to test the recipe import functionality after the Spoona
 **Current Status:**
 - ✅ All code improvements completed
 - ✅ Quality filters relaxed (2-15 steps, 5+ likes, 50min max)
-- ✅ Ingredients expanded (6 → 12 categories)
+- ✅ Ingredients expanded (6 → 30 categories)
 - ✅ Transaction safety added (@Transactional)
 - ✅ Error handling improved (402 detection)
 - ✅ Logging enhanced (emoji markers)
@@ -129,9 +129,12 @@ This script will:
 **Before (6 ingredients):**
 - chicken, pasta, eggs, beef, salmon, rice
 
-**After (12 ingredients):**
+**After (30 ingredients):**
 - chicken, pasta, eggs, beef, salmon, tofu
 - rice, potato, turkey, shrimp, broccoli, quinoa
+- lentils, black beans, chickpeas, spinach, kale, mushroom
+- zucchini, bell pepper, cauliflower, sweet potato, avocado
+- ground turkey, pork tenderloin, cod, tuna, oats, greek yogurt
 
 **Effect:** 2x more API requests, higher diversity
 
