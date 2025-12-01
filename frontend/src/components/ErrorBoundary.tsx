@@ -1,7 +1,7 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, Card, Container, SafeAreaWrapper } from '@/components';
+import { Card, Text } from '@/components';
 import { spacing } from '@/utils';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface Props {
   children: ReactNode;

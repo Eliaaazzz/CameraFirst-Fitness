@@ -1,20 +1,19 @@
-import React from 'react';
-import { Platform, View } from 'react-native';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useColorScheme } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import React from 'react';
+import { Platform, useColorScheme, View } from 'react-native';
 
 import { ErrorBoundary } from '@/components';
+import { CommunityScreen } from '@/screens/CommunityScreen';
+import { DesignSystemScreen } from '@/screens/DesignSystemScreen';
+import { GoalsScreen } from '@/screens/GoalsScreen';
+import { MealPlanScreen } from '@/screens/MealPlanScreen';
+import { RecipeDetailScreen } from '@/screens/RecipeDetailScreen';
+import { RecipesScreen } from '@/screens/RecipesScreen';
+import { ResultsScreen } from '@/screens/ResultsScreen';
 import { SearchScreen } from '@/screens/SearchScreen';
 import { WorkoutsScreen } from '@/screens/WorkoutsScreen';
-import { RecipesScreen } from '@/screens/RecipesScreen';
-import { RecipeDetailScreen } from '@/screens/RecipeDetailScreen';
-import { ResultsScreen } from '@/screens/ResultsScreen';
-import { DesignSystemScreen } from '@/screens/DesignSystemScreen';
-import { MealPlanScreen } from '@/screens/MealPlanScreen';
-import { CommunityScreen } from '@/screens/CommunityScreen';
-import { GoalsScreen } from '@/screens/GoalsScreen';
 import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive } from '@/utils';
 
 // Wrap screens with ErrorBoundary to prevent white screen crashes

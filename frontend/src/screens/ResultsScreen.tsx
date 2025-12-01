@@ -1,17 +1,17 @@
+import { Button, Card, Container, RecipeCard, SafeAreaWrapper, Text, WorkoutCard } from '@/components';
+import useCurrentUser from '@/hooks/useCurrentUser';
+import {
+    useRemoveRecipe,
+    useRemoveWorkout,
+    useSavedRecipes,
+    useSavedWorkouts,
+    useSaveRecipe,
+    useSaveWorkout,
+} from '@/services';
+import { spacing } from '@/utils';
+import { useRoute } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
-import { useRoute } from '@react-navigation/native';
-import { SafeAreaWrapper, Container, Card, Text, Button, WorkoutCard, RecipeCard } from '@/components';
-import { spacing } from '@/utils';
-import {
-  useSavedWorkouts,
-  useSaveWorkout,
-  useSavedRecipes,
-  useSaveRecipe,
-  useRemoveWorkout,
-  useRemoveRecipe,
-} from '@/services';
-import useCurrentUser from '@/hooks/useCurrentUser';
 
 export const ResultsScreen = () => {
   const route = useRoute<any>();

@@ -1,13 +1,13 @@
+import { Button, Card, Container, SafeAreaWrapper, Text } from '@/components';
+import { SmartRecipeImage } from '@/components/RecipeImage';
+import useCurrentUser from '@/hooks/useCurrentUser';
+import { useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
+import type { RecipeImageUrls } from '@/types';
+import { colors, radii, spacing } from '@/utils';
+import { Feather } from '@expo/vector-icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import { Feather } from '@expo/vector-icons';
-import { SafeAreaWrapper, Container, Card, Text, Button } from '@/components';
-import { SmartRecipeImage } from '@/components/RecipeImage';
-import { colors, spacing, radii } from '@/utils';
-import { useSavedRecipes, useSaveRecipe, useRemoveRecipe } from '@/services';
-import useCurrentUser from '@/hooks/useCurrentUser';
-import type { RecipeImageUrls } from '@/types';
 
 // Default food images for recipes without images
 const DEFAULT_FOOD_IMAGES = [

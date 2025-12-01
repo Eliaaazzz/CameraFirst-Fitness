@@ -31,8 +31,6 @@ app:
     cache-ttl-hours: 24
   recipe-generation:
     cache-ttl-hours: 24
-  seed:
-    enabled: ${APP_SEED_ENABLED:true}
 
 management:
   endpoints:

@@ -9,18 +9,17 @@
  * - Accessibility support
  */
 
-import React, { useRef } from 'react';
-import { StyleSheet, View, Alert } from 'react-native';
-import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  interpolate,
-} from 'react-native-reanimated';
-import { IconButton } from 'react-native-paper';
+import { spacing } from '@/utils';
 import * as Haptics from 'expo-haptics';
-import { MaterialAnimations, MaterialOpacity, spacing } from '@/utils';
+import React from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
+import { IconButton } from 'react-native-paper';
+import Animated, {
+    interpolate,
+    useAnimatedStyle,
+    useSharedValue,
+} from 'react-native-reanimated';
 
 type Props = {
   children: React.ReactNode;
@@ -39,13 +38,9 @@ export const SwipeableCard = ({
   deleteMessage = 'Are you sure you want to remove this item?',
   disabled = false,
 }: Props) => {
-  const swipeableRef = useRef<Swipeable>(null);
   const progress = useSharedValue(0);
 
   const handleDelete = async () => {
-    // Close swipeable first
-    swipeableRef.current?.close();
-
     // Show confirmation dialog
     Alert.alert(
       deleteTitle,
@@ -73,20 +68,16 @@ export const SwipeableCard = ({
     );
   };
 
-  const renderRightActions = (
-    progressAnimatedValue: Animated.SharedValue<number>
-  ) => {
-    progress.value = progressAnimatedValue.value;
-
+  const renderRightActions = () => {
     const animatedStyle = useAnimatedStyle(() => {
       const translateX = interpolate(
-        progressAnimatedValue.value,
+        progress.value,
         [0, 1],
         [80, 0]
       );
 
       const opacity = interpolate(
-        progressAnimatedValue.value,
+        progress.value,
         [0, 0.5, 1],
         [0, 0.5, 1]
       );
@@ -125,7 +116,6 @@ export const SwipeableCard = ({
   return (
     <GestureHandlerRootView>
       <Swipeable
-        ref={swipeableRef}
         renderRightActions={renderRightActions}
         overshootRight={false}
         friction={2}

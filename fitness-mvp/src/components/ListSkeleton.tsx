@@ -1,9 +1,9 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
-import { Card } from './Card';
 import { spacing } from '@/utils';
+import { Card } from './Card';
 
 type ListSkeletonProps = {
   rows?: number;
@@ -45,8 +45,8 @@ const ListSkeletonRow: React.FC<{
       <View style={styles.row}>
         {showAvatar && <View style={styles.avatar} />}
         <View style={styles.textGroup}>
-          <View style={[styles.line, { width: primaryWidth }]} />
-          <View style={[styles.line, styles.secondaryLine, { width: secondaryWidth }]} />
+          <View style={[styles.line, { width: primaryWidth as any }]} />
+          <View style={[styles.line, styles.secondaryLine, { width: secondaryWidth as any }]} />
         </View>
       </View>
       <Animated.View

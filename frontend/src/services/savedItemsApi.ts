@@ -3,8 +3,8 @@
  * Handles saving and retrieving saved workouts and recipes
  */
 
+import type { SavedRecipe, SavedWorkout } from '@/types';
 import { api } from './apiClient';
-import type { SavedWorkout, SavedRecipe } from '@/types';
 
 /**
  * Paginated response structure from the API

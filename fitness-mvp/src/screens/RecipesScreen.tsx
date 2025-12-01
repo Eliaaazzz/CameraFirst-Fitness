@@ -1,15 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
-import { ActivityIndicator, FAB, SegmentedButtons } from 'react-native-paper';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useNavigation } from '@react-navigation/native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FAB } from 'react-native-paper';
 
-import { Button, Card, Container, ListSkeleton, SafeAreaWrapper, Text, RecipeCard } from '@/components';
-import { spacing } from '@/utils';
-import { DEFAULT_SAVED_PAGE_SIZE, useSavedRecipes, useRemoveRecipe, DEFAULT_RECIPE_SORT } from '@/services';
-import type { SavedRecipe, SortDirection, RecipeSortField, RecipeSortOption } from '@/types';
+import { Button, Card, Container, ListSkeleton, RecipeCard, SafeAreaWrapper, Text } from '@/components';
+import { Chip, EmptyState, ScreenHeader } from '@/components/ui';
 import useCurrentUser from '@/hooks/useCurrentUser';
+import { useSavedRecipes } from '@/services';
+import type { RecipeCard as RecipeCardType } from '@/types';
+import { COLORS, SHAPE, SPACING, spacing } from '@/utils/theme';
 
 type TabParamList = {
   Capture: undefined;
@@ -22,12 +23,10 @@ export const RecipesScreen = () => {
   const navigation = useNavigation<BottomTabNavigationProp<TabParamList>>();
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
-  const [sortField, setSortField] = useState<RecipeSortField>('savedAt');
-  const [sortDirection, setSortDirection] = useState<SortDirection>(DEFAULT_RECIPE_SORT.direction);
-  const sortOption = useMemo<RecipeSortOption>(() => ({ field: sortField, direction: sortDirection }), [sortField, sortDirection]);
-  const saved = useSavedRecipes(userId, DEFAULT_SAVED_PAGE_SIZE, sortOption);
-  const removeRecipe = useRemoveRecipe(userId, DEFAULT_SAVED_PAGE_SIZE, sortOption);
-  const listRef = useRef<FlatList<SavedRecipe>>(null);
+  const [sortField, setSortField] = useState<'savedAt' | 'time'>('savedAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const saved = useSavedRecipes(userId);
+  const listRef = useRef<FlatList<RecipeCardType>>(null);
   const [showFab, setShowFab] = useState(false);
 
   if (currentUser.isLoading) {
@@ -46,28 +45,33 @@ export const RecipesScreen = () => {
     return (
       <SafeAreaWrapper>
         <Container>
-          <Card style={styles.emptyState}>
-            <Text variant="heading2" weight="bold" style={styles.emptyTitle}>Unable to load user</Text>
-            <Text variant="body" style={styles.emptyBody}>Check your API key or network connection, then try again.</Text>
-            <Button title="Retry" onPress={() => currentUser.refetch()} />
-          </Card>
+          <EmptyState
+            icon={<Feather name="alert-circle" size={48} color={COLORS.semantic.error} />}
+            title="Unable to load user"
+            description="Check your API key or network connection, then try again."
+            actionLabel="Retry"
+            onAction={() => currentUser.refetch()}
+          />
         </Container>
       </SafeAreaWrapper>
     );
   }
 
-  const recipes = useMemo(
-    () => saved.data?.pages.flatMap((page) => page.items) ?? [],
-    [saved.data],
-  );
+  const recipes = saved.data ?? [];
+  const isRefreshing = saved.isRefetching;
+  const isInitialLoading = saved.isLoading;
 
-  const isRefreshing = saved.isRefetching && !saved.isFetchingNextPage;
-  const isInitialLoading = saved.isLoading && !saved.isFetchingNextPage;
-
-  useEffect(() => {
-    listRef.current?.scrollToOffset({ offset: 0, animated: true });
-    setShowFab(false);
-  }, [sortDirection, sortField]);
+  // Sort recipes client-side
+  const sortedRecipes = useMemo(() => {
+    return [...recipes].sort((a, b) => {
+      if (sortField === 'time') {
+        const comparison = (a.timeMinutes ?? 0) - (b.timeMinutes ?? 0);
+        return sortDirection === 'asc' ? comparison : -comparison;
+      }
+      // Default: savedAt - keep original order
+      return sortDirection === 'asc' ? 1 : -1;
+    });
+  }, [recipes, sortField, sortDirection]);
 
   const handleRefresh = useCallback(() => {
     if (!saved.isLoading) {
@@ -75,131 +79,110 @@ export const RecipesScreen = () => {
     }
   }, [saved]);
 
-  const handleLoadMore = useCallback(() => {
-    if (saved.hasNextPage && !saved.isFetchingNextPage) {
-      saved.fetchNextPage();
-    }
-  }, [saved]);
-
-  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const handleScroll = useCallback((event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     setShowFab(offsetY > 240);
   }, []);
 
   const renderItem = useCallback(
-    ({ item }: { item: SavedRecipe }) => {
-      const savedLabel = item.savedAt ? new Date(item.savedAt).toLocaleString() : '—';
-      const time = item.timeMinutes ?? 0;
-      const meta = sortField === 'time'
-        ? `${time} min · saved ${savedLabel}`
-        : `${time} min · difficulty ${item.difficulty?.toUpperCase?.() ?? '—'}`;
-
+    ({ item }: { item: RecipeCardType }) => {
       return (
         <View style={styles.card}>
           <RecipeCard
             item={item}
             isSaved
-            onRemove={(id) => removeRecipe.mutateAsync(id)}
           />
-          <Text variant="caption" style={styles.savedAt}>
-            {meta}
-          </Text>
         </View>
       );
     },
-    [removeRecipe, sortField],
+    [],
   );
 
   const listEmptyComponent = (
-    <Card style={styles.emptyState}>
-      <View style={styles.iconWrapper}>
-        <Feather name="coffee" size={48} color="#FF6B6B" />
-      </View>
-      <Text variant="heading2" weight="bold" style={styles.emptyTitle}>
-        Your saved recipes will appear here
-      </Text>
-      <Text variant="body" style={styles.emptyBody}>
-        Snap photos of your ingredients to discover healthy recipes you can make right now.
-      </Text>
-      <Button title="Capture Ingredients" variant="secondary" onPress={() => navigation.navigate('Capture')} />
-    </Card>
+    <EmptyState
+      icon={<Feather name="book-open" size={48} color={COLORS.primary.main} />}
+      title="Your saved recipes will appear here"
+      description="Snap photos of your ingredients to discover healthy recipes you can make right now."
+      actionLabel="Capture Ingredients"
+      onAction={() => navigation.navigate('Capture')}
+    />
   );
 
   return (
-    <SafeAreaWrapper>
-      <Container style={styles.container}>
-        <FlatList
-          ref={listRef}
-          data={recipes}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
-          ListHeaderComponent={
-            <View style={styles.header}>
-              <Text variant="heading1" weight="bold">
-                Saved Recipes
-              </Text>
-              <Text variant="body" style={styles.subtitle}>
-                Curate comforting meals for every goal.
-              </Text>
-              <View style={styles.sortGroups}>
-                <SegmentedButtons
-                  value={sortField}
-                  onValueChange={(value) => setSortField(value as RecipeSortField)}
-                  buttons={[
-                    { value: 'savedAt', label: 'Recent' },
-                    { value: 'time', label: 'Prep Time' },
-                  ]}
-                  density="comfortable"
-                  style={styles.segmented}
+    <SafeAreaWrapper edges={['left', 'right']}>
+      <FlatList
+        ref={listRef}
+        data={sortedRecipes}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <ScreenHeader
+              title="My Recipes"
+              subtitle={`${recipes.length} saved recipe${recipes.length !== 1 ? 's' : ''}`}
+              variant="hero"
+            />
+            <View style={styles.sortContainer}>
+              <View style={styles.sortRow}>
+                <Chip
+                  label="Recent"
+                  variant={sortField === 'savedAt' ? 'filled' : 'tonal'}
+                  onPress={() => setSortField('savedAt')}
+                  icon={<Feather name="clock" size={12} color={sortField === 'savedAt' ? '#FFF' : COLORS.primary.main} />}
                 />
-                <SegmentedButtons
-                  value={sortDirection}
-                  onValueChange={(value) => setSortDirection(value as SortDirection)}
-                  buttons={[
-                    { value: 'desc', label: 'Newest' },
-                    { value: 'asc', label: 'Oldest' },
-                  ]}
-                  density="comfortable"
-                  style={styles.segmented}
+                <Chip
+                  label="Prep Time"
+                  variant={sortField === 'time' ? 'filled' : 'tonal'}
+                  onPress={() => setSortField('time')}
+                  icon={<Feather name="activity" size={12} color={sortField === 'time' ? '#FFF' : COLORS.primary.main} />}
+                />
+              </View>
+              <View style={styles.sortRow}>
+                <Chip
+                  label="Newest"
+                  variant={sortDirection === 'desc' ? 'filled' : 'outlined'}
+                  size="small"
+                  onPress={() => setSortDirection('desc')}
+                />
+                <Chip
+                  label="Oldest"
+                  variant={sortDirection === 'asc' ? 'filled' : 'outlined'}
+                  size="small"
+                  onPress={() => setSortDirection('asc')}
                 />
               </View>
             </View>
-          }
-          ListEmptyComponent={
-            isInitialLoading ? (
+          </View>
+        }
+        ListEmptyComponent={
+          isInitialLoading ? (
+            <View style={styles.loadingContainer}>
               <ListSkeleton rows={4} showAvatar primaryWidth="60%" secondaryWidth="38%" />
-            ) : !saved.isLoading && !saved.isError ? (
-              listEmptyComponent
-            ) : null
-          }
-          ListFooterComponent={
-            saved.isFetchingNextPage ? (
-              <View style={styles.footer}>
-                <ActivityIndicator animating />
-              </View>
-            ) : null
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor="#FF6B6B"
-            />
-          }
-          onEndReachedThreshold={0.4}
-          onEndReached={handleLoadMore}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-        />
-        {saved.isError && (
-          <Card>
-            <Text variant="body">Failed to load saved recipes.</Text>
-            <Button title="Retry" variant="secondary" onPress={() => saved.refetch()} />
-          </Card>
-        )}
-      </Container>
+            </View>
+          ) : !saved.isLoading && !saved.isError ? (
+            listEmptyComponent
+          ) : null
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.primary.main}
+            colors={[COLORS.primary.main]}
+          />
+        }
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        style={styles.list}
+      />
+      {saved.isError && (
+        <Card>
+          <Text variant="body">Failed to load saved recipes.</Text>
+          <Button title="Retry" variant="secondary" onPress={() => saved.refetch()} />
+        </Card>
+      )}
       <FAB
         icon="arrow-up"
         style={styles.fab}
@@ -212,62 +195,35 @@ export const RecipesScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    paddingBottom: spacing.lg,
+  list: {
+    flex: 1,
+    backgroundColor: COLORS.dark.background,
   },
   card: {
-    gap: spacing.sm,
+    marginHorizontal: SPACING.md,
   },
   listContent: {
-    gap: spacing.md,
-    paddingBottom: spacing.lg,
+    paddingBottom: SPACING.xxl,
   },
   header: {
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
+    marginBottom: SPACING.sm,
   },
-  subtitle: {
-    opacity: 0.7,
+  sortContainer: {
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.sm,
   },
-  footer: {
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  sortGroups: {
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  segmented: {
-    marginTop: spacing.sm,
-  },
-  cardHeader: {
+  sortRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: SPACING.xs,
   },
-  emptyState: {
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  iconWrapper: {
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
-    padding: spacing.xl,
-    borderRadius: spacing['2xl'],
-  },
-  emptyTitle: {
-    textAlign: 'center',
-  },
-  emptyBody: {
-    textAlign: 'center',
-    color: 'rgba(148, 163, 184, 0.9)',
-  },
-  savedAt: {
-    opacity: 0.68,
-    marginTop: spacing.xs,
+  loadingContainer: {
+    paddingHorizontal: SPACING.md,
   },
   fab: {
     position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.xl,
+    right: SPACING.lg,
+    bottom: SPACING.xl,
+    backgroundColor: COLORS.primary.main,
+    borderRadius: SHAPE.borderRadius.lg,
   },
 });

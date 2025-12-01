@@ -1,11 +1,11 @@
+import { BookmarkButton, Button, Text, useSnackbar } from '@/components';
+import type { WorkoutCard as Workout } from '@/types';
+import { colors, radii, spacing, useResponsiveValue } from '@/utils';
+import { getFriendlyErrorMessage } from '@/utils/errors';
+import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { Image, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
-import { useSnackbar, BookmarkButton, Button, Text } from '@/components';
-import { getFriendlyErrorMessage } from '@/utils/errors';
-import { colors, spacing, radii, useResponsiveValue } from '@/utils';
-import type { WorkoutCard as Workout } from '@/types';
 
 type Props = {
   item: Workout;

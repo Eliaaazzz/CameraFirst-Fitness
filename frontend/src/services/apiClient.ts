@@ -3,8 +3,8 @@
  * Handles authentication, error handling, and request/response formatting
  */
 
-import { Platform } from 'react-native';
 import { API_BASE_URL, API_KEY } from '@env';
+import { Platform } from 'react-native';
 
 // Use the environment variable for all platforms
 const getBaseURL = () => {

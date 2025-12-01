@@ -1,14 +1,16 @@
 package com.fitnessapp.backend.repository;
 
-import com.fitnessapp.backend.domain.Recipe;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.fitnessapp.backend.domain.Recipe;
 
 public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
 
@@ -179,4 +181,17 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
     @Param("since") java.time.OffsetDateTime since,
     @Param("limit") int limit
   );
+
+  /**
+   * Text search by title or dietary tags
+   */
+  @Query(value = """
+    SELECT * FROM recipe r
+    WHERE LOWER(r.title) LIKE LOWER(CONCAT('%', :query, '%'))
+       OR EXISTS (SELECT 1 FROM unnest(r.dietary_tags) AS dt WHERE LOWER(dt) LIKE LOWER(CONCAT('%', :query, '%')))
+       OR r.description ILIKE CONCAT('%', :query, '%')
+    ORDER BY r.created_at DESC
+    LIMIT :limit
+    """, nativeQuery = true)
+  List<Recipe> searchByText(@Param("query") String query, @Param("limit") int limit);
 }

@@ -8,12 +8,12 @@
  * when image recognition fails.
  */
 
-import { api, get } from './apiClient';
-import type { WorkoutCard, RecipeCard, UploadWorkoutPayload, UploadRecipePayload } from '@/types';
+import type { RecipeCard, UploadRecipePayload, UploadWorkoutPayload, WorkoutCard } from '@/types';
 import {
-  resolveRecipeImageUrls,
-  type RecipeImageUrls
+    resolveRecipeImageUrls,
+    type RecipeImageUrls
 } from '@/utils/spoonacular';
+import { api, get } from './apiClient';
 
 /**
  * Get placeholder image based on recipe title keywords.

@@ -1,13 +1,13 @@
+import { colors, radii, spacing } from '@/utils';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { PropsWithChildren, useState } from 'react';
 import {
-  Pressable,
-  StyleSheet,
-  View,
-  ViewStyle,
-  Platform,
+    Platform,
+    Pressable,
+    StyleSheet,
+    View,
+    ViewStyle,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, radii, spacing } from '@/utils';
 
 type GlowColor = 'emerald' | 'indigo' | 'amber' | 'rose' | 'none';
 

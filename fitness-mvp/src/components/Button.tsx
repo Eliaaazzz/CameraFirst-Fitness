@@ -1,9 +1,9 @@
+import { COLORS, spacing } from '@/utils';
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, ViewStyle } from 'react-native';
 import { Button as PaperButton } from 'react-native-paper';
-import { getTheme, spacing } from '@/utils';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'text' | 'tonal';
 type ButtonSize = 'small' | 'medium' | 'large';
 
 const sizeStyles: Record<ButtonSize, { paddingVertical: number; paddingHorizontal: number; textSize: number }> = {
@@ -12,23 +12,32 @@ const sizeStyles: Record<ButtonSize, { paddingVertical: number; paddingHorizonta
   large: { paddingVertical: spacing.md, paddingHorizontal: spacing['2xl'], textSize: 18 },
 };
 
-export interface ButtonProps extends React.ComponentProps<typeof PaperButton> {
+export interface ButtonProps {
   title: string;
+  onPress?: () => void;
   variant?: ButtonVariant;
   size?: ButtonSize;
-  icon?: React.ReactNode;
+  icon?: any;
   loading?: boolean;
+  disabled?: boolean;
+  style?: ViewStyle;
+  children?: React.ReactNode;
 }
 
-export const Button = ({ title, variant = 'primary', size = 'medium', icon, loading, disabled, style, ...rest }: ButtonProps) => {
+export const Button = ({ title, variant = 'primary', size = 'medium', icon, loading, disabled, style, onPress, ...rest }: ButtonProps) => {
   const mode: 'contained' | 'outlined' | 'text' =
-    variant === 'primary' ? 'contained' : variant === 'outline' ? 'outlined' : 'text';
+    variant === 'primary' || variant === 'secondary' || variant === 'tonal' ? 'contained' : variant === 'outline' ? 'outlined' : 'text';
 
   const contentStyle = {
     paddingVertical: sizeStyles[size].paddingVertical,
   };
   const labelStyle = { fontSize: sizeStyles[size].textSize } as any;
-  const theme = getTheme('light');
+  
+  // Determine button color based on variant
+  const buttonColor = variant === 'primary' ? COLORS.primary.main : 
+                      variant === 'secondary' ? COLORS.secondary.main :
+                      variant === 'tonal' ? COLORS.primary.surfaceTint :
+                      undefined;
 
   return (
     <PaperButton
@@ -39,6 +48,8 @@ export const Button = ({ title, variant = 'primary', size = 'medium', icon, load
       style={style as any}
       contentStyle={contentStyle}
       labelStyle={labelStyle}
+      onPress={onPress}
+      buttonColor={buttonColor}
       {...rest}
     >
       {title}

@@ -4,17 +4,20 @@
   "description": "Infrastructure scripts for AuraFitness",
   "private": true,
   "scripts": {
-    "upload-images": "ts-node --esm upload-images-to-r2.ts",
-    "list-images": "ts-node --esm upload-images-to-r2.ts --list",
-    "sync-spoonacular": "ts-node --esm sync-spoonacular-to-r2.ts"
+    "import:recipes": "node import-spoonacular-recipes.mjs",
+    "sync:recipe-images": "node sync-recipe-images-to-r2.mjs",
+    "import:videos": "ts-node --esm import-exercise-videos.ts",
+    "import:videos:dry": "ts-node --esm import-exercise-videos.ts --dry-run"
   },
   "type": "module",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.450.0",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "pg": "^8.11.3"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
+    "@types/pg": "^8.10.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.2"
   },

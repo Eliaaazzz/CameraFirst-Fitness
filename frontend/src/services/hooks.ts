@@ -1,17 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { RecipeCard, RecipeSortOption, SavedRecipe, SavedWorkout, UploadRecipePayload, UploadWorkoutPayload, WorkoutCard, WorkoutSortOption } from '@/types';
 import {
-  getSavedRecipes,
-  getSavedWorkouts,
-  saveRecipe,
-  saveWorkout,
-  uploadRecipeImage,
-  uploadWorkoutImage,
-  removeSavedWorkout,
-  removeSavedRecipe,
+    getSavedRecipes,
+    getSavedWorkouts,
+    removeSavedRecipe,
+    removeSavedWorkout,
+    saveRecipe,
+    saveWorkout,
+    uploadRecipeImage,
+    uploadWorkoutImage,
 } from './api';
-import { searchWorkouts, searchRecipes } from './imageRecognitionApi';
-import { RecipeCard, UploadRecipePayload, UploadWorkoutPayload, WorkoutCard, SavedWorkout, SavedRecipe, WorkoutSortOption, RecipeSortOption } from '@/types';
+import { searchRecipes, searchWorkouts } from './imageRecognitionApi';
 
 // Default pagination and sort values (for backwards compatibility)
 export const DEFAULT_SAVED_PAGE_SIZE = 20;

@@ -1,9 +1,11 @@
+import { Card, Container, ListSkeleton, SafeAreaWrapper, Text } from '@/components';
+import { Chip, ScreenHeader } from '@/components/ui';
+import { useLeaderboard } from '@/services';
+import { BORDER_RADIUS, COLORS, SPACING } from '@/utils/theme';
+import { Feather } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, SegmentedButtons } from 'react-native-paper';
-import { useLeaderboard } from '@/services';
-import { Container, SafeAreaWrapper, Text, Card, ListSkeleton } from '@/components';
-import { spacing } from '@/utils';
 
 export const CommunityScreen = () => {
   const [scope, setScope] = useState<'weekly' | 'daily'>('weekly');
@@ -13,28 +15,42 @@ export const CommunityScreen = () => {
   const lastUpdated = leaderboard.data ? new Date(leaderboard.data.generatedAt).toLocaleString() : null;
   const showSkeleton = leaderboard.isLoading && !leaderboard.data;
 
+  // Get medal color/emoji based on position
+  const getMedalStyle = (position: number) => {
+    if (position === 1) return { color: '#FFD700', emoji: '🥇' };
+    if (position === 2) return { color: '#C0C0C0', emoji: '🥈' };
+    if (position === 3) return { color: '#CD7F32', emoji: '🥉' };
+    return { color: COLORS.primary.main, emoji: '' };
+  };
+
   return (
-    <SafeAreaWrapper>
+    <SafeAreaWrapper edges={['left', 'right', 'bottom']}>
+      <ScreenHeader
+        title="🏆 Leaderboard"
+        subtitle="Meal logging streaks reset every Monday. Keep logging to climb!"
+        variant="hero"
+      />
       <Container style={styles.container}>
-        <Text variant="heading1" weight="bold">
-          Community Leaderboard
-        </Text>
-        <Text variant="body" style={styles.subtitle}>
-          Meal logging streaks reset every Monday. Keep logging to climb!
-        </Text>
         <View style={styles.controls}>
           <SegmentedButtons
             value={scope}
             onValueChange={(value) => setScope(value as 'weekly' | 'daily')}
             buttons={[
-              { value: 'weekly', label: 'Weekly' },
-              { value: 'daily', label: 'Daily' },
+              { value: 'weekly', label: '📅 Weekly', icon: 'calendar' },
+              { value: 'daily', label: '📊 Daily', icon: 'chart-bar' },
             ]}
-            density="comfortable"
+            density="regular"
+            style={styles.segmentedButtons}
+            theme={{
+              colors: {
+                secondaryContainer: COLORS.primary.main + '30',
+                onSecondaryContainer: COLORS.primary.main,
+              },
+            }}
           />
           {lastUpdated && (
             <Text variant="caption" style={styles.timestamp}>
-              Updated {lastUpdated}
+              <Feather name="clock" size={12} color={COLORS.text.secondary} /> Updated {lastUpdated}
             </Text>
           )}
         </View>
@@ -42,23 +58,44 @@ export const CommunityScreen = () => {
           data={entries}
           keyExtractor={(item) => item.userId}
           contentContainerStyle={[styles.listContent, entries.length === 0 && { flexGrow: 1 }]}
-          renderItem={({ item }) => (
-            <Card style={styles.row}>
-              <View style={styles.rowContent}>
-                <View style={styles.rankCircle}>
-                  <Text variant="body" weight="bold" style={styles.rankText}>
-                    {item.position}
-                  </Text>
+          renderItem={({ item }) => {
+            const medal = getMedalStyle(item.position);
+            const isTopThree = item.position <= 3;
+            
+            return (
+              <Card style={[styles.row, isTopThree && styles.topThreeRow]}>
+                <View style={styles.rowContent}>
+                  <View style={[styles.rankCircle, isTopThree && { backgroundColor: medal.color + '30' }]}>
+                    {isTopThree ? (
+                      <Text variant="heading2">{medal.emoji}</Text>
+                    ) : (
+                      <Text variant="body" weight="bold" style={[styles.rankText, { color: medal.color }]}>
+                        {item.position}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.details}>
+                    <Text variant="body" weight="bold">{item.displayName}</Text>
+                    <View style={styles.statsRow}>
+                      <Chip 
+                        label={`${item.score} meals`}
+                        variant="tonal"
+                        color="primary"
+                        size="small"
+                        icon={<Feather name="check-circle" size={12} color={COLORS.primary.main} />}
+                      />
+                      <Chip 
+                        label={`${item.streak} 🔥`}
+                        variant="outlined"
+                        color="warning"
+                        size="small"
+                      />
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.details}>
-                  <Text variant="body" weight="bold">{item.displayName}</Text>
-                  <Text variant="caption" style={styles.meta}>
-                    {item.score} meals logged · {item.streak} day streak
-                  </Text>
-                </View>
-              </View>
-            </Card>
-          )}
+              </Card>
+            );
+          }}
           refreshControl={
             <RefreshControl
               refreshing={leaderboard.isRefetching}
@@ -89,57 +126,78 @@ export const CommunityScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    gap: spacing.md,
-    paddingBottom: spacing.lg,
+    flex: 1,
+    gap: SPACING.md,
+    paddingBottom: SPACING.lg,
+    backgroundColor: COLORS.dark.background,
   },
   subtitle: {
     opacity: 0.7,
   },
   controls: {
-    gap: spacing.xs,
+    gap: SPACING.sm,
+    paddingTop: SPACING.md,
+  },
+  segmentedButtons: {
+    borderRadius: BORDER_RADIUS,
   },
   timestamp: {
     opacity: 0.6,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
   },
   listContent: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
+    gap: SPACING.sm,
+    paddingBottom: SPACING.xl,
   },
   row: {
-    borderRadius: 16,
+    borderRadius: BORDER_RADIUS,
+    backgroundColor: COLORS.surface.primary,
+  },
+  topThreeRow: {
+    borderWidth: 1,
+    borderColor: COLORS.primary.main + '40',
+    backgroundColor: COLORS.dark.surfaceElevated,
   },
   rowContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: SPACING.md,
   },
   rankCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(14,116,144,0.12)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary.surfaceTint,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rankText: {
     textAlign: 'center',
+    color: COLORS.primary.main,
   },
   details: {
     flex: 1,
-    gap: spacing.xs / 2,
+    gap: SPACING.xs,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: SPACING.xs,
   },
   meta: {
     opacity: 0.7,
+    color: COLORS.text.secondary,
   },
   loadingState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.md,
+    gap: SPACING.md,
   },
   emptyCard: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.lg,
+    paddingVertical: SPACING.lg,
+    borderRadius: BORDER_RADIUS,
   },
 });

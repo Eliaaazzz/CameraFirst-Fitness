@@ -1,20 +1,21 @@
 package com.fitnessapp.backend.retrieval;
 
-import com.fitnessapp.backend.domain.WorkoutVideo;
-import com.fitnessapp.backend.repository.WorkoutVideoRepository;
-import com.fitnessapp.backend.retrieval.dto.WorkoutCard;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import com.fitnessapp.backend.domain.ExerciseVideo;
+import com.fitnessapp.backend.repository.ExerciseVideoRepository;
+import com.fitnessapp.backend.retrieval.dto.WorkoutCard;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -22,121 +23,124 @@ import org.springframework.util.StringUtils;
 public class WorkoutRetrievalService {
 
     private static final int DEFAULT_RESULT_LIMIT = 4;
-    private static final int DEFAULT_DURATION_TOLERANCE_MINUTES = 5;
+    private static final int SEARCH_RESULT_LIMIT = 20;
 
-    private final WorkoutVideoRepository repository;
+    private final ExerciseVideoRepository exerciseVideoRepository;
 
+    /**
+     * Text-based workout search - searches exercise_videos table
+     */
+    public List<WorkoutCard> searchByText(String query, String category, Integer maxDuration) {
+        if (query == null || query.trim().isEmpty()) {
+            log.warn("Empty search query; returning empty list");
+            return List.of();
+        }
+
+        log.info("Searching exercises: query={}, category={}", query, category);
+
+        List<ExerciseVideo> results = exerciseVideoRepository.searchByKeyword(query.trim(), SEARCH_RESULT_LIMIT);
+
+        // Apply category filter if provided
+        if (category != null && !category.isEmpty()) {
+            results = results.stream()
+                    .filter(e -> e.getPrimaryCategory() != null && 
+                            e.getPrimaryCategory().equalsIgnoreCase(category))
+                    .collect(Collectors.toList());
+        }
+
+        return results.stream()
+                .map(this::toCard)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Find workouts by category (body part)
+     */
     public List<WorkoutCard> findWorkouts(String equipment, String level, int durationPreference) {
-        if (!StringUtils.hasText(equipment)) {
-            log.warn("Equipment not provided; returning empty workout list");
-            return List.of();
+        String category = mapEquipmentToCategory(equipment);
+        
+        log.info("Finding exercises: equipment={}, mapped category={}", equipment, category);
+
+        List<ExerciseVideo> results;
+        if (category != null) {
+            results = exerciseVideoRepository.findByCategory(category, DEFAULT_RESULT_LIMIT);
+        } else {
+            results = exerciseVideoRepository.findAllByOrderByExerciseNameAsc();
+            if (results.size() > DEFAULT_RESULT_LIMIT) {
+                results = results.subList(0, DEFAULT_RESULT_LIMIT);
+            }
         }
 
-        List<WorkoutVideo> exactMatches = repository.findByEquipmentContaining(equipment.trim().toLowerCase(Locale.ROOT));
-        if (exactMatches.isEmpty()) {
-            return List.of();
-        }
+        return selectDiverseWorkouts(results, DEFAULT_RESULT_LIMIT);
+    }
 
-        List<WorkoutVideo> durationMatches = exactMatches.stream()
-                .filter(video -> video.getDurationMinutes() != null)
-                .filter(video -> Math.abs(video.getDurationMinutes() - durationPreference) <= DEFAULT_DURATION_TOLERANCE_MINUTES)
+    /**
+     * Get all exercises by category
+     */
+    public List<WorkoutCard> getByCategory(String category, int limit) {
+        List<ExerciseVideo> results = exerciseVideoRepository.findByCategory(category, limit);
+        return results.stream()
+                .map(this::toCard)
                 .collect(Collectors.toList());
-
-        List<WorkoutVideo> basePool = durationMatches.isEmpty() ? exactMatches : durationMatches;
-        double maxViewCount = basePool.stream()
-                .mapToDouble(video -> viewCountOrZero(video))
-                .max()
-                .orElse(0D);
-
-        List<WorkoutVideo> sorted = basePool.stream()
-                .map(video -> new ScoredWorkout(video, computeScore(video, level, durationPreference, maxViewCount)))
-                .sorted(Comparator
-                        .comparingDouble(ScoredWorkout::score)
-                        .reversed()
-                        .thenComparing(scored -> durationDelta(scored.video(), durationPreference))
-                        .thenComparing(scored -> viewCountOrZero(scored.video()), Comparator.reverseOrder()))
-                .map(ScoredWorkout::video)
-                .collect(Collectors.toList());
-
-        return selectDiverseWorkouts(sorted, DEFAULT_RESULT_LIMIT);
     }
 
-    private static boolean levelMatches(WorkoutVideo video, String requestedLevel) {
-        if (!StringUtils.hasText(requestedLevel) || !StringUtils.hasText(video.getLevel())) {
-            return false;
+    /**
+     * Map common equipment/search terms to body part categories
+     */
+    private String mapEquipmentToCategory(String equipment) {
+        if (equipment == null) return null;
+        
+        String lower = equipment.toLowerCase(Locale.ROOT);
+        
+        if (lower.contains("chest") || lower.contains("bench") || lower.contains("pec")) {
+            return "Chest";
         }
-        return video.getLevel().equalsIgnoreCase(requestedLevel);
+        if (lower.contains("back") || lower.contains("pull") || lower.contains("row")) {
+            return "Back";
+        }
+        if (lower.contains("leg") || lower.contains("squat") || lower.contains("lunge")) {
+            return "Legs";
+        }
+        if (lower.contains("shoulder") || lower.contains("delt")) {
+            return "Shoulders";
+        }
+        if (lower.contains("arm") || lower.contains("bicep") || lower.contains("tricep") || lower.contains("curl")) {
+            return "Arms";
+        }
+        if (lower.contains("core") || lower.contains("ab") || lower.contains("plank")) {
+            return "Core";
+        }
+        if (lower.contains("glute") || lower.contains("hip")) {
+            return "Glutes";
+        }
+        
+        return null;
     }
 
-    private static long viewCountOrZero(WorkoutVideo video) {
-        return video.getViewCount() == null ? 0L : video.getViewCount();
-    }
-
-    private double computeScore(WorkoutVideo video, String requestedLevel, int durationPreference, double maxViewCount) {
-        double score = 0D;
-
-        score += 1.0D; // base equipment match due to pre-filter
-        if (durationMatches(video, durationPreference)) {
-            score += 0.5D;
-        }
-        if (levelMatches(video, requestedLevel)) {
-            score += 0.3D;
-        }
-        score += viewCountBoost(video, maxViewCount);
-
-        return score;
-    }
-
-    private boolean durationMatches(WorkoutVideo video, int durationPreference) {
-        if (video.getDurationMinutes() == null) {
-            return false;
-        }
-        if (durationPreference <= 0) {
-            return true;
-        }
-        return Math.abs(video.getDurationMinutes() - durationPreference) <= DEFAULT_DURATION_TOLERANCE_MINUTES;
-    }
-
-    private int durationDelta(WorkoutVideo video, int durationPreference) {
-        if (video.getDurationMinutes() == null || durationPreference <= 0) {
-            return Integer.MAX_VALUE;
-        }
-        return Math.abs(video.getDurationMinutes() - durationPreference);
-    }
-
-    private double viewCountBoost(WorkoutVideo video, double maxViewCount) {
-        if (maxViewCount <= 0D) {
-            return 0D;
-        }
-        double ratio = viewCountOrZero(video) / maxViewCount;
-        return Math.min(ratio, 1D) * 0.2D;
-    }
-
-    private List<WorkoutCard> selectDiverseWorkouts(List<WorkoutVideo> videos, int desiredCount) {
+    private List<WorkoutCard> selectDiverseWorkouts(List<ExerciseVideo> videos, int desiredCount) {
         if (videos.isEmpty() || desiredCount <= 0) {
             return List.of();
         }
 
         List<WorkoutCard> selected = new ArrayList<>();
-        Set<String> seenBodyParts = new HashSet<>();
+        Set<String> seenCategories = new HashSet<>();
         Set<String> addedIds = new HashSet<>();
 
-        for (WorkoutVideo video : videos) {
+        for (ExerciseVideo video : videos) {
             if (selected.size() >= desiredCount) {
                 break;
             }
-            String primaryBodyPart = primaryBodyPart(video);
-            if (primaryBodyPart == null) {
-                continue;
-            }
-            String normalized = primaryBodyPart.toLowerCase(Locale.ROOT);
-            if (seenBodyParts.add(normalized)) {
-                addCard(selected, addedIds, video);
+            String category = video.getPrimaryCategory();
+            if (category != null) {
+                String normalized = category.toLowerCase(Locale.ROOT);
+                if (seenCategories.add(normalized)) {
+                    addCard(selected, addedIds, video);
+                }
             }
         }
 
         if (selected.size() < desiredCount) {
-            for (WorkoutVideo video : videos) {
+            for (ExerciseVideo video : videos) {
                 if (selected.size() >= desiredCount) {
                     break;
                 }
@@ -147,7 +151,7 @@ public class WorkoutRetrievalService {
         return selected;
     }
 
-    private void addCard(List<WorkoutCard> selected, Set<String> addedIds, WorkoutVideo video) {
+    private void addCard(List<WorkoutCard> selected, Set<String> addedIds, ExerciseVideo video) {
         String uniqueId = video.getYoutubeId();
         if (!StringUtils.hasText(uniqueId) || addedIds.contains(uniqueId)) {
             return;
@@ -156,37 +160,34 @@ public class WorkoutRetrievalService {
         addedIds.add(uniqueId);
     }
 
-    private WorkoutCard toCard(WorkoutVideo video) {
-        List<String> equipment = video.getEquipment();
-        List<String> bodyParts = video.getBodyPart();
+    private WorkoutCard toCard(ExerciseVideo video) {
         String youtubeUrl = StringUtils.hasText(video.getYoutubeId())
                 ? "https://www.youtube.com/watch?v=" + video.getYoutubeId()
                 : null;
+        
+        String thumbnailUrl = video.getR2Key() != null 
+                ? "https://img.camera-first.dev/" + video.getR2Key().replace(".mp4", ".jpg")
+                : null;
+
+        List<String> bodyParts = new ArrayList<>();
+        if (video.getPrimaryCategory() != null) {
+            bodyParts.add(video.getPrimaryCategory());
+        }
+        if (video.getSecondaryCategory() != null) {
+            bodyParts.add(video.getSecondaryCategory());
+        }
+
         return WorkoutCard.builder()
                 .id(video.getId() != null ? video.getId().toString() : null)
                 .youtubeId(video.getYoutubeId())
-                .title(video.getTitle())
-                .durationMinutes(video.getDurationMinutes())
-                .level(video.getLevel())
-                .equipment(equipment == null ? List.of() : new ArrayList<>(equipment))
-                .bodyParts(bodyParts == null ? List.of() : new ArrayList<>(bodyParts))
-                .thumbnailUrl(video.getThumbnailUrl())
-                .viewCount(video.getViewCount())
+                .title(video.getExerciseName())
+                .durationMinutes(video.getIsShort() ? 1 : 5)
+                .level("all")
+                .equipment(List.of())
+                .bodyParts(bodyParts)
+                .thumbnailUrl(thumbnailUrl)
+                .viewCount(0L)
                 .youtubeUrl(youtubeUrl)
                 .build();
-    }
-
-    private record ScoredWorkout(WorkoutVideo video, double score) {
-    }
-
-    private String primaryBodyPart(WorkoutVideo video) {
-        if (CollectionUtils.isEmpty(video.getBodyPart())) {
-            return null;
-        }
-        return video.getBodyPart().stream()
-                .filter(StringUtils::hasText)
-                .map(part -> part.toLowerCase(Locale.ROOT))
-                .findFirst()
-                .orElse(null);
     }
 }
