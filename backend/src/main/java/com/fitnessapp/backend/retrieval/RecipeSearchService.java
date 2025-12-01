@@ -1,16 +1,20 @@
 package com.fitnessapp.backend.retrieval;
 
-import com.fitnessapp.backend.domain.Recipe;
-import com.fitnessapp.backend.repository.RecipeRepository;
-import com.fitnessapp.backend.retrieval.dto.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.fitnessapp.backend.domain.Recipe;
+import com.fitnessapp.backend.repository.RecipeRepository;
+import com.fitnessapp.backend.retrieval.dto.NutritionFilter;
+import com.fitnessapp.backend.retrieval.dto.RecipeCard;
+import com.fitnessapp.backend.retrieval.dto.RecipeSearchRequest;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Advanced recipe search service with macro filtering and dietary tags
@@ -147,6 +151,31 @@ public class RecipeSearchService {
         log.info("Finding recipes with {}-{} calories", minCalories, maxCalories);
 
         List<Recipe> recipes = repository.findByCaloriesRange(minCalories, maxCalories, DEFAULT_LIMIT);
+
+        return recipes.stream()
+                .map(retrievalService::toCard)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Text-based recipe search by title or tags
+     */
+    @Transactional(readOnly = true)
+    public List<RecipeCard> searchByText(String query, Integer maxTime) {
+        log.info("Text search: query={}, maxTime={}", query, maxTime);
+
+        if (query == null || query.trim().isEmpty()) {
+            return List.of();
+        }
+
+        List<Recipe> recipes = repository.searchByText(query.trim(), DEFAULT_LIMIT);
+
+        // Apply time filter if specified
+        if (maxTime != null && maxTime > 0) {
+            recipes = recipes.stream()
+                    .filter(r -> r.getTimeMinutes() != null && r.getTimeMinutes() <= maxTime)
+                    .collect(Collectors.toList());
+        }
 
         return recipes.stream()
                 .map(retrievalService::toCard)

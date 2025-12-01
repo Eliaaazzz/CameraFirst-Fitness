@@ -2,7 +2,7 @@ import React, { PropsWithChildren } from 'react';
 import { StyleSheet, View, ViewProps } from 'react-native';
 
 import { spacing } from '@/utils';
-import { useResponsive, useResponsivePadding, useContainerMaxWidth } from '@/utils/responsive';
+import { useContainerMaxWidth, useResponsive, useResponsivePadding } from '@/utils/responsive';
 
 interface ContainerProps extends ViewProps {
   /**
@@ -37,7 +37,7 @@ export const Container = ({
           paddingVertical: padding,
         },
         centered && isDesktop && styles.centeredContainer,
-        centered && maxWidth && { maxWidth },
+        centered && maxWidth ? { maxWidth } : null,
         style,
       ]}
       {...rest}

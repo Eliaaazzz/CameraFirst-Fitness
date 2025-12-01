@@ -103,6 +103,21 @@ export interface Paginated<T> {
   hasNext: boolean;
 }
 
+// Search Types
+export interface SearchParams {
+  query: string;
+  level?: WorkoutLevel;
+  maxDuration?: number;
+  maxTime?: number;
+}
+
+export interface SearchResponse<T> {
+  items: T[];
+  totalResults: number;
+  query: string;
+  latencyMs: number;
+}
+
 export type SortDirection = 'asc' | 'desc';
 
 export type WorkoutSortField = 'savedAt' | 'duration';

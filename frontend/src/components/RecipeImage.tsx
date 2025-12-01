@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
-import { Image, ImageStyle, Platform, StyleSheet, View, ViewStyle } from 'react-native';
 import type { RecipeImageUrls } from '@/utils/spoonacular';
 import { FALLBACK_RECIPE_IMAGE } from '@/utils/spoonacular';
+import React, { useCallback, useState } from 'react';
+import { Image, ImageStyle, Platform, StyleSheet, View, ViewStyle } from 'react-native';
 
 // ============================================================================
 // Types

@@ -1,13 +1,30 @@
 package com.fitnessapp.backend.retrieval;
 
-import com.fitnessapp.backend.retrieval.dto.*;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.fitnessapp.backend.retrieval.dto.ImageRequest;
+import com.fitnessapp.backend.retrieval.dto.RecipeCard;
+import com.fitnessapp.backend.retrieval.dto.RecipeResponse;
+import com.fitnessapp.backend.retrieval.dto.RecipeSearchRequest;
+import com.fitnessapp.backend.retrieval.dto.RecipeSearchResponse;
+import com.fitnessapp.backend.retrieval.dto.WorkoutCard;
+import com.fitnessapp.backend.retrieval.dto.WorkoutResponse;
+import com.fitnessapp.backend.retrieval.dto.WorkoutSearchResponse;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping(path = "/api/v1", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -19,6 +36,58 @@ public class ContentController {
     private final RecipeSearchService recipeSearchService;
     private final ImageQueryService imageQueryService;
     private final com.fitnessapp.backend.service.RecipeScalingService recipeScalingService;
+
+    // ============================================================================
+    // Text Search Endpoints
+    // ============================================================================
+
+    /**
+     * Text-based workout search
+     * GET /api/v1/workouts/search?query=chest&level=beginner&maxDuration=30
+     */
+    @GetMapping("/workouts/search")
+    public WorkoutSearchResponse searchWorkouts(
+            @RequestParam String query,
+            @RequestParam(required = false) String level,
+            @RequestParam(required = false) Integer maxDuration) {
+        Instant start = Instant.now();
+
+        List<WorkoutCard> results = workoutService.searchByText(query, level, maxDuration);
+        Duration elapsed = Duration.between(start, Instant.now());
+
+        return WorkoutSearchResponse.builder()
+                .workouts(results)
+                .totalResults(results.size())
+                .query(query)
+                .latencyMs((int) elapsed.toMillis())
+                .build();
+    }
+
+    /**
+     * Text-based recipe search (simple text query)
+     * GET /api/v1/recipes/search-text?query=chicken&maxTime=30
+     */
+    @GetMapping("/recipes/search-text")
+    public RecipeSearchResponse searchRecipesText(
+            @RequestParam String query,
+            @RequestParam(required = false) Integer maxTime) {
+        Instant start = Instant.now();
+
+        List<RecipeCard> results = recipeSearchService.searchByText(query, maxTime);
+        Duration elapsed = Duration.between(start, Instant.now());
+
+        return RecipeSearchResponse.builder()
+                .recipes(results)
+                .totalResults(results.size())
+                .filters(RecipeSearchRequest.builder().build())
+                .latencyMs((int) elapsed.toMillis())
+                .fromCache(false)
+                .build();
+    }
+
+    // ============================================================================
+    // Image-based Endpoints
+    // ============================================================================
 
     @PostMapping(path = "/workouts/from-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public WorkoutResponse getWorkouts(

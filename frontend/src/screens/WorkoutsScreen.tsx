@@ -1,15 +1,15 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useNavigation } from '@react-navigation/native';
+import React, { useCallback, useRef, useState } from 'react';
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
 
 import { Button, Card, Container, ListSkeleton, SafeAreaWrapper, Text, WorkoutCard } from '@/components';
-import { spacing } from '@/utils';
+import useCurrentUser from '@/hooks/useCurrentUser';
 import { useSavedWorkouts } from '@/services';
 import type { SavedWorkout } from '@/types';
-import useCurrentUser from '@/hooks/useCurrentUser';
+import { spacing } from '@/utils';
 
 type TabParamList = {
   Capture: undefined;

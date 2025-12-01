@@ -1,6 +1,6 @@
-import React, { PropsWithChildren } from 'react';
-import { Text as RNText, TextStyle, Platform } from 'react-native';
 import { colors } from '@/utils';
+import React, { PropsWithChildren } from 'react';
+import { Platform, Text as RNText, TextStyle } from 'react-native';
 
 type TextVariant = 'hero' | 'heading1' | 'heading2' | 'heading3' | 'body' | 'caption' | 'label';
 type TextWeight = 'regular' | 'medium' | 'semibold' | 'bold';

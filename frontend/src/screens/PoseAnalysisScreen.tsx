@@ -1,18 +1,18 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-} from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { Video } from 'expo-av';
 import { MaterialIcons } from '@expo/vector-icons';
 import axios from 'axios';
+import { Video } from 'expo-av';
+import * as ImagePicker from 'expo-image-picker';
+import React, { useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 /**
  * AI Pose Analysis Screen

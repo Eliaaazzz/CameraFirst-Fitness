@@ -1,17 +1,17 @@
 import React, { PropsWithChildren } from 'react';
-import { SafeAreaView, SafeAreaViewProps } from 'react-native-safe-area-context';
 import { useColorScheme } from 'react-native';
+import { SafeAreaView, SafeAreaViewProps } from 'react-native-safe-area-context';
 
-import { getTheme } from '@/utils';
+import { COLORS } from '@/utils';
 
 export const SafeAreaWrapper = ({ children, style, ...rest }: PropsWithChildren<SafeAreaViewProps>) => {
   const colorScheme = useColorScheme();
-  const theme = getTheme(colorScheme === 'dark' ? 'dark' : 'light');
+  const backgroundColor = colorScheme === 'dark' ? COLORS.background.dark : COLORS.background.light;
 
   return (
     <SafeAreaView
       edges={['top', 'right', 'left']}
-      style={[{ flex: 1, backgroundColor: theme.colors.background }, style]}
+      style={[{ flex: 1, backgroundColor }, style]}
       {...rest}
     >
       {children}

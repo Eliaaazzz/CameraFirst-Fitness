@@ -1,21 +1,20 @@
+import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { FAB, Chip, ActivityIndicator } from 'react-native-paper';
-import { Feather } from '@expo/vector-icons';
+import { ActivityIndicator, FAB } from 'react-native-paper';
 
 import {
-  Button,
-  Card,
-  Container,
-  CreateGoalModal,
-  GoalCard,
-  SafeAreaWrapper,
-  Text,
+    Container,
+    CreateGoalModal,
+    GoalCard,
+    SafeAreaWrapper,
+    Text
 } from '@/components';
-import { spacing } from '@/utils';
-import { useGoals, useGoalStatistics, useDeleteGoal, useLogGoalProgress, useCreateGoal } from '@/services/goalsApi';
+import { EmptyState, FilterBar, ScreenHeader, StatCard } from '@/components/ui';
 import useCurrentUser from '@/hooks/useCurrentUser';
+import { useCreateGoal, useDeleteGoal, useGoals, useGoalStatistics, useLogGoalProgress } from '@/services/goalsApi';
 import type { Goal, GoalType } from '@/types';
+import { BORDER_RADIUS, COLORS, ELEVATION, SPACING, spacing } from '@/utils/theme';
 
 type FilterType = GoalType | 'all';
 
@@ -68,68 +67,43 @@ export const GoalsScreen = () => {
 
     return (
       <View style={styles.statsContainer}>
-        <Card style={styles.statCard}>
-          <Text variant="caption" style={styles.statLabel}>
-            Active Goals
-          </Text>
-          <Text variant="heading2" weight="bold" style={styles.statValue}>
-            {stats.data.activeGoals}
-          </Text>
-        </Card>
-
-        <Card style={styles.statCard}>
-          <Text variant="caption" style={styles.statLabel}>
-            Current Streak
-          </Text>
-          <Text variant="heading2" weight="bold" style={styles.statValue}>
-            🔥 {stats.data.currentStreak}
-          </Text>
-        </Card>
-
-        <Card style={styles.statCard}>
-          <Text variant="caption" style={styles.statLabel}>
-            Completed
-          </Text>
-          <Text variant="heading2" weight="bold" style={styles.statValue}>
-            {stats.data.completedGoals}
-          </Text>
-        </Card>
+        <StatCard
+          label="Active Goals"
+          value={stats.data.activeGoals}
+          icon={<Feather name="target" size={20} color={COLORS.primary.main} />}
+        />
+        <StatCard
+          label="Current Streak"
+          value={`🔥 ${stats.data.currentStreak}`}
+          variant="highlighted"
+        />
+        <StatCard
+          label="Completed"
+          value={stats.data.completedGoals}
+          icon={<Feather name="check-circle" size={20} color={COLORS.semantic.success} />}
+        />
       </View>
     );
   };
 
   // Render filter chips
   const renderFilters = () => {
-    const filters: { label: string; value: FilterType }[] = [
-      { label: 'All', value: 'all' },
-      { label: 'Nutrition', value: 'nutrition' },
-      { label: 'Workout', value: 'workout' },
-      { label: 'Hydration', value: 'hydration' },
-      { label: 'Sleep', value: 'sleep' },
-      { label: 'Weight', value: 'weight' },
-      { label: 'Habit', value: 'habit' },
+    const filterOptions = [
+      { id: 'nutrition', label: 'Nutrition' },
+      { id: 'workout', label: 'Workout' },
+      { id: 'hydration', label: 'Hydration' },
+      { id: 'sleep', label: 'Sleep' },
+      { id: 'weight', label: 'Weight' },
+      { id: 'habit', label: 'Habit' },
     ];
 
     return (
-      <View style={styles.filtersContainer}>
-        <FlatList
-          horizontal
-          data={filters}
-          keyExtractor={(item) => item.value}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filtersList}
-          renderItem={({ item }) => (
-            <Chip
-              selected={filter === item.value}
-              onPress={() => setFilter(item.value)}
-              style={styles.filterChip}
-              mode={filter === item.value ? 'flat' : 'outlined'}
-            >
-              {item.label}
-            </Chip>
-          )}
-        />
-      </View>
+      <FilterBar
+        options={filterOptions}
+        selectedId={filter === 'all' ? null : filter}
+        onSelect={(id) => setFilter(id as FilterType || 'all')}
+        style={styles.filtersContainer}
+      />
     );
   };
 
@@ -148,22 +122,14 @@ export const GoalsScreen = () => {
 
   // Empty state
   const renderEmptyState = () => (
-    <Card style={styles.emptyState}>
-      <View style={styles.iconWrapper}>
-        <Feather name="target" size={48} color="#4ECDC4" />
-      </View>
-      <Text variant="heading2" weight="bold" style={styles.emptyTitle}>
-        No goals yet
-      </Text>
-      <Text variant="body" style={styles.emptyBody}>
-        Set your first goal to start tracking your fitness journey and receive helpful reminders!
-      </Text>
-      <Button
-        title="Create Your First Goal"
-        variant="primary"
-        onPress={() => setModalVisible(true)}
-      />
-    </Card>
+    <EmptyState
+      icon={<Feather name="target" size={48} color={COLORS.primary.main} />}
+      title="No goals yet"
+      description="Set your first goal to start tracking your fitness journey and receive helpful reminders!"
+      actionLabel="Create Your First Goal"
+      onAction={() => setModalVisible(true)}
+      style={styles.emptyState}
+    />
   );
 
   // Loading state
@@ -184,33 +150,27 @@ export const GoalsScreen = () => {
   if (currentUser.isError || goals.isError) {
     return (
       <SafeAreaWrapper>
-        <Container>
-          <Card style={styles.emptyState}>
-            <Text variant="heading2" weight="bold" style={styles.emptyTitle}>
-              Unable to load goals
-            </Text>
-            <Text variant="body" style={styles.emptyBody}>
-              Check your connection and try again.
-            </Text>
-            <Button title="Retry" onPress={handleRefresh} />
-          </Card>
+        <Container style={styles.container}>
+          <EmptyState
+            icon={<Feather name="alert-circle" size={48} color={COLORS.semantic.error} />}
+            title="Unable to load goals"
+            description="Check your connection and try again."
+            actionLabel="Retry"
+            onAction={handleRefresh}
+          />
         </Container>
       </SafeAreaWrapper>
     );
   }
 
   return (
-    <SafeAreaWrapper>
+    <SafeAreaWrapper edges={['left', 'right', 'bottom']}>
+      <ScreenHeader
+        title="🎯 Goals"
+        subtitle="Track your progress and stay motivated"
+        variant="hero"
+      />
       <Container style={styles.container}>
-        <View style={styles.header}>
-          <Text variant="heading1" weight="bold">
-            Goals
-          </Text>
-          <Text variant="body" style={styles.subtitle}>
-            Track your progress and stay motivated
-          </Text>
-        </View>
-
         {renderStatistics()}
         {renderFilters()}
 
@@ -223,9 +183,9 @@ export const GoalsScreen = () => {
           ListEmptyComponent={renderEmptyState()}
           refreshControl={
             <RefreshControl
-              refreshing={goals.isRefetching && !goals.isFetchingNextPage}
+              refreshing={goals.isRefetching}
               onRefresh={handleRefresh}
-              tintColor="#4ECDC4"
+              tintColor={COLORS.primary.main}
             />
           }
           showsVerticalScrollIndicator={false}
@@ -239,6 +199,8 @@ export const GoalsScreen = () => {
           onPress={() => setModalVisible(true)}
           label="New Goal"
           visible={showFab}
+          color="#FFFFFF"
+          customSize={56}
         />
 
         <CreateGoalModal
@@ -261,81 +223,43 @@ export const GoalsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingBottom: spacing.lg,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.lg,
+    backgroundColor: COLORS.dark.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: SPACING.md,
   },
   loadingText: {
     opacity: 0.7,
-  },
-  header: {
-    gap: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  subtitle: {
-    opacity: 0.7,
+    color: COLORS.text.secondary,
   },
   statsContainer: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    padding: spacing.md,
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  statLabel: {
-    opacity: 0.7,
-    textTransform: 'uppercase',
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  statValue: {
-    fontSize: 28,
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
   },
   filtersContainer: {
-    marginBottom: spacing.md,
-  },
-  filtersList: {
-    gap: spacing.xs,
-    paddingHorizontal: spacing.xs,
-  },
-  filterChip: {
-    marginRight: spacing.xs,
+    marginBottom: SPACING.md,
+    marginHorizontal: -SPACING.md,
   },
   listContent: {
-    gap: spacing.md,
-    paddingBottom: spacing['2xl'],
+    gap: SPACING.md,
+    paddingBottom: SPACING.xxl,
   },
   emptyState: {
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.xl,
-    marginTop: spacing['2xl'],
-  },
-  iconWrapper: {
-    backgroundColor: 'rgba(78, 205, 196, 0.15)',
-    padding: spacing.xl,
-    borderRadius: spacing['2xl'],
-  },
-  emptyTitle: {
-    textAlign: 'center',
-  },
-  emptyBody: {
-    textAlign: 'center',
-    opacity: 0.7,
+    marginTop: SPACING.xxl,
   },
   fab: {
     position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.xl,
+    right: SPACING.lg,
+    bottom: SPACING.xl,
+    backgroundColor: COLORS.primary.main,
+    borderRadius: BORDER_RADIUS,
+    ...ELEVATION.level2,
   },
   fabHidden: {
     transform: [{ translateY: 100 }],

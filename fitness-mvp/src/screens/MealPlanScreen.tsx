@@ -1,15 +1,42 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { ActivityIndicator, Avatar, Card as PaperCard, Card, Text as PaperText } from 'react-native-paper';
-import { Container, SafeAreaWrapper, Text, Button, useSnackbar } from '@/components';
-import { spacing } from '@/utils';
-import mealPlanApi from '@/services/mealPlanApi';
-import nutritionApi from '@/services/nutritionApi';
-import { MealPlanHistoryItem, MealPlanResponse, NutritionInsightResponse } from '@/types/mealPlan';
+import { Button, Container, SafeAreaWrapper, Text, Card as UICard, useSnackbar } from '@/components';
+import { Chip, ScreenHeader } from '@/components/ui';
+import useCurrentUser from '@/hooks/useCurrentUser';
 import MealDetailModal from '@/screens/components/MealDetailModal';
 import NutritionTrackerCard from '@/screens/components/NutritionTrackerCard';
-import useCurrentUser from '@/hooks/useCurrentUser';
+import mealPlanApi from '@/services/mealPlanApi';
+import nutritionApi from '@/services/nutritionApi';
+import type { MealPlanHistoryItem, MealPlanResponse, NutritionInsightResponse, NutritionSummaryResponse } from '@/types/mealPlan';
+import { BORDER_RADIUS, COLORS, spacing, SPACING } from '@/utils';
+import { Feather } from '@expo/vector-icons';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Avatar, Card, Card as PaperCard, Text as PaperText } from 'react-native-paper';
+
+interface NutritionData {
+  calories?: { consumed: number; target: number };
+  protein?: { consumed: number; target: number };
+  carbs?: { consumed: number; target: number };
+  fat?: { consumed: number; target: number };
+}
+
+const transformSummaryToNutritionData = (summary: NutritionSummaryResponse | undefined): NutritionData | null => {
+  if (!summary) return null;
+  return {
+    calories: summary.calories
+      ? { consumed: summary.calories.actual, target: summary.calories.target }
+      : undefined,
+    protein: summary.protein
+      ? { consumed: summary.protein.actual, target: summary.protein.target }
+      : undefined,
+    carbs: summary.carbs
+      ? { consumed: summary.carbs.actual, target: summary.carbs.target }
+      : undefined,
+    fat: summary.fat
+      ? { consumed: summary.fat.actual, target: summary.fat.target }
+      : undefined,
+  };
+};
 
 export const MealPlanScreen = () => {
   const [selectedMeal, setSelectedMeal] = useState<MealPlanHistoryItem['plan']['days'][number]['meals'][number] | null>(null);
@@ -19,33 +46,7 @@ export const MealPlanScreen = () => {
   const currentUserQuery = useCurrentUser();
   const userId = currentUserQuery.data?.userId;
 
-  useEffect(() => {
-    if (currentUserQuery.isError) {
-      const message = currentUserQuery.error instanceof Error
-        ? currentUserQuery.error.message
-        : 'Failed to load user information';
-      snackbar.showSnackbar(message, { variant: 'error' });
-    }
-  }, [currentUserQuery.isError, currentUserQuery.error, snackbar]);
-
-  if (currentUserQuery.isError && !currentUserQuery.isLoading) {
-    return (
-      <SafeAreaWrapper>
-        <Container>
-          <Card style={styles.emptyCard}>
-            <Card.Title title="Unable to load user info" />
-            <Card.Content>
-              <PaperText variant="bodyMedium" style={{ marginBottom: spacing.md }}>
-                Please check your network connection or API Key settings and try again.
-              </PaperText>
-              <Button title="Retry" onPress={() => currentUserQuery.refetch()} />
-            </Card.Content>
-          </Card>
-        </Container>
-      </SafeAreaWrapper>
-    );
-  }
-
+  // All hooks must be called before any conditional returns
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['meal-plan', 'history', userId],
     queryFn: () => mealPlanApi.getHistory(userId!, 5),
@@ -56,20 +57,12 @@ export const MealPlanScreen = () => {
     queryKey: ['nutrition', 'summary', 'daily', userId],
     queryFn: () => nutritionApi.getDailySummary(userId!),
     enabled: !!userId,
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Failed to load nutrition summary';
-      snackbar.showSnackbar(message, { variant: 'error' });
-    },
   });
 
   const insightQuery = useQuery<NutritionInsightResponse>({
     queryKey: ['nutrition', 'insight', 'weekly', userId],
     queryFn: () => nutritionApi.getWeeklyInsight(userId!),
     enabled: !!userId,
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Failed to load nutrition insight';
-      snackbar.showSnackbar(message, { variant: 'error' });
-    },
   });
 
   const generateMutation = useMutation<MealPlanResponse, Error, string>({
@@ -83,6 +76,29 @@ export const MealPlanScreen = () => {
       snackbar.showSnackbar(message, { variant: 'error' });
     },
   });
+
+  useEffect(() => {
+    if (currentUserQuery.isError) {
+      const message = currentUserQuery.error instanceof Error
+        ? currentUserQuery.error.message
+        : 'Failed to load user information';
+      snackbar.showSnackbar(message, { variant: 'error' });
+    }
+  }, [currentUserQuery.isError, currentUserQuery.error, snackbar]);
+
+  useEffect(() => {
+    if (summaryQuery.error) {
+      const message = summaryQuery.error instanceof Error ? summaryQuery.error.message : 'Failed to load nutrition summary';
+      snackbar.showSnackbar(message, { variant: 'error' });
+    }
+  }, [summaryQuery.error, snackbar]);
+
+  useEffect(() => {
+    if (insightQuery.error) {
+      const message = insightQuery.error instanceof Error ? insightQuery.error.message : 'Failed to load nutrition insight';
+      snackbar.showSnackbar(message, { variant: 'error' });
+    }
+  }, [insightQuery.error, snackbar]);
 
   const latestPlan = data?.[0];
   const days = latestPlan?.plan.days ?? [];
@@ -101,11 +117,50 @@ export const MealPlanScreen = () => {
     || insightQuery.isFetching
     || currentUserQuery.isFetching;
 
+  const nutritionData = transformSummaryToNutritionData(summaryQuery.data);
+
+  // Early return AFTER all hooks
+  if (currentUserQuery.isError && !currentUserQuery.isLoading) {
+    return (
+      <SafeAreaWrapper>
+        <Container>
+          <Card style={styles.emptyCard}>
+            <Card.Title title="Unable to load user info" />
+            <Card.Content>
+              <PaperText variant="bodyMedium" style={{ marginBottom: spacing.md }}>
+                Please check your network connection or API Key settings and try again.
+              </PaperText>
+              <Button title="Retry" onPress={() => currentUserQuery.refetch()} />
+            </Card.Content>
+          </Card>
+        </Container>
+      </SafeAreaWrapper>
+    );
+  }
+
+  // Get meal type emoji
+  const getMealEmoji = (mealType: string) => {
+    const emojis: Record<string, string> = {
+      breakfast: '🌅',
+      lunch: '☀️',
+      dinner: '🌙',
+      snack: '🍎',
+    };
+    return emojis[mealType.toLowerCase()] || '🍽️';
+  };
+
   const renderDay = ({ item }: { item: MealPlanHistoryItem['plan']['days'][number] }) => (
     <View style={styles.dayCard}>
       <View style={styles.dayHeader}>
-        <Avatar.Text size={36} label={`${item.dayNumber}`} style={styles.dayAvatar} />
-        <Text variant="heading3">Day {item.dayNumber}</Text>
+        <View style={styles.dayAvatarContainer}>
+          <Avatar.Text size={40} label={`${item.dayNumber}`} style={styles.dayAvatar} labelStyle={styles.dayAvatarLabel} />
+        </View>
+        <View>
+          <Text variant="heading2" weight="bold">Day {item.dayNumber}</Text>
+          <Text variant="caption" style={styles.daySubtitle}>
+            {item.meals.length} meals planned
+          </Text>
+        </View>
       </View>
       {item.meals.map((meal) => (
         <PaperCard key={`${item.dayNumber}-${meal.mealType}`} style={styles.mealCard} onPress={() => {
@@ -113,11 +168,15 @@ export const MealPlanScreen = () => {
           setSelectedMeal(meal);
           setSelectedDay(item.dayNumber);
         }}>
-          <PaperCard.Title title={meal.recipeName ?? meal.mealType} subtitle={`${meal.calories ?? '--'} kcal`} />
+          <PaperCard.Title title={meal.recipeName ?? meal.mealType} subtitle={`${meal.calories ?? '--'} kcal`} left={() => (
+            <Text variant="heading2">{getMealEmoji(meal.mealType)}</Text>
+          )} />
           <PaperCard.Content>
-            <Text variant="caption" style={{ opacity: 0.8 }}>
-              Protein {meal.protein ?? '--'}g · Carbs {meal.carbs ?? '--'}g · Fat {meal.fat ?? '--'}g
-            </Text>
+            <View style={styles.macroRow}>
+              <Chip label={`P ${meal.protein ?? '--'}g`} variant="tonal" color="primary" size="small" />
+              <Chip label={`C ${meal.carbs ?? '--'}g`} variant="tonal" color="secondary" size="small" />
+              <Chip label={`F ${meal.fat ?? '--'}g`} variant="tonal" color="warning" size="small" />
+            </View>
           </PaperCard.Content>
         </PaperCard>
       ))}
@@ -125,43 +184,47 @@ export const MealPlanScreen = () => {
   );
 
   return (
-    <SafeAreaWrapper>
-      <Container>
-        <View style={styles.header}>
-          <Text variant="heading1" weight="bold">Your Meal Plan</Text>
-          <Button
-            title="Regenerate"
-            variant="outline"
-            loading={generateMutation.isPending}
-            onPress={() => {
-              if (!userId) {
-                snackbar.showSnackbar('Please log in to generate a plan', { variant: 'error' });
-                return;
-              }
-              generateMutation.mutate(userId);
-            }}
-          />
-        </View>
-
-        <NutritionTrackerCard summary={summaryQuery.data} isLoading={summaryQuery.isLoading} />
+    <SafeAreaWrapper edges={['left', 'right', 'bottom']}>
+      <ScreenHeader
+        title="🍽️ Meal Plan"
+        subtitle="Your personalized weekly nutrition"
+        variant="hero"
+      >
+        <Button
+          title="✨ Regenerate"
+          variant="outline"
+          loading={generateMutation.isPending}
+          style={styles.regenerateButton}
+          onPress={() => {
+            if (!userId) {
+              snackbar.showSnackbar('Please log in to generate a plan', { variant: 'error' });
+              return;
+            }
+            generateMutation.mutate(userId);
+          }}
+        />
+      </ScreenHeader>
+      <Container style={styles.contentContainer}>
+        <NutritionTrackerCard data={nutritionData} isLoading={summaryQuery.isLoading} />
 
         {insightQuery.data && (
-          <Card style={styles.insightCard}>
-            <Card.Title
-              title="Weekly Nutrition Insights"
-              subtitle={new Date(insightQuery.data.summary.rangeStart).toLocaleDateString()}
-            />
-            <Card.Content>
-              {insightQuery.data.summary.alerts.length > 0 && (
-                <View style={styles.alertContainer}>
-                  {insightQuery.data.summary.alerts.map((alert) => (
-                    <PaperText key={alert} variant="bodySmall" style={styles.alertText}>{alert}</PaperText>
-                  ))}
-                </View>
-              )}
-              <PaperText variant="bodyMedium" style={{ marginTop: spacing.sm }}>{insightQuery.data.aiAdvice}</PaperText>
-            </Card.Content>
-          </Card>
+          <UICard style={styles.insightCard}>
+            <View style={styles.insightHeader}>
+              <Feather name="zap" size={20} color={COLORS.primary.main} />
+              <Text variant="heading2" weight="bold">Weekly Insights</Text>
+            </View>
+            {insightQuery.data.summary.alerts.length > 0 && (
+              <View style={styles.alertContainer}>
+                {insightQuery.data.summary.alerts.map((alert) => (
+                  <View key={alert} style={styles.alertItem}>
+                    <Feather name="alert-circle" size={14} color="#f97316" />
+                    <PaperText variant="bodySmall" style={styles.alertText}>{alert}</PaperText>
+                  </View>
+                ))}
+              </View>
+            )}
+            <PaperText variant="bodyMedium" style={styles.aiAdvice}>{insightQuery.data.aiAdvice}</PaperText>
+          </UICard>
         )}
 
         {isLoading || currentUserQuery.isLoading ? (
@@ -175,14 +238,15 @@ export const MealPlanScreen = () => {
               <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
             }
             ListEmptyComponent={
-              <Card style={styles.emptyCard}>
-                <Card.Title title="No meal plan generated yet" />
-                <Card.Content>
-                  <PaperText variant="bodyMedium" style={{ marginBottom: spacing.md }}>
-                    Click the "Regenerate" button above to generate a personalized 7-day meal plan.
+              <UICard style={styles.emptyCard}>
+                <View style={styles.emptyContent}>
+                  <Feather name="calendar" size={48} color={COLORS.primary.main} />
+                  <Text variant="heading2" weight="bold" style={styles.emptyTitle}>No meal plan yet</Text>
+                  <PaperText variant="bodyMedium" style={styles.emptyDescription}>
+                    Generate a personalized 7-day meal plan tailored to your nutrition goals.
                   </PaperText>
                   <Button
-                    title="Generate Weekly Plan"
+                    title="✨ Generate Weekly Plan"
                     onPress={() => {
                       if (!userId) {
                         snackbar.showSnackbar('Please log in to generate a plan', { variant: 'error' });
@@ -191,9 +255,10 @@ export const MealPlanScreen = () => {
                       generateMutation.mutate(userId);
                     }}
                     loading={generateMutation.isPending}
+                    style={styles.generateButton}
                   />
-                </Card.Content>
-              </Card>
+                </View>
+              </UICard>
             }
             contentContainerStyle={days.length === 0 ? styles.emptyList : undefined}
           />
@@ -219,6 +284,14 @@ export const MealPlanScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  contentContainer: {
+    flex: 1,
+    paddingTop: SPACING.md,
+    backgroundColor: COLORS.dark.background,
+  },
+  regenerateButton: {
+    marginTop: SPACING.sm,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -232,27 +305,79 @@ const styles = StyleSheet.create({
   dayHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.md,
+  },
+  dayAvatarContainer: {
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: COLORS.primary.main + '40',
   },
   dayAvatar: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: COLORS.primary.main,
+  },
+  dayAvatarLabel: {
+    fontWeight: 'bold',
+  },
+  daySubtitle: {
+    color: COLORS.text.secondary,
+    opacity: 0.7,
   },
   mealCard: {
     marginTop: spacing.xs,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS,
+    backgroundColor: COLORS.surface.primary,
+  },
+  macroRow: {
+    flexDirection: 'row',
+    gap: SPACING.xs,
+    marginTop: SPACING.xs,
   },
   insightCard: {
     marginBottom: spacing.lg,
-    borderRadius: 16,
+    borderRadius: BORDER_RADIUS,
+  },
+  insightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
   },
   alertContainer: {
     gap: spacing.xs,
+    marginBottom: SPACING.sm,
+  },
+  alertItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
   },
   alertText: {
     color: '#f97316',
+    flex: 1,
+  },
+  aiAdvice: {
+    marginTop: spacing.sm,
+    color: COLORS.text.primary,
+    lineHeight: 22,
   },
   emptyCard: {
-    borderRadius: 16,
+    borderRadius: BORDER_RADIUS,
+  },
+  emptyContent: {
+    alignItems: 'center',
+    gap: SPACING.md,
+    paddingVertical: SPACING.lg,
+  },
+  emptyTitle: {
+    textAlign: 'center',
+  },
+  emptyDescription: {
+    textAlign: 'center',
+    color: COLORS.text.secondary,
+    paddingHorizontal: SPACING.md,
+  },
+  generateButton: {
+    marginTop: SPACING.sm,
   },
   emptyList: {
     flexGrow: 1,

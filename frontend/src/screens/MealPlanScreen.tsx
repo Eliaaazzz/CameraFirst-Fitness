@@ -1,15 +1,15 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { ActivityIndicator, Avatar, Card as PaperCard, Card, Text as PaperText } from 'react-native-paper';
-import { Container, SafeAreaWrapper, Text, Button, useSnackbar } from '@/components';
-import { spacing } from '@/utils';
+import { Button, Container, SafeAreaWrapper, Text, useSnackbar } from '@/components';
+import useCurrentUser from '@/hooks/useCurrentUser';
+import MealDetailModal from '@/screens/components/MealDetailModal';
+import NutritionTrackerCard from '@/screens/components/NutritionTrackerCard';
 import mealPlanApi from '@/services/mealPlanApi';
 import nutritionApi from '@/services/nutritionApi';
 import { MealPlanHistoryItem, MealPlanResponse, NutritionInsightResponse } from '@/types/mealPlan';
-import MealDetailModal from '@/screens/components/MealDetailModal';
-import NutritionTrackerCard from '@/screens/components/NutritionTrackerCard';
-import useCurrentUser from '@/hooks/useCurrentUser';
+import { spacing } from '@/utils';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import React, { useCallback, useEffect, useState } from 'react';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Avatar, Card, Card as PaperCard, Text as PaperText } from 'react-native-paper';
 
 export const MealPlanScreen = () => {
   const [selectedMeal, setSelectedMeal] = useState<MealPlanHistoryItem['plan']['days'][number]['meals'][number] | null>(null);

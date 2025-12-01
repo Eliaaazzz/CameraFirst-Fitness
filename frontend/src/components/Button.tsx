@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View, ActivityIndicator } from 'react-native';
-import { Text } from './Text';
 import { colors, radii, spacing } from '@/utils';
+import React, { useState } from 'react';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'text';
 type ButtonSize = 'small' | 'medium' | 'large';

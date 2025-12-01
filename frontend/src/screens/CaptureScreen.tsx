@@ -1,29 +1,28 @@
+import { launchImageLibraryAsync, MediaTypeOptions } from 'expo-image-picker';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Image, Linking, ScrollView, StyleSheet, View } from 'react-native';
-import { Camera } from 'expo-camera';
-import { launchImageLibraryAsync, MediaTypeOptions } from 'expo-image-picker';
 
 import {
-  Button,
-  CameraView,
-  Card,
-  Container,
-  LoadingState,
-  SafeAreaWrapper,
-  Text,
+    Button,
+    CameraView,
+    Card,
+    Container,
+    LoadingState,
+    SafeAreaWrapper,
+    Text,
+    useSnackbar,
 } from '@/components';
-import { useSnackbar } from '@/components';
-import { formatDifficulty, formatMinutes, formatNumber, compressImage, getFileSize, openSettingsAndCheck } from '@/utils';
-import { getFriendlyErrorMessage } from '@/utils/errors';
-import { permissionStorage, preferenceStorage, useSaveRecipe, useSaveWorkout, useSavedRecipes, useSavedWorkouts, useUploadRecipe, useUploadWorkout } from '@/services';
-import { useNavigation } from '@react-navigation/native';
+import { EquipmentChoice, EquipmentSelectionModal } from '@/components/EquipmentSelectionModal';
+import { PermissionDialog } from '@/components/PermissionDialog';
 import { useCameraPermission } from '@/hooks/useCameraPermission';
+import useCurrentUser from '@/hooks/useCurrentUser';
 import { useGalleryPermission } from '@/hooks/useGalleryPermission';
 import { usePermissionHelper } from '@/hooks/usePermissionHelper';
-import { EquipmentSelectionModal, EquipmentChoice } from '@/components/EquipmentSelectionModal';
-import { PermissionDialog } from '@/components/PermissionDialog';
+import { preferenceStorage, useSavedRecipes, useSavedWorkouts, useSaveRecipe, useSaveWorkout, useUploadRecipe, useUploadWorkout } from '@/services';
 import { RecipeCard, WorkoutCard } from '@/types';
-import useCurrentUser from '@/hooks/useCurrentUser';
+import { compressImage, formatDifficulty, formatMinutes, formatNumber } from '@/utils';
+import { getFriendlyErrorMessage } from '@/utils/errors';
+import { useNavigation } from '@react-navigation/native';
 
 const MAX_IMAGE_DIMENSION = 1024;
 

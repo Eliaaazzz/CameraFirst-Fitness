@@ -1,8 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { Reminder, DayOfWeek } from '@/types';
+import type { DayOfWeek, Reminder } from '@/types';
 
 // Configure how notifications are handled when app is in foreground
 Notifications.setNotificationHandler({
@@ -130,7 +130,6 @@ export async function scheduleReminderNotification(reminder: Reminder): Promise<
         }
 
         trigger = {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
           date: scheduledDate,
         };
         break;
@@ -138,7 +137,6 @@ export async function scheduleReminderNotification(reminder: Reminder): Promise<
 
       case 'daily': {
         trigger = {
-          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: hours,
           minute: minutes,
           repeats: true,
@@ -149,7 +147,6 @@ export async function scheduleReminderNotification(reminder: Reminder): Promise<
       case 'weekdays': {
         // Schedule for Monday-Friday
         trigger = {
-          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
           weekday: 2, // Monday (1 = Sunday, 2 = Monday, etc.)
           hour: hours,
           minute: minutes,
@@ -163,7 +160,6 @@ export async function scheduleReminderNotification(reminder: Reminder): Promise<
       case 'weekends': {
         // Schedule for Saturday-Sunday
         trigger = {
-          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
           weekday: 7, // Saturday
           hour: hours,
           minute: minutes,
@@ -182,7 +178,6 @@ export async function scheduleReminderNotification(reminder: Reminder): Promise<
         // We'll need to schedule multiple notifications for multiple days
         const dayIndex = getDayOfWeekIndex(reminder.daysOfWeek[0]);
         trigger = {
-          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
           weekday: dayIndex,
           hour: hours,
           minute: minutes,
@@ -251,7 +246,6 @@ export async function scheduleMultiDayReminder(
           },
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
           weekday: dayIndex,
           hour: hours,
           minute: minutes,
