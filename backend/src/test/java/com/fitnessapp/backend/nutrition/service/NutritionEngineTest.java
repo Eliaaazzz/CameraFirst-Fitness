@@ -5,30 +5,53 @@ import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for NutritionEngine
  */
+@ExtendWith(MockitoExtension.class)
 @DisplayName("NutritionEngine Tests")
 class NutritionEngineTest {
 
+    @Mock
+    private NutritionLookupService nutritionLookupService;
+
     private NutritionEngine nutritionEngine;
+
+    // Mock nutrition data (per 100g)
+    private static final NutritionInfo STEAMED_RICE = NutritionInfo.builder()
+            .calories(116.0).protein(2.6).fat(0.3).carbs(25.6).build();
+    private static final NutritionInfo CHICKEN_BREAST = NutritionInfo.builder()
+            .calories(133.0).protein(28.0).fat(2.0).carbs(0.0).build();
+    private static final NutritionInfo FRIED_EGG = NutritionInfo.builder()
+            .calories(196.0).protein(13.6).fat(15.3).carbs(1.1).build();
+    private static final NutritionInfo BRAISED_PORK = NutritionInfo.builder()
+            .calories(340.0).protein(14.0).fat(28.0).carbs(5.0).build();
+    private static final NutritionInfo STIR_FRIED_VEG = NutritionInfo.builder()
+            .calories(38.0).protein(2.3).fat(2.1).carbs(3.2).build();
+    private static final NutritionInfo DEFAULT_NUTRITION = NutritionInfo.builder()
+            .calories(150.0).protein(8.0).fat(6.0).carbs(15.0).build();
 
     @BeforeEach
     void setUp() {
-        nutritionEngine = new NutritionEngineImpl();
+        nutritionEngine = new NutritionEngineImpl(nutritionLookupService);
     }
 
     @Test
     @DisplayName("Should calculate nutrition for steamed rice correctly")
     void testCalculateNutrition_SteamedRice() {
         // Given: 200g of steamed rice
-        // Expected: 116 cal/100g * 2 = 232 cal
+        when(nutritionLookupService.lookupNutrition("steamed_rice")).thenReturn(STEAMED_RICE);
 
         // When
         NutritionInfo result = nutritionEngine.calculateNutrition("steamed_rice", 200);
@@ -45,7 +68,7 @@ class NutritionEngineTest {
     @DisplayName("Should calculate nutrition for chicken breast correctly")
     void testCalculateNutrition_ChickenBreast() {
         // Given: 150g of chicken breast
-        // Expected: 133 cal/100g * 1.5 = 199.5 cal
+        when(nutritionLookupService.lookupNutrition("chicken_breast")).thenReturn(CHICKEN_BREAST);
 
         // When
         NutritionInfo result = nutritionEngine.calculateNutrition("chicken_breast", 150);
@@ -62,7 +85,7 @@ class NutritionEngineTest {
     @DisplayName("Should use default values for unknown food")
     void testCalculateNutrition_UnknownFood() {
         // Given: 100g of unknown food
-        // Expected: 150 cal (default fallback)
+        when(nutritionLookupService.lookupNutrition("unknown_food_xyz")).thenReturn(DEFAULT_NUTRITION);
 
         // When
         NutritionInfo result = nutritionEngine.calculateNutrition("unknown_food_xyz", 100);
@@ -78,6 +101,9 @@ class NutritionEngineTest {
     @Test
     @DisplayName("Should handle zero grams")
     void testCalculateNutrition_ZeroGrams() {
+        // Given
+        when(nutritionLookupService.lookupNutrition("steamed_rice")).thenReturn(STEAMED_RICE);
+
         // When
         NutritionInfo result = nutritionEngine.calculateNutrition("steamed_rice", 0);
 
@@ -93,6 +119,8 @@ class NutritionEngineTest {
     @DisplayName("Should enrich RecognizedFood with nutrition")
     void testEnrichWithNutrition() {
         // Given
+        when(nutritionLookupService.lookupNutrition("fried_egg")).thenReturn(FRIED_EGG);
+
         RecognizedFood food = RecognizedFood.builder()
             .foodKey("fried_egg")
             .displayName("Fried Egg")
@@ -113,6 +141,8 @@ class NutritionEngineTest {
     @DisplayName("Should default to 100g when grams is null")
     void testEnrichWithNutrition_NullGrams() {
         // Given
+        when(nutritionLookupService.lookupNutrition("steamed_rice")).thenReturn(STEAMED_RICE);
+
         RecognizedFood food = RecognizedFood.builder()
             .foodKey("steamed_rice")
             .displayName("White Rice")
@@ -168,6 +198,9 @@ class NutritionEngineTest {
     @DisplayName("Should enrich foods without nutrition before calculating total")
     void testCalculateTotal_EnrichesAutomatically() {
         // Given: Foods without pre-calculated nutrition
+        when(nutritionLookupService.lookupNutrition("steamed_rice")).thenReturn(STEAMED_RICE);
+        when(nutritionLookupService.lookupNutrition("fried_egg")).thenReturn(FRIED_EGG);
+
         List<RecognizedFood> foods = Arrays.asList(
             RecognizedFood.builder()
                 .foodKey("steamed_rice")
@@ -207,7 +240,9 @@ class NutritionEngineTest {
     @Test
     @DisplayName("Should calculate nutrition for all supported foods")
     void testCalculateNutrition_AllSupportedFoods() {
-        // Test all foods in the database
+        // Test all foods call lookupNutrition
+        when(nutritionLookupService.lookupNutrition(anyString())).thenReturn(STEAMED_RICE);
+
         String[] foods = {
             "steamed_rice", "fried_rice", "noodles",
             "braised_pork", "chicken_breast", "beef", "beef_stir_fry",
@@ -229,7 +264,7 @@ class NutritionEngineTest {
     @DisplayName("Should round values to 2 decimal places")
     void testCalculateNutrition_Rounding() {
         // Given: 33g of chicken breast
-        // Expected: 133 * 0.33 = 43.89 cal (should round properly)
+        when(nutritionLookupService.lookupNutrition("chicken_breast")).thenReturn(CHICKEN_BREAST);
 
         // When
         NutritionInfo result = nutritionEngine.calculateNutrition("chicken_breast", 33);

@@ -11,6 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.api.nutrition.NutritionController.LogMealRequest;
 import com.fitnessapp.backend.domain.MealLog;
+import com.fitnessapp.backend.nutrition.service.ClaudeVisionService;
+import com.fitnessapp.backend.nutrition.service.NutritionEngine;
 import com.fitnessapp.backend.service.NutritionInsightService;
 import com.fitnessapp.backend.service.NutritionTrackingService;
 import com.fitnessapp.backend.service.NutritionTrackingService.NutritionMetric;
@@ -41,6 +43,12 @@ class NutritionControllerTest {
 
   @MockBean
   private NutritionInsightService insightService;
+
+  @MockBean
+  private ClaudeVisionService claudeVisionService;
+
+  @MockBean
+  private NutritionEngine nutritionEngine;
 
   @Test
   void logMealPersists() throws Exception {
