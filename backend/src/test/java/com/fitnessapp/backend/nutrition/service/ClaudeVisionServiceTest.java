@@ -1,10 +1,14 @@
 package com.fitnessapp.backend.nutrition.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
-import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
-import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
-import okhttp3.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,12 +20,18 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
+import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
+import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import okhttp3.Call;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 /**
  * Unit tests for ClaudeVisionService
