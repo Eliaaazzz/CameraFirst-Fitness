@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Claude Vision API service implementation
@@ -29,6 +30,10 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService {
   private static final int MAX_TOKENS = 1024;
   private static final int TIMEOUT_SECONDS = 30;
   private static final int MAX_RETRIES = 2;
+  private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+  private static final Set<String> SUPPORTED_IMAGE_TYPES = Set.of(
+      "image/jpeg", "image/png", "image/gif", "image/webp"
+  );
 
   private final OkHttpClient httpClient;
   private final ObjectMapper objectMapper;
@@ -36,8 +41,11 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService {
 
   public ClaudeVisionServiceImpl(
       ObjectMapper objectMapper,
-      @Value("${app.anthropic.api-key}") String apiKey
+      @Value("${app.anthropic.api-key:}") String apiKey
   ) {
+    if (apiKey == null || apiKey.isBlank()) {
+      log.warn("⚠️  Anthropic API key not configured - AI food recognition will be disabled");
+    }
     this.objectMapper = objectMapper;
     this.apiKey = apiKey;
     this.httpClient = new OkHttpClient.Builder()
@@ -49,17 +57,49 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService {
 
   @Override
   public FoodRecognitionResult recognizeFoods(MultipartFile imageFile) throws IOException {
-    log.info("Processing image file: {}, size: {} bytes",
-        imageFile.getOriginalFilename(), imageFile.getSize());
+    // Validate API key is configured
+    if (apiKey == null || apiKey.isBlank()) {
+      throw new FoodRecognitionException("AI food recognition is not configured. Please set ANTHROPIC_API_KEY.");
+    }
+
+    // Validate image size
+    if (imageFile.getSize() > MAX_IMAGE_SIZE) {
+      throw new IllegalArgumentException("Image too large. Maximum size is 10MB, got " + 
+          (imageFile.getSize() / 1024 / 1024) + "MB");
+    }
+
+    // Validate image type
+    String contentType = imageFile.getContentType();
+    if (contentType == null || !SUPPORTED_IMAGE_TYPES.contains(contentType.toLowerCase())) {
+      throw new IllegalArgumentException("Unsupported image type: " + contentType + 
+          ". Supported types: " + SUPPORTED_IMAGE_TYPES);
+    }
+
+    log.info("Processing image file: {}, size: {} bytes, type: {}",
+        imageFile.getOriginalFilename(), imageFile.getSize(), contentType);
 
     byte[] imageBytes = imageFile.getBytes();
     String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
-    return recognizeFoods(base64Image);
+    // Pass content type for dynamic media_type
+    return recognizeFoods(base64Image, contentType);
   }
 
   @Override
   public FoodRecognitionResult recognizeFoods(String base64Image) {
+    // Default to jpeg for backward compatibility
+    return recognizeFoods(base64Image, "image/jpeg");
+  }
+
+  /**
+   * Recognize foods from base64 image with specified media type
+   */
+  public FoodRecognitionResult recognizeFoods(String base64Image, String mediaType) {
+    // Validate API key
+    if (apiKey == null || apiKey.isBlank()) {
+      throw new FoodRecognitionException("AI food recognition is not configured. Please set ANTHROPIC_API_KEY.");
+    }
+
     int attempt = 0;
     Exception lastException = null;
 
@@ -67,7 +107,7 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService {
       attempt++;
       try {
         log.info("Calling Claude Vision API (attempt {}/{})", attempt, MAX_RETRIES);
-        return callClaudeVisionAPI(base64Image);
+        return callClaudeVisionAPI(base64Image, mediaType);
       } catch (Exception e) {
         lastException = e;
         log.warn("Claude Vision API call failed (attempt {}/{}): {}",
@@ -75,7 +115,7 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService {
 
         if (attempt < MAX_RETRIES) {
           try {
-            Thread.sleep(1000 * attempt); // Exponential backoff
+            Thread.sleep(1000L * attempt); // Exponential backoff
           } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             break;
@@ -90,8 +130,8 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService {
     );
   }
 
-  private FoodRecognitionResult callClaudeVisionAPI(String base64Image) throws IOException {
-    String requestBody = buildRequestBody(base64Image);
+  private FoodRecognitionResult callClaudeVisionAPI(String base64Image, String mediaType) throws IOException {
+    String requestBody = buildRequestBody(base64Image, mediaType);
 
     Request request = new Request.Builder()
         .url(CLAUDE_API_URL)
@@ -122,7 +162,7 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService {
     }
   }
 
-  private String buildRequestBody(String base64Image) throws IOException {
+  private String buildRequestBody(String base64Image, String mediaType) throws IOException {
     String prompt = buildRecognitionPrompt();
 
     String requestJson = String.format("""
@@ -137,7 +177,7 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService {
                   "type": "image",
                   "source": {
                     "type": "base64",
-                    "media_type": "image/jpeg",
+                    "media_type": "%s",
                     "data": "%s"
                   }
                 },
@@ -149,7 +189,7 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService {
             }
           ]
         }
-        """, MODEL, MAX_TOKENS, base64Image, escapeJson(prompt));
+        """, MODEL, MAX_TOKENS, mediaType, base64Image, escapeJson(prompt));
 
     return requestJson;
   }

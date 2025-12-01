@@ -100,6 +100,51 @@ class ClaudeVisionServiceTest {
     }
 
     @Test
+    @DisplayName("Should reject image that is too large")
+    void testRecognizeFoods_ImageTooLarge() {
+        // Given: An image larger than 10MB
+        byte[] largeImage = new byte[11 * 1024 * 1024]; // 11MB
+        MultipartFile imageFile = new MockMultipartFile(
+            "image", "large.jpg", "image/jpeg", largeImage
+        );
+
+        // When/Then
+        assertThatThrownBy(() -> claudeVisionService.recognizeFoods(imageFile))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Image too large");
+    }
+
+    @Test
+    @DisplayName("Should reject unsupported image type")
+    void testRecognizeFoods_UnsupportedImageType() {
+        // Given: A non-image file
+        MultipartFile imageFile = new MockMultipartFile(
+            "file", "document.pdf", "application/pdf", "content".getBytes()
+        );
+
+        // When/Then
+        assertThatThrownBy(() -> claudeVisionService.recognizeFoods(imageFile))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported image type");
+    }
+
+    @Test
+    @DisplayName("Should fail when API key is not configured")
+    void testRecognizeFoods_NoApiKey() {
+        // Given: Service without API key
+        ClaudeVisionServiceImpl serviceWithoutKey = new ClaudeVisionServiceImpl(objectMapper, "");
+
+        MultipartFile imageFile = new MockMultipartFile(
+            "image", "food.jpg", "image/jpeg", "content".getBytes()
+        );
+
+        // When/Then
+        assertThatThrownBy(() -> serviceWithoutKey.recognizeFoods(imageFile))
+            .isInstanceOf(FoodRecognitionException.class)
+            .hasMessageContaining("not configured");
+    }
+
+    @Test
     @DisplayName("Should include correct headers in API request")
     void testRecognizeFoods_CorrectHeaders() throws IOException {
         // Given
@@ -154,10 +199,10 @@ class ClaudeVisionServiceTest {
         when(mockHttpClient.newCall(any(Request.class))).thenReturn(mockCall);
         when(mockCall.execute()).thenReturn(mockResponse);
 
-        // When/Then
+        // When/Then - After retries, wraps original exception
         assertThatThrownBy(() -> claudeVisionService.recognizeFoods(imageFile))
             .isInstanceOf(FoodRecognitionException.class)
-            .hasMessageContaining("Rate limit exceeded");
+            .hasMessageContaining("Failed to recognize foods after");
     }
 
     @Test
@@ -179,10 +224,10 @@ class ClaudeVisionServiceTest {
         when(mockHttpClient.newCall(any(Request.class))).thenReturn(mockCall);
         when(mockCall.execute()).thenReturn(mockResponse);
 
-        // When/Then
+        // When/Then - After retries, wraps original exception
         assertThatThrownBy(() -> claudeVisionService.recognizeFoods(imageFile))
             .isInstanceOf(FoodRecognitionException.class)
-            .hasMessageContaining("temporarily unavailable");
+            .hasMessageContaining("Failed to recognize foods after");
     }
 
     @Test
@@ -310,10 +355,10 @@ class ClaudeVisionServiceTest {
         when(mockHttpClient.newCall(any(Request.class))).thenReturn(mockCall);
         when(mockCall.execute()).thenReturn(mockResponse);
 
-        // When/Then
+        // When/Then - After retries, exception is wrapped
         assertThatThrownBy(() -> claudeVisionService.recognizeFoods(base64Image))
             .isInstanceOf(FoodRecognitionException.class)
-            .hasMessageContaining("Failed to parse food recognition result");
+            .hasMessageContaining("Failed to recognize foods after");
     }
 
     @Test
