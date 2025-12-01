@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "meal_log")
@@ -57,6 +59,27 @@ public class MealLog {
 
   @Column(name = "notes", length = 500)
   private String notes;
+
+  // New fields for image-based food recognition
+
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "food_items", columnDefinition = "jsonb")
+  private String foodItems;
+
+  @Column(name = "image_url", length = 500)
+  private String imageUrl;
+
+  @Column(name = "total_calories")
+  private Integer totalCalories;
+
+  @Column(name = "total_protein")
+  private Double totalProtein;
+
+  @Column(name = "total_carbs")
+  private Double totalCarbs;
+
+  @Column(name = "total_fat")
+  private Double totalFat;
 
   @PrePersist
   void onCreate() {

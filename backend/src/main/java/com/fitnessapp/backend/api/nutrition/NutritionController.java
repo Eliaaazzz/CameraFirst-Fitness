@@ -1,6 +1,11 @@
 package com.fitnessapp.backend.api.nutrition;
 
 import com.fitnessapp.backend.domain.MealLog;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResponse;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
+import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
+import com.fitnessapp.backend.nutrition.service.ClaudeVisionService;
+import com.fitnessapp.backend.nutrition.service.NutritionEngine;
 import com.fitnessapp.backend.service.NutritionInsightService;
 import com.fitnessapp.backend.service.NutritionInsightService.NutritionInsight;
 import com.fitnessapp.backend.service.NutritionTrackingService;
@@ -9,12 +14,15 @@ import com.fitnessapp.backend.service.NutritionTrackingService.NutritionSummary;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +31,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/nutrition")
 @RequiredArgsConstructor
@@ -32,6 +42,50 @@ public class NutritionController {
 
   private final NutritionTrackingService trackingService;
   private final NutritionInsightService insightService;
+  private final ClaudeVisionService claudeVisionService;
+  private final NutritionEngine nutritionEngine;
+
+  /**
+   * Analyze food photo and return recognized foods with nutrition info
+   * POST /api/v1/nutrition/analyze
+   */
+  @PostMapping(value = "/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<FoodRecognitionResponse> analyzeFoodImage(
+      @RequestParam("image") MultipartFile image
+  ) throws IOException {
+    log.info("Analyzing food image: {}, size: {} bytes",
+        image.getOriginalFilename(), image.getSize());
+
+    // Validate image
+    if (image.isEmpty()) {
+      throw new IllegalArgumentException("Image file is required");
+    }
+
+    if (image.getSize() > 10 * 1024 * 1024) { // 10MB limit
+      throw new IllegalArgumentException("Image file is too large (max 10MB)");
+    }
+
+    // Step 1: Call Claude Vision to recognize foods
+    FoodRecognitionResult recognitionResult = claudeVisionService.recognizeFoods(image);
+
+    // Step 2: Calculate nutrition for each recognized food
+    recognitionResult.getItems().forEach(nutritionEngine::enrichWithNutrition);
+
+    // Step 3: Calculate total nutrition
+    NutritionInfo totalNutrition = nutritionEngine.calculateTotal(recognitionResult.getItems());
+
+    // Build response
+    FoodRecognitionResponse response = FoodRecognitionResponse.builder()
+        .items(recognitionResult.getItems())
+        .totalNutrition(totalNutrition)
+        .suggestedMealType(recognitionResult.getMealType())
+        .build();
+
+    log.info("Successfully analyzed food image: {} items recognized, total calories: {}",
+        response.getItems().size(), totalNutrition.getCalories());
+
+    return ResponseEntity.ok(response);
+  }
 
   @PostMapping("/meals")
   public ResponseEntity<MealLogResponse> logMeal(@Valid @RequestBody LogMealRequest request) {

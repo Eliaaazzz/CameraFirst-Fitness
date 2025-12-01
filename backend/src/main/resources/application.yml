@@ -27,6 +27,9 @@ app:
     timeout-seconds: 60
     cost-per-thousand-tokens: 10.0
     log-usage: true
+  anthropic:
+    # Anthropic Claude API for food recognition
+    api-key: ${ANTHROPIC_API_KEY:}
   meal-plan:
     cache-ttl-hours: 24
   recipe-generation:
@@ -183,6 +186,7 @@ logging:
 # SPRING_REDIS_PASSWORD=<from-secrets-manager>
 # SPRING_REDIS_SSL=true
 # OPENAI_API_KEY=<from-secrets-manager>
+# ANTHROPIC_API_KEY=<from-secrets-manager>
 # SPOONACULAR_API_KEY=<from-secrets-manager>
 # YOUTUBE_API_KEY=<from-secrets-manager>
 # CORS_ALLOWED_ORIGINS=https://app.yourfitnessdomain.com (optional)
