@@ -24,6 +24,7 @@ public class NutritionLookupService {
 
     private final FoodNutritionRepository foodNutritionRepository;
     private final FoodSynonymRepository foodSynonymRepository;
+    private final FoodKeyNormalizer foodKeyNormalizer;
 
     // Default nutrition for unknown foods (per 100g)
     private static final NutritionInfo DEFAULT_NUTRITION = NutritionInfo.builder()
@@ -35,15 +36,17 @@ public class NutritionLookupService {
 
     /**
      * Look up nutrition by food key with fallback strategies:
-     * 1. Exact match on food_key
-     * 2. Exact match on synonym
-     * 3. Fuzzy match on food_key (pg_trgm, with fallback to LIKE)
-     * 4. Fuzzy match on synonym (pg_trgm, with fallback to LIKE)
-     * 5. Default nutrition
+     * 1. NLP normalization and phrase mapping
+     * 2. Exact match on food_key
+     * 3. Exact match on synonym
+     * 4. Fuzzy match on food_key (pg_trgm, with fallback to LIKE)
+     * 5. Fuzzy match on synonym (pg_trgm, with fallback to LIKE)
+     * 6. Default nutrition
      */
     @Transactional(readOnly = true)
     public NutritionInfo lookupNutrition(String foodKey) {
-        String normalizedKey = normalize(foodKey);
+        // Step 0: Use NLP normalizer for intelligent text processing
+        String normalizedKey = foodKeyNormalizer.normalize(foodKey);
         log.debug("Looking up nutrition for: {} (normalized: {})", foodKey, normalizedKey);
 
         // Strategy 1: Exact match on food_key
@@ -128,7 +131,7 @@ public class NutritionLookupService {
      */
     @Transactional(readOnly = true)
     public String resolveCanonicalKey(String foodKey) {
-        String normalizedKey = normalize(foodKey);
+        String normalizedKey = foodKeyNormalizer.normalize(foodKey);
 
         // Check if it's already a valid food_key
         if (foodNutritionRepository.existsByFoodKey(normalizedKey)) {
@@ -142,7 +145,7 @@ public class NutritionLookupService {
         }
 
         // Fuzzy match on synonyms
-        List<FoodSynonym> fuzzySynonyms = foodSynonymRepository.findBySynonymSimilar(normalizedKey, 1);
+        List<FoodSynonym> fuzzySynonyms = findSynonymSimilarSafe(normalizedKey, 1);
         if (!fuzzySynonyms.isEmpty()) {
             return fuzzySynonyms.get(0).getCanonicalFoodKey();
         }
@@ -156,7 +159,7 @@ public class NutritionLookupService {
      */
     @Transactional(readOnly = true)
     public boolean hasNutrition(String foodKey) {
-        String normalizedKey = normalize(foodKey);
+        String normalizedKey = foodKeyNormalizer.normalize(foodKey);
 
         // Direct match
         if (foodNutritionRepository.findByFoodKeyAndIsActiveTrue(normalizedKey).isPresent()) {
@@ -164,7 +167,7 @@ public class NutritionLookupService {
         }
 
         // Synonym match
-        Optional<FoodSynonym> synonym = foodSynonymRepository.findBySynonymIgnoreCase(normalizedKey);
+        Optional<FoodSynonym> synonym = findSynonymIgnoreCase(normalizedKey);
         if (synonym.isPresent()) {
             return foodNutritionRepository.findByFoodKeyAndIsActiveTrue(
                     synonym.get().getCanonicalFoodKey()).isPresent();
@@ -216,21 +219,5 @@ public class NutritionLookupService {
                 .fat(entity.getFat() != null ? entity.getFat() : 0.0)
                 .carbs(entity.getCarbs() != null ? entity.getCarbs() : 0.0)
                 .build();
-    }
-
-    /**
-     * Normalize food key:
-     * - lowercase
-     * - replace spaces with underscores
-     * - trim
-     */
-    private String normalize(String foodKey) {
-        if (foodKey == null) {
-            return "";
-        }
-        return foodKey.toLowerCase()
-                .trim()
-                .replaceAll("\\s+", "_")
-                .replaceAll("[^a-z0-9_\\u4e00-\\u9fff]", ""); // Keep alphanumeric, underscore, and Chinese chars
     }
 }
