@@ -3,7 +3,7 @@ package com.fitnessapp.backend.api.nutrition;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
-import com.fitnessapp.backend.nutrition.service.ClaudeVisionService;
+import com.fitnessapp.backend.nutrition.service.FoodRecognitionService;
 import com.fitnessapp.backend.nutrition.service.NutritionEngine;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +20,8 @@ import java.util.Collections;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -38,7 +40,7 @@ class NutritionAnalyzeControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private ClaudeVisionService claudeVisionService;
+    private FoodRecognitionService foodRecognitionService;
 
     @MockBean
     private NutritionEngine nutritionEngine;
@@ -76,20 +78,10 @@ class NutritionAnalyzeControllerTest {
             .mealType("lunch")
             .build();
 
-        when(claudeVisionService.recognizeFoods(any(MultipartFile.class))).thenReturn(recognitionResult);
+        when(foodRecognitionService.recognizeFoods(any(MultipartFile.class), isNull())).thenReturn(recognitionResult);
 
-        // Mock nutrition enrichment
-        doAnswer(invocation -> {
-            RecognizedFood food = invocation.getArgument(0);
-            if (food.getFoodKey().equals("steamed_rice")) {
-                food.setNutrition(NutritionInfo.builder()
-                    .calories(232.0).protein(5.2).fat(0.6).carbs(51.2).build());
-            } else if (food.getFoodKey().equals("braised_pork")) {
-                food.setNutrition(NutritionInfo.builder()
-                    .calories(340.0).protein(14.0).fat(28.0).carbs(5.0).build());
-            }
-            return null;
-        }).when(nutritionEngine).enrichWithNutrition(any());
+        // Mock nutrition enrichment (already done by FoodRecognitionService but we need to setup total calculation)
+        // No need to verify enrichWithNutrition as it's handled internally by FoodRecognitionService
 
         // Mock total calculation
         when(nutritionEngine.calculateTotal(any())).thenReturn(
@@ -117,8 +109,7 @@ class NutritionAnalyzeControllerTest {
             .andExpect(jsonPath("$.suggestedMealType").value("lunch"));
 
         // Verify interactions
-        verify(claudeVisionService, times(1)).recognizeFoods(any(MultipartFile.class));
-        verify(nutritionEngine, times(2)).enrichWithNutrition(any());
+        verify(foodRecognitionService, times(1)).recognizeFoods(any(MultipartFile.class), isNull());
         verify(nutritionEngine, times(1)).calculateTotal(any());
     }
 
@@ -168,7 +159,7 @@ class NutritionAnalyzeControllerTest {
             "content".getBytes()
         );
 
-        when(claudeVisionService.recognizeFoods(any(MultipartFile.class)))
+        when(foodRecognitionService.recognizeFoods(any(MultipartFile.class), isNull()))
             .thenThrow(new RuntimeException("Claude API error"));
 
         // When/Then
@@ -194,7 +185,7 @@ class NutritionAnalyzeControllerTest {
             .mealType("unknown")
             .build();
 
-        when(claudeVisionService.recognizeFoods(any(MultipartFile.class))).thenReturn(emptyResult);
+        when(foodRecognitionService.recognizeFoods(any(MultipartFile.class), isNull())).thenReturn(emptyResult);
         when(nutritionEngine.calculateTotal(any())).thenReturn(NutritionInfo.zero());
 
         // When/Then
@@ -229,14 +220,7 @@ class NutritionAnalyzeControllerTest {
             .mealType("breakfast")
             .build();
 
-        when(claudeVisionService.recognizeFoods(any(MultipartFile.class))).thenReturn(recognitionResult);
-
-        doAnswer(invocation -> {
-            RecognizedFood food = invocation.getArgument(0);
-            food.setNutrition(NutritionInfo.builder()
-                .calories(98.0).protein(6.8).fat(7.65).carbs(0.55).build());
-            return null;
-        }).when(nutritionEngine).enrichWithNutrition(any());
+        when(foodRecognitionService.recognizeFoods(any(MultipartFile.class), isNull())).thenReturn(recognitionResult);
 
         when(nutritionEngine.calculateTotal(any())).thenReturn(
             NutritionInfo.builder()
@@ -277,14 +261,7 @@ class NutritionAnalyzeControllerTest {
             .mealType("dinner")
             .build();
 
-        when(claudeVisionService.recognizeFoods(any(MultipartFile.class))).thenReturn(recognitionResult);
-
-        doAnswer(invocation -> {
-            RecognizedFood f = invocation.getArgument(0);
-            f.setNutrition(NutritionInfo.builder()
-                .calories(114.0).protein(7.2).fat(7.8).carbs(5.4).build());
-            return null;
-        }).when(nutritionEngine).enrichWithNutrition(any());
+        when(foodRecognitionService.recognizeFoods(any(MultipartFile.class), isNull())).thenReturn(recognitionResult);
 
         when(nutritionEngine.calculateTotal(any())).thenReturn(
             NutritionInfo.builder()

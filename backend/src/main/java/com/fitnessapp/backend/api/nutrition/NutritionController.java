@@ -4,7 +4,7 @@ import com.fitnessapp.backend.domain.MealLog;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResponse;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
-import com.fitnessapp.backend.nutrition.service.ClaudeVisionService;
+import com.fitnessapp.backend.nutrition.service.FoodRecognitionService;
 import com.fitnessapp.backend.nutrition.service.NutritionEngine;
 import com.fitnessapp.backend.service.NutritionInsightService;
 import com.fitnessapp.backend.service.NutritionInsightService.NutritionInsight;
@@ -17,6 +17,7 @@ import jakarta.validation.constraints.Size;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -42,19 +43,23 @@ public class NutritionController {
 
   private final NutritionTrackingService trackingService;
   private final NutritionInsightService insightService;
-  private final ClaudeVisionService claudeVisionService;
+  private final FoodRecognitionService foodRecognitionService;
   private final NutritionEngine nutritionEngine;
 
   /**
    * Analyze food photo and return recognized foods with nutrition info
    * POST /api/v1/nutrition/analyze
+   * 
+   * @param image The food image to analyze
+   * @param provider Optional: preferred AI provider (e.g., "claude-vision", "openai-vision")
    */
   @PostMapping(value = "/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<FoodRecognitionResponse> analyzeFoodImage(
-      @RequestParam("image") MultipartFile image
+      @RequestParam("image") MultipartFile image,
+      @RequestParam(value = "provider", required = false) String provider
   ) throws IOException {
-    log.info("Analyzing food image: {}, size: {} bytes",
-        image.getOriginalFilename(), image.getSize());
+    log.info("Analyzing food image: {}, size: {} bytes, provider: {}",
+        image.getOriginalFilename(), image.getSize(), provider != null ? provider : "auto");
 
     // Validate image
     if (image.isEmpty()) {
@@ -65,13 +70,10 @@ public class NutritionController {
       throw new IllegalArgumentException("Image file is too large (max 10MB)");
     }
 
-    // Step 1: Call Claude Vision to recognize foods
-    FoodRecognitionResult recognitionResult = claudeVisionService.recognizeFoods(image);
+    // Use unified FoodRecognitionService with multi-provider support
+    FoodRecognitionResult recognitionResult = foodRecognitionService.recognizeFoods(image, provider);
 
-    // Step 2: Calculate nutrition for each recognized food
-    recognitionResult.getItems().forEach(nutritionEngine::enrichWithNutrition);
-
-    // Step 3: Calculate total nutrition
+    // Calculate total nutrition (already enriched by FoodRecognitionService)
     NutritionInfo totalNutrition = nutritionEngine.calculateTotal(recognitionResult.getItems());
 
     // Build response
@@ -85,6 +87,15 @@ public class NutritionController {
         response.getItems().size(), totalNutrition.getCalories());
 
     return ResponseEntity.ok(response);
+  }
+
+  /**
+   * Get list of available AI providers for food recognition
+   * GET /api/v1/nutrition/providers
+   */
+  @GetMapping("/providers")
+  public ResponseEntity<List<FoodRecognitionService.ProviderInfo>> getAvailableProviders() {
+    return ResponseEntity.ok(foodRecognitionService.getAvailableProviders());
   }
 
   @PostMapping("/meals")

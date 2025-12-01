@@ -23,12 +23,14 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 /**
- * Claude Vision API service implementation
+ * Claude Vision API service implementation.
+ * Implements FoodRecognitionProvider for multi-model support.
  */
 @Slf4j
 @Service
-public class ClaudeVisionServiceImpl implements ClaudeVisionService {
+public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecognitionProvider {
 
+  private static final String PROVIDER_NAME = "claude";
   private static final String CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
   private static final String MODEL = "claude-3-5-sonnet-20241022";
   private static final int MAX_TOKENS = 1024;
@@ -48,7 +50,7 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService {
       @Value("${app.anthropic.api-key:}") String apiKey
   ) {
     if (apiKey == null || apiKey.isBlank()) {
-      log.warn("⚠️  Anthropic API key not configured - AI food recognition will be disabled");
+      log.warn("⚠️  Anthropic API key not configured - Claude food recognition will be disabled");
     }
     this.objectMapper = objectMapper;
     this.apiKey = apiKey;
@@ -59,10 +61,34 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService {
         .build();
   }
 
+  // ==================== FoodRecognitionProvider Interface ====================
+
+  @Override
+  public String getProviderName() {
+    return PROVIDER_NAME;
+  }
+
+  @Override
+  public String getModelName() {
+    return MODEL;
+  }
+
+  @Override
+  public boolean isAvailable() {
+    return apiKey != null && !apiKey.isBlank();
+  }
+
+  @Override
+  public int getPriority() {
+    return 10; // High priority - Claude is primary provider
+  }
+
+  // ==================== ClaudeVisionService Interface ====================
+
   @Override
   public FoodRecognitionResult recognizeFoods(MultipartFile imageFile) throws IOException {
     // Validate API key is configured
-    if (apiKey == null || apiKey.isBlank()) {
+    if (!isAvailable()) {
       throw new FoodRecognitionException("AI food recognition is not configured. Please set ANTHROPIC_API_KEY.");
     }
 
