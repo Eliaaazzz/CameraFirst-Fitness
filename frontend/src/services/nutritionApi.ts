@@ -15,6 +15,44 @@ export interface LogMealPayload {
   notes?: string | null;
 }
 
+// Food recognition types
+export interface DetectedFood {
+  id: string;
+  name: string;
+  amount: number;
+  unit: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  confidence?: number;
+}
+
+export interface FoodRecognitionResponse {
+  success: boolean;
+  detectedFoods: DetectedFood[];
+  total: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  imageUrl?: string;
+}
+
+export interface SaveMealPayload {
+  imageUri: string;
+  detectedFoods: DetectedFood[];
+  total: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  mealType?: string;
+  notes?: string;
+}
+
 const logMeal = async (userId: string, payload: LogMealPayload): Promise<MealLogResponse> => {
   return await api.post<MealLogResponse>('/api/v1/nutrition/meals', {
     userId,
@@ -41,9 +79,37 @@ const getWeeklyInsight = async (userId: string, weekStart?: string): Promise<Nut
   return await api.get<NutritionInsightResponse>(`/api/v1/nutrition/insights/weekly?${queryParams}`);
 };
 
+// Analyze food image with Claude AI
+const analyzeFoodImage = async (imageUri: string): Promise<FoodRecognitionResponse> => {
+  return await api.uploadImage<FoodRecognitionResponse>(
+    '/nutrition/analyze',
+    imageUri
+  );
+};
+
+// Save analyzed meal to today's log
+const saveMealFromImage = async (payload: SaveMealPayload): Promise<MealLogResponse> => {
+  // For now, we'll save the total nutrition as a single meal
+  const mealPayload: LogMealPayload = {
+    mealType: payload.mealType || 'other',
+    recipeName: 'AI Detected Meal',
+    calories: payload.total.calories,
+    protein: payload.total.protein,
+    carbs: payload.total.carbs,
+    fat: payload.total.fat,
+    consumedAt: new Date().toISOString(),
+    notes: payload.notes || `Detected: ${payload.detectedFoods.map(f => f.name).join(', ')}`,
+  };
+
+  // Assuming we have a default userId - you may need to get this from auth context
+  return await logMeal('default-user', mealPayload);
+};
+
 export default {
   logMeal,
   getDailySummary,
   getWeeklySummary,
   getWeeklyInsight,
+  analyzeFoodImage,
+  saveMealFromImage,
 };
