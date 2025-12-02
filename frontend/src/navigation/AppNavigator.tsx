@@ -9,9 +9,11 @@ import { CommunityScreen } from '@/screens/CommunityScreen';
 import { DesignSystemScreen } from '@/screens/DesignSystemScreen';
 import { GoalsScreen } from '@/screens/GoalsScreen';
 import { MealPlanScreen } from '@/screens/MealPlanScreen';
+import { NutritionScreen } from '@/screens/NutritionScreen';
 import { RecipeDetailScreen } from '@/screens/RecipeDetailScreen';
 import { RecipesScreen } from '@/screens/RecipesScreen';
 import { ResultsScreen } from '@/screens/ResultsScreen';
+import { ReviewMealScreen } from '@/screens/ReviewMealScreen';
 import { SearchScreen } from '@/screens/SearchScreen';
 import { WorkoutsScreen } from '@/screens/WorkoutsScreen';
 import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive } from '@/utils';
@@ -36,6 +38,8 @@ const SafeMealPlanScreen = withErrorBoundary(MealPlanScreen, 'MealPlan');
 const SafeCommunityScreen = withErrorBoundary(CommunityScreen, 'Community');
 const SafeGoalsScreen = withErrorBoundary(GoalsScreen, 'Goals');
 const SafeDesignSystemScreen = withErrorBoundary(DesignSystemScreen, 'DesignSystem');
+const SafeNutritionScreen = withErrorBoundary(NutritionScreen, 'Nutrition');
+const SafeReviewMealScreen = withErrorBoundary(ReviewMealScreen, 'ReviewMeal');
 
 const Tab = createBottomTabNavigator();
 
@@ -184,6 +188,14 @@ export const AppNavigator = () => {
                     color={color}
                   />
                 );
+              case 'Nutrition':
+                return (
+                  <MaterialCommunityIcons
+                    name={focused ? 'nutrition' : 'food-variant'}
+                    size={focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default}
+                    color={color}
+                  />
+                );
               default:
                 return null;
             }
@@ -193,6 +205,7 @@ export const AppNavigator = () => {
         <Tab.Screen name="Search" component={SafeSearchScreen} options={{ title: 'Search' }} />
         <Tab.Screen name="Community" component={SafeCommunityScreen} options={{ title: 'Community' }} />
         <Tab.Screen name="Workouts" component={SafeWorkoutsScreen} options={{ title: 'Workouts' }} />
+        <Tab.Screen name="Nutrition" component={SafeNutritionScreen} options={{ title: 'Nutrition' }} />
         <Tab.Screen name="MealPlan" component={SafeMealPlanScreen} options={{ title: 'Meal Plan' }} />
         <Tab.Screen name="Recipes" component={SafeRecipesScreen} options={{ title: 'Recipes' }} />
         <Tab.Screen name="Goals" component={SafeGoalsScreen} options={{ title: 'Goals' }} />
@@ -213,6 +226,15 @@ export const AppNavigator = () => {
           component={SafeRecipeDetailScreen}
           options={{
             title: 'Recipe',
+            // Hide from the tab bar but keep routable for navigation
+            tabBarButton: () => null,
+          }}
+        />
+        <Tab.Screen
+          name="ReviewMeal"
+          component={SafeReviewMealScreen}
+          options={{
+            title: 'Review Meal',
             // Hide from the tab bar but keep routable for navigation
             tabBarButton: () => null,
           }}

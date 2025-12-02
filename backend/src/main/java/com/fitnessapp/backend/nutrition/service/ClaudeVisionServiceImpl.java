@@ -32,7 +32,7 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
 
   private static final String PROVIDER_NAME = "claude";
   private static final String CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
-  private static final String MODEL = "claude-3-5-sonnet-20241022";
+  private static final String MODEL = "claude-3-haiku-20240307";
   private static final int MAX_TOKENS = 1024;
   private static final int TIMEOUT_SECONDS = 30;
   private static final int MAX_RETRIES = 2;
