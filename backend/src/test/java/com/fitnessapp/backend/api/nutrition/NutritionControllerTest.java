@@ -62,7 +62,7 @@ class NutritionControllerTest {
         .build();
     when(trackingService.logMeal(any(MealLog.class))).thenReturn(saved);
 
-    LogMealRequest request = new LogMealRequest(userId, null, 1, "breakfast", null, "Oats", 400, 25.0, 45.0, 12.0, null, null);
+    LogMealRequest request = new LogMealRequest(userId.toString(), null, 1, "breakfast", null, "Oats", 400, 25.0, 45.0, 12.0, null, null);
 
     mockMvc.perform(post("/api/v1/nutrition/meals")
             .contentType(MediaType.APPLICATION_JSON)
