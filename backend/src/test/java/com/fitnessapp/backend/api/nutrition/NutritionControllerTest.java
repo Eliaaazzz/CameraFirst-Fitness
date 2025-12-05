@@ -62,7 +62,7 @@ class NutritionControllerTest {
         .build();
     when(trackingService.logMeal(any(MealLog.class))).thenReturn(saved);
 
-    LogMealRequest request = new LogMealRequest(userId, null, 1, "breakfast", null, "Oats", 400, 25.0, 45.0, 12.0, null, null);
+    LogMealRequest request = new LogMealRequest(userId.toString(), null, 1, "breakfast", null, "Oats", 400, 25.0, 45.0, 12.0, null, null);
 
     mockMvc.perform(post("/api/v1/nutrition/meals")
             .contentType(MediaType.APPLICATION_JSON)
@@ -125,5 +125,48 @@ class NutritionControllerTest {
         .andExpect(jsonPath("$.summary.days").value(7))
         .andExpect(jsonPath("$.aiAdvice").value("请继续保持蛋白质摄入，适当增加复合碳水。"))
         .andExpect(jsonPath("$.logs[0].recipeName").value("鸡胸肉沙拉"));
+  }
+
+  @Test
+  void dailySummaryAcceptsDefaultUser() throws Exception {
+    // Test that "default-user" string is accepted and converted to the well-known UUID
+    UUID defaultUuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    NutritionSummary summary = new NutritionSummary(
+        OffsetDateTime.now().minusDays(1),
+        OffsetDateTime.now(),
+        1,
+        new NutritionMetric(1500, 2200),
+        new NutritionMetric(100, 160),
+        new NutritionMetric(140, 220),
+        new NutritionMetric(45, 70),
+        java.util.List.of());
+    when(trackingService.dailySummary(eq(defaultUuid), any(LocalDate.class))).thenReturn(summary);
+
+    mockMvc.perform(get("/api/v1/nutrition/summary/daily")
+            .param("userId", "default-user"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.calories.actual").value(1500.0));
+  }
+
+  @Test
+  void logMealAcceptsDefaultUser() throws Exception {
+    // Test that "default-user" string is accepted in POST request body
+    UUID defaultUuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    MealLog saved = MealLog.builder()
+        .id(10L)
+        .userId(defaultUuid)
+        .mealType("snack")
+        .consumedAt(OffsetDateTime.now())
+        .calories(200)
+        .build();
+    when(trackingService.logMeal(any(MealLog.class))).thenReturn(saved);
+
+    LogMealRequest request = new LogMealRequest("default-user", null, 1, "snack", null, "Apple", 200, 5.0, 25.0, 2.0, null, null);
+
+    mockMvc.perform(post("/api/v1/nutrition/meals")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.calories").value(200));
   }
 }
