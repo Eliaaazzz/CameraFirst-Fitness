@@ -1,9 +1,11 @@
 package com.fitnessapp.backend.service;
 
 import com.fitnessapp.backend.domain.MealLog;
+import com.fitnessapp.backend.domain.User;
 import com.fitnessapp.backend.domain.UserProfile;
 import com.fitnessapp.backend.repository.MealLogRepository;
 import com.fitnessapp.backend.repository.UserProfileRepository;
+import com.fitnessapp.backend.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -12,15 +14,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NutritionTrackingService {
 
   private final MealLogRepository mealLogRepository;
   private final UserProfileRepository userProfileRepository;
+  private final UserRepository userRepository;
 
   @Transactional
   public MealLog logMeal(MealLog payload) {
@@ -59,7 +64,7 @@ public class NutritionTrackingService {
     Double fat = Optional.ofNullable(mealLogRepository.sumFat(userId, start, end)).orElse(0d);
 
     UserProfile profile = userProfileRepository.findByUserId(userId)
-        .orElseThrow(() -> new EntityNotFoundException("User profile not found: " + userId));
+        .orElseGet(() -> createDefaultProfile(userId));
 
     int targetCalories = Optional.ofNullable(profile.getDailyCalorieTarget()).orElse(2000) * days;
     double targetProtein = Optional.ofNullable(profile.getDailyProteinTarget()).orElse(130) * days;
@@ -88,6 +93,34 @@ public class NutritionTrackingService {
 
   private OffsetDateTime startOfDay(LocalDate date) {
     return date.atStartOfDay().atOffset(ZoneOffset.UTC);
+  }
+
+  /**
+   * Create a default user profile with standard nutrition targets
+   * This ensures the nutrition tracking API never fails due to missing profiles
+   * 
+   * @param userId The user ID to create a profile for
+   * @return The newly created default profile
+   */
+  @Transactional
+  private UserProfile createDefaultProfile(UUID userId) {
+    log.warn("Creating default user profile for userId: {} as none exists", userId);
+    
+    // Get the user entity (required for @MapsId relationship)
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+    
+    UserProfile defaultProfile = new UserProfile();
+    defaultProfile.setUserId(userId);
+    defaultProfile.setUser(user);
+    defaultProfile.setDailyCalorieTarget(2000);
+    defaultProfile.setDailyProteinTarget(130);
+    defaultProfile.setDailyCarbsTarget(220);
+    defaultProfile.setDailyFatTarget(70);
+    defaultProfile.setFitnessGoal(com.fitnessapp.backend.domain.FitnessGoal.MAINTAIN);
+    defaultProfile.setDietaryPreference(com.fitnessapp.backend.domain.DietaryPreference.NONE);
+    
+    return userProfileRepository.save(defaultProfile);
   }
 
   public record NutritionSummary(OffsetDateTime rangeStart,

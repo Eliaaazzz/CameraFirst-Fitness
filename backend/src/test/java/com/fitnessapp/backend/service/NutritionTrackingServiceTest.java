@@ -9,6 +9,7 @@ import com.fitnessapp.backend.domain.User;
 import com.fitnessapp.backend.domain.UserProfile;
 import com.fitnessapp.backend.repository.MealLogRepository;
 import com.fitnessapp.backend.repository.UserProfileRepository;
+import com.fitnessapp.backend.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -28,13 +29,16 @@ class NutritionTrackingServiceTest {
   @Mock
   private UserProfileRepository userProfileRepository;
 
+  @Mock
+  private UserRepository userRepository;
+
   private NutritionTrackingService service;
 
   private UUID userId;
 
   @BeforeEach
   void setUp() {
-    service = new NutritionTrackingService(mealLogRepository, userProfileRepository);
+    service = new NutritionTrackingService(mealLogRepository, userProfileRepository, userRepository);
     userId = UUID.randomUUID();
   }
 
