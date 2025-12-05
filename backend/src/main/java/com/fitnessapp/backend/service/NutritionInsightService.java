@@ -298,14 +298,23 @@ public class NutritionInsightService {
   /**
    * Create a minimal profile with default values for advice generation
    * This is used when profile doesn't exist but we still need to generate advice
-   * Note: This doesn't persist the profile, just returns a temporary one for advice
+   * 
+   * IMPORTANT: This creates a transient (non-persisted) profile only for reading
+   * metadata like fitnessGoal and dietaryPreference for advice generation.
+   * It should never be persisted to the database.
+   * 
+   * @param userId The user ID to create a minimal profile for
+   * @return A minimal, transient UserProfile for advice generation only
    */
   private UserProfile createMinimalProfileForAdvice(UUID userId) {
-    log.warn("Using minimal default profile for advice generation for userId: {}", userId);
+    log.warn("Using minimal default profile for advice generation for userId: {}. This profile will not be persisted.", userId);
+    
+    // Create a minimal transient profile with only the fields needed for advice
     UserProfile profile = new UserProfile();
-    profile.setUserId(userId);
+    // Note: We don't set user or userId because this is transient and won't be persisted
     profile.setFitnessGoal(com.fitnessapp.backend.domain.FitnessGoal.MAINTAIN);
     profile.setDietaryPreference(com.fitnessapp.backend.domain.DietaryPreference.NONE);
+    
     return profile;
   }
 }

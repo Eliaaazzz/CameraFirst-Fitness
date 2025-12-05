@@ -23,6 +23,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class NutritionTrackingService {
 
+  // Default nutrition targets for users without a profile
+  private static final int DEFAULT_DAILY_CALORIES = 2000;
+  private static final int DEFAULT_DAILY_PROTEIN = 130;
+  private static final int DEFAULT_DAILY_CARBS = 220;
+  private static final int DEFAULT_DAILY_FAT = 70;
+
   private final MealLogRepository mealLogRepository;
   private final UserProfileRepository userProfileRepository;
   private final UserRepository userRepository;
@@ -113,10 +119,10 @@ public class NutritionTrackingService {
     // Create profile using builder - @MapsId will derive the ID from the user relationship
     UserProfile defaultProfile = UserProfile.builder()
         .user(user)
-        .dailyCalorieTarget(2000)
-        .dailyProteinTarget(130)
-        .dailyCarbsTarget(220)
-        .dailyFatTarget(70)
+        .dailyCalorieTarget(DEFAULT_DAILY_CALORIES)
+        .dailyProteinTarget(DEFAULT_DAILY_PROTEIN)
+        .dailyCarbsTarget(DEFAULT_DAILY_CARBS)
+        .dailyFatTarget(DEFAULT_DAILY_FAT)
         .fitnessGoal(com.fitnessapp.backend.domain.FitnessGoal.MAINTAIN)
         .dietaryPreference(com.fitnessapp.backend.domain.DietaryPreference.NONE)
         .build();
