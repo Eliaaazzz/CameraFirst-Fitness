@@ -6,7 +6,7 @@ INSERT INTO api_key (key_value, name, tenant_id, enabled, created_at)
 SELECT 
     'mobile-app-default-key-2024-fitness',
     'Mobile App Development Key',
-    id::text,
+    id::varchar,
     true,
     NOW()
 FROM users 
