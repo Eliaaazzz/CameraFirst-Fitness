@@ -122,28 +122,52 @@ public class NutritionController {
 
   @GetMapping("/summary/daily")
   public ResponseEntity<NutritionSummaryResponse> dailySummary(
-      @RequestParam @NotNull UUID userId,
+      @RequestParam @NotNull String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
     LocalDate targetDate = date != null ? date : LocalDate.now();
-    NutritionSummary summary = trackingService.dailySummary(userId, targetDate);
+    UUID userUuid = parseUserId(userId);
+    NutritionSummary summary = trackingService.dailySummary(userUuid, targetDate);
     return ResponseEntity.ok(toSummaryResponse(summary));
   }
 
   @GetMapping("/summary/weekly")
   public ResponseEntity<NutritionSummaryResponse> weeklySummary(
-      @RequestParam @NotNull UUID userId,
+      @RequestParam @NotNull String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
     LocalDate start = weekStart != null ? weekStart : LocalDate.now().with(java.time.DayOfWeek.MONDAY);
-    NutritionSummary summary = trackingService.weeklySummary(userId, start);
+    UUID userUuid = parseUserId(userId);
+    NutritionSummary summary = trackingService.weeklySummary(userUuid, start);
     return ResponseEntity.ok(toSummaryResponse(summary));
   }
 
   @GetMapping("/insights/weekly")
   public ResponseEntity<NutritionInsightResponse> weeklyInsight(
-      @RequestParam @NotNull UUID userId,
+      @RequestParam @NotNull String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
-    NutritionInsight insight = insightService.generateWeeklyInsight(userId, weekStart);
+    UUID userUuid = parseUserId(userId);
+    NutritionInsight insight = insightService.generateWeeklyInsight(userUuid, weekStart);
     return ResponseEntity.ok(toInsightResponse(insight));
+  }
+
+  /**
+   * Parse userId from string, handling the special "default-user" case.
+   * This allows the frontend to work without proper authentication by using a well-known UUID.
+   * 
+   * @param userId String representation of user ID or "default-user"
+   * @return UUID for the user
+   * @throws IllegalArgumentException if the string is not a valid UUID and not "default-user"
+   */
+  private UUID parseUserId(String userId) {
+    if ("default-user".equals(userId)) {
+      // Use a well-known UUID for the default user
+      // This is UUID("00000000-0000-0000-0000-000000000001")
+      return UUID.fromString("00000000-0000-0000-0000-000000000001");
+    }
+    try {
+      return UUID.fromString(userId);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Invalid userId format: " + userId + ". Must be a valid UUID or 'default-user'", e);
+    }
   }
 
   private MealLogResponse toResponse(MealLog log) {
