@@ -1,27 +1,12 @@
 package com.fitnessapp.backend.api.nutrition;
 
-import com.fitnessapp.backend.domain.MealLog;
-import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResponse;
-import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
-import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
-import com.fitnessapp.backend.nutrition.service.FoodRecognitionService;
-import com.fitnessapp.backend.nutrition.service.NutritionEngine;
-import com.fitnessapp.backend.service.NutritionInsightService;
-import com.fitnessapp.backend.service.NutritionInsightService.NutritionInsight;
-import com.fitnessapp.backend.service.NutritionTrackingService;
-import com.fitnessapp.backend.service.NutritionTrackingService.NutritionMetric;
-import com.fitnessapp.backend.service.NutritionTrackingService.NutritionSummary;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +18,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.fitnessapp.backend.domain.MealLog;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResponse;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
+import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
+import com.fitnessapp.backend.nutrition.service.FoodRecognitionService;
+import com.fitnessapp.backend.nutrition.service.NutritionEngine;
+import com.fitnessapp.backend.service.NutritionInsightService;
+import com.fitnessapp.backend.service.NutritionInsightService.NutritionInsight;
+import com.fitnessapp.backend.service.NutritionTrackingService;
+import com.fitnessapp.backend.service.NutritionTrackingService.NutritionMetric;
+import com.fitnessapp.backend.service.NutritionTrackingService.NutritionSummary;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
