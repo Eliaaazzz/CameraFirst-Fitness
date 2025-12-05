@@ -110,15 +110,16 @@ public class NutritionTrackingService {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
     
-    UserProfile defaultProfile = new UserProfile();
-    defaultProfile.setUserId(userId);
-    defaultProfile.setUser(user);
-    defaultProfile.setDailyCalorieTarget(2000);
-    defaultProfile.setDailyProteinTarget(130);
-    defaultProfile.setDailyCarbsTarget(220);
-    defaultProfile.setDailyFatTarget(70);
-    defaultProfile.setFitnessGoal(com.fitnessapp.backend.domain.FitnessGoal.MAINTAIN);
-    defaultProfile.setDietaryPreference(com.fitnessapp.backend.domain.DietaryPreference.NONE);
+    // Create profile using builder - @MapsId will derive the ID from the user relationship
+    UserProfile defaultProfile = UserProfile.builder()
+        .user(user)
+        .dailyCalorieTarget(2000)
+        .dailyProteinTarget(130)
+        .dailyCarbsTarget(220)
+        .dailyFatTarget(70)
+        .fitnessGoal(com.fitnessapp.backend.domain.FitnessGoal.MAINTAIN)
+        .dietaryPreference(com.fitnessapp.backend.domain.DietaryPreference.NONE)
+        .build();
     
     return userProfileRepository.save(defaultProfile);
   }
