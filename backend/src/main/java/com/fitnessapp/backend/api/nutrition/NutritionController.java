@@ -51,7 +51,7 @@ public class NutritionController {
    * POST /api/v1/nutrition/analyze
    * 
    * @param image The food image to analyze
-   * @param provider Optional: preferred AI provider (e.g., "claude-vision", "openai-vision")
+   * @param provider Optional: preferred AI provider (e.g., "gemini", "claude", "openai")
    */
   @PostMapping(value = "/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<FoodRecognitionResponse> analyzeFoodImage(
@@ -159,13 +159,14 @@ public class NutritionController {
    * @throws IllegalArgumentException if the string is not a valid UUID and not "default-user"
    */
   private UUID parseUserId(String userId) {
-    if ("default-user".equals(userId)) {
+    String cleaned = userId == null ? "" : userId.trim().replace("\"", "");
+    if ("default-user".equals(cleaned)) {
       // Use a well-known UUID for the default user
       // This is UUID("00000000-0000-0000-0000-000000000001")
       return UUID.fromString("00000000-0000-0000-0000-000000000001");
     }
     try {
-      return UUID.fromString(userId);
+      return UUID.fromString(cleaned);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException("Invalid userId format: " + userId + ". Must be a valid UUID or 'default-user'", e);
     }

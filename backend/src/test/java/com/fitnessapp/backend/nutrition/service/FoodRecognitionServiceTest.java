@@ -31,6 +31,9 @@ import static org.mockito.Mockito.lenient;
 class FoodRecognitionServiceTest {
 
     @Mock
+    private FoodRecognitionProvider geminiProvider;
+
+    @Mock
     private FoodRecognitionProvider claudeProvider;
     
     @Mock
@@ -47,34 +50,39 @@ class FoodRecognitionServiceTest {
     @BeforeEach
     void setUp() {
         // Setup provider names and priorities (always needed for sorting)
+        lenient().when(geminiProvider.getProviderName()).thenReturn("gemini");
+        lenient().when(geminiProvider.getModelName()).thenReturn("gemini-2.0-flash");
+        lenient().when(geminiProvider.getPriority()).thenReturn(5);
+
         lenient().when(claudeProvider.getProviderName()).thenReturn("claude");
         lenient().when(claudeProvider.getModelName()).thenReturn("claude-3-5-sonnet");
-        lenient().when(claudeProvider.getPriority()).thenReturn(10);
+        lenient().when(claudeProvider.getPriority()).thenReturn(20);
         
         lenient().when(openaiProvider.getProviderName()).thenReturn("openai");
         lenient().when(openaiProvider.getModelName()).thenReturn("gpt-4-vision");
-        lenient().when(openaiProvider.getPriority()).thenReturn(20);
+        lenient().when(openaiProvider.getPriority()).thenReturn(30);
         
-        List<FoodRecognitionProvider> providers = Arrays.asList(claudeProvider, openaiProvider);
+        List<FoodRecognitionProvider> providers = Arrays.asList(geminiProvider, claudeProvider, openaiProvider);
         service = new FoodRecognitionService(providers, nutritionEngine, executor);
     }
     
     @Test
-    @DisplayName("Should recognize foods using highest priority provider")
+    @DisplayName("Should recognize foods using highest priority provider (Gemini)")
     void shouldUseHighestPriorityProvider() throws IOException {
         // Given
         MockMultipartFile image = createMockImage();
-        when(claudeProvider.isAvailable()).thenReturn(true);
+        when(geminiProvider.isAvailable()).thenReturn(true);
         
         FoodRecognitionResult expected = createMockResult();
-        when(claudeProvider.recognizeFoods(any(MultipartFile.class))).thenReturn(expected);
+        when(geminiProvider.recognizeFoods(any(MultipartFile.class))).thenReturn(expected);
         
         // When
         FoodRecognitionResult result = service.recognizeFoods(image);
         
         // Then
         assertThat(result).isEqualTo(expected);
-        verify(claudeProvider).recognizeFoods(any(MultipartFile.class));
+        verify(geminiProvider).recognizeFoods(any(MultipartFile.class));
+        verify(claudeProvider, never()).recognizeFoods(any(MultipartFile.class));
         verify(openaiProvider, never()).recognizeFoods(any(MultipartFile.class));
     }
     
@@ -94,6 +102,7 @@ class FoodRecognitionServiceTest {
         // Then
         assertThat(result).isEqualTo(expected);
         verify(openaiProvider).recognizeFoods(any(MultipartFile.class));
+        verify(geminiProvider, never()).recognizeFoods(any(MultipartFile.class));
         verify(claudeProvider, never()).recognizeFoods(any(MultipartFile.class));
     }
     
@@ -102,22 +111,23 @@ class FoodRecognitionServiceTest {
     void shouldFallbackOnFailure() throws IOException {
         // Given
         MockMultipartFile image = createMockImage();
+        when(geminiProvider.isAvailable()).thenReturn(true);
         when(claudeProvider.isAvailable()).thenReturn(true);
-        when(openaiProvider.isAvailable()).thenReturn(true);
         
-        when(claudeProvider.recognizeFoods(any(MultipartFile.class)))
-            .thenThrow(new RuntimeException("Claude API error"));
+        when(geminiProvider.recognizeFoods(any(MultipartFile.class)))
+            .thenThrow(new RuntimeException("Gemini API error"));
             
         FoodRecognitionResult expected = createMockResult();
-        when(openaiProvider.recognizeFoods(any(MultipartFile.class))).thenReturn(expected);
+        when(claudeProvider.recognizeFoods(any(MultipartFile.class))).thenReturn(expected);
         
         // When
         FoodRecognitionResult result = service.recognizeFoods(image);
         
         // Then
         assertThat(result).isEqualTo(expected);
+        verify(geminiProvider).recognizeFoods(any(MultipartFile.class));
         verify(claudeProvider).recognizeFoods(any(MultipartFile.class));
-        verify(openaiProvider).recognizeFoods(any(MultipartFile.class));
+        verify(openaiProvider, never()).recognizeFoods(any(MultipartFile.class));
     }
     
     @Test
@@ -125,6 +135,7 @@ class FoodRecognitionServiceTest {
     void shouldThrowWhenNoProvidersAvailable() {
         // Given
         MockMultipartFile image = createMockImage();
+        when(geminiProvider.isAvailable()).thenReturn(false);
         when(claudeProvider.isAvailable()).thenReturn(false);
         when(openaiProvider.isAvailable()).thenReturn(false);
         
@@ -139,7 +150,7 @@ class FoodRecognitionServiceTest {
     void shouldEnrichWithNutrition() throws IOException {
         // Given
         MockMultipartFile image = createMockImage();
-        when(claudeProvider.isAvailable()).thenReturn(true);
+        when(geminiProvider.isAvailable()).thenReturn(true);
         
         RecognizedFood rice = RecognizedFood.builder()
             .foodKey("rice")
@@ -150,7 +161,7 @@ class FoodRecognitionServiceTest {
             .items(Collections.singletonList(rice))
             .build();
             
-        when(claudeProvider.recognizeFoods(any(MultipartFile.class))).thenReturn(result);
+        when(geminiProvider.recognizeFoods(any(MultipartFile.class))).thenReturn(result);
         
         // When
         service.recognizeFoods(image);
@@ -163,32 +174,35 @@ class FoodRecognitionServiceTest {
     @DisplayName("Should return available providers list")
     void shouldReturnAvailableProviders() {
         // Given
-        when(claudeProvider.isAvailable()).thenReturn(true);
+        when(geminiProvider.isAvailable()).thenReturn(true);
+        when(claudeProvider.isAvailable()).thenReturn(false);
         when(openaiProvider.isAvailable()).thenReturn(false);
         
         // When
         List<FoodRecognitionService.ProviderInfo> providers = service.getAvailableProviders();
         
         // Then
-        assertThat(providers).hasSize(2);
+        assertThat(providers).hasSize(3);
         assertThat(providers).extracting(FoodRecognitionService.ProviderInfo::name)
-            .containsExactly("claude", "openai");
+            .containsExactly("gemini", "claude", "openai");
         assertThat(providers.get(0).available()).isTrue();
         assertThat(providers.get(1).available()).isFalse();
+        assertThat(providers.get(2).available()).isFalse();
     }
     
     @Test
     @DisplayName("Should check service availability")
     void shouldCheckServiceAvailability() {
         // Given
-        when(claudeProvider.isAvailable()).thenReturn(false);
-        when(openaiProvider.isAvailable()).thenReturn(true);
+        when(geminiProvider.isAvailable()).thenReturn(false);
+        when(claudeProvider.isAvailable()).thenReturn(true);
+        when(openaiProvider.isAvailable()).thenReturn(false);
         
         // When/Then
         assertThat(service.isServiceAvailable()).isTrue();
         
         // Given - all unavailable
-        when(openaiProvider.isAvailable()).thenReturn(false);
+        when(claudeProvider.isAvailable()).thenReturn(false);
         
         // When/Then
         assertThat(service.isServiceAvailable()).isFalse();
