@@ -11,7 +11,7 @@ import java.io.IOException;
 public interface GeminiVisionService {
 
   /**
-   * Recognize foods from an image using Gemini 2.5 Flash Vision
+   * Recognize foods from an image using Gemini 2.0 Flash
    *
    * @param imageFile the food photo
    * @return recognition result with identified foods
