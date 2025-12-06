@@ -1,27 +1,12 @@
 package com.fitnessapp.backend.api.nutrition;
 
-import com.fitnessapp.backend.domain.MealLog;
-import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResponse;
-import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
-import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
-import com.fitnessapp.backend.nutrition.service.FoodRecognitionService;
-import com.fitnessapp.backend.nutrition.service.NutritionEngine;
-import com.fitnessapp.backend.service.NutritionInsightService;
-import com.fitnessapp.backend.service.NutritionInsightService.NutritionInsight;
-import com.fitnessapp.backend.service.NutritionTrackingService;
-import com.fitnessapp.backend.service.NutritionTrackingService.NutritionMetric;
-import com.fitnessapp.backend.service.NutritionTrackingService.NutritionSummary;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +18,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.fitnessapp.backend.domain.MealLog;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResponse;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
+import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
+import com.fitnessapp.backend.nutrition.service.FoodRecognitionService;
+import com.fitnessapp.backend.nutrition.service.NutritionEngine;
+import com.fitnessapp.backend.service.NutritionInsightService;
+import com.fitnessapp.backend.service.NutritionInsightService.NutritionInsight;
+import com.fitnessapp.backend.service.NutritionTrackingService;
+import com.fitnessapp.backend.service.NutritionTrackingService.NutritionMetric;
+import com.fitnessapp.backend.service.NutritionTrackingService.NutritionSummary;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
@@ -126,8 +129,7 @@ public class NutritionController {
       @RequestParam @NotNull String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
     LocalDate targetDate = date != null ? date : LocalDate.now();
-    UUID userUuid = parseUserId(userId);
-    NutritionSummary summary = trackingService.dailySummary(userUuid, targetDate);
+    NutritionSummary summary = trackingService.dailySummary(parseUserId(userId), targetDate);
     return ResponseEntity.ok(toSummaryResponse(summary));
   }
 
@@ -136,8 +138,7 @@ public class NutritionController {
       @RequestParam @NotNull String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
     LocalDate start = weekStart != null ? weekStart : LocalDate.now().with(java.time.DayOfWeek.MONDAY);
-    UUID userUuid = parseUserId(userId);
-    NutritionSummary summary = trackingService.weeklySummary(userUuid, start);
+    NutritionSummary summary = trackingService.weeklySummary(parseUserId(userId), start);
     return ResponseEntity.ok(toSummaryResponse(summary));
   }
 
@@ -145,30 +146,15 @@ public class NutritionController {
   public ResponseEntity<NutritionInsightResponse> weeklyInsight(
       @RequestParam @NotNull String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
-    UUID userUuid = parseUserId(userId);
-    NutritionInsight insight = insightService.generateWeeklyInsight(userUuid, weekStart);
+    NutritionInsight insight = insightService.generateWeeklyInsight(parseUserId(userId), weekStart);
     return ResponseEntity.ok(toInsightResponse(insight));
   }
 
-  /**
-   * Parse userId from string, handling the special "default-user" case.
-   * This allows the frontend to work without proper authentication by using a well-known UUID.
-   * 
-   * @param userId String representation of user ID or "default-user"
-   * @return UUID for the user
-   * @throws IllegalArgumentException if the string is not a valid UUID and not "default-user"
-   */
-  private UUID parseUserId(String userId) {
-    if ("default-user".equals(userId)) {
-      // Use a well-known UUID for the default user
-      // This is UUID("00000000-0000-0000-0000-000000000001")
+  private UUID parseUserId(String raw) {
+    if (raw == null || raw.isBlank() || "default-user".equalsIgnoreCase(raw)) {
       return UUID.fromString("00000000-0000-0000-0000-000000000001");
     }
-    try {
-      return UUID.fromString(userId);
-    } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("Invalid userId format: " + userId + ". Must be a valid UUID or 'default-user'", e);
-    }
+    return UUID.fromString(raw.replace("\"", "").trim());
   }
 
   private MealLogResponse toResponse(MealLog log) {

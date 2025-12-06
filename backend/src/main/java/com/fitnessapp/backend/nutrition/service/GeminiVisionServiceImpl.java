@@ -1,41 +1,34 @@
 package com.fitnessapp.backend.nutrition.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
+import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Set;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
-import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
-
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Google Gemini Vision API service implementation.
- * Implements FoodRecognitionProvider for multi-model support.
+ * Gemini Vision food recognition using Gemini Flash 2.0.
  */
 @Slf4j
 @Service
-public class GeminiVisionServiceImpl implements GeminiVisionService, FoodRecognitionProvider {
+public class GeminiVisionServiceImpl implements FoodRecognitionProvider {
 
   private static final String PROVIDER_NAME = "gemini";
-  private static final String MODEL = "gemini-2.0-flash-exp";
-  private static final String GEMINI_API_URL_TEMPLATE = 
-      "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s";
+  private static final int MAX_TOKENS = 1024;
   private static final int TIMEOUT_SECONDS = 30;
-  private static final int MAX_RETRIES = 2;
   private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
   private static final Set<String> SUPPORTED_IMAGE_TYPES = Set.of(
       "image/jpeg", "image/png", "image/gif", "image/webp"
@@ -44,24 +37,28 @@ public class GeminiVisionServiceImpl implements GeminiVisionService, FoodRecogni
   private final OkHttpClient httpClient;
   private final ObjectMapper objectMapper;
   private final String apiKey;
+  private final String model;
+  private final String apiUrl;
 
   public GeminiVisionServiceImpl(
       ObjectMapper objectMapper,
-      @Value("${app.gemini.api-key:}") String apiKey
+      @Value("${app.gemini.api-key:}") String apiKey,
+      @Value("${app.gemini.model:gemini-2.0-flash}") String model
   ) {
-    if (apiKey == null || apiKey.isBlank()) {
-      log.warn("⚠️  Gemini API key not configured - Gemini food recognition will be disabled");
-    }
     this.objectMapper = objectMapper;
     this.apiKey = apiKey;
+    this.model = model;
+    this.apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
     this.httpClient = new OkHttpClient.Builder()
         .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
         .readTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
         .writeTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
         .build();
-  }
 
-  // ==================== FoodRecognitionProvider Interface ====================
+    if (apiKey == null || apiKey.isBlank()) {
+      log.warn("⚠️  Gemini API key not configured - Gemini food recognition will be disabled");
+    }
+  }
 
   @Override
   public String getProviderName() {
@@ -70,7 +67,7 @@ public class GeminiVisionServiceImpl implements GeminiVisionService, FoodRecogni
 
   @Override
   public String getModelName() {
-    return MODEL;
+    return model;
   }
 
   @Override
@@ -80,28 +77,23 @@ public class GeminiVisionServiceImpl implements GeminiVisionService, FoodRecogni
 
   @Override
   public int getPriority() {
-    return 5; // Higher priority than Claude (10) - Gemini is now primary provider
+    return 1; // Prefer Gemini over other providers
   }
-
-  // ==================== GeminiVisionService Interface ====================
 
   @Override
   public FoodRecognitionResult recognizeFoods(MultipartFile imageFile) throws IOException {
-    // Validate API key is configured
     if (!isAvailable()) {
       throw new FoodRecognitionException("AI food recognition is not configured. Please set GEMINI_API_KEY.");
     }
 
-    // Validate image size
     if (imageFile.getSize() > MAX_IMAGE_SIZE) {
-      throw new IllegalArgumentException("Image too large. Maximum size is 10MB, got " + 
+      throw new IllegalArgumentException("Image too large. Maximum size is 10MB, got " +
           (imageFile.getSize() / 1024 / 1024) + "MB");
     }
 
-    // Validate image type
     String contentType = imageFile.getContentType();
     if (contentType == null || !SUPPORTED_IMAGE_TYPES.contains(contentType.toLowerCase())) {
-      throw new IllegalArgumentException("Unsupported image type: " + contentType + 
+      throw new IllegalArgumentException("Unsupported image type: " + contentType +
           ". Supported types: " + SUPPORTED_IMAGE_TYPES);
     }
 
@@ -110,109 +102,65 @@ public class GeminiVisionServiceImpl implements GeminiVisionService, FoodRecogni
 
     byte[] imageBytes = imageFile.getBytes();
     String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-
     return recognizeFoods(base64Image, contentType);
   }
 
   @Override
   public FoodRecognitionResult recognizeFoods(String base64Image, String mediaType) {
-    // Validate API key
-    if (apiKey == null || apiKey.isBlank()) {
+    if (!isAvailable()) {
       throw new FoodRecognitionException("AI food recognition is not configured. Please set GEMINI_API_KEY.");
     }
 
-    int attempt = 0;
-    Exception lastException = null;
+    try {
+      String requestBody = buildRequestBody(base64Image, mediaType);
 
-    while (attempt < MAX_RETRIES) {
-      attempt++;
-      try {
-        log.info("Calling Gemini Vision API (attempt {}/{})", attempt, MAX_RETRIES);
-        return callGeminiVisionAPI(base64Image, mediaType);
-      } catch (Exception e) {
-        lastException = e;
-        log.warn("Gemini Vision API call failed (attempt {}/{}): {}",
-            attempt, MAX_RETRIES, e.getMessage());
+      Request request = new Request.Builder()
+          .url(apiUrl + "?key=" + apiKey)
+          .addHeader("content-type", "application/json")
+          .post(RequestBody.create(requestBody, MediaType.parse("application/json")))
+          .build();
 
-        if (attempt < MAX_RETRIES) {
-          try {
-            Thread.sleep(1000L * attempt); // Exponential backoff
-          } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            break;
-          }
+      try (Response response = httpClient.newCall(request).execute()) {
+        String responseBody = response.body() != null ? response.body().string() : "";
+
+        if (!response.isSuccessful()) {
+          String errorMessage = extractError(responseBody);
+          log.error("Gemini API error ({}): {}", response.code(), errorMessage);
+          throw new FoodRecognitionException("Food recognition failed: " + errorMessage);
         }
+
+        return parseResponse(responseBody);
       }
-    }
-
-    throw new FoodRecognitionException(
-        "Failed to recognize foods after " + MAX_RETRIES + " attempts",
-        lastException
-    );
-  }
-
-  private FoodRecognitionResult callGeminiVisionAPI(String base64Image, String mediaType) throws IOException {
-    String requestBody = buildRequestBody(base64Image, mediaType);
-    String apiUrl = String.format(GEMINI_API_URL_TEMPLATE, MODEL, apiKey);
-
-    Request request = new Request.Builder()
-        .url(apiUrl)
-        .addHeader("content-type", "application/json")
-        .post(RequestBody.create(requestBody, MediaType.parse("application/json")))
-        .build();
-
-    try (Response response = httpClient.newCall(request).execute()) {
-      if (!response.isSuccessful()) {
-        String errorBody = response.body() != null ? response.body().string() : "No error body";
-        log.error("Gemini API error ({}): {}", response.code(), errorBody);
-
-        if (response.code() == 429) {
-          throw new FoodRecognitionException("Rate limit exceeded, please try again later");
-        } else if (response.code() >= 500) {
-          throw new FoodRecognitionException("Gemini AI service temporarily unavailable");
-        } else {
-          throw new FoodRecognitionException("Food recognition failed: " + errorBody);
-        }
-      }
-
-      String responseBody = response.body().string();
-      log.debug("Gemini API response: {}", responseBody);
-
-      return parseResponse(responseBody);
+    } catch (IOException e) {
+      throw new FoodRecognitionException("Gemini Vision call failed", e);
     }
   }
 
-  private String buildRequestBody(String base64Image, String mediaType) throws IOException {
+  private String buildRequestBody(String base64Image, String mediaType) {
     String prompt = buildRecognitionPrompt();
-
-    // Convert MIME type to Gemini format (e.g., "image/jpeg" stays as is)
-    String geminiMediaType = mediaType;
-
-    String requestJson = String.format("""
+    return String.format("""
         {
-          "contents": [{
-            "parts": [
-              {
-                "text": "%s"
-              },
-              {
-                "inline_data": {
-                  "mime_type": "%s",
-                  "data": "%s"
+          "contents": [
+            {
+              "parts": [
+                {
+                  "inline_data": {
+                    "mime_type": "%s",
+                    "data": "%s"
+                  }
+                },
+                {
+                  "text": "%s"
                 }
-              }
-            ]
-          }],
+              ]
+            }
+          ],
           "generationConfig": {
             "temperature": 0.2,
-            "topP": 0.8,
-            "topK": 40,
-            "maxOutputTokens": 1024
+            "maxOutputTokens": %d
           }
         }
-        """, escapeJson(prompt), geminiMediaType, base64Image);
-
-    return requestJson;
+        """, mediaType, base64Image, escapeJson(prompt), MAX_TOKENS);
   }
 
   private String buildRecognitionPrompt() {
@@ -249,48 +197,101 @@ public class GeminiVisionServiceImpl implements GeminiVisionService, FoodRecogni
   }
 
   private FoodRecognitionResult parseResponse(String responseBody) {
+    String textContent = null;
+    String jsonContent = null;
     try {
       JsonNode root = objectMapper.readTree(responseBody);
+
       JsonNode candidates = root.path("candidates");
-
-      if (candidates.isEmpty()) {
-        log.error("Empty candidates in Gemini response");
-        throw new FoodRecognitionException("Invalid response from Gemini API");
+      if (!candidates.isArray() || candidates.isEmpty()) {
+        String errorMessage = extractError(responseBody);
+        throw new FoodRecognitionException("Invalid response from Gemini API" + (errorMessage.isBlank() ? "" : ": " + errorMessage));
       }
 
-      JsonNode content = candidates.get(0).path("content");
-      JsonNode parts = content.path("parts");
-      
-      if (parts.isEmpty()) {
-        log.error("Empty parts in Gemini response");
-        throw new FoodRecognitionException("Invalid response from Gemini API");
+      JsonNode parts = candidates.get(0).path("content").path("parts");
+      for (JsonNode part : parts) {
+        if (part.has("text")) {
+          textContent = part.path("text").asText();
+          break;
+        }
       }
 
-      String textContent = parts.get(0).path("text").asText();
-      log.info("Gemini Vision text response: {}", textContent);
+      if (textContent == null || textContent.isBlank()) {
+        throw new FoodRecognitionException("Gemini response did not include text content");
+      }
 
-      // Parse the JSON response from Gemini
-      FoodRecognitionResult result = objectMapper.readValue(textContent, FoodRecognitionResult.class);
+      // Extract JSON from markdown code blocks if present
+      jsonContent = extractJsonContent(textContent);
+      log.debug("Extracted JSON content: {}", jsonContent);
 
+      FoodRecognitionResult result = objectMapper.readValue(jsonContent, FoodRecognitionResult.class);
       if (result.getItems() == null) {
         result.setItems(new ArrayList<>());
       }
 
-      log.info("Successfully recognized {} food items, meal type: {}",
-          result.getItems().size(), result.getMealType());
-
+      log.info("Successfully recognized {} food items, meal type: {}", result.getItems().size(), result.getMealType());
       return result;
 
     } catch (IOException e) {
-      log.error("Failed to parse Gemini Vision response", e);
+      log.error("Failed to parse Gemini response. Raw text: [{}], Extracted JSON: [{}]", textContent, jsonContent, e);
       throw new FoodRecognitionException("Failed to parse food recognition result", e);
     }
   }
 
+  private String extractError(String responseBody) {
+    try {
+      JsonNode root = objectMapper.readTree(responseBody);
+      JsonNode errorNode = root.path("error");
+      if (errorNode.has("message")) {
+        return errorNode.path("message").asText();
+      }
+    } catch (Exception ignore) {
+      // ignore parse issues
+    }
+    return responseBody == null ? "" : responseBody;
+  }
+
   private String escapeJson(String text) {
-    return text.replace("\"", "\\\"")
+    return text.replace("\\", "\\\\")
+        .replace("\"", "\\\"")
         .replace("\n", "\\n")
         .replace("\r", "\\r")
         .replace("\t", "\\t");
+  }
+
+  /**
+   * Extract JSON content from text that may be wrapped in markdown code blocks.
+   * Handles formats like:
+   * - ```json { ... } ```
+   * - ``` { ... } ```
+   * - { ... } (plain JSON)
+   */
+  private String extractJsonContent(String text) {
+    if (text == null || text.isBlank()) {
+      return text;
+    }
+
+    String trimmed = text.trim();
+
+    // Check for markdown code blocks: ```json ... ``` or ``` ... ```
+    if (trimmed.startsWith("```")) {
+      int endIndex = trimmed.lastIndexOf("```");
+      if (endIndex > 3) {
+        // Remove opening ``` or ```json
+        int startIndex = trimmed.indexOf('\n');
+        if (startIndex > 0 && startIndex < endIndex) {
+          trimmed = trimmed.substring(startIndex + 1, endIndex).trim();
+        }
+      }
+    }
+
+    // Try to find JSON object boundaries
+    int jsonStart = trimmed.indexOf('{');
+    int jsonEnd = trimmed.lastIndexOf('}');
+    if (jsonStart >= 0 && jsonEnd > jsonStart) {
+      return trimmed.substring(jsonStart, jsonEnd + 1);
+    }
+
+    return trimmed;
   }
 }

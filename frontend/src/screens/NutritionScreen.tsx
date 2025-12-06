@@ -26,7 +26,13 @@ export function NutritionScreen({ navigation }: any) {
     }, [refresh])
   );
 
-  const handleAddPress = () => {
+  const handleAddPress = async () => {
+    // On web, directly open the gallery (better UX than ActionSheet/Alert)
+    if (Platform.OS === 'web') {
+      await handleChooseFromGallery();
+      return;
+    }
+
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
@@ -50,41 +56,63 @@ export function NutritionScreen({ navigation }: any) {
     }
   };
 
+
   const handleTakePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Camera permission is required');
-      return;
-    }
+    try {
+      if (Platform.OS === 'web') {
+        Alert.alert('Camera not supported', 'Please choose a photo from your device on web.');
+        return;
+      }
 
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Camera permission is required');
+        return;
+      }
 
-    if (!result.canceled && result.assets[0]) {
-      navigation.navigate('ReviewMeal', { imageUri: result.assets[0].uri });
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets?.[0]) {
+        navigation.navigate('ReviewMeal', { imageUri: result.assets[0].uri });
+      } else {
+        Alert.alert('No image captured', 'Please retake a photo to continue.');
+      }
+    } catch (err) {
+      console.error('Camera capture failed', err);
+      Alert.alert('Error', 'Could not take photo: ' + (err as Error)?.message);
     }
   };
 
   const handleChooseFromGallery = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Gallery permission is required');
-      return;
-    }
+    try {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission needed', 'Gallery permission is required');
+          return;
+        }
+      }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
 
-    if (!result.canceled && result.assets[0]) {
-      navigation.navigate('ReviewMeal', { imageUri: result.assets[0].uri });
+      if (!result.canceled && result.assets?.[0]) {
+        navigation.navigate('ReviewMeal', { imageUri: result.assets[0].uri });
+      } else {
+        Alert.alert('No image selected', 'Please pick a photo to continue.');
+      }
+    } catch (err) {
+      console.error('Gallery pick failed', err);
+      Alert.alert('Error', 'Could not open gallery: ' + (err as Error)?.message);
     }
   };
 
