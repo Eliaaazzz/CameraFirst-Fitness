@@ -29,7 +29,7 @@ export interface RecognizedFood {
   estimated_grams: number;
   cooking_method: string;
   confidence?: number;
-  nutrition: NutritionInfo;
+  nutrition?: NutritionInfo;
 }
 
 export interface FoodRecognitionResponse {
