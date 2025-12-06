@@ -1,23 +1,26 @@
 package com.fitnessapp.backend.nutrition.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
-import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
+import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
+
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Gemini Vision food recognition using Gemini Flash 2.0.
