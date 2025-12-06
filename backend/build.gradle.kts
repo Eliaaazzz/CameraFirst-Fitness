@@ -46,10 +46,8 @@ dependencies {
     implementation("org.apache.pdfbox:pdfbox:2.0.31")
 	// OpenAI SDK for GPT-4 Vision
 	implementation("com.theokanning.openai-gpt3-java:service:0.18.2")
-	// HTTP client for Claude API (using OkHttp)
+	// HTTP client for Claude and Gemini APIs (using OkHttp)
 	implementation("com.squareup.okhttp3:okhttp:4.12.0")
-	// Google Generative AI SDK for Gemini Vision
-	implementation("com.google.ai.client.generativeai:generativeai:0.1.0")
 	implementation("com.fasterxml.jackson.core:jackson-databind")
 	runtimeOnly("org.postgresql:postgresql")
 	compileOnly("org.projectlombok:lombok")
