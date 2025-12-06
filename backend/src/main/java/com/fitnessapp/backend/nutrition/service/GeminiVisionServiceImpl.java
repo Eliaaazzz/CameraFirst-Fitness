@@ -23,17 +23,17 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 /**
- * Claude Vision API service implementation.
+ * Google Gemini Vision API service implementation.
  * Implements FoodRecognitionProvider for multi-model support.
  */
 @Slf4j
 @Service
-public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecognitionProvider {
+public class GeminiVisionServiceImpl implements GeminiVisionService, FoodRecognitionProvider {
 
-  private static final String PROVIDER_NAME = "claude";
-  private static final String CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
-  private static final String MODEL = "claude-3-haiku-20240307";
-  private static final int MAX_TOKENS = 1024;
+  private static final String PROVIDER_NAME = "gemini";
+  private static final String MODEL = "gemini-2.0-flash-exp";
+  private static final String GEMINI_API_URL_TEMPLATE = 
+      "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s";
   private static final int TIMEOUT_SECONDS = 30;
   private static final int MAX_RETRIES = 2;
   private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -45,12 +45,12 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
   private final ObjectMapper objectMapper;
   private final String apiKey;
 
-  public ClaudeVisionServiceImpl(
+  public GeminiVisionServiceImpl(
       ObjectMapper objectMapper,
-      @Value("${app.anthropic.api-key:}") String apiKey
+      @Value("${app.gemini.api-key:}") String apiKey
   ) {
     if (apiKey == null || apiKey.isBlank()) {
-      log.warn("⚠️  Anthropic API key not configured - Claude food recognition will be disabled");
+      log.warn("⚠️  Gemini API key not configured - Gemini food recognition will be disabled");
     }
     this.objectMapper = objectMapper;
     this.apiKey = apiKey;
@@ -80,16 +80,16 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
 
   @Override
   public int getPriority() {
-    return 100; // Low priority - Claude is deprecated, Gemini is primary provider
+    return 5; // Higher priority than Claude (10) - Gemini is now primary provider
   }
 
-  // ==================== ClaudeVisionService Interface ====================
+  // ==================== GeminiVisionService Interface ====================
 
   @Override
   public FoodRecognitionResult recognizeFoods(MultipartFile imageFile) throws IOException {
     // Validate API key is configured
     if (!isAvailable()) {
-      throw new FoodRecognitionException("AI food recognition is not configured. Please set ANTHROPIC_API_KEY.");
+      throw new FoodRecognitionException("AI food recognition is not configured. Please set GEMINI_API_KEY.");
     }
 
     // Validate image size
@@ -111,23 +111,14 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
     byte[] imageBytes = imageFile.getBytes();
     String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
-    // Pass content type for dynamic media_type
     return recognizeFoods(base64Image, contentType);
   }
 
   @Override
-  public FoodRecognitionResult recognizeFoods(String base64Image) {
-    // Default to jpeg for backward compatibility
-    return recognizeFoods(base64Image, "image/jpeg");
-  }
-
-  /**
-   * Recognize foods from base64 image with specified media type
-   */
   public FoodRecognitionResult recognizeFoods(String base64Image, String mediaType) {
     // Validate API key
     if (apiKey == null || apiKey.isBlank()) {
-      throw new FoodRecognitionException("AI food recognition is not configured. Please set ANTHROPIC_API_KEY.");
+      throw new FoodRecognitionException("AI food recognition is not configured. Please set GEMINI_API_KEY.");
     }
 
     int attempt = 0;
@@ -136,11 +127,11 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
     while (attempt < MAX_RETRIES) {
       attempt++;
       try {
-        log.info("Calling Claude Vision API (attempt {}/{})", attempt, MAX_RETRIES);
-        return callClaudeVisionAPI(base64Image, mediaType);
+        log.info("Calling Gemini Vision API (attempt {}/{})", attempt, MAX_RETRIES);
+        return callGeminiVisionAPI(base64Image, mediaType);
       } catch (Exception e) {
         lastException = e;
-        log.warn("Claude Vision API call failed (attempt {}/{}): {}",
+        log.warn("Gemini Vision API call failed (attempt {}/{}): {}",
             attempt, MAX_RETRIES, e.getMessage());
 
         if (attempt < MAX_RETRIES) {
@@ -160,13 +151,12 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
     );
   }
 
-  private FoodRecognitionResult callClaudeVisionAPI(String base64Image, String mediaType) throws IOException {
+  private FoodRecognitionResult callGeminiVisionAPI(String base64Image, String mediaType) throws IOException {
     String requestBody = buildRequestBody(base64Image, mediaType);
+    String apiUrl = String.format(GEMINI_API_URL_TEMPLATE, MODEL, apiKey);
 
     Request request = new Request.Builder()
-        .url(CLAUDE_API_URL)
-        .addHeader("x-api-key", apiKey)
-        .addHeader("anthropic-version", "2023-06-01")
+        .url(apiUrl)
         .addHeader("content-type", "application/json")
         .post(RequestBody.create(requestBody, MediaType.parse("application/json")))
         .build();
@@ -174,19 +164,19 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
     try (Response response = httpClient.newCall(request).execute()) {
       if (!response.isSuccessful()) {
         String errorBody = response.body() != null ? response.body().string() : "No error body";
-        log.error("Claude API error ({}): {}", response.code(), errorBody);
+        log.error("Gemini API error ({}): {}", response.code(), errorBody);
 
         if (response.code() == 429) {
           throw new FoodRecognitionException("Rate limit exceeded, please try again later");
         } else if (response.code() >= 500) {
-          throw new FoodRecognitionException("Claude AI service temporarily unavailable");
+          throw new FoodRecognitionException("Gemini AI service temporarily unavailable");
         } else {
           throw new FoodRecognitionException("Food recognition failed: " + errorBody);
         }
       }
 
       String responseBody = response.body().string();
-      log.debug("Claude API response: {}", responseBody);
+      log.debug("Gemini API response: {}", responseBody);
 
       return parseResponse(responseBody);
     }
@@ -195,31 +185,32 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
   private String buildRequestBody(String base64Image, String mediaType) throws IOException {
     String prompt = buildRecognitionPrompt();
 
+    // Convert MIME type to Gemini format (e.g., "image/jpeg" stays as is)
+    String geminiMediaType = mediaType;
+
     String requestJson = String.format("""
         {
-          "model": "%s",
-          "max_tokens": %d,
-          "messages": [
-            {
-              "role": "user",
-              "content": [
-                {
-                  "type": "image",
-                  "source": {
-                    "type": "base64",
-                    "media_type": "%s",
-                    "data": "%s"
-                  }
-                },
-                {
-                  "type": "text",
-                  "text": "%s"
+          "contents": [{
+            "parts": [
+              {
+                "text": "%s"
+              },
+              {
+                "inline_data": {
+                  "mime_type": "%s",
+                  "data": "%s"
                 }
-              ]
-            }
-          ]
+              }
+            ]
+          }],
+          "generationConfig": {
+            "temperature": 0.2,
+            "topP": 0.8,
+            "topK": 40,
+            "maxOutputTokens": 1024
+          }
         }
-        """, MODEL, MAX_TOKENS, mediaType, base64Image, escapeJson(prompt));
+        """, escapeJson(prompt), geminiMediaType, base64Image);
 
     return requestJson;
   }
@@ -260,17 +251,25 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
   private FoodRecognitionResult parseResponse(String responseBody) {
     try {
       JsonNode root = objectMapper.readTree(responseBody);
-      JsonNode contentArray = root.path("content");
+      JsonNode candidates = root.path("candidates");
 
-      if (contentArray.isEmpty()) {
-        log.error("Empty content in Claude response");
-        throw new FoodRecognitionException("Invalid response from Claude API");
+      if (candidates.isEmpty()) {
+        log.error("Empty candidates in Gemini response");
+        throw new FoodRecognitionException("Invalid response from Gemini API");
       }
 
-      String textContent = contentArray.get(0).path("text").asText();
-      log.info("Claude Vision text response: {}", textContent);
+      JsonNode content = candidates.get(0).path("content");
+      JsonNode parts = content.path("parts");
+      
+      if (parts.isEmpty()) {
+        log.error("Empty parts in Gemini response");
+        throw new FoodRecognitionException("Invalid response from Gemini API");
+      }
 
-      // Parse the JSON response from Claude
+      String textContent = parts.get(0).path("text").asText();
+      log.info("Gemini Vision text response: {}", textContent);
+
+      // Parse the JSON response from Gemini
       FoodRecognitionResult result = objectMapper.readValue(textContent, FoodRecognitionResult.class);
 
       if (result.getItems() == null) {
@@ -283,7 +282,7 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
       return result;
 
     } catch (IOException e) {
-      log.error("Failed to parse Claude Vision response", e);
+      log.error("Failed to parse Gemini Vision response", e);
       throw new FoodRecognitionException("Failed to parse food recognition result", e);
     }
   }
