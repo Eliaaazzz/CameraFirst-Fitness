@@ -82,7 +82,7 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
 
   @Override
   public int getPriority() {
-    return 10; // High priority - Claude is primary provider
+    return 100; // Low priority - Claude is deprecated, Gemini is primary provider
   }
 
   // ==================== ClaudeVisionService Interface ====================

@@ -28,7 +28,7 @@ app:
     cost-per-thousand-tokens: 10.0
     log-usage: true
   anthropic:
-    # Anthropic Claude API for food recognition
+    # Anthropic Claude API for food recognition (DEPRECATED - use Gemini instead)
     api-key: ${ANTHROPIC_API_KEY:}
   gemini:
     api-key: ${GEMINI_API_KEY:}
