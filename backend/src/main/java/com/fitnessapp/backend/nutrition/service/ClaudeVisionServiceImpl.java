@@ -7,6 +7,7 @@ import java.util.Base64;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,6 +29,7 @@ import okhttp3.Response;
  */
 @Slf4j
 @Service
+@ConditionalOnExpression("!'${app.anthropic.api-key:}'.isEmpty()")
 public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecognitionProvider {
 
   private static final String PROVIDER_NAME = "claude";

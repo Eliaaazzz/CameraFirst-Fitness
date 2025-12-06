@@ -30,6 +30,9 @@ app:
   anthropic:
     # Anthropic Claude API for food recognition
     api-key: ${ANTHROPIC_API_KEY:}
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:gemini-2.0-flash}
   meal-plan:
     cache-ttl-hours: 24
   recipe-generation:

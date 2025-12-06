@@ -1,5 +1,6 @@
 package com.fitnessapp.backend.service.cache;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -47,5 +48,7 @@ public class NutritionAdviceStore extends GenericCacheStore<NutritionAdviceStore
         NutritionCacheKeys.adviceKey(userId, weekStart));
   }
 
-  public record AdviceEntry(String signature, String advice) {}
+  public record AdviceEntry(String signature, String advice) implements Serializable {
+    private static final long serialVersionUID = 1L;
+  }
 }

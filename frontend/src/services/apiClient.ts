@@ -7,13 +7,26 @@ import { API_BASE_URL, API_KEY } from '@env';
 import { Platform } from 'react-native';
 
 // Use the environment variable for all platforms
-const getBaseURL = () => {
-  // Always use the environment variable
-  return API_BASE_URL || 'http://localhost:8080';
+const normalizeBaseUrl = (url: string) => {
+  if (!url) return 'http://localhost:8080';
+  // strip trailing slashes
+  let normalized = url.replace(/\/+$/, '');
+  // drop trailing /api/v1 to avoid double-prefix when endpoints already include it
+  normalized = normalized.replace(/\/api\/v1$/, '');
+  return normalized || 'http://localhost:8080';
 };
 
-const BASE_URL = getBaseURL();
+const BASE_URL = normalizeBaseUrl(API_BASE_URL);
 const TIMEOUT = 30000; // 30 seconds
+
+// Log configuration on startup
+if (typeof console !== 'undefined') {
+  console.log('[APIClient Config]', {
+    API_BASE_URL,
+    BASE_URL,
+    normalized: `Strips trailing slashes and /api/v1 suffix`,
+  });
+}
 
 interface RequestConfig {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -43,6 +56,14 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
   try {
     const url = `${BASE_URL}${endpoint}`;
 
+    // Log for debugging
+    console.log('[APIClient]', {
+      BASE_URL,
+      endpoint,
+      finalURL: url,
+      method: config.method,
+    });
+
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'X-API-Key': API_KEY || '',
@@ -66,6 +87,14 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
     });
 
     clearTimeout(timeout);
+
+    // Log response status
+    console.log('[APIClient Response]', {
+      method: config.method,
+      url,
+      status: response.status,
+      ok: response.ok,
+    });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: response.statusText }));
@@ -145,13 +174,13 @@ export async function uploadImage<T>(
     // On web, convert data URI to Blob
     const response = await fetch(imageUri);
     const blob = await response.blob();
-    formData.append('file', blob, 'image.jpg');
+    formData.append('image', blob, 'image.jpg');
   } else {
     // On mobile, use native file upload
     const filename = imageUri.split('/').pop() || 'image.jpg';
     const type = 'image/jpeg';
 
-    formData.append('file', {
+    formData.append('image', {
       uri: imageUri,
       name: filename,
       type,

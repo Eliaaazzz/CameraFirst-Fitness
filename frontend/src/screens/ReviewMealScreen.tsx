@@ -24,7 +24,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<1 | 2 | 3>(1);
   const [items, setItems] = useState<DetectedFood[]>([]);
-  const [total, setTotal] = useState<FoodRecognitionResponse['total'] | null>(null);
+  const [total, setTotal] = useState<FoodRecognitionResponse['totalNutrition'] | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -34,8 +34,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
     const analyze = async () => {
       try {
         const response = await nutritionApi.analyzeFoodImage(imageUri);
-        setItems(response.detectedFoods);
-        setTotal(response.total);
+        setItems(response.items);
+        setTotal(response.totalNutrition);
       } catch (error) {
         console.error('Food analysis failed:', error);
         Alert.alert('Error', 'Failed to analyze the image. Please try again.');
@@ -103,8 +103,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
     try {
       await nutritionApi.saveMealFromImage({
         imageUri,
-        detectedFoods: items,
-        total,
+        items: items,
+        totalNutrition: total,
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

@@ -125,28 +125,35 @@ public class NutritionController {
 
   @GetMapping("/summary/daily")
   public ResponseEntity<NutritionSummaryResponse> dailySummary(
-      @RequestParam @NotNull UUID userId,
+      @RequestParam @NotNull String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
     LocalDate targetDate = date != null ? date : LocalDate.now();
-    NutritionSummary summary = trackingService.dailySummary(userId, targetDate);
+    NutritionSummary summary = trackingService.dailySummary(parseUserId(userId), targetDate);
     return ResponseEntity.ok(toSummaryResponse(summary));
   }
 
   @GetMapping("/summary/weekly")
   public ResponseEntity<NutritionSummaryResponse> weeklySummary(
-      @RequestParam @NotNull UUID userId,
+      @RequestParam @NotNull String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
     LocalDate start = weekStart != null ? weekStart : LocalDate.now().with(java.time.DayOfWeek.MONDAY);
-    NutritionSummary summary = trackingService.weeklySummary(userId, start);
+    NutritionSummary summary = trackingService.weeklySummary(parseUserId(userId), start);
     return ResponseEntity.ok(toSummaryResponse(summary));
   }
 
   @GetMapping("/insights/weekly")
   public ResponseEntity<NutritionInsightResponse> weeklyInsight(
-      @RequestParam @NotNull UUID userId,
+      @RequestParam @NotNull String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
-    NutritionInsight insight = insightService.generateWeeklyInsight(userId, weekStart);
+    NutritionInsight insight = insightService.generateWeeklyInsight(parseUserId(userId), weekStart);
     return ResponseEntity.ok(toInsightResponse(insight));
+  }
+
+  private UUID parseUserId(String raw) {
+    if (raw == null || raw.isBlank() || "default-user".equalsIgnoreCase(raw)) {
+      return UUID.fromString("00000000-0000-0000-0000-000000000001");
+    }
+    return UUID.fromString(raw.replace("\"", "").trim());
   }
 
   private MealLogResponse toResponse(MealLog log) {

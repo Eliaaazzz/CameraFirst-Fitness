@@ -29,21 +29,20 @@ export interface DetectedFood {
 }
 
 export interface FoodRecognitionResponse {
-  success: boolean;
-  detectedFoods: DetectedFood[];
-  total: {
+  items: DetectedFood[];
+  totalNutrition: {
     calories: number;
     protein: number;
     carbs: number;
     fat: number;
   };
-  imageUrl?: string;
+  suggestedMealType?: string;
 }
 
 export interface SaveMealPayload {
   imageUri: string;
-  detectedFoods: DetectedFood[];
-  total: {
+  items: DetectedFood[];
+  totalNutrition: {
     calories: number;
     protein: number;
     carbs: number;
@@ -53,9 +52,14 @@ export interface SaveMealPayload {
   notes?: string;
 }
 
+// Default user UUID used across the app
+const DEFAULT_USER_ID = '00000000-0000-0000-0000-000000000001';
+
 const logMeal = async (userId: string, payload: LogMealPayload): Promise<MealLogResponse> => {
+  // Convert 'default-user' to the actual UUID the backend expects
+  const actualUserId = userId === 'default-user' ? DEFAULT_USER_ID : userId;
   return await api.post<MealLogResponse>('/api/v1/nutrition/meals', {
-    userId,
+    userId: actualUserId,
     consumedAt: new Date().toISOString(),
     ...payload,
   });
@@ -82,7 +86,7 @@ const getWeeklyInsight = async (userId: string, weekStart?: string): Promise<Nut
 // Analyze food image with Claude AI
 const analyzeFoodImage = async (imageUri: string): Promise<FoodRecognitionResponse> => {
   return await api.uploadImage<FoodRecognitionResponse>(
-    '/nutrition/analyze',
+    '/api/v1/nutrition/analyze',
     imageUri
   );
 };
@@ -93,12 +97,12 @@ const saveMealFromImage = async (payload: SaveMealPayload): Promise<MealLogRespo
   const mealPayload: LogMealPayload = {
     mealType: payload.mealType || 'other',
     recipeName: 'AI Detected Meal',
-    calories: payload.total.calories,
-    protein: payload.total.protein,
-    carbs: payload.total.carbs,
-    fat: payload.total.fat,
+    calories: payload.totalNutrition.calories,
+    protein: payload.totalNutrition.protein,
+    carbs: payload.totalNutrition.carbs,
+    fat: payload.totalNutrition.fat,
     consumedAt: new Date().toISOString(),
-    notes: payload.notes || `Detected: ${payload.detectedFoods.map(f => f.name).join(', ')}`,
+    notes: payload.notes || `Detected: ${payload.items.map(f => f.name).join(', ')}`,
   };
 
   // Assuming we have a default userId - you may need to get this from auth context
