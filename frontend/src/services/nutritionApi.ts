@@ -15,7 +15,30 @@ export interface LogMealPayload {
   notes?: string | null;
 }
 
-// Food recognition types
+// Food recognition types - matching backend DTOs
+export interface NutritionInfo {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export interface RecognizedFood {
+  food_key: string;
+  display_name: string;
+  estimated_grams: number;
+  cooking_method: string;
+  confidence?: number;
+  nutrition?: NutritionInfo;
+}
+
+export interface FoodRecognitionResponse {
+  items: RecognizedFood[];
+  totalNutrition: NutritionInfo;
+  suggestedMealType?: string;
+}
+
+// Legacy interface for compatibility with UI components
 export interface DetectedFood {
   id: string;
   name: string;
@@ -26,18 +49,6 @@ export interface DetectedFood {
   carbs: number;
   fat: number;
   confidence?: number;
-}
-
-export interface FoodRecognitionResponse {
-  success: boolean;
-  detectedFoods: DetectedFood[];
-  total: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
-  imageUrl?: string;
 }
 
 export interface SaveMealPayload {
@@ -82,9 +93,24 @@ const getWeeklyInsight = async (userId: string, weekStart?: string): Promise<Nut
 // Analyze food image with Claude AI
 const analyzeFoodImage = async (imageUri: string): Promise<FoodRecognitionResponse> => {
   return await api.uploadImage<FoodRecognitionResponse>(
-    '/nutrition/analyze',
+    '/api/v1/nutrition/analyze',
     imageUri
   );
+};
+
+// Convert backend RecognizedFood to DetectedFood for UI compatibility
+const convertToDetectedFood = (item: RecognizedFood): DetectedFood => {
+  return {
+    id: item.food_key,
+    name: item.display_name,
+    amount: item.estimated_grams,
+    unit: 'g',
+    calories: item.nutrition?.calories || 0,
+    protein: item.nutrition?.protein || 0,
+    carbs: item.nutrition?.carbs || 0,
+    fat: item.nutrition?.fat || 0,
+    confidence: item.confidence,
+  };
 };
 
 // Save analyzed meal to today's log
@@ -112,4 +138,5 @@ export default {
   getWeeklyInsight,
   analyzeFoodImage,
   saveMealFromImage,
+  convertToDetectedFood,
 };

@@ -30,8 +30,22 @@ Your fitness app needs the following API keys to function properly:
 
 ---
 
-### 3. OpenAI API Key (Optional)
-**Purpose:** AI-powered meal plan generation, recipe suggestions
+### 3. Anthropic API Key (Optional, but required for food photo analysis)
+**Purpose:** AI-powered food recognition from photos using Claude Vision
+
+**How to get:**
+1. Go to [Anthropic Console](https://console.anthropic.com/)
+2. Create an account
+3. Generate an API key
+
+**Cost:** Pay-as-you-go (approximately $0.01-0.05 per image analysis)
+
+**Note:** Without this key, you won't be able to use the food photo analysis feature. Other features will work fine.
+
+---
+
+### 4. OpenAI API Key (Optional)
+**Purpose:** AI-powered meal plan generation, recipe suggestions, nutrition insights
 
 **How to get:**
 1. Go to [OpenAI Platform](https://platform.openai.com/api-keys)
@@ -57,7 +71,10 @@ Your fitness app needs the following API keys to function properly:
    YOUTUBE_API_KEY=your_youtube_key_here
    SPOONACULAR_API_KEY=your_spoonacular_key_here
 
-   # Optional:
+   # Optional - for food photo analysis:
+   ANTHROPIC_API_KEY=your_anthropic_key_here
+
+   # Optional - for AI meal plans and insights:
    OPENAI_ENABLED=true
    OPENAI_API_KEY=your_openai_key_here
    ```
@@ -85,6 +102,7 @@ Add these lines:
 ```env
 YOUTUBE_API_KEY=your_youtube_key_here
 SPOONACULAR_API_KEY=your_spoonacular_key_here
+ANTHROPIC_API_KEY=your_anthropic_key_here
 OPENAI_ENABLED=true
 OPENAI_API_KEY=your_openai_key_here
 ```
@@ -115,6 +133,7 @@ sudo docker-compose restart backend
 2. Add these secrets:
    - `YOUTUBE_API_KEY`
    - `SPOONACULAR_API_KEY`
+   - `ANTHROPIC_API_KEY` (optional, for food photo analysis)
    - `OPENAI_API_KEY` (optional)
    - `OPENAI_ENABLED` (optional)
 
@@ -156,10 +175,11 @@ curl -X POST http://localhost:8080/api/v1/meal-plan/generate \
 - Verify .env file exists and has correct keys
 - Restart backend after adding keys
 
-### "OpenAI features disabled"
-- This is normal if OPENAI_ENABLED=false
-- App works fine without OpenAI
-- AI features (meal plans, smart suggestions) won't work
+### "OpenAI features disabled" or "Food recognition unavailable"
+- This is normal if OPENAI_ENABLED=false or ANTHROPIC_API_KEY is not set
+- App works fine without these AI features
+- Food photo analysis requires ANTHROPIC_API_KEY
+- AI meal plans and insights require OPENAI_API_KEY
 
 ### YouTube/Spoonacular quota exceeded
 - YouTube: 10,000 units/day (resets at midnight Pacific)
