@@ -44,6 +44,21 @@ Your fitness app needs the following API keys to function properly:
 
 ---
 
+### 4. Google Gemini API Key (Optional - Recommended for Food Recognition)
+**Purpose:** AI-powered food recognition from photos
+
+**How to get:**
+1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Sign in with your Google account
+3. Click "Create API Key"
+4. Copy the API key
+
+**Cost:** Free tier (60 requests per minute for Gemini 2.0 Flash)
+
+**Note:** This is the primary provider for food recognition. The app will work without it but food photo analysis will be disabled.
+
+---
+
 ## Local Development Setup
 
 1. Copy `.env.example` to `.env` in the backend folder:
@@ -57,7 +72,10 @@ Your fitness app needs the following API keys to function properly:
    YOUTUBE_API_KEY=your_youtube_key_here
    SPOONACULAR_API_KEY=your_spoonacular_key_here
 
-   # Optional:
+   # Optional - for food recognition:
+   GEMINI_API_KEY=your_gemini_key_here
+
+   # Optional - for AI meal plans:
    OPENAI_ENABLED=true
    OPENAI_API_KEY=your_openai_key_here
    ```
@@ -85,6 +103,7 @@ Add these lines:
 ```env
 YOUTUBE_API_KEY=your_youtube_key_here
 SPOONACULAR_API_KEY=your_spoonacular_key_here
+GEMINI_API_KEY=your_gemini_key_here
 OPENAI_ENABLED=true
 OPENAI_API_KEY=your_openai_key_here
 ```
@@ -115,6 +134,7 @@ sudo docker-compose restart backend
 2. Add these secrets:
    - `YOUTUBE_API_KEY`
    - `SPOONACULAR_API_KEY`
+   - `GEMINI_API_KEY` (optional)
    - `OPENAI_API_KEY` (optional)
    - `OPENAI_ENABLED` (optional)
 
@@ -131,6 +151,7 @@ After adding API keys, check the backend logs:
 sudo docker logs fitness-app-backend -f
 
 # Look for:
+# - "Gemini API key configured" or "⚠️  Gemini API key not configured"
 # - "OpenAI enabled: true" (if configured)
 # - "YouTube API key configured: true"
 # - "Spoonacular API key configured: true"
