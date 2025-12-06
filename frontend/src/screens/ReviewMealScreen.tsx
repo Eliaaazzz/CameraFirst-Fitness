@@ -1,23 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  ActivityIndicator,
-  Pressable,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { DetectedItemRow } from '@/components/nutrition/DetectedItemRow';
+import { NutritionSummaryCard } from '@/components/nutrition/NutritionSummaryCard';
 import nutritionApi, {
   DetectedFood,
   FoodRecognitionResponse,
 } from '@/services/nutritionApi';
-import { DetectedItemRow } from '@/components/nutrition/DetectedItemRow';
-import { NutritionSummaryCard } from '@/components/nutrition/NutritionSummaryCard';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 export function ReviewMealScreen({ route, navigation }: any) {
   const { imageUri } = route.params;

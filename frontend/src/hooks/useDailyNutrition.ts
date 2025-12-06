@@ -1,5 +1,5 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import nutritionApi from '@/services/nutritionApi';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export interface DailyNutritionData {
   calories: number;

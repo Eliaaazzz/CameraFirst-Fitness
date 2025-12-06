@@ -1,5 +1,5 @@
+import { MealLogResponse, NutritionInsightResponse, NutritionSummaryResponse } from '@/types/mealPlan';
 import { api } from './apiClient';
-import { MealLogResponse, NutritionSummaryResponse, NutritionInsightResponse } from '@/types/mealPlan';
 
 export interface LogMealPayload {
   mealPlanId?: number | null;
