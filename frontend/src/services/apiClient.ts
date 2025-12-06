@@ -145,13 +145,13 @@ export async function uploadImage<T>(
     // On web, convert data URI to Blob
     const response = await fetch(imageUri);
     const blob = await response.blob();
-    formData.append('file', blob, 'image.jpg');
+    formData.append('image', blob, 'image.jpg');
   } else {
     // On mobile, use native file upload
     const filename = imageUri.split('/').pop() || 'image.jpg';
     const type = 'image/jpeg';
 
-    formData.append('file', {
+    formData.append('image', {
       uri: imageUri,
       name: filename,
       type,
