@@ -15,7 +15,7 @@ export interface LogMealPayload {
   notes?: string | null;
 }
 
-// Food recognition types
+// Food recognition types (Frontend display format)
 export interface DetectedFood {
   id: string;
   name: string;
@@ -38,6 +38,29 @@ export interface FoodRecognitionResponse {
     fat: number;
   };
   imageUrl?: string;
+}
+
+// Backend API types
+interface BackendNutritionInfo {
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+}
+
+interface BackendRecognizedFood {
+  foodKey: string;
+  displayName: string;
+  estimatedGrams: number;
+  cookingMethod?: string;
+  confidence: number;
+  nutrition?: BackendNutritionInfo;
+}
+
+interface BackendFoodRecognitionResponse {
+  items: BackendRecognizedFood[];
+  totalNutrition: BackendNutritionInfo;
+  suggestedMealType?: string;
 }
 
 export interface SaveMealPayload {
@@ -79,12 +102,36 @@ const getWeeklyInsight = async (userId: string, weekStart?: string): Promise<Nut
   return await api.get<NutritionInsightResponse>(`/api/v1/nutrition/insights/weekly?${queryParams}`);
 };
 
-// Analyze food image with Claude AI
+// Analyze food image with Gemini AI
 const analyzeFoodImage = async (imageUri: string): Promise<FoodRecognitionResponse> => {
-  return await api.uploadImage<FoodRecognitionResponse>(
-    '/nutrition/analyze',
+  const backendResponse = await api.uploadImage<BackendFoodRecognitionResponse>(
+    '/api/v1/nutrition/analyze',
     imageUri
   );
+
+  // Transform backend response to frontend format
+  const detectedFoods: DetectedFood[] = backendResponse.items.map((item) => ({
+    id: item.foodKey,
+    name: item.displayName,
+    amount: item.estimatedGrams,
+    unit: 'g',
+    calories: Math.round(item.nutrition?.calories || 0),
+    protein: Math.round(item.nutrition?.protein || 0),
+    carbs: Math.round(item.nutrition?.carbs || 0),
+    fat: Math.round(item.nutrition?.fat || 0),
+    confidence: item.confidence,
+  }));
+
+  return {
+    success: true,
+    detectedFoods,
+    total: {
+      calories: Math.round(backendResponse.totalNutrition.calories),
+      protein: Math.round(backendResponse.totalNutrition.protein),
+      carbs: Math.round(backendResponse.totalNutrition.carbs),
+      fat: Math.round(backendResponse.totalNutrition.fat),
+    },
+  };
 };
 
 // Save analyzed meal to today's log
