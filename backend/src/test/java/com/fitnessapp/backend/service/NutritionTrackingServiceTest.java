@@ -10,6 +10,7 @@ import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
 import com.fitnessapp.backend.user.repository.UserRepository;
+import com.fitnessapp.backend.nutrition.service.NutritionTrackingService;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Optional;

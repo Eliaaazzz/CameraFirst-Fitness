@@ -12,6 +12,7 @@ import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository.MealLogLeaderboardRow;
 import com.fitnessapp.backend.user.repository.UserRepository;
+import com.fitnessapp.backend.workout.service.LeaderboardService;
 import com.fitnessapp.backend.workout.service.LeaderboardService.LeaderboardEntry;
 import com.fitnessapp.backend.workout.service.LeaderboardService.LeaderboardResult;
 import com.fitnessapp.backend.service.cache.LeaderboardCacheStore;

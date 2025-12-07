@@ -1,5 +1,6 @@
 package com.fitnessapp.backend.service;
 
+import com.fitnessapp.backend.recipe.service.RecipeScalingService;
 import com.fitnessapp.backend.recipe.service.RecipeScalingService.ScaledRecipe;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

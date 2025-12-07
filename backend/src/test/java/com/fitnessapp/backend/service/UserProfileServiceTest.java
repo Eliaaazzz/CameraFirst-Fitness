@@ -10,6 +10,7 @@ import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
 import com.fitnessapp.backend.user.repository.UserRepository;
+import com.fitnessapp.backend.user.service.UserProfileService;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.Set;
 import java.util.UUID;

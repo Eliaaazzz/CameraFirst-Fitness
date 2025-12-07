@@ -22,6 +22,7 @@ import com.fitnessapp.backend.recipe.service.SmartRecipeService.NutritionTarget;
 import com.fitnessapp.backend.recipe.repository.RecipeRepository;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
 import com.fitnessapp.backend.workout.repository.WorkoutSessionRepository;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService;
 import com.fitnessapp.backend.service.quota.QuotaService;
 import java.time.Duration;
 import java.time.LocalDateTime;

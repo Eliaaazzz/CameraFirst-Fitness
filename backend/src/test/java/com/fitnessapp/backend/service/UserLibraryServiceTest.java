@@ -18,6 +18,7 @@ import com.fitnessapp.backend.user.repository.UserRepository;
 import com.fitnessapp.backend.recipe.repository.UserSavedRecipeRepository;
 import com.fitnessapp.backend.workout.repository.UserSavedWorkoutRepository;
 import com.fitnessapp.backend.workout.repository.WorkoutVideoRepository;
+import com.fitnessapp.backend.workout.service.UserLibraryService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.List;

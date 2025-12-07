@@ -13,6 +13,7 @@ import com.fitnessapp.backend.recipe.entity.RecipeIngredient;
 import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.recipe.repository.RecipeRepository;
+import com.fitnessapp.backend.recipe.service.RecipeSwapService;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
 import java.time.OffsetDateTime;
 import java.util.List;

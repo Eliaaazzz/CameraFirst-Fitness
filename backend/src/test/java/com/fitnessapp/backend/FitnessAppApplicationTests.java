@@ -52,8 +52,6 @@ class FitnessAppApplicationTests {
     @MockBean private com.fitnessapp.backend.workout.service.LeaderboardService leaderboardService;
     @MockBean private com.fitnessapp.backend.workout.repository.UserSavedWorkoutRepository userSavedWorkoutRepository;
     @MockBean private com.fitnessapp.backend.recipe.repository.UserSavedRecipeRepository userSavedRecipeRepository;
-    @MockBean private com.fitnessapp.backend.repository.ShoppingListRepository shoppingListRepository;
-    @MockBean private com.fitnessapp.backend.repository.ShoppingListItemRepository shoppingListItemRepository;
     @MockBean private com.fitnessapp.backend.service.quota.QuotaService quotaService;
 
 	@Test
