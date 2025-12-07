@@ -1,8 +1,8 @@
 package com.fitnessapp.backend.pose;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.domain.PoseAnalysisResult;
-import com.fitnessapp.backend.domain.WorkoutSession;
+import com.fitnessapp.backend.workout.entity.PoseAnalysisResult;
+import com.fitnessapp.backend.workout.entity.WorkoutSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

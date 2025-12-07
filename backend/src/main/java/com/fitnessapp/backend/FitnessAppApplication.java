@@ -9,7 +9,14 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @SpringBootApplication
 @ConfigurationPropertiesScan
 @EnableCaching
-@EnableJpaRepositories(basePackages = "com.fitnessapp.backend.repository")
+@EnableJpaRepositories(basePackages = {
+    "com.fitnessapp.backend.user.repository",
+    "com.fitnessapp.backend.recipe.repository",
+    "com.fitnessapp.backend.nutrition.repository",
+    "com.fitnessapp.backend.workout.repository",
+    "com.fitnessapp.backend.usda.repository",
+    "com.fitnessapp.backend.repository"
+})
 public class FitnessAppApplication {
 
     public static void main(String[] args) {

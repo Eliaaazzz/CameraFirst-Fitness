@@ -3,11 +3,11 @@ package com.fitnessapp.backend.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.domain.Ingredient;
-import com.fitnessapp.backend.domain.Recipe;
-import com.fitnessapp.backend.domain.RecipeIngredient;
-import com.fitnessapp.backend.domain.RecipeIngredientId;
-import com.fitnessapp.backend.domain.WorkoutVideo;
+import com.fitnessapp.backend.recipe.entity.Ingredient;
+import com.fitnessapp.backend.recipe.entity.Recipe;
+import com.fitnessapp.backend.recipe.entity.RecipeIngredient;
+import com.fitnessapp.backend.recipe.entity.RecipeIngredientId;
+import com.fitnessapp.backend.workout.entity.WorkoutVideo;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;

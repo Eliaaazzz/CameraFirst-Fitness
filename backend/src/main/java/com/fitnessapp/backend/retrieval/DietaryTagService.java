@@ -1,6 +1,6 @@
 package com.fitnessapp.backend.retrieval;
 
-import com.fitnessapp.backend.domain.Recipe;
+import com.fitnessapp.backend.recipe.entity.Recipe;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

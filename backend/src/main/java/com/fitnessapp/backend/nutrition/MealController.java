@@ -2,12 +2,12 @@ package com.fitnessapp.backend.nutrition;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.domain.MealLog;
+import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.dto.CreateMealRequest;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
-import com.fitnessapp.backend.repository.MealLogRepository;
-import com.fitnessapp.backend.repository.UserProfileRepository;
-import com.fitnessapp.backend.service.NutritionTrackingService;
+import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
+import com.fitnessapp.backend.user.repository.UserProfileRepository;
+import com.fitnessapp.backend.nutrition.service.NutritionTrackingService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

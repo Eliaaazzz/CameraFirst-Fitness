@@ -7,8 +7,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fitnessapp.backend.domain.Recipe;
-import com.fitnessapp.backend.repository.RecipeRepository;
+import com.fitnessapp.backend.recipe.entity.Recipe;
+import com.fitnessapp.backend.recipe.repository.RecipeRepository;
 import com.fitnessapp.backend.retrieval.dto.NutritionFilter;
 import com.fitnessapp.backend.retrieval.dto.RecipeCard;
 import com.fitnessapp.backend.retrieval.dto.RecipeSearchRequest;

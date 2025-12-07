@@ -2,12 +2,12 @@ package com.fitnessapp.backend.importer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.domain.Ingredient;
-import com.fitnessapp.backend.domain.Recipe;
-import com.fitnessapp.backend.domain.RecipeIngredient;
-import com.fitnessapp.backend.domain.RecipeIngredientId;
-import com.fitnessapp.backend.repository.IngredientRepository;
-import com.fitnessapp.backend.repository.RecipeRepository;
+import com.fitnessapp.backend.recipe.entity.Ingredient;
+import com.fitnessapp.backend.recipe.entity.Recipe;
+import com.fitnessapp.backend.recipe.entity.RecipeIngredient;
+import com.fitnessapp.backend.recipe.entity.RecipeIngredientId;
+import com.fitnessapp.backend.recipe.repository.IngredientRepository;
+import com.fitnessapp.backend.recipe.repository.RecipeRepository;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;

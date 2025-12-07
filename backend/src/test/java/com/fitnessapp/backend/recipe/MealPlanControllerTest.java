@@ -10,16 +10,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.domain.MealPlan;
-import com.fitnessapp.backend.recipe.MealPlanController.GenerateMealPlanRequest;
-import com.fitnessapp.backend.recipe.MealPlanController.SwapRecipeRequest;
-import com.fitnessapp.backend.recipe.SmartRecipeService.MealPlanDay;
-import com.fitnessapp.backend.recipe.SmartRecipeService.MealEntry;
-import com.fitnessapp.backend.recipe.SmartRecipeService.MealPlanResponse;
-import com.fitnessapp.backend.recipe.SmartRecipeService.NutritionTarget;
-import com.fitnessapp.backend.service.RecipeSwapService;
-import com.fitnessapp.backend.service.RecipeSwapService.AlternativeRecipe;
-import com.fitnessapp.backend.service.RecipeSwapService.Nutrition;
+import com.fitnessapp.backend.recipe.entity.MealPlan;
+import com.fitnessapp.backend.recipe.controller.MealPlanController.GenerateMealPlanRequest;
+import com.fitnessapp.backend.recipe.controller.MealPlanController.SwapRecipeRequest;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService.MealPlanDay;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService.MealEntry;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService.MealPlanResponse;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService.NutritionTarget;
+import com.fitnessapp.backend.recipe.service.RecipeSwapService;
+import com.fitnessapp.backend.recipe.service.RecipeSwapService.AlternativeRecipe;
+import com.fitnessapp.backend.recipe.service.RecipeSwapService.Nutrition;
 import com.fitnessapp.backend.service.ShoppingListService;
 import com.fitnessapp.backend.service.ShoppingListService.ShoppingListDTO;
 import com.fitnessapp.backend.service.ShoppingListService.ShoppingListDTO.Category;

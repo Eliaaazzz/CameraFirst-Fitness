@@ -6,9 +6,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.service.LeaderboardService;
-import com.fitnessapp.backend.service.LeaderboardService.LeaderboardEntry;
-import com.fitnessapp.backend.service.LeaderboardService.LeaderboardResult;
+import com.fitnessapp.backend.workout.service.LeaderboardService;
+import com.fitnessapp.backend.workout.service.LeaderboardService.LeaderboardEntry;
+import com.fitnessapp.backend.workout.service.LeaderboardService.LeaderboardResult;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
