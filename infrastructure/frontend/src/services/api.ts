@@ -131,7 +131,7 @@ export const getSavedWorkouts = async (
   userId?: string,
   page = 0,
   size = 20,
-  sort: SortDirection = 'desc',
+  sort: string | SortDirection = 'desc',
 ): Promise<Paginated<SavedWorkout>> => {
   const params: Record<string, string | number> = { page, size, sort };
   if (userId) params.userId = userId;
@@ -145,7 +145,7 @@ export const getSavedRecipes = async (
   userId?: string,
   page = 0,
   size = 20,
-  sort: SortDirection = 'desc',
+  sort: string | SortDirection = 'desc',
 ): Promise<Paginated<SavedRecipe>> => {
   const params: Record<string, string | number> = { page, size, sort };
   if (userId) params.userId = userId;

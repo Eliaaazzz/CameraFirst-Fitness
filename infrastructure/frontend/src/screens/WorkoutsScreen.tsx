@@ -151,7 +151,7 @@ export const WorkoutsScreen = () => {
                     { value: 'savedAt', label: 'Recent' },
                     { value: 'duration', label: 'Duration' },
                   ]}
-                  density="comfortable"
+                  density="small"
                   style={styles.segmented}
                 />
                 <SegmentedButtons
@@ -161,7 +161,7 @@ export const WorkoutsScreen = () => {
                     { value: 'desc', label: 'Newest' },
                     { value: 'asc', label: 'Oldest' },
                   ]}
-                  density="comfortable"
+                  density="small"
                   style={styles.segmented}
                 />
               </View>

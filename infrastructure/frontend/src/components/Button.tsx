@@ -12,7 +12,7 @@ const sizeStyles: Record<ButtonSize, { paddingVertical: number; paddingHorizonta
   large: { paddingVertical: spacing.md, paddingHorizontal: spacing['2xl'], textSize: 18 },
 };
 
-export interface ButtonProps extends React.ComponentProps<typeof PaperButton> {
+export interface ButtonProps extends Omit<React.ComponentProps<typeof PaperButton>, 'children'> {
   title: string;
   variant?: ButtonVariant;
   size?: ButtonSize;

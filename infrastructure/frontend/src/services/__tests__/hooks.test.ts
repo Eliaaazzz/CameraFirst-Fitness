@@ -5,7 +5,7 @@ describe('hooks cache helpers', () => {
     id: 'w-1',
     title: 'Morning Flow',
     durationMinutes: 20,
-    level: 'beginner',
+    level: 'beginner' as const,
     equipment: [],
     bodyPart: [],
     savedAt: new Date().toISOString(),
