@@ -1,15 +1,15 @@
-import React from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { useColorScheme, Platform } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { StatusBar } from 'expo-status-bar';
+import React from 'react';
+import { useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { MD3DarkTheme as PaperDarkTheme, MD3LightTheme as PaperLightTheme, Provider as PaperProvider } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AppNavigator } from '@/navigation/AppNavigator';
-import { BRAND_COLORS } from '@/utils';
-import { queryClient } from '@/services';
 import { SnackbarProvider } from '@/components';
+import { AppNavigator } from '@/navigation/AppNavigator';
+import { queryClient } from '@/services';
+import { BRAND_COLORS } from '@/utils';
 
 const App = () => {
   const colorScheme = useColorScheme();
@@ -19,12 +19,12 @@ const App = () => {
   const baseTheme = colorScheme === 'dark' ? PaperDarkTheme : PaperLightTheme;
 
   // Calculate direction for cross-platform compatibility
-  const themeDirection = Platform.OS === 'web' ? 'ltr' : baseTheme.direction || 'ltr';
+  const themeDirection = 'ltr';
 
   const paperTheme = {
     ...baseTheme,
     direction: themeDirection,
-  };
+  } as any;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: BRAND_COLORS.background }}>

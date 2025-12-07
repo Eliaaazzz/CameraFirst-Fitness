@@ -43,7 +43,6 @@ class FitnessAppApplicationTests {
     @MockBean private RecipeImportService recipeImportService;
     @MockBean private ApiKeyService apiKeyService;
     @MockBean private com.fitnessapp.backend.user.service.UserProfileService userProfileService;
-    @MockBean private com.fitnessapp.backend.openai.ChatCompletionClient chatCompletionClient;
     @MockBean private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
     @MockBean private com.fitnessapp.backend.recipe.service.MealPlanHistoryService mealPlanHistoryService;
     @MockBean private com.fitnessapp.backend.nutrition.service.NutritionTrackingService nutritionTrackingService;

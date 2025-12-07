@@ -3,6 +3,10 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "jsx": "react-native",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "types": ["jest", "react-native"],
     "paths": {
       "@/*": [
         "./src/*"
@@ -10,10 +14,16 @@
     }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx"
+    "App.tsx",
+    "app.config.ts",
+    "index.ts",
+    "index.tsx",
+    "src/**/*"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "dist",
+    ".expo",
+    "coverage"
   ]
 }

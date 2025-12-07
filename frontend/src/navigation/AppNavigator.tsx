@@ -5,8 +5,6 @@ import React from 'react';
 import { Platform, useColorScheme, View } from 'react-native';
 
 import { ErrorBoundary } from '@/components';
-import { CommunityScreen } from '@/screens/CommunityScreen';
-import { DesignSystemScreen } from '@/screens/DesignSystemScreen';
 import { GoalsScreen } from '@/screens/GoalsScreen';
 import { MealPlanScreen } from '@/screens/MealPlanScreen';
 import { NutritionScreen } from '@/screens/NutritionScreen';
@@ -35,9 +33,7 @@ const SafeRecipesScreen = withErrorBoundary(RecipesScreen, 'Recipes');
 const SafeRecipeDetailScreen = withErrorBoundary(RecipeDetailScreen, 'RecipeDetail');
 const SafeResultsScreen = withErrorBoundary(ResultsScreen, 'Results');
 const SafeMealPlanScreen = withErrorBoundary(MealPlanScreen, 'MealPlan');
-const SafeCommunityScreen = withErrorBoundary(CommunityScreen, 'Community');
 const SafeGoalsScreen = withErrorBoundary(GoalsScreen, 'Goals');
-const SafeDesignSystemScreen = withErrorBoundary(DesignSystemScreen, 'DesignSystem');
 const SafeNutritionScreen = withErrorBoundary(NutritionScreen, 'Nutrition');
 const SafeReviewMealScreen = withErrorBoundary(ReviewMealScreen, 'ReviewMeal');
 
@@ -203,15 +199,11 @@ export const AppNavigator = () => {
         })}
       >
         <Tab.Screen name="Search" component={SafeSearchScreen} options={{ title: 'Search' }} />
-        <Tab.Screen name="Community" component={SafeCommunityScreen} options={{ title: 'Community' }} />
         <Tab.Screen name="Workouts" component={SafeWorkoutsScreen} options={{ title: 'Workouts' }} />
         <Tab.Screen name="Nutrition" component={SafeNutritionScreen} options={{ title: 'Nutrition' }} />
         <Tab.Screen name="MealPlan" component={SafeMealPlanScreen} options={{ title: 'Meal Plan' }} />
         <Tab.Screen name="Recipes" component={SafeRecipesScreen} options={{ title: 'Recipes' }} />
         <Tab.Screen name="Goals" component={SafeGoalsScreen} options={{ title: 'Goals' }} />
-        {__DEV__ && (
-          <Tab.Screen name="DesignSystem" component={SafeDesignSystemScreen} options={{ title: 'Design' }} />
-        )}
         <Tab.Screen
           name="Results"
           component={SafeResultsScreen}

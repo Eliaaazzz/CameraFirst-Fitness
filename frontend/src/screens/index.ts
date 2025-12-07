@@ -1,6 +1,4 @@
 export * from './CaptureScreen';
-export * from './CommunityScreen';
-export * from './DesignSystemScreen';
 export * from './GoalsScreen';
 export * from './MealPlanScreen';
 export * from './PermissionExplanationScreen';

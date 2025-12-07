@@ -9,18 +9,17 @@
  * - Accessibility support
  */
 
-import React, { useRef } from 'react';
-import { StyleSheet, View, Alert } from 'react-native';
-import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  interpolate,
-} from 'react-native-reanimated';
-import { IconButton } from 'react-native-paper';
+import { spacing } from '@/utils';
 import * as Haptics from 'expo-haptics';
-import { MaterialAnimations, MaterialOpacity, spacing } from '@/utils';
+import React, { useRef } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
+import { IconButton } from 'react-native-paper';
+import Animated, {
+    interpolate,
+    useAnimatedStyle,
+    useSharedValue
+} from 'react-native-reanimated';
 
 type Props = {
   children: React.ReactNode;
@@ -73,9 +72,7 @@ export const SwipeableCard = ({
     );
   };
 
-  const renderRightActions = (
-    progressAnimatedValue: Animated.SharedValue<number>
-  ) => {
+  const renderRightActions = (progressAnimatedValue: any) => {
     progress.value = progressAnimatedValue.value;
 
     const animatedStyle = useAnimatedStyle(() => {

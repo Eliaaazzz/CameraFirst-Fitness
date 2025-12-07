@@ -155,7 +155,7 @@ export const PremiumCardLight = ({
         style={[
           styles.containerLight,
           {
-            backgroundColor: isHovered ? lightColors.surfaceElevated : lightColors.surface,
+            backgroundColor: isHovered ? lightColors.surface : lightColors.surface,
             borderColor: isHovered ? lightColors.border : lightColors.borderSubtle,
           },
           style,

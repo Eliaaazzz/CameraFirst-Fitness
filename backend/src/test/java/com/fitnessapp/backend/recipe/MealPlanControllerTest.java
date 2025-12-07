@@ -1,40 +1,38 @@
 package com.fitnessapp.backend.recipe;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.recipe.entity.MealPlan;
-import com.fitnessapp.backend.recipe.controller.MealPlanController.GenerateMealPlanRequest;
-import com.fitnessapp.backend.recipe.controller.MealPlanController.SwapRecipeRequest;
-import com.fitnessapp.backend.recipe.service.SmartRecipeService.MealPlanDay;
-import com.fitnessapp.backend.recipe.service.SmartRecipeService.MealEntry;
-import com.fitnessapp.backend.recipe.service.SmartRecipeService.MealPlanResponse;
-import com.fitnessapp.backend.recipe.service.SmartRecipeService.NutritionTarget;
-import com.fitnessapp.backend.recipe.service.RecipeSwapService;
-import com.fitnessapp.backend.recipe.service.RecipeSwapService.AlternativeRecipe;
-import com.fitnessapp.backend.recipe.service.RecipeSwapService.Nutrition;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.hamcrest.Matchers;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fitnessapp.backend.recipe.controller.MealPlanController;
+import com.fitnessapp.backend.recipe.controller.MealPlanController.GenerateMealPlanRequest;
+import com.fitnessapp.backend.recipe.controller.MealPlanController.SwapRecipeRequest;
+import com.fitnessapp.backend.recipe.entity.MealPlan;
+import com.fitnessapp.backend.recipe.service.MealPlanHistoryService;
+import com.fitnessapp.backend.recipe.service.RecipeSwapService;
+import com.fitnessapp.backend.recipe.service.RecipeSwapService.AlternativeRecipe;
+import com.fitnessapp.backend.recipe.service.RecipeSwapService.Nutrition;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService.MealEntry;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService.MealPlanDay;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService.MealPlanResponse;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService.NutritionTarget;
 
 @WebMvcTest(MealPlanController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -54,8 +52,6 @@ class MealPlanControllerTest {
 
   @MockBean
   private RecipeSwapService recipeSwapService;
-
-  @MockBean
 
   private MealPlanResponse samplePlan() {
     NutritionTarget target = new NutritionTarget(2400, 180, 260, 70);

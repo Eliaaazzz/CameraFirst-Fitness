@@ -1,19 +1,21 @@
 package com.fitnessapp.backend.workout.controller;
 
-import com.fitnessapp.backend.api.common.ApiEnvelope;
-import com.fitnessapp.backend.workout.service.LeaderboardService;
-import com.fitnessapp.backend.workout.service.LeaderboardService.LeaderboardEntry;
-import com.fitnessapp.backend.workout.service.LeaderboardService.LeaderboardResult;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
+
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.fitnessapp.backend.api.common.ApiEnvelope;
+import com.fitnessapp.backend.workout.service.LeaderboardService;
+import com.fitnessapp.backend.workout.service.LeaderboardService.LeaderboardResult;
+
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/gamification")

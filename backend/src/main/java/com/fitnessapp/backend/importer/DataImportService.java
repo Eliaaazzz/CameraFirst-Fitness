@@ -52,7 +52,7 @@ public class DataImportService {
           log.warn("Skipping malformed row {}: {}", i + 1, row);
           continue;
         }
-        String url = cols.get(0);
+        // Column 0 is the full YouTube URL; channel info is in column 3
         String videoId = cols.get(1);
         String title = cols.get(2);
         String channel = cols.get(3);
@@ -75,6 +75,8 @@ public class DataImportService {
             .equipment(equipment)
             .bodyPart(bodyPart)
             .thumbnailUrl(m.getThumbnailUrl())
+            .channelId(m.getChannelId())
+            .channelTitle(m.getChannelTitle() != null ? m.getChannelTitle() : channel)
             .viewCount(m.getViewCount())
             .build();
         workoutRepo.save(w);
@@ -111,4 +113,3 @@ public class DataImportService {
         .collect(Collectors.toList());
   }
 }
-
