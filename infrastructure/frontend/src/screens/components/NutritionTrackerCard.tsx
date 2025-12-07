@@ -42,7 +42,7 @@ const NutritionTrackerCard = ({ summary, isLoading }: Props) => {
           <View key={metric.label} style={styles.metricRow}>
             <View style={styles.metricHeader}>
               <PaperText variant="labelLarge">{metric.label}</PaperText>
-              <PaperText variant="caption" style={{ opacity: 0.7 }}>
+              <PaperText variant="bodySmall" style={{ opacity: 0.7 }}>
                 {Math.round(metric.value)} / {Math.round(metric.target)}
               </PaperText>
             </View>

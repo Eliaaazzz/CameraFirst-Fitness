@@ -13,7 +13,7 @@ import {
   Text,
 } from '@/components';
 import { useSnackbar } from '@/components';
-import { formatDifficulty, formatMinutes, formatNumber, compressImage, getFileSize, openSettingsAndCheck } from '@/utils';
+import { formatDifficulty, formatMinutes, formatNumber, compressImage, getFileSize, openSettingsAndCheck, spacing } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
 import {
   DEFAULT_SAVED_PAGE_SIZE,

@@ -30,7 +30,7 @@ export const CommunityScreen = () => {
               { value: 'weekly', label: 'Weekly' },
               { value: 'daily', label: 'Daily' },
             ]}
-            density="comfortable"
+            density="small"
           />
           {lastUpdated && (
             <Text variant="caption" style={styles.timestamp}>

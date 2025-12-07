@@ -45,8 +45,8 @@ const ListSkeletonRow: React.FC<{
       <View style={styles.row}>
         {showAvatar && <View style={styles.avatar} />}
         <View style={styles.textGroup}>
-          <View style={[styles.line, { width: primaryWidth }]} />
-          <View style={[styles.line, styles.secondaryLine, { width: secondaryWidth }]} />
+          <View style={[styles.line, { width: primaryWidth as any }]} />
+          <View style={[styles.line, styles.secondaryLine, { width: secondaryWidth as any }]} />
         </View>
       </View>
       <Animated.View

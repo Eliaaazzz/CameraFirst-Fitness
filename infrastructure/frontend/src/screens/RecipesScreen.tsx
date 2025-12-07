@@ -119,7 +119,7 @@ export const RecipesScreen = () => {
 
       return (
         <SwipeableCard
-          onDelete={async () => await removeRecipe.mutateAsync(item.id)}
+          onDelete={async () => { await removeRecipe.mutateAsync(item.id); }}
           deleteTitle="Remove Recipe"
           deleteMessage={`Remove "${item.title}" from your saved recipes?`}
           deleteLabel="Remove"
@@ -182,7 +182,7 @@ export const RecipesScreen = () => {
                       { value: 'savedAt', label: 'Recent' },
                       { value: 'time', label: 'Prep Time' },
                     ]}
-                    density="comfortable"
+                    density="small"
                     style={styles.segmentedWithFilter}
                   />
                   <IconButton
@@ -199,7 +199,7 @@ export const RecipesScreen = () => {
                     { value: 'desc', label: 'Newest' },
                     { value: 'asc', label: 'Oldest' },
                   ]}
-                  density="comfortable"
+                  density="small"
                   style={styles.segmented}
                 />
               </View>

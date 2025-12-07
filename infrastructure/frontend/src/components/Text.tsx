@@ -1,14 +1,17 @@
 import React, { PropsWithChildren } from 'react';
+import { StyleProp, TextStyle } from 'react-native';
 import { Text as PaperText } from 'react-native-paper';
 import { typography } from '@/utils';
 
 type TextVariant = 'heading1' | 'heading2' | 'body' | 'caption' | 'label';
 type TextWeight = 'regular' | 'medium' | 'bold';
 
-export interface TextProps extends React.ComponentProps<typeof PaperText> {
+export interface TextProps {
   variant?: TextVariant;
   color?: string;
   weight?: TextWeight;
+  style?: StyleProp<TextStyle>;
+  numberOfLines?: number;
 }
 
 const variantStyles: Record<TextVariant, { fontSize: number; lineHeight: number }> = {
@@ -27,9 +30,9 @@ const weightToFontFamily: Record<TextWeight, FontFamilyKey> = {
   bold: 'bold',
 };
 
-export const Text = ({ variant = 'body', weight = 'regular', color, style, children, ...rest }: PropsWithChildren<TextProps>) => (
+export const Text = ({ variant = 'body', weight = 'regular', color, style, numberOfLines, children }: PropsWithChildren<TextProps>) => (
   <PaperText
-    {...rest}
+    numberOfLines={numberOfLines}
     style={[
       {
         color,

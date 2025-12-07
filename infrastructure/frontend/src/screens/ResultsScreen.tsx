@@ -134,15 +134,15 @@ export const ResultsScreen = () => {
                   <RecipeCard
                     item={it}
                     isSaved={isSaved}
-                    onSave={(id) => saveRecipe.mutateAsync(id)}
-                    onRemove={(id) => removeRecipe.mutateAsync(id)}
+                    onSave={async (id): Promise<void> => { await saveRecipe.mutateAsync(id); }}
+                    onRemove={async (id): Promise<void> => { await removeRecipe.mutateAsync(id); }}
                   />
                 ) : (
                   <WorkoutCard
                     item={it}
                     isSaved={isSaved}
-                    onSave={(id) => saveWorkout.mutateAsync(id)}
-                    onRemove={(id) => removeWorkout.mutateAsync(id)}
+                    onSave={async (id): Promise<void> => { await saveWorkout.mutateAsync(id); }}
+                    onRemove={async (id): Promise<void> => { await removeWorkout.mutateAsync(id); }}
                   />
                 )}
                 {isSaved && (
