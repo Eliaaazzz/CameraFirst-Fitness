@@ -34,7 +34,7 @@ export const EquipmentSelectionModal = ({ visible, lastChoice, onSelect, onSkip,
         </View>
       </Dialog.Content>
       <Dialog.Actions>
-        <Button title="Skip" variant="text" onPress={onSkip} />
+        <Button title="Skip" variant="ghost" onPress={onSkip} />
       </Dialog.Actions>
     </Dialog>
   </Portal>

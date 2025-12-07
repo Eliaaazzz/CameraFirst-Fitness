@@ -10,8 +10,8 @@ import type { RecipeCard as Recipe } from '@/types';
 
 type Props = {
   item: Recipe;
-  onSave?: (id: string) => Promise<boolean> | boolean | void;
-  onRemove?: (id: string) => Promise<boolean> | boolean | void;
+  onSave?: (id: string) => Promise<boolean> | Promise<void> | boolean | void;
+  onRemove?: (id: string) => Promise<boolean> | Promise<void> | boolean | void;
   onStart?: (id: string) => void;
   isSaved?: boolean;
 };

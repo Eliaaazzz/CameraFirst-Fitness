@@ -119,7 +119,7 @@ export const RecipesScreen = () => {
 
       return (
         <SwipeableCard
-          onDelete={async () => await removeRecipe.mutateAsync(item.id)}
+          onDelete={async () => { await removeRecipe.mutateAsync(item.id); }}
           deleteTitle="Remove Recipe"
           deleteMessage={`Remove "${item.title}" from your saved recipes?`}
           deleteLabel="Remove"

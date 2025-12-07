@@ -12,15 +12,18 @@ const sizeStyles: Record<ButtonSize, { paddingVertical: number; paddingHorizonta
   large: { paddingVertical: spacing.md, paddingHorizontal: spacing['2xl'], textSize: 18 },
 };
 
-export interface ButtonProps extends Omit<React.ComponentProps<typeof PaperButton>, 'children'> {
+export interface ButtonProps {
   title: string;
   variant?: ButtonVariant;
   size?: ButtonSize;
   icon?: React.ReactNode;
   loading?: boolean;
+  disabled?: boolean;
+  onPress?: () => void;
+  style?: any;
 }
 
-export const Button = ({ title, variant = 'primary', size = 'medium', icon, loading, disabled, style, ...rest }: ButtonProps) => {
+export const Button = ({ title, variant = 'primary', size = 'medium', icon, loading, disabled, style, onPress }: ButtonProps) => {
   const mode: 'contained' | 'outlined' | 'text' =
     variant === 'primary' ? 'contained' : variant === 'outline' ? 'outlined' : 'text';
 
@@ -39,7 +42,7 @@ export const Button = ({ title, variant = 'primary', size = 'medium', icon, load
       style={style as any}
       contentStyle={contentStyle}
       labelStyle={labelStyle}
-      {...rest}
+      onPress={onPress}
     >
       {title}
     </PaperButton>

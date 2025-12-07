@@ -74,19 +74,17 @@ export const SwipeableCard = ({
   };
 
   const renderRightActions = (
-    progressAnimatedValue: Animated.SharedValue<number>
+    progressAnimatedValue: any
   ) => {
-    progress.value = progressAnimatedValue.value;
-
     const animatedStyle = useAnimatedStyle(() => {
       const translateX = interpolate(
-        progressAnimatedValue.value,
+        progressAnimatedValue as any,
         [0, 1],
         [80, 0]
       );
 
       const opacity = interpolate(
-        progressAnimatedValue.value,
+        progressAnimatedValue as any,
         [0, 0.5, 1],
         [0, 0.5, 1]
       );
