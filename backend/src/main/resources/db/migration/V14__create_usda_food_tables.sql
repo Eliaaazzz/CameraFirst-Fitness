@@ -30,18 +30,16 @@ CREATE TABLE IF NOT EXISTS usda_food_alias (
     id BIGSERIAL PRIMARY KEY,
     food_id BIGINT NOT NULL REFERENCES usda_food(id) ON DELETE CASCADE,
     alias VARCHAR(255) NOT NULL,
-    language VARCHAR(10) DEFAULT 'en',
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (food_id, alias, language)
+    UNIQUE (food_id, alias)
 );
 
 CREATE INDEX IF NOT EXISTS idx_usda_food_name ON usda_food(name);
 CREATE INDEX IF NOT EXISTS idx_usda_food_category ON usda_food(category);
 CREATE INDEX IF NOT EXISTS idx_usda_food_state ON usda_food(food_state);
 CREATE INDEX IF NOT EXISTS idx_usda_food_alias_alias ON usda_food_alias(alias);
-CREATE INDEX IF NOT EXISTS idx_usda_food_alias_language ON usda_food_alias(language);
 
 -- Enable trigram search for fuzzy matching if available
 CREATE EXTENSION IF NOT EXISTS pg_trgm;

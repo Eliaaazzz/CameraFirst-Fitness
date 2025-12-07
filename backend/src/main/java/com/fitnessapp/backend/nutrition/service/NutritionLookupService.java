@@ -5,6 +5,8 @@ import com.fitnessapp.backend.domain.FoodSynonym;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.repository.FoodNutritionRepository;
 import com.fitnessapp.backend.repository.FoodSynonymRepository;
+import com.fitnessapp.backend.usda.domain.UsdaFood;
+import com.fitnessapp.backend.usda.service.UsdaFoodSearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class NutritionLookupService {
     private final FoodNutritionRepository foodNutritionRepository;
     private final FoodSynonymRepository foodSynonymRepository;
     private final FoodKeyNormalizer foodKeyNormalizer;
+    private final UsdaFoodSearchService usdaFoodSearchService;
 
     // Default nutrition for unknown foods (per 100g)
     private static final NutritionInfo DEFAULT_NUTRITION = NutritionInfo.builder()
@@ -80,7 +83,13 @@ public class NutritionLookupService {
             return lookupByCanonicalKey(canonicalKey);
         }
 
-        // Strategy 5: Default
+        // Strategy 6: Try USDA catalog using a name search (spaces instead of underscores)
+        NutritionInfo usda = lookupUsda(normalizedKey);
+        if (usda != null) {
+            return usda;
+        }
+
+        // Strategy 7: Default
         log.warn("No nutrition data found for: {}, using default", foodKey);
         return DEFAULT_NUTRITION;
     }
@@ -219,5 +228,36 @@ public class NutritionLookupService {
                 .fat(entity.getFat() != null ? entity.getFat() : 0.0)
                 .carbs(entity.getCarbs() != null ? entity.getCarbs() : 0.0)
                 .build();
+    }
+
+    /**
+     * Lookup USDA foods by name (simple contains + alias) and return the first match.
+     */
+    private NutritionInfo lookupUsda(String normalizedKey) {
+        try {
+            String query = normalizedKey.replace("_", " ");
+            java.util.List<UsdaFood> matches = usdaFoodSearchService.search(query, 1);
+            if (matches.isEmpty()) {
+                return null;
+            }
+            UsdaFood food = matches.get(0);
+            if (food.getNutrition() == null) {
+                return null;
+            }
+            log.info("Using USDA nutrition for '{}' : {}", normalizedKey, food.getName());
+            return NutritionInfo.builder()
+                    .calories(toDouble(food.getNutrition().getCalories()))
+                    .protein(toDouble(food.getNutrition().getProteinG()))
+                    .fat(toDouble(food.getNutrition().getFatG()))
+                    .carbs(toDouble(food.getNutrition().getCarbsG()))
+                    .build();
+        } catch (Exception e) {
+            log.debug("USDA lookup failed for {}: {}", normalizedKey, e.getMessage());
+            return null;
+        }
+    }
+
+    private double toDouble(Number value) {
+        return value == null ? 0.0 : value.doubleValue();
     }
 }

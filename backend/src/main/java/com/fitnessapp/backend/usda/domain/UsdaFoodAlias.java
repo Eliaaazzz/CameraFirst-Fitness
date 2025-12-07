@@ -19,8 +19,7 @@ import java.time.OffsetDateTime;
 @ToString
 @Entity
 @Table(name = "usda_food_alias", indexes = {
-        @Index(name = "idx_usda_food_alias_text", columnList = "alias"),
-        @Index(name = "idx_usda_food_alias_language", columnList = "language")
+        @Index(name = "idx_usda_food_alias_text", columnList = "alias")
 })
 public class UsdaFoodAlias {
 
@@ -35,9 +34,6 @@ public class UsdaFoodAlias {
     @Column(nullable = false, length = 255)
     private String alias;
 
-    @Builder.Default
-    @Column(nullable = false, length = 10)
-    private String language = "en";
 
     @Builder.Default
     @Column(name = "is_active")

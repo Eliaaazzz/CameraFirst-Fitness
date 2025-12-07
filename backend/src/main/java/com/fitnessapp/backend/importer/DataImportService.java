@@ -4,6 +4,9 @@ import com.fitnessapp.backend.domain.WorkoutVideo;
 import com.fitnessapp.backend.repository.WorkoutVideoRepository;
 import com.fitnessapp.backend.youtube.YouTubeService;
 import com.fitnessapp.backend.youtube.dto.VideoMetadata;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -25,9 +28,19 @@ public class DataImportService {
   private final YouTubeService youTubeService;
 
   public int importWorkoutsFromCsv(String filePath) {
+    try (var stream = Files.newInputStream(Path.of(filePath))) {
+      return importWorkoutsFromCsv(stream);
+    } catch (Exception e) {
+      log.error("Failed to import workouts from {}", filePath, e);
+      return 0;
+    }
+  }
+
+  public int importWorkoutsFromCsv(InputStream inputStream) {
     AtomicInteger counter = new AtomicInteger(0);
     try {
-      List<String> lines = Files.readAllLines(Path.of(filePath));
+      BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+      List<String> lines = reader.lines().toList();
       if (lines.isEmpty()) return 0;
       // skip header
       List<String> rows = lines.subList(1, lines.size());
@@ -72,7 +85,7 @@ public class DataImportService {
       }
       return counter.get();
     } catch (Exception e) {
-      log.error("Failed to import workouts from {}", filePath, e);
+      log.error("Failed to import workouts", e);
       return counter.get();
     }
   }

@@ -1,8 +1,11 @@
 package com.fitnessapp.backend.admin;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
   private final WorkoutVideoRepository workoutRepo;
@@ -70,7 +74,7 @@ public class AdminController {
           r.getIngredients().stream()
               .map(ri -> new IngredientDto(
                   ri.getIngredient().getName(),
-                  ri.getQuantity() != null ? ri.getQuantity().doubleValue() : null,
+                  ri.getQuantity(),
                   ri.getUnit()
               ))
               .collect(Collectors.toList());
@@ -87,36 +91,30 @@ public class AdminController {
       );
     }
     
+    private static final Map<String, String> PLACEHOLDER_MAP = Map.ofEntries(
+        Map.entry("chicken", "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=800"),
+        Map.entry("salmon", "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800"),
+        Map.entry("fish", "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800"),
+        Map.entry("beef", "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800"),
+        Map.entry("steak", "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800"),
+        Map.entry("pasta", "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=800"),
+        Map.entry("salad", "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800"),
+        Map.entry("veggie", "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800"),
+        Map.entry("egg", "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=800"),
+        Map.entry("omelette", "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=800"),
+        Map.entry("tofu", "https://images.unsplash.com/photo-1546069901-d5bfd2cbfb1f?w=800"),
+        Map.entry("shrimp", "https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?w=800"),
+        Map.entry("soup", "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800"),
+        Map.entry("lentil", "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800")
+    );
+
     private static String generatePlaceholderImage(String title) {
       String lowerTitle = title.toLowerCase();
-      if (lowerTitle.contains("chicken")) {
-        return "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=800";
+      for (var entry : PLACEHOLDER_MAP.entrySet()) {
+        if (lowerTitle.contains(entry.getKey())) {
+          return entry.getValue();
+        }
       }
-      if (lowerTitle.contains("salmon") || lowerTitle.contains("fish")) {
-        return "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800";
-      }
-      if (lowerTitle.contains("beef") || lowerTitle.contains("steak")) {
-        return "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800";
-      }
-      if (lowerTitle.contains("pasta")) {
-        return "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=800";
-      }
-      if (lowerTitle.contains("salad") || lowerTitle.contains("veggie")) {
-        return "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800";
-      }
-      if (lowerTitle.contains("egg") || lowerTitle.contains("omelette")) {
-        return "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=800";
-      }
-      if (lowerTitle.contains("tofu")) {
-        return "https://images.unsplash.com/photo-1546069901-d5bfd2cbfb1f?w=800";
-      }
-      if (lowerTitle.contains("shrimp")) {
-        return "https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?w=800";
-      }
-      if (lowerTitle.contains("soup") || lowerTitle.contains("lentil")) {
-        return "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800";
-      }
-      // Default: hash-based selection for variety
       int hash = Math.abs(title.hashCode());
       String[] defaultImages = {
           "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800",
@@ -128,8 +126,8 @@ public class AdminController {
       return defaultImages[hash % defaultImages.length];
     }
   }
-  
-  public record IngredientDto(String name, Double quantity, String unit) {}
+
+  public record IngredientDto(String name, BigDecimal quantity, String unit) {}
 }
 
 
