@@ -77,7 +77,7 @@ public class UsdaFoodFetcher {
                 .name(usdaFood.getDescription())
                 .description(usdaFood.getDescription())
                 .dataType(usdaFood.getDataType())
-                .category(classifyCategory(usdaFood.getDescription()))
+                .category(classifyCategory(usdaFood.getDescription(), null))
                 .foodState(extractFoodState(usdaFood.getDescription()))
                 .build();
 

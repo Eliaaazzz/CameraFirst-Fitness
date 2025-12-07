@@ -147,4 +147,47 @@ public class MealPlanController {
         recipe.summary()
     );
   }
+
+  public record SwapRecipeRequest(
+      @NotNull UUID userId,
+      @NotNull UUID recipeId,
+      String reason
+  ) {}
+
+  public record SwapRecipeResponse(
+      List<RecipeSuggestionResponse> suggestions
+  ) {}
+
+  public record RecipeSuggestionResponse(
+      UUID id,
+      String title,
+      String imageUrl,
+      Integer timeMinutes,
+      String difficulty,
+      double calories,
+      double protein,
+      double carbs,
+      double fat,
+      String summary
+  ) {}
+
+  public record GenerateMealPlanRequest(
+      @NotNull UUID userId
+  ) {}
+
+  public record MealPlanHistoryItem(
+      Long id,
+      OffsetDateTime generatedAt,
+      NutritionTarget target
+  ) {}
+
+  private Optional<MealPlanHistoryItem> parsePlan(MealPlan plan) {
+    try {
+      MealPlanResponse response = objectMapper.readValue(plan.getPlanPayload(), MealPlanResponse.class);
+      return Optional.of(new MealPlanHistoryItem(plan.getId(), plan.getGeneratedAt(), response.target()));
+    } catch (JsonProcessingException e) {
+      log.error("Failed to parse meal plan {}: {}", plan.getId(), e.getMessage());
+      return Optional.empty();
+    }
+  }
 }
