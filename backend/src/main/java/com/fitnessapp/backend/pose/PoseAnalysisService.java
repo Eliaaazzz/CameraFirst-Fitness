@@ -2,10 +2,10 @@ package com.fitnessapp.backend.pose;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.domain.PoseAnalysisResult;
-import com.fitnessapp.backend.domain.WorkoutSession;
-import com.fitnessapp.backend.repository.PoseAnalysisResultRepository;
-import com.fitnessapp.backend.repository.WorkoutSessionRepository;
+import com.fitnessapp.backend.workout.entity.PoseAnalysisResult;
+import com.fitnessapp.backend.workout.entity.WorkoutSession;
+import com.fitnessapp.backend.workout.repository.PoseAnalysisResultRepository;
+import com.fitnessapp.backend.workout.repository.WorkoutSessionRepository;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;

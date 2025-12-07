@@ -1,8 +1,8 @@
 package com.fitnessapp.backend.youtube;
 
 import com.fitnessapp.backend.config.YouTubeProperties;
-import com.fitnessapp.backend.domain.WorkoutVideo;
-import com.fitnessapp.backend.repository.WorkoutVideoRepository;
+import com.fitnessapp.backend.workout.entity.WorkoutVideo;
+import com.fitnessapp.backend.workout.repository.WorkoutVideoRepository;
 import com.fitnessapp.backend.youtube.dto.ChannelMetadata;
 import com.fitnessapp.backend.youtube.dto.CuratedCoverageReport;
 import com.fitnessapp.backend.youtube.dto.PlaylistImportRequest;

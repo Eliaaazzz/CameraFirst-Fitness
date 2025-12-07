@@ -1,7 +1,7 @@
 package com.fitnessapp.backend.admin;
 
-import com.fitnessapp.backend.domain.ApiKey;
-import com.fitnessapp.backend.service.ApiKeyService;
+import com.fitnessapp.backend.user.entity.ApiKey;
+import com.fitnessapp.backend.user.service.ApiKeyService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.time.OffsetDateTime;

@@ -5,8 +5,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.fitnessapp.backend.domain.ApiKey;
-import com.fitnessapp.backend.service.ApiKeyService;
+import com.fitnessapp.backend.user.entity.ApiKey;
+import com.fitnessapp.backend.user.service.ApiKeyService;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.time.OffsetDateTime;

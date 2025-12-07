@@ -2,7 +2,7 @@ package com.fitnessapp.backend.admin;
 
 import com.fitnessapp.backend.importer.DataImportService;
 import com.fitnessapp.backend.importer.RecipeImportService;
-import com.fitnessapp.backend.recipe.RecipeCuratorService;
+import com.fitnessapp.backend.recipe.service.RecipeCuratorService;
 import com.fitnessapp.backend.recipe.dto.RecipeCurationResult;
 import com.fitnessapp.backend.youtube.YouTubeCuratorService;
 import com.fitnessapp.backend.youtube.dto.CuratedCoverageReport;

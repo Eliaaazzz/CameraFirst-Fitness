@@ -10,13 +10,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.domain.User;
-import com.fitnessapp.backend.domain.UserProfile;
-import com.fitnessapp.backend.recipe.SmartRecipeService;
-import com.fitnessapp.backend.repository.UserRepository;
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService;
+import com.fitnessapp.backend.user.repository.UserRepository;
 import com.fitnessapp.backend.security.CurrentUser;
-import com.fitnessapp.backend.service.NutritionInsightService;
-import com.fitnessapp.backend.service.UserProfileService;
+import com.fitnessapp.backend.nutrition.service.NutritionInsightService;
+import com.fitnessapp.backend.user.service.UserProfileService;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

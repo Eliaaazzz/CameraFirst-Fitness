@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.domain;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fitnessapp.backend.user.entity.User;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import java.util.UUID;

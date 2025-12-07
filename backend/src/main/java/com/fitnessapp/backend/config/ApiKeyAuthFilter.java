@@ -1,8 +1,8 @@
 package com.fitnessapp.backend.config;
 
-import com.fitnessapp.backend.domain.ApiKey;
+import com.fitnessapp.backend.user.entity.ApiKey;
 import com.fitnessapp.backend.security.AuthenticatedUser;
-import com.fitnessapp.backend.service.ApiKeyService;
+import com.fitnessapp.backend.user.service.ApiKeyService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

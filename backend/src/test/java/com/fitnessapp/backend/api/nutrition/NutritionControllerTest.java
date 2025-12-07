@@ -9,14 +9,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.api.nutrition.NutritionController.LogMealRequest;
-import com.fitnessapp.backend.domain.MealLog;
+import com.fitnessapp.backend.nutrition.controller.NutritionController.LogMealRequest;
+import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.service.FoodRecognitionService;
 import com.fitnessapp.backend.nutrition.service.NutritionEngine;
-import com.fitnessapp.backend.service.NutritionInsightService;
-import com.fitnessapp.backend.service.NutritionTrackingService;
-import com.fitnessapp.backend.service.NutritionTrackingService.NutritionMetric;
-import com.fitnessapp.backend.service.NutritionTrackingService.NutritionSummary;
+import com.fitnessapp.backend.nutrition.service.NutritionInsightService;
+import com.fitnessapp.backend.nutrition.service.NutritionTrackingService;
+import com.fitnessapp.backend.nutrition.service.NutritionTrackingService.NutritionMetric;
+import com.fitnessapp.backend.nutrition.service.NutritionTrackingService.NutritionSummary;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;

@@ -1,7 +1,7 @@
 package com.fitnessapp.backend.importer;
 
-import com.fitnessapp.backend.domain.WorkoutVideo;
-import com.fitnessapp.backend.repository.WorkoutVideoRepository;
+import com.fitnessapp.backend.workout.entity.WorkoutVideo;
+import com.fitnessapp.backend.workout.repository.WorkoutVideoRepository;
 import com.fitnessapp.backend.youtube.YouTubeService;
 import com.fitnessapp.backend.youtube.dto.VideoMetadata;
 import java.io.BufferedReader;

@@ -1,10 +1,10 @@
 package com.fitnessapp.backend.nutrition.service;
 
-import com.fitnessapp.backend.domain.FoodNutrition;
-import com.fitnessapp.backend.domain.FoodSynonym;
+import com.fitnessapp.backend.nutrition.entity.FoodNutrition;
+import com.fitnessapp.backend.nutrition.entity.FoodSynonym;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
-import com.fitnessapp.backend.repository.FoodNutritionRepository;
-import com.fitnessapp.backend.repository.FoodSynonymRepository;
+import com.fitnessapp.backend.nutrition.repository.FoodNutritionRepository;
+import com.fitnessapp.backend.nutrition.repository.FoodSynonymRepository;
 import com.fitnessapp.backend.usda.domain.UsdaFood;
 import com.fitnessapp.backend.usda.service.UsdaFoodSearchService;
 import lombok.RequiredArgsConstructor;

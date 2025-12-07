@@ -12,10 +12,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fitnessapp.backend.domain.Recipe;
-import com.fitnessapp.backend.domain.WorkoutVideo;
-import com.fitnessapp.backend.repository.RecipeRepository;
-import com.fitnessapp.backend.repository.WorkoutVideoRepository;
+import com.fitnessapp.backend.recipe.entity.Recipe;
+import com.fitnessapp.backend.workout.entity.WorkoutVideo;
+import com.fitnessapp.backend.recipe.repository.RecipeRepository;
+import com.fitnessapp.backend.workout.repository.WorkoutVideoRepository;
 
 import lombok.RequiredArgsConstructor;
 

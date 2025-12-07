@@ -1,7 +1,7 @@
 package com.fitnessapp.backend.debug;
 
-import com.fitnessapp.backend.repository.RecipeRepository;
-import com.fitnessapp.backend.repository.WorkoutVideoRepository;
+import com.fitnessapp.backend.recipe.repository.RecipeRepository;
+import com.fitnessapp.backend.workout.repository.WorkoutVideoRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;

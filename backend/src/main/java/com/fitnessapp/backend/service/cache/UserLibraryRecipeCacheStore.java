@@ -1,7 +1,7 @@
 package com.fitnessapp.backend.service.cache;
 
-import com.fitnessapp.backend.service.UserLibraryService.PageResult;
-import com.fitnessapp.backend.service.UserLibraryService.SavedRecipe;
+import com.fitnessapp.backend.workout.service.UserLibraryService.PageResult;
+import com.fitnessapp.backend.workout.service.UserLibraryService.SavedRecipe;
 import java.time.Duration;
 import java.util.UUID;
 import org.springframework.data.domain.Sort;

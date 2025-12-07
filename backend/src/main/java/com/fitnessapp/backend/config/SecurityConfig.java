@@ -1,6 +1,6 @@
 package com.fitnessapp.backend.config;
 
-import com.fitnessapp.backend.service.ApiKeyService;
+import com.fitnessapp.backend.user.service.ApiKeyService;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.context.annotation.Bean;

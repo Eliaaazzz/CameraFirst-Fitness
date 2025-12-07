@@ -2,12 +2,13 @@ package com.fitnessapp.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fitnessapp.backend.domain.User;
-import com.fitnessapp.backend.domain.UserProfile;
-import com.fitnessapp.backend.repository.MealLogRepository;
-import com.fitnessapp.backend.repository.UserProfileRepository;
-import com.fitnessapp.backend.repository.UserRepository;
-import com.fitnessapp.backend.service.NutritionTrackingService.NutritionSummary;
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
+import com.fitnessapp.backend.user.repository.UserProfileRepository;
+import com.fitnessapp.backend.user.repository.UserRepository;
+import com.fitnessapp.backend.nutrition.service.NutritionTrackingService;
+import com.fitnessapp.backend.nutrition.service.NutritionTrackingService.NutritionSummary;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;

@@ -23,6 +23,7 @@ import com.fitnessapp.backend.retrieval.dto.RecipeSearchResponse;
 import com.fitnessapp.backend.retrieval.dto.WorkoutCard;
 import com.fitnessapp.backend.retrieval.dto.WorkoutResponse;
 import com.fitnessapp.backend.retrieval.dto.WorkoutSearchResponse;
+import com.fitnessapp.backend.recipe.service.RecipeScalingService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -35,7 +36,7 @@ public class ContentController {
     private final RecipeRetrievalService recipeService;
     private final RecipeSearchService recipeSearchService;
     private final ImageQueryService imageQueryService;
-    private final com.fitnessapp.backend.service.RecipeScalingService recipeScalingService;
+    private final RecipeScalingService recipeScalingService;
 
     // ============================================================================
     // Text Search Endpoints
@@ -217,7 +218,7 @@ public class ContentController {
      * GET /api/v1/recipes/{recipeId}/scale?servings=4
      */
     @GetMapping("/recipes/{recipeId}/scale")
-    public com.fitnessapp.backend.service.RecipeScalingService.ScaledRecipe scaleRecipe(
+    public RecipeScalingService.ScaledRecipe scaleRecipe(
             @PathVariable java.util.UUID recipeId,
             @RequestParam int servings) {
         return recipeScalingService.scaleRecipe(recipeId, servings);
