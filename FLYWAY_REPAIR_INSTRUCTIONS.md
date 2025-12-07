@@ -32,9 +32,9 @@ cd backend
 ### Step 2: Verify Successful Startup
 
 Watch the console logs for:
-- `Flyway repair completed successfully`
-- `Flyway migration completed successfully`
-- `Started FitnessAppApplication` (green text indicating successful startup)
+- `Successfully repaired schema history table` (from Flyway repair)
+- `Successfully applied X migrations` or `Schema is up to date` (from Flyway migrate)
+- `Started FitnessAppApplication` (indicating successful startup)
 
 ### Step 3: **IMPORTANT** - Remove the Repair Bean
 
