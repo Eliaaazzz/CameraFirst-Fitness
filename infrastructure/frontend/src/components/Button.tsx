@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Button as PaperButton } from 'react-native-paper';
 import { getTheme, spacing } from '@/utils';
 
@@ -20,7 +20,7 @@ export interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   onPress?: () => void;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const Button = ({ title, variant = 'primary', size = 'medium', icon, loading, disabled, style, onPress }: ButtonProps) => {
@@ -39,7 +39,7 @@ export const Button = ({ title, variant = 'primary', size = 'medium', icon, load
       icon={icon as any}
       loading={loading}
       disabled={disabled}
-      style={style as any}
+      style={style}
       contentStyle={contentStyle}
       labelStyle={labelStyle}
       onPress={onPress}

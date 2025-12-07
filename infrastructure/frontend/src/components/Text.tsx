@@ -1,4 +1,5 @@
 import React, { PropsWithChildren } from 'react';
+import { StyleProp, TextStyle } from 'react-native';
 import { Text as PaperText } from 'react-native-paper';
 import { typography } from '@/utils';
 
@@ -9,7 +10,7 @@ export interface TextProps {
   variant?: TextVariant;
   color?: string;
   weight?: TextWeight;
-  style?: any;
+  style?: StyleProp<TextStyle>;
   numberOfLines?: number;
 }
 
