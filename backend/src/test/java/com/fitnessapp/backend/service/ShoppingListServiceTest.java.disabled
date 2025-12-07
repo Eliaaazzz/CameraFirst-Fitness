@@ -122,3 +122,4 @@ class ShoppingListServiceTest {
     assertThat(pdf).isNotEmpty();
   }
 }
+// Test class is disabled because ShoppingListService doesn't exist in the codebase

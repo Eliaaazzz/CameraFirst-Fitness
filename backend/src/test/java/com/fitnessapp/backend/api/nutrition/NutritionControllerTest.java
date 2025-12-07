@@ -9,7 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.api.nutrition.NutritionController.LogMealRequest;
+import com.fitnessapp.backend.nutrition.controller.NutritionController.LogMealRequest;
 import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.service.FoodRecognitionService;
 import com.fitnessapp.backend.nutrition.service.NutritionEngine;
