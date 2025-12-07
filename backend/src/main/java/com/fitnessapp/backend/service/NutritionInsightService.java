@@ -74,8 +74,10 @@ public class NutritionInsightService {
       aiAdvice = cachedAdvice.advice();
       adviceStore.refresh(userId, start, cachedAdvice);
     } else {
+      // Try to get profile, fall back to a minimal default if not found
+      // Note: trackingService.weeklySummary() will auto-create profile if needed
       UserProfile profile = userProfileRepository.findByUserId(userId)
-          .orElseThrow(() -> new EntityNotFoundException("User profile not found: " + userId));
+          .orElseGet(() -> createMinimalProfileForAdvice(userId));
       aiAdvice = buildAiAdvice(profile, summary, logs);
       AdviceEntry entry = new AdviceEntry(signatureKey, aiAdvice);
       adviceStore.put(userId, start, entry);
@@ -291,5 +293,28 @@ public class NutritionInsightService {
 
   private LocalDate normaliseWeekStart(LocalDate weekStart) {
     return (weekStart != null ? weekStart : LocalDate.now()).with(DayOfWeek.MONDAY);
+  }
+
+  /**
+   * Create a minimal profile with default values for advice generation
+   * This is used when profile doesn't exist but we still need to generate advice
+   * 
+   * IMPORTANT: This creates a transient (non-persisted) profile only for reading
+   * metadata like fitnessGoal and dietaryPreference for advice generation.
+   * It should never be persisted to the database.
+   * 
+   * @param userId The user ID to create a minimal profile for
+   * @return A minimal, transient UserProfile for advice generation only
+   */
+  private UserProfile createMinimalProfileForAdvice(UUID userId) {
+    log.warn("Using minimal default profile for advice generation for userId: {}. This profile will not be persisted.", userId);
+    
+    // Create a minimal transient profile with only the fields needed for advice
+    UserProfile profile = new UserProfile();
+    // Note: We don't set user or userId because this is transient and won't be persisted
+    profile.setFitnessGoal(com.fitnessapp.backend.domain.FitnessGoal.MAINTAIN);
+    profile.setDietaryPreference(com.fitnessapp.backend.domain.DietaryPreference.NONE);
+    
+    return profile;
   }
 }

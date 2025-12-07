@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 @Entity
 @Table(name = "usda_food_nutrition")
 public class UsdaFoodNutrition {

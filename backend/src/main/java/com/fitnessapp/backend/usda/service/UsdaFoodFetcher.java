@@ -138,23 +138,39 @@ public class UsdaFoodFetcher {
         return value != null ? value : BigDecimal.ZERO;
     }
 
-    private String classifyCategory(String description) {
+    // Improved category classification using USDA's native foodCategory if available, and regex for keyword matching
+    private String classifyCategory(String description, String usdaFoodCategory) {
+        if (usdaFoodCategory != null && !usdaFoodCategory.isEmpty()) {
+            String cat = usdaFoodCategory.toUpperCase();
+            if (cat.contains("VEGETABLE")) return "VEGETABLE";
+            if (cat.contains("FRUIT")) return "FRUIT";
+            if (cat.contains("GRAIN")) return "GRAIN";
+            if (cat.contains("POULTRY")) return "POULTRY";
+            if (cat.contains("MEAT")) return "MEAT";
+            if (cat.contains("SEAFOOD")) return "SEAFOOD";
+            // Add more USDA categories as needed
+            return "OTHER";
+        }
         String desc = description == null ? "" : description.toUpperCase();
-        if (desc.contains("VEGETABLE") || desc.contains("BROCCOLI") || desc.contains("CARROT")) return "VEGETABLE";
-        if (desc.contains("FRUIT") || desc.contains("APPLE") || desc.contains("BANANA")) return "FRUIT";
-        if (desc.contains("CHICKEN") || desc.contains("BEEF") || desc.contains("PORK") || desc.contains("TURKEY")) return "MEAT";
-        if (desc.contains("GRAIN") || desc.contains("RICE") || desc.contains("WHEAT") || desc.contains("BREAD")) return "GRAIN";
+        // Use regex to match whole words only
+        if (desc.matches(".*\\b(VEGETABLE|BROCCOLI|CARROT)\\b.*")) return "VEGETABLE";
+        if (desc.matches(".*\\b(FRUIT|APPLE|BANANA)\\b.*")) return "FRUIT";
+        if (desc.matches(".*\\b(CHICKEN|TURKEY)\\b.*")) return "POULTRY";
+        if (desc.matches(".*\\b(BEEF|PORK)\\b.*")) return "MEAT";
+        if (desc.matches(".*\\b(GRAIN|RICE|WHEAT|BREAD)\\b.*")) return "GRAIN";
+        if (desc.matches(".*\\b(FISH|SALMON|TUNA|SHRIMP)\\b.*")) return "SEAFOOD";
         return "OTHER";
     }
 
+    // Improved food state extraction using regex for whole word matching
     private String extractFoodState(String description) {
         String desc = description == null ? "" : description.toUpperCase();
-        if (desc.contains("RAW")) return "RAW";
-        if (desc.contains("COOKED")) return "COOKED";
-        if (desc.contains("FRIED")) return "FRIED";
-        if (desc.contains("BAKED")) return "BAKED";
-        if (desc.contains("ROASTED")) return "ROASTED";
-        if (desc.contains("GRILLED")) return "GRILLED";
+        if (desc.matches(".*\\bRAW\\b.*")) return "RAW";
+        if (desc.matches(".*\\bCOOKED\\b.*")) return "COOKED";
+        if (desc.matches(".*\\bFRIED\\b.*")) return "FRIED";
+        if (desc.matches(".*\\bBAKED\\b.*")) return "BAKED";
+        if (desc.matches(".*\\bROASTED\\b.*")) return "ROASTED";
+        if (desc.matches(".*\\bGRILLED\\b.*")) return "GRILLED";
         return "UNKNOWN";
     }
 }

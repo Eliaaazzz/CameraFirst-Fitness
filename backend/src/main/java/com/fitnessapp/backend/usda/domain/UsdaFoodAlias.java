@@ -16,6 +16,7 @@ import java.time.OffsetDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 @Entity
 @Table(name = "usda_food_alias", indexes = {
         @Index(name = "idx_usda_food_alias_text", columnList = "alias")

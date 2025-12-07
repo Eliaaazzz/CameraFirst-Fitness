@@ -103,8 +103,9 @@ public class NutritionController {
 
   @PostMapping("/meals")
   public ResponseEntity<MealLogResponse> logMeal(@Valid @RequestBody LogMealRequest request) {
+    UUID userUuid = parseUserId(request.userId());
     MealLog entity = MealLog.builder()
-        .userId(request.userId())
+        .userId(userUuid)
         .mealPlanId(request.mealPlanId())
         .mealDay(request.mealDay())
         .mealType(request.mealType())
@@ -119,7 +120,7 @@ public class NutritionController {
         .build();
     MealLog saved = trackingService.logMeal(entity);
     OffsetDateTime consumedAt = Optional.ofNullable(saved.getConsumedAt()).orElse(OffsetDateTime.now());
-    insightService.invalidateIfChanged(request.userId(), consumedAt.toLocalDate());
+    insightService.invalidateIfChanged(userUuid, consumedAt.toLocalDate());
     return ResponseEntity.ok(toResponse(saved));
   }
 
@@ -190,7 +191,7 @@ public class NutritionController {
   }
 
   public record LogMealRequest(
-      @NotNull UUID userId,
+      @NotNull String userId,
       Long mealPlanId,
       Integer mealDay,
       @NotNull @Size(max = 32) String mealType,
