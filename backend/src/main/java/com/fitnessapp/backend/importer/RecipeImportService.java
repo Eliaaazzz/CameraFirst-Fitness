@@ -8,6 +8,9 @@ import com.fitnessapp.backend.domain.RecipeIngredient;
 import com.fitnessapp.backend.domain.RecipeIngredientId;
 import com.fitnessapp.backend.repository.IngredientRepository;
 import com.fitnessapp.backend.repository.RecipeRepository;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -36,9 +39,19 @@ public class RecipeImportService {
 
   @Transactional
   public int importRecipesFromCsv(String filePath) {
+    try (var stream = Files.newInputStream(Path.of(filePath))) {
+      return importRecipesFromCsv(stream);
+    } catch (Exception e) {
+      log.error("Failed to import recipes from {}", filePath, e);
+      return 0;
+    }
+  }
+
+  public int importRecipesFromCsv(InputStream inputStream) {
     AtomicInteger counter = new AtomicInteger(0);
     try {
-      List<String> lines = Files.readAllLines(Path.of(filePath));
+      BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+      List<String> lines = reader.lines().toList();
       if (lines.isEmpty()) return 0;
       List<String> rows = lines.subList(1, lines.size());
       int total = rows.size();
@@ -99,7 +112,7 @@ public class RecipeImportService {
       }
       return counter.get();
     } catch (Exception e) {
-      log.error("Failed to import recipes from {}", filePath, e);
+      log.error("Failed to import recipes", e);
       return counter.get();
     }
   }

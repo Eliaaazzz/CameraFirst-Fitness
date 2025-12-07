@@ -180,7 +180,7 @@ public class GeminiVisionServiceImpl implements FoodRecognitionProvider {
             "items": [
                 {
                     "food_key": "snake_case_english_identifier",
-                    "display_name": "Chinese name",
+                    "display_name": "English name",
                     "estimated_grams": 200,
                     "cooking_method": "steamed/fried/grilled/etc",
                     "confidence": 0.95

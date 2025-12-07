@@ -32,6 +32,8 @@ public interface FoodSynonymRepository extends JpaRepository<FoodSynonym, UUID> 
      */
     List<FoodSynonym> findByCanonicalFoodKeyOrderBySynonym(String canonicalFoodKey);
 
+    List<FoodSynonym> findByCanonicalFoodKeyIn(List<String> canonicalFoodKeys);
+
     /**
      * Find synonyms by language
      */
