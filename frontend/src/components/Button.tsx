@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'text';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'text' | 'ghost';
 type ButtonSize = 'small' | 'medium' | 'large';
 
 export interface ButtonProps {
@@ -136,6 +136,14 @@ const getVariantStyle = (variant: ButtonVariant, isPressed: boolean, disabled?: 
     case 'text':
       return {
         backgroundColor: isPressed ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
+        borderWidth: 0,
+        borderColor: 'transparent',
+        textColor: dark.primary,
+      };
+
+    case 'ghost':
+      return {
+        backgroundColor: 'transparent',
         borderWidth: 0,
         borderColor: 'transparent',
         textColor: dark.primary,

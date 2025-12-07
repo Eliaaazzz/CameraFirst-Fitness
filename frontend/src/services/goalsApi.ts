@@ -1,21 +1,21 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useMutation, useQuery, useQueryClient, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 
 import type {
-  Goal,
-  CreateGoalPayload,
-  UpdateGoalPayload,
-  GoalProgress,
-  LogGoalProgressPayload,
-  GoalStatistics,
-  Reminder,
-  CreateReminderPayload,
-  UpdateReminderPayload,
+    CreateGoalPayload,
+    CreateReminderPayload,
+    Goal,
+    GoalProgress,
+    GoalStatistics,
+    LogGoalProgressPayload,
+    Reminder,
+    UpdateGoalPayload,
+    UpdateReminderPayload,
 } from '@/types';
 import {
-  scheduleReminderNotification,
-  scheduleMultiDayReminder,
-  cancelReminderNotification,
+    cancelReminderNotification,
+    scheduleMultiDayReminder,
+    scheduleReminderNotification,
 } from './notificationService';
 
 // Storage keys
@@ -608,3 +608,23 @@ export function useLogGoalProgress(): UseMutationResult<
     },
   });
 }
+
+export default {
+  getAllGoals,
+  getGoalById,
+  createGoal,
+  updateGoal,
+  deleteGoal,
+  logGoalProgress,
+  getGoalProgressHistory,
+  calculateGoalStatistics,
+  addReminder,
+  updateReminder,
+  deleteReminder,
+  useGoals,
+  useGoalStatistics,
+  useCreateGoal,
+  useUpdateGoal,
+  useDeleteGoal,
+  useLogGoalProgress,
+};

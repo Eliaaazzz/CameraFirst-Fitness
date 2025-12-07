@@ -1,25 +1,38 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Dimensions, StyleSheet, View } from 'react-native';
 
-import { Card } from './Card';
 import { spacing } from '@/utils';
+import { Card } from './Card';
 
 type ListSkeletonProps = {
   rows?: number;
   showAvatar?: boolean;
-  primaryWidth?: string;
-  secondaryWidth?: string;
+  primaryWidth?: number | string;
+  secondaryWidth?: number | string;
 };
 
 const SHIMMER_DURATION = 1200;
 
 const ListSkeletonRow: React.FC<{
   showAvatar: boolean;
-  primaryWidth: string;
-  secondaryWidth: string;
+  primaryWidth: number | string;
+  secondaryWidth: number | string;
 }> = ({ showAvatar, primaryWidth, secondaryWidth }) => {
   const shimmer = useRef(new Animated.Value(0)).current;
+  
+  // Convert percentage strings to pixel values
+  const getWidth = (width: number | string): number => {
+    if (typeof width === 'number') return width;
+    if (typeof width === 'string' && width.includes('%')) {
+      const percent = parseInt(width) / 100;
+      return (Dimensions.get('window').width - 40) * percent; // Account for margins
+    }
+    return 200; // Default width
+  };
+  
+  const pWidth = getWidth(primaryWidth);
+  const sWidth = getWidth(secondaryWidth);
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -45,8 +58,8 @@ const ListSkeletonRow: React.FC<{
       <View style={styles.row}>
         {showAvatar && <View style={styles.avatar} />}
         <View style={styles.textGroup}>
-          <View style={[styles.line, { width: primaryWidth }]} />
-          <View style={[styles.line, styles.secondaryLine, { width: secondaryWidth }]} />
+          <View style={[styles.line, { width: pWidth }]} />
+          <View style={[styles.line, styles.secondaryLine, { width: sWidth }]} />
         </View>
       </View>
       <Animated.View

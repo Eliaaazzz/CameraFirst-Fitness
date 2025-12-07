@@ -1,34 +1,53 @@
-# 🚀 前端部署完整指南
+# 🚀 前端部署指南（当前生产流程）
 
-## 📦 已准备的文件
-- **前端构建包**: `frontend-web-deploy.tar.gz` (2.7 MB)
-- **后端地址**: `http://3.104.117.222:8080`
+> 当前推荐：使用 GitHub Actions 工作流 `build-test-deploy-frontend.yml` 自动部署到 EC2。  
+> 本文保留了手动步骤，便于应急或离线环境。
 
 ---
 
-## 步骤 1: 上传前端文件到 EC2
+## 1) 自动部署（推荐）
+
+1. 确认 GitHub Secrets 已配置  
+   - `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY` 或 `EC2_SSH_KEY_B64`  
+   - 可选：`API_BASE_URL`（未设置时，构建默认 `http://localhost:8080`）
+2. 提交代码到 `main` / `develop` / `CF-17-mvp`。  
+   - PR 会运行 lint/type-check/tests；非 PR 会继续打包并部署。
+3. 运行记录：GitHub → Actions → `Build, Test & Deploy Frontend (Improved)`  
+   - 产物通过 SSH 上传到 EC2 `/tmp`，部署脚本负责备份与回滚。
+
+如需手动触发：`gh workflow run build-test-deploy-frontend.yml`
+
+---
+
+## 2) 手动部署（应急方案）
+
+### 前置条件
+- 已在 EC2 安装 Nginx（或使用 `infrastructure/frontend-deploy.sh` 自动配置）
+- 拥有 SSH 私钥，且安全组放行 22/80 端口
+- 本地已有构建产物（例如 `frontend/dist` 或压缩包）
+
+### 步骤 1: 上传前端文件到 EC2
 
 在你的本地Mac上运行：
 
 ```bash
-# 进入项目目录
-cd /Users/qingfengrumeng/Desktop/CameraFirst-Fitness
+# 假设已有 dist 目录
+tar -czf frontend.tar.gz -C frontend/dist .
 
-# 上传前端文件到 EC2
-scp -i Elialiuuuu.pem frontend-web-deploy.tar.gz ec2-user@3.104.117.222:/home/ec2-user/
+scp -i <your-key>.pem frontend.tar.gz <ec2-user>@<EC2_HOST>:/home/<ec2-user>/
 ```
 
 ---
 
-## 步骤 2: SSH 登录到 EC2
+### 步骤 2: SSH 登录到 EC2
 
 ```bash
-ssh -i Elialiuuuu.pem ec2-user@3.104.117.222
+ssh -i <your-key>.pem <ec2-user>@<EC2_HOST>
 ```
 
 ---
 
-## 步骤 3: 安装并配置 Nginx
+### 步骤 3: 安装并配置 Nginx（如未安装）
 
 ```bash
 # 安装 Nginx
@@ -39,7 +58,7 @@ sudo mkdir -p /var/www/fitness-app
 
 # 解压前端文件
 cd /home/ec2-user
-tar -xzf frontend-web-deploy.tar.gz -C /tmp/frontend
+tar -xzf frontend.tar.gz -C /tmp/frontend
 sudo cp -r /tmp/frontend/* /var/www/fitness-app/
 
 # 设置权限
@@ -47,12 +66,12 @@ sudo chown -R nginx:nginx /var/www/fitness-app
 sudo chmod -R 755 /var/www/fitness-app
 
 # 清理临时文件
-rm -rf /tmp/frontend
+rm -rf /tmp/frontend frontend.tar.gz
 ```
 
 ---
 
-## 步骤 4: 配置 Nginx
+### 步骤 4: 配置 Nginx
 
 ```bash
 # 创建 Nginx 配置
@@ -118,7 +137,7 @@ sudo systemctl status nginx
 
 ---
 
-## 步骤 5: 配置防火墙（如果需要）
+### 步骤 5: 配置防火墙（如果需要）
 
 ```bash
 # 允许 HTTP 流量
@@ -131,7 +150,7 @@ sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT
 
 ---
 
-## 步骤 6: 验证部署
+### 步骤 6: 验证部署
 
 ```bash
 # 1. 检查文件是否存在
@@ -153,10 +172,7 @@ curl http://3.104.117.222/
 ---
 
 ## 📱 访问你的应用
-
-**前端网址**: http://3.104.117.222/
-
-在浏览器中打开这个地址，你应该能看到你的健身应用！
+在浏览器中打开 `http://<EC2_HOST>/`，确认页面可以加载。
 
 ---
 

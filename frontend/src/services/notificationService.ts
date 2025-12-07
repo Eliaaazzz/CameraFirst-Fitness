@@ -1,8 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { Reminder, DayOfWeek } from '@/types';
+import type { DayOfWeek, Reminder } from '@/types';
 
 // Configure how notifications are handled when app is in foreground
 Notifications.setNotificationHandler({
@@ -130,31 +130,28 @@ export async function scheduleReminderNotification(reminder: Reminder): Promise<
         }
 
         trigger = {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
           date: scheduledDate,
-        };
+        } as any;
         break;
       }
 
       case 'daily': {
         trigger = {
-          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: hours,
           minute: minutes,
           repeats: true,
-        };
+        } as any;
         break;
       }
 
       case 'weekdays': {
         // Schedule for Monday-Friday
         trigger = {
-          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
           weekday: 2, // Monday (1 = Sunday, 2 = Monday, etc.)
           hour: hours,
           minute: minutes,
           repeats: true,
-        };
+        } as any;
         // Note: For weekdays, we'll need to schedule 5 separate notifications
         // This is a limitation of expo-notifications
         break;
@@ -163,12 +160,11 @@ export async function scheduleReminderNotification(reminder: Reminder): Promise<
       case 'weekends': {
         // Schedule for Saturday-Sunday
         trigger = {
-          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
           weekday: 7, // Saturday
           hour: hours,
           minute: minutes,
           repeats: true,
-        };
+        } as any;
         break;
       }
 
@@ -182,12 +178,11 @@ export async function scheduleReminderNotification(reminder: Reminder): Promise<
         // We'll need to schedule multiple notifications for multiple days
         const dayIndex = getDayOfWeekIndex(reminder.daysOfWeek[0]);
         trigger = {
-          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
           weekday: dayIndex,
           hour: hours,
           minute: minutes,
           repeats: true,
-        };
+        } as any;
         break;
       }
 
@@ -251,12 +246,11 @@ export async function scheduleMultiDayReminder(
           },
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
           weekday: dayIndex,
           hour: hours,
           minute: minutes,
           repeats: true,
-        },
+        } as any,
       });
 
       notificationIds.push(notificationId);

@@ -108,34 +108,11 @@ const getWeeklyInsight = async (userId: string, weekStart?: string): Promise<Nut
 
 // Analyze food image with Gemini AI
 const analyzeFoodImage = async (imageUri: string): Promise<FoodRecognitionResponse> => {
-  return await api.uploadImage<FoodRecognitionResponse>(
+  const response = await api.uploadImage<FoodRecognitionResponse>(
     '/api/v1/nutrition/analyze',
     imageUri
   );
-
-  // Transform backend response to frontend format
-  const detectedFoods: DetectedFood[] = backendResponse.items.map((item) => ({
-    id: item.foodKey,
-    name: item.displayName,
-    amount: item.estimatedGrams,
-    unit: 'g',
-    calories: Math.round(item.nutrition?.calories || 0),
-    protein: Math.round(item.nutrition?.protein || 0),
-    carbs: Math.round(item.nutrition?.carbs || 0),
-    fat: Math.round(item.nutrition?.fat || 0),
-    confidence: item.confidence,
-  }));
-
-  return {
-    success: true,
-    detectedFoods,
-    total: {
-      calories: Math.round(backendResponse.totalNutrition.calories),
-      protein: Math.round(backendResponse.totalNutrition.protein),
-      carbs: Math.round(backendResponse.totalNutrition.carbs),
-      fat: Math.round(backendResponse.totalNutrition.fat),
-    },
-  };
+  return response;
 };
 
 // Save analyzed meal to today's log

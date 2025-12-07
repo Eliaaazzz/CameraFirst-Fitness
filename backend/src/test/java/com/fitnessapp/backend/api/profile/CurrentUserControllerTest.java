@@ -10,8 +10,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fitnessapp.backend.user.controller.CurrentUserController;
 import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.user.dto.UserProfileRequest;
 import com.fitnessapp.backend.recipe.service.SmartRecipeService;
 import com.fitnessapp.backend.user.repository.UserRepository;
 import com.fitnessapp.backend.security.CurrentUser;

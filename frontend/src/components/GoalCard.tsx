@@ -1,20 +1,19 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { IconButton, ProgressBar, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import React, { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Chip, IconButton, ProgressBar } from 'react-native-paper';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSequence,
-  withSpring,
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withSpring
 } from 'react-native-reanimated';
 
 import { Card, Text } from '@/components';
-import { radii, spacing } from '@/utils';
-import { MaterialAnimations, MaterialScale, MaterialSprings } from '@/utils/materialMotion';
 import type { Goal } from '@/types';
+import { radii, spacing } from '@/utils';
+import { MaterialScale, MaterialSprings } from '@/utils/materialMotion';
 
 interface GoalCardProps {
   goal: Goal;
@@ -41,7 +40,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 
   // Animate progress bar on mount and updates
   useEffect(() => {
-    progressValue.value = withSpring(progressPercent, MaterialSprings.smooth);
+    progressValue.value = withSpring(progressPercent, MaterialSprings.balanced);
   }, [progressPercent]);
 
   // Celebration animation when goal is completed
@@ -49,7 +48,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     if (goal.status === 'completed' && progressPercent >= 1) {
       scale.value = withSequence(
         withSpring(MaterialScale.strongEmphasis, MaterialSprings.bouncy),
-        withSpring(MaterialScale.normal, MaterialSprings.smooth)
+        withSpring(MaterialScale.normal, MaterialSprings.balanced)
       );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }

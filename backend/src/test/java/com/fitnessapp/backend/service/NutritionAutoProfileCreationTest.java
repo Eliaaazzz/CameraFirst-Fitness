@@ -10,7 +10,6 @@ import com.fitnessapp.backend.user.repository.UserRepository;
 import com.fitnessapp.backend.nutrition.service.NutritionTrackingService;
 import com.fitnessapp.backend.nutrition.service.NutritionTrackingService.NutritionSummary;
 import java.time.LocalDate;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

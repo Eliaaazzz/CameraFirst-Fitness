@@ -1,6 +1,6 @@
-import { Image } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { Image } from 'react-native';
 
 export type CompressOptions = {
   maxDimension?: number; // max width or height
@@ -19,8 +19,11 @@ export const getImageDimensions = (uri: string): Promise<{ width: number; height
 
 export const getFileSize = async (uri: string): Promise<number> => {
   try {
-    const info = await FileSystem.getInfoAsync(uri, { size: true });
-    return (info.size as number) ?? 0;
+    const info = await FileSystem.getInfoAsync(uri);
+    if (!info.exists || info.isDirectory) {
+      return 0;
+    }
+    return (info as any).size ?? 0;
   } catch {
     return 0;
   }
@@ -52,7 +55,7 @@ export const compressImage = async (
 };
 
 export const convertToBase64 = async (uri: string): Promise<string> => {
-  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
   return `data:image/jpeg;base64,${base64}`;
 };
 

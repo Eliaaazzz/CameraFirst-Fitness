@@ -1,8 +1,8 @@
 # Pre-Deployment Checklist
 
-## Status: Ready for EC2 Deployment
+## Status: Ready for EC2 Deployment (Docker-first)
 
-Your application has been prepared for manual EC2 deployment with the following enhancements:
+Primary path: GitHub Actions + Docker (`build-test-deploy-backend.yml`, `deploy-backend.yml`) with EC2 runner pulling latest image. Manual JAR deployment is discouraged except for emergencies.
 
 ---
 
@@ -24,11 +24,11 @@ Your application has been prepared for manual EC2 deployment with the following 
 ### 3. Build Verification
 - ✅ **Build successful** (no compilation errors)
 - ✅ All dependencies resolved
-- ✅ Application JAR created: `build/libs/backend-0.0.1-SNAPSHOT.jar`
+- ✅ Docker image produced via CI (see workflow logs)
 
 ---
 
-## 🧪 Local Testing (Before Deploying to EC2)
+## 🧪 Local Testing (Before Deploying)
 
 ### Prerequisites
 ```bash
@@ -71,8 +71,12 @@ JWT_SECRET=your-256-bit-secret-key-here-minimum-32-chars
 # Load environment variables
 export $(cat .env | xargs)
 
-# Run application
+# Run application (preferred)
 ./gradlew bootRun
+# Or run Docker locally
+./gradlew bootJar
+docker build -t fitness-backend:local -f infrastructure/backend/Dockerfile backend
+docker run --env-file .env -p 8080:8080 fitness-backend:local
 ```
 
 Wait for: `Started BackendApplication in X.XXX seconds`

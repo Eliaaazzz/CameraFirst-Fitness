@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fitnessapp.backend.nutrition.controller.NutritionController;
 import com.fitnessapp.backend.nutrition.controller.NutritionController.LogMealRequest;
 import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.service.FoodRecognitionService;
@@ -115,8 +116,8 @@ class NutritionControllerTest {
         .carbsGrams(35.0)
         .fatGrams(16.0)
         .build();
-    com.fitnessapp.backend.service.NutritionInsightService.NutritionInsight insight =
-        new com.fitnessapp.backend.service.NutritionInsightService.NutritionInsight(summary, java.util.List.of(log), "请继续保持蛋白质摄入，适当增加复合碳水。");
+    NutritionInsightService.NutritionInsight insight =
+        new NutritionInsightService.NutritionInsight(summary, java.util.List.of(log), "请继续保持蛋白质摄入，适当增加复合碳水。");
     when(insightService.generateWeeklyInsight(eq(userId), org.mockito.ArgumentMatchers.nullable(LocalDate.class))).thenReturn(insight);
 
     mockMvc.perform(get("/api/v1/nutrition/insights/weekly")

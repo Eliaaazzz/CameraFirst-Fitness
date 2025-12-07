@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.security.AuthenticatedUser;
 import com.fitnessapp.backend.security.CurrentUser;
+import com.fitnessapp.backend.workout.controller.UserLibraryController;
 import com.fitnessapp.backend.workout.service.UserLibraryService;
 import com.fitnessapp.backend.workout.service.UserLibraryService.PageResult;
 import com.fitnessapp.backend.workout.service.UserLibraryService.SavedRecipe;

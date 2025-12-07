@@ -3,17 +3,8 @@ package com.fitnessapp.backend.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fitnessapp.backend.user.entity.Allergen;
-import com.fitnessapp.backend.user.entity.DietaryPreference;
-import com.fitnessapp.backend.user.entity.FitnessGoal;
-import com.fitnessapp.backend.user.entity.User;
-import com.fitnessapp.backend.user.entity.UserProfile;
-import com.fitnessapp.backend.user.repository.UserProfileRepository;
-import com.fitnessapp.backend.user.repository.UserRepository;
-import com.fitnessapp.backend.user.service.UserProfileService;
-import jakarta.persistence.EntityNotFoundException;
-import java.util.Set;
 import java.util.UUID;
+
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +16,17 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
+
+import com.fitnessapp.backend.user.entity.Allergen;
+import com.fitnessapp.backend.user.entity.DietaryPreference;
+import com.fitnessapp.backend.user.entity.FitnessGoal;
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.user.repository.UserProfileRepository;
+import com.fitnessapp.backend.user.repository.UserRepository;
+import com.fitnessapp.backend.user.service.UserProfileService;
+
+import jakarta.persistence.EntityNotFoundException;
 
 @DataJpaTest(properties = {
     "spring.jpa.hibernate.ddl-auto=create-drop",

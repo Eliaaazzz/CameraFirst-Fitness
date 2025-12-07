@@ -1,7 +1,12 @@
 package com.fitnessapp.backend.nutrition.service;
 
-import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
-import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,12 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
+import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
+import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 
 /**
  * Unit tests for NutritionEngine
@@ -35,8 +36,10 @@ class NutritionEngineTest {
             .calories(133.0).protein(28.0).fat(2.0).carbs(0.0).build();
     private static final NutritionInfo FRIED_EGG = NutritionInfo.builder()
             .calories(196.0).protein(13.6).fat(15.3).carbs(1.1).build();
+    @SuppressWarnings("unused")
     private static final NutritionInfo BRAISED_PORK = NutritionInfo.builder()
             .calories(340.0).protein(14.0).fat(28.0).carbs(5.0).build();
+    @SuppressWarnings("unused")
     private static final NutritionInfo STIR_FRIED_VEG = NutritionInfo.builder()
             .calories(38.0).protein(2.3).fat(2.1).carbs(3.2).build();
     private static final NutritionInfo DEFAULT_NUTRITION = NutritionInfo.builder()

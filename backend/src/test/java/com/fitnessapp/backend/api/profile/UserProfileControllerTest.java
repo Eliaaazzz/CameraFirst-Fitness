@@ -11,6 +11,8 @@ import com.fitnessapp.backend.user.entity.DietaryPreference;
 import com.fitnessapp.backend.user.entity.FitnessGoal;
 import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.user.controller.UserProfileController;
+import com.fitnessapp.backend.user.dto.UserProfileRequest;
 import com.fitnessapp.backend.recipe.service.SmartRecipeService;
 import com.fitnessapp.backend.user.service.UserProfileService;
 import com.fitnessapp.backend.workout.service.LeaderboardService;

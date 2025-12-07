@@ -5,7 +5,6 @@ import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.nutrition.dto.CreateMealRequest;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
-import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 import com.fitnessapp.backend.nutrition.service.ClaudeVisionService;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;

@@ -1,21 +1,21 @@
+import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { FAB, Chip, ActivityIndicator } from 'react-native-paper';
-import { Feather } from '@expo/vector-icons';
+import { ActivityIndicator, Chip, FAB } from 'react-native-paper';
 
 import {
-  Button,
-  Card,
-  Container,
-  CreateGoalModal,
-  GoalCard,
-  SafeAreaWrapper,
-  Text,
+    Button,
+    Card,
+    Container,
+    CreateGoalModal,
+    GoalCard,
+    SafeAreaWrapper,
+    Text,
 } from '@/components';
-import { spacing } from '@/utils';
-import { useGoals, useGoalStatistics, useDeleteGoal, useLogGoalProgress, useCreateGoal } from '@/services/goalsApi';
 import useCurrentUser from '@/hooks/useCurrentUser';
+import { useCreateGoal, useDeleteGoal, useGoals, useGoalStatistics, useLogGoalProgress } from '@/services/goalsApi';
 import type { Goal, GoalType } from '@/types';
+import { spacing } from '@/utils';
 
 type FilterType = GoalType | 'all';
 
@@ -223,7 +223,7 @@ export const GoalsScreen = () => {
           ListEmptyComponent={renderEmptyState()}
           refreshControl={
             <RefreshControl
-              refreshing={goals.isRefetching && !goals.isFetchingNextPage}
+              refreshing={goals.isRefetching}
               onRefresh={handleRefresh}
               tintColor="#4ECDC4"
             />
