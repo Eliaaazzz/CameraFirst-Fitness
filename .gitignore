@@ -2,6 +2,10 @@
 # ROOT LEVEL
 # ==========================================
 *.log
+system.log*
+application.log*
+error.log*
+debug.log*
 *.tar.gz
 *.zip
 .DS_Store
@@ -26,6 +30,11 @@ backend/.settings/
 backend/.classpath
 backend/.project
 backend/.factorypath
+backend/*.log
+backend/logs/
+backend/system.log*
+backend/application.log*
+backend/spring.log*
 !backend/gradle/wrapper/gradle-wrapper.jar
 !backend/**/src/main/**/build/
 !backend/**/src/test/**/build/
