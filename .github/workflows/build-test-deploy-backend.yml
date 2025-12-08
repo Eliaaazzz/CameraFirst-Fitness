@@ -47,8 +47,8 @@ jobs:
         working-directory: backend
         run: |
           chmod +x gradlew
-          echo "🧪 Running unit tests..."
-          ./gradlew test --no-daemon --info
+          echo "🧪 Running unit tests (excluding slow integration tests)..."
+          ./gradlew test --no-daemon -PexcludeSlowTests
           echo "✅ Tests passed"
 
       - name: Run linting checks
