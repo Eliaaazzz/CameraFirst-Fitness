@@ -4,13 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.fitnessapp.backend.domain.MealLog;
-import com.fitnessapp.backend.domain.User;
-import com.fitnessapp.backend.domain.UserProfile;
-import com.fitnessapp.backend.repository.MealLogRepository;
-import com.fitnessapp.backend.repository.UserProfileRepository;
+import com.fitnessapp.backend.nutrition.entity.MealLog;
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
+import com.fitnessapp.backend.user.repository.UserProfileRepository;
+import com.fitnessapp.backend.user.repository.UserRepository;
+import com.fitnessapp.backend.nutrition.service.NutritionTrackingService;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,13 +29,16 @@ class NutritionTrackingServiceTest {
   @Mock
   private UserProfileRepository userProfileRepository;
 
+  @Mock
+  private UserRepository userRepository;
+
   private NutritionTrackingService service;
 
   private UUID userId;
 
   @BeforeEach
   void setUp() {
-    service = new NutritionTrackingService(mealLogRepository, userProfileRepository);
+    service = new NutritionTrackingService(mealLogRepository, userProfileRepository, userRepository);
     userId = UUID.randomUUID();
   }
 

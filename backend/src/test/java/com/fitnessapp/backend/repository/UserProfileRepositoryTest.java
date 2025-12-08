@@ -2,11 +2,13 @@ package com.fitnessapp.backend.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fitnessapp.backend.domain.Allergen;
-import com.fitnessapp.backend.domain.DietaryPreference;
-import com.fitnessapp.backend.domain.FitnessGoal;
-import com.fitnessapp.backend.domain.User;
-import com.fitnessapp.backend.domain.UserProfile;
+import com.fitnessapp.backend.user.entity.Allergen;
+import com.fitnessapp.backend.user.entity.DietaryPreference;
+import com.fitnessapp.backend.user.entity.FitnessGoal;
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.user.repository.UserProfileRepository;
+import com.fitnessapp.backend.user.repository.UserRepository;
 import java.util.Set;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;

@@ -2,16 +2,19 @@ package com.fitnessapp.backend.admin;
 
 import com.fitnessapp.backend.importer.DataImportService;
 import com.fitnessapp.backend.importer.RecipeImportService;
-import com.fitnessapp.backend.recipe.RecipeCuratorService;
+import com.fitnessapp.backend.recipe.service.RecipeCuratorService;
 import com.fitnessapp.backend.recipe.dto.RecipeCurationResult;
 import com.fitnessapp.backend.youtube.YouTubeCuratorService;
 import com.fitnessapp.backend.youtube.dto.CuratedCoverageReport;
 import com.fitnessapp.backend.youtube.dto.PlaylistImportRequest;
 import com.fitnessapp.backend.youtube.dto.PlaylistImportResult;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,11 +22,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/admin/import")
 @RequiredArgsConstructor
 @Validated
+@PreAuthorize("hasRole('ADMIN')")
 public class ImportController {
 
   private final DataImportService dataImportService;
@@ -32,15 +38,23 @@ public class ImportController {
   private final RecipeCuratorService recipeCuratorService;
 
   @PostMapping("/workouts")
-  public ResponseEntity<?> importWorkouts(@RequestParam("file") String filePath) {
-    int count = dataImportService.importWorkoutsFromCsv(filePath);
-    return ResponseEntity.ok().body("Imported " + count + " workouts");
+  public ResponseEntity<?> importWorkouts(@RequestParam("file") MultipartFile file) {
+    try {
+      int count = dataImportService.importWorkoutsFromCsv(file.getInputStream());
+      return ResponseEntity.ok().body("Imported " + count + " workouts");
+    } catch (IOException e) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to read uploaded file", e);
+    }
   }
 
   @PostMapping("/recipes")
-  public ResponseEntity<?> importRecipes(@RequestParam("file") String filePath) {
-    int count = recipeImportService.importRecipesFromCsv(filePath);
-    return ResponseEntity.ok().body("Imported " + count + " recipes");
+  public ResponseEntity<?> importRecipes(@RequestParam("file") MultipartFile file) {
+    try {
+      int count = recipeImportService.importRecipesFromCsv(file.getInputStream());
+      return ResponseEntity.ok().body("Imported " + count + " recipes");
+    } catch (IOException e) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to read uploaded file", e);
+    }
   }
 
   @PostMapping("/playlist")

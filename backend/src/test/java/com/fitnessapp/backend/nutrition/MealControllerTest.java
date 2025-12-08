@@ -1,13 +1,13 @@
 package com.fitnessapp.backend.nutrition;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.domain.MealLog;
-import com.fitnessapp.backend.domain.User;
-import com.fitnessapp.backend.domain.UserProfile;
+import com.fitnessapp.backend.nutrition.entity.MealLog;
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.nutrition.dto.CreateMealRequest;
-import com.fitnessapp.backend.repository.MealLogRepository;
-import com.fitnessapp.backend.repository.UserProfileRepository;
-import com.fitnessapp.backend.repository.UserRepository;
+import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
+import com.fitnessapp.backend.user.repository.UserProfileRepository;
+import com.fitnessapp.backend.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

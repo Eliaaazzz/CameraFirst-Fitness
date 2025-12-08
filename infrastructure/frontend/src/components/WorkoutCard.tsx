@@ -10,8 +10,8 @@ import type { WorkoutCard as Workout } from '@/types';
 
 type Props = {
   item: Workout;
-  onSave?: (id: string) => Promise<boolean> | boolean | void;
-  onRemove?: (id: string) => Promise<boolean> | boolean | void;
+  onSave?: (id: string) => Promise<boolean> | Promise<void> | boolean | void;
+  onRemove?: (id: string) => Promise<boolean> | Promise<void> | boolean | void;
   isSaved?: boolean;
 };
 

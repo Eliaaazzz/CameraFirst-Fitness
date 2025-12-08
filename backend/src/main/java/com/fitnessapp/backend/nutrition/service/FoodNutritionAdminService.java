@@ -1,10 +1,10 @@
 package com.fitnessapp.backend.nutrition.service;
 
-import com.fitnessapp.backend.domain.FoodNutrition;
-import com.fitnessapp.backend.domain.FoodSynonym;
+import com.fitnessapp.backend.nutrition.entity.FoodNutrition;
+import com.fitnessapp.backend.nutrition.entity.FoodSynonym;
 import com.fitnessapp.backend.nutrition.dto.FoodNutritionDto;
-import com.fitnessapp.backend.repository.FoodNutritionRepository;
-import com.fitnessapp.backend.repository.FoodSynonymRepository;
+import com.fitnessapp.backend.nutrition.repository.FoodNutritionRepository;
+import com.fitnessapp.backend.nutrition.repository.FoodSynonymRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,9 +31,10 @@ public class FoodNutritionAdminService {
      */
     @Transactional(readOnly = true)
     public List<FoodNutritionDto> getAllFoods() {
-        return foodNutritionRepository.findByIsActiveTrueOrderByFoodKey()
-                .stream()
-                .map(this::toDto)
+        List<FoodNutrition> foods = foodNutritionRepository.findByIsActiveTrueOrderByFoodKey();
+        var synonymsByFoodKey = loadSynonyms(foods);
+        return foods.stream()
+                .map(f -> toDto(f, synonymsByFoodKey.getOrDefault(f.getFoodKey(), List.of())))
                 .collect(Collectors.toList());
     }
 
@@ -44,7 +45,7 @@ public class FoodNutritionAdminService {
     public FoodNutritionDto getFoodById(UUID id) {
         FoodNutrition food = foodNutritionRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Food not found: " + id));
-        return toDto(food);
+        return toDto(food, loadSynonyms(List.of(food)).getOrDefault(food.getFoodKey(), List.of()));
     }
 
     /**
@@ -54,7 +55,7 @@ public class FoodNutritionAdminService {
     public FoodNutritionDto getFoodByKey(String foodKey) {
         FoodNutrition food = foodNutritionRepository.findByFoodKey(foodKey)
                 .orElseThrow(() -> new EntityNotFoundException("Food not found: " + foodKey));
-        return toDto(food);
+        return toDto(food, loadSynonyms(List.of(food)).getOrDefault(food.getFoodKey(), List.of()));
     }
 
     /**
@@ -62,9 +63,10 @@ public class FoodNutritionAdminService {
      */
     @Transactional(readOnly = true)
     public List<FoodNutritionDto> searchFoods(String keyword) {
-        return foodNutritionRepository.searchByKeyword(keyword)
-                .stream()
-                .map(this::toDto)
+        List<FoodNutrition> foods = foodNutritionRepository.searchByKeyword(keyword);
+        var synonymsByFoodKey = loadSynonyms(foods);
+        return foods.stream()
+                .map(f -> toDto(f, synonymsByFoodKey.getOrDefault(f.getFoodKey(), List.of())))
                 .collect(Collectors.toList());
     }
 
@@ -73,9 +75,10 @@ public class FoodNutritionAdminService {
      */
     @Transactional(readOnly = true)
     public List<FoodNutritionDto> getFoodsByCategory(String category) {
-        return foodNutritionRepository.findByCategoryAndIsActiveTrueOrderByFoodKey(category)
-                .stream()
-                .map(this::toDto)
+        List<FoodNutrition> foods = foodNutritionRepository.findByCategoryAndIsActiveTrueOrderByFoodKey(category);
+        var synonymsByFoodKey = loadSynonyms(foods);
+        return foods.stream()
+                .map(f -> toDto(f, synonymsByFoodKey.getOrDefault(f.getFoodKey(), List.of())))
                 .collect(Collectors.toList());
     }
 
@@ -119,7 +122,7 @@ public class FoodNutritionAdminService {
             createSynonyms(food.getFoodKey(), dto.getSynonyms());
         }
 
-        return toDto(food);
+        return toDto(food, loadSynonyms(List.of(food)).getOrDefault(food.getFoodKey(), List.of()));
     }
 
     /**
@@ -168,7 +171,7 @@ public class FoodNutritionAdminService {
             createSynonyms(food.getFoodKey(), dto.getSynonyms());
         }
 
-        return toDto(food);
+        return toDto(food, loadSynonyms(List.of(food)).getOrDefault(food.getFoodKey(), List.of()));
     }
 
     /**
@@ -260,12 +263,7 @@ public class FoodNutritionAdminService {
         return "en";
     }
 
-    private FoodNutritionDto toDto(FoodNutrition entity) {
-        List<String> synonyms = foodSynonymRepository.findByCanonicalFoodKeyOrderBySynonym(entity.getFoodKey())
-                .stream()
-                .map(FoodSynonym::getSynonym)
-                .collect(Collectors.toList());
-
+    private FoodNutritionDto toDto(FoodNutrition entity, List<String> synonyms) {
         return FoodNutritionDto.builder()
                 .id(entity.getId())
                 .foodKey(entity.getFoodKey())
@@ -281,5 +279,12 @@ public class FoodNutritionAdminService {
                 .isActive(entity.getIsActive())
                 .synonyms(synonyms)
                 .build();
+    }
+
+    private java.util.Map<String, List<String>> loadSynonyms(List<FoodNutrition> foods) {
+        if (foods.isEmpty()) return java.util.Collections.emptyMap();
+        List<String> keys = foods.stream().map(FoodNutrition::getFoodKey).toList();
+        return foodSynonymRepository.findByCanonicalFoodKeyIn(keys).stream()
+                .collect(Collectors.groupingBy(FoodSynonym::getCanonicalFoodKey, Collectors.mapping(FoodSynonym::getSynonym, Collectors.toList())));
     }
 }

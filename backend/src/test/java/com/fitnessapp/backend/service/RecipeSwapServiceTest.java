@@ -1,29 +1,31 @@
 package com.fitnessapp.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fitnessapp.backend.domain.Allergen;
-import com.fitnessapp.backend.domain.Ingredient;
-import com.fitnessapp.backend.domain.Recipe;
-import com.fitnessapp.backend.domain.RecipeIngredient;
-import com.fitnessapp.backend.domain.User;
-import com.fitnessapp.backend.domain.UserProfile;
-import com.fitnessapp.backend.repository.RecipeRepository;
-import com.fitnessapp.backend.repository.UserProfileRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fitnessapp.backend.recipe.entity.Ingredient;
+import com.fitnessapp.backend.recipe.entity.Recipe;
+import com.fitnessapp.backend.recipe.entity.RecipeIngredient;
+import com.fitnessapp.backend.recipe.repository.RecipeRepository;
+import com.fitnessapp.backend.recipe.service.RecipeSwapService;
+import com.fitnessapp.backend.user.entity.Allergen;
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.user.repository.UserProfileRepository;
 
 @ExtendWith(MockitoExtension.class)
 class RecipeSwapServiceTest {

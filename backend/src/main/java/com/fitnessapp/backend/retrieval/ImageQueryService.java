@@ -1,13 +1,5 @@
 package com.fitnessapp.backend.retrieval;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fitnessapp.backend.domain.ImageQuery;
-import com.fitnessapp.backend.retrieval.dto.ImageRequest;
-import com.fitnessapp.backend.repository.ImageQueryRepository;
-import java.util.ArrayList;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -17,12 +9,22 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.RequiredArgsConstructor;
-import lombok.Value;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fitnessapp.backend.domain.ImageQuery;
+import com.fitnessapp.backend.repository.ImageQueryRepository;
+import com.fitnessapp.backend.retrieval.dto.ImageRequest;
+
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor

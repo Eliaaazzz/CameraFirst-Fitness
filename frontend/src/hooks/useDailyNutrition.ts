@@ -1,5 +1,5 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import nutritionApi from '@/services/nutritionApi';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export interface DailyNutritionData {
   calories: number;
@@ -22,28 +22,49 @@ export function useDailyNutrition() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dailyNutrition'],
     queryFn: async (): Promise<DailyNutritionData> => {
-      const summary = await nutritionApi.getDailySummary('default-user');
+      // Fetch both summary and insight to get meals
+      const [summary, insight] = await Promise.all([
+        nutritionApi.getDailySummary('default-user'),
+        nutritionApi.getWeeklyInsight('default-user').catch(() => null), // Gracefully handle if insight fails
+      ]);
 
-      // Transform backend response to our format
-      return {
-        calories: summary.totalCalories || 0,
-        goal: 2100, // TODO: Get from user profile
-        protein: { current: summary.totalProtein || 0, goal: 150 },
-        carbs: { current: summary.totalCarbs || 0, goal: 200 },
-        fat: { current: summary.totalFat || 0, goal: 65 },
-        meals: summary.meals?.map((m: any) => ({
-          id: m.id.toString(),
+      // Filter meals to today only
+      const today = new Date().toISOString().split('T')[0];
+      const todayMeals = (insight?.logs || [])
+        .filter((m: any) => m.consumedAt?.startsWith(today))
+        .map((m: any) => ({
+          id: m.id?.toString() || Math.random().toString(),
           name: m.recipeName || 'Unknown',
           calories: m.calories || 0,
-          imageUrl: undefined, // TODO: Add image support
+          imageUrl: undefined,
           consumedAt: m.consumedAt,
-        })) || [],
+        }));
+
+      // Transform backend response to our format
+      // Backend returns NutritionMetricResponse with {actual, target, percent}
+      return {
+        calories: summary.calories?.actual || 0,
+        goal: summary.calories?.target || 2100,
+        protein: { 
+          current: summary.protein?.actual || 0, 
+          goal: summary.protein?.target || 150 
+        },
+        carbs: { 
+          current: summary.carbs?.actual || 0, 
+          goal: summary.carbs?.target || 200 
+        },
+        fat: { 
+          current: summary.fat?.actual || 0, 
+          goal: summary.fat?.target || 65 
+        },
+        meals: todayMeals,
       };
     },
   });
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['dailyNutrition'] });
+    refetch();
   };
 
   return {

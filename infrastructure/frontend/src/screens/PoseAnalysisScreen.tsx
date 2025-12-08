@@ -10,7 +10,7 @@ import {
   ScrollView,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Video } from 'expo-av';
+import { Video, ResizeMode } from 'expo-av';
 import { MaterialIcons } from '@expo/vector-icons';
 import axios from 'axios';
 
@@ -260,7 +260,7 @@ export default function PoseAnalysisScreen() {
               source={{ uri: mediaUri }}
               style={styles.previewVideo}
               useNativeControls
-              resizeMode="contain"
+              resizeMode={ResizeMode.CONTAIN}
             />
           )}
         </View>

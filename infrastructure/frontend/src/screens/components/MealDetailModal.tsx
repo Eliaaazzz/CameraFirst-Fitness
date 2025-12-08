@@ -97,7 +97,7 @@ const MacroItem = ({ label, value, unit }: { label: string; value: number | stri
   <View style={styles.macroItem}>
     <PaperText variant="labelSmall" style={{ opacity: 0.7 }}>{label}</PaperText>
     <PaperText variant="titleMedium">{value}</PaperText>
-    <PaperText variant="caption" style={{ opacity: 0.7 }}>{unit}</PaperText>
+    <PaperText variant="bodySmall" style={{ opacity: 0.7 }}>{unit}</PaperText>
   </View>
 );
 

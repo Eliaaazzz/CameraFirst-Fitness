@@ -279,8 +279,8 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
   },
   modal: {
-    borderTopLeftRadius: radii['2xl'],
-    borderTopRightRadius: radii['2xl'],
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     paddingBottom: spacing.xl,

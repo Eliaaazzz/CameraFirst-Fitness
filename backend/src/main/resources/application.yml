@@ -10,6 +10,11 @@ spring:
       repositories:
         enabled: false
 
+usda:
+  api:
+    key: ${USDA_API_KEY:}
+    base-url: https://api.nal.usda.gov/fdc/v1
+
 app:
   youtube:
     api-key: ${YOUTUBE_API_KEY:}
@@ -28,8 +33,11 @@ app:
     cost-per-thousand-tokens: 10.0
     log-usage: true
   anthropic:
-    # Anthropic Claude API for food recognition
+    # Anthropic Claude API for food recognition (DEPRECATED - use Gemini instead)
     api-key: ${ANTHROPIC_API_KEY:}
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:gemini-2.0-flash}
   meal-plan:
     cache-ttl-hours: 24
   recipe-generation:

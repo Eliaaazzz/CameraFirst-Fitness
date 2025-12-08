@@ -10,8 +10,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import com.fitnessapp.backend.domain.ExerciseVideo;
-import com.fitnessapp.backend.repository.ExerciseVideoRepository;
+import com.fitnessapp.backend.workout.entity.ExerciseVideo;
+import com.fitnessapp.backend.workout.repository.ExerciseVideoRepository;
 import com.fitnessapp.backend.retrieval.dto.WorkoutCard;
 
 import lombok.RequiredArgsConstructor;

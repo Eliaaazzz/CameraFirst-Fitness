@@ -7,6 +7,7 @@ import java.util.Base64;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,6 +29,7 @@ import okhttp3.Response;
  */
 @Slf4j
 @Service
+@ConditionalOnExpression("!'${app.anthropic.api-key:}'.isEmpty()")
 public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecognitionProvider {
 
   private static final String PROVIDER_NAME = "claude";
@@ -85,7 +87,11 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
 
   @Override
   public int getPriority() {
+<<<<<<< HEAD
     return 20; // Lower priority fallback behind Gemini
+=======
+    return 100; // Low priority - Claude is deprecated, Gemini is primary provider
+>>>>>>> 7937dc9b44bf6e9a2e0922a18411e051e10fa8b9
   }
 
   // ==================== ClaudeVisionService Interface ====================

@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 /**
@@ -17,21 +19,20 @@ import java.util.List;
 public class NutritionEngineImpl implements NutritionEngine {
 
   private final NutritionLookupService nutritionLookupService;
+  private static final BigDecimal HUNDRED = new BigDecimal("100");
 
   @Override
   public NutritionInfo calculateNutrition(String foodKey, int grams) {
-    // Use database lookup with fuzzy matching support
     NutritionInfo per100g = nutritionLookupService.lookupNutrition(foodKey);
-
-    double factor = grams / 100.0;
+    BigDecimal factor = BigDecimal.valueOf(grams).divide(HUNDRED, 4, RoundingMode.HALF_UP);
 
     log.debug("Calculating nutrition for {} ({}g): factor={}", foodKey, grams, factor);
 
     return NutritionInfo.builder()
-        .calories(roundToTwo(per100g.getCalories() * factor))
-        .protein(roundToTwo(per100g.getProtein() * factor))
-        .fat(roundToTwo(per100g.getFat() * factor))
-        .carbs(roundToTwo(per100g.getCarbs() * factor))
+        .calories(scale(per100g.getCalories(), factor))
+        .protein(scale(per100g.getProtein(), factor))
+        .fat(scale(per100g.getFat(), factor))
+        .carbs(scale(per100g.getCarbs(), factor))
         .build();
   }
 
@@ -73,7 +74,18 @@ public class NutritionEngineImpl implements NutritionEngine {
     return total;
   }
 
+  private Double scale(Double per100, BigDecimal factor) {
+    if (per100 == null) {
+      return 0.0;
+    }
+    return BigDecimal.valueOf(per100)
+        .multiply(factor)
+        .setScale(2, RoundingMode.HALF_UP)
+        .doubleValue();
+  }
+
   private double roundToTwo(double value) {
     return Math.round(value * 100.0) / 100.0;
   }
 }
+

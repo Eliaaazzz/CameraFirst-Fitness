@@ -56,20 +56,12 @@ export const MealPlanScreen = () => {
     queryKey: ['nutrition', 'summary', 'daily', userId],
     queryFn: () => nutritionApi.getDailySummary(userId!),
     enabled: !!userId,
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Failed to load nutrition summary';
-      snackbar.showSnackbar(message, { variant: 'error' });
-    },
   });
 
   const insightQuery = useQuery<NutritionInsightResponse>({
     queryKey: ['nutrition', 'insight', 'weekly', userId],
     queryFn: () => nutritionApi.getWeeklyInsight(userId!),
     enabled: !!userId,
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Failed to load nutrition insight';
-      snackbar.showSnackbar(message, { variant: 'error' });
-    },
   });
 
   const generateMutation = useMutation<MealPlanResponse, Error, string>({
@@ -203,15 +195,6 @@ export const MealPlanScreen = () => {
           visible={!!selectedMeal}
           meal={selectedMeal}
           onDismiss={() => setSelectedMeal(null)}
-          plan={selectedPlan}
-          dayNumber={selectedDay ?? undefined}
-          userId={userId}
-          onLogged={() => {
-            if (userId) {
-              summaryQuery.refetch();
-              insightQuery.refetch();
-            }
-          }}
         />
       </Container>
     </SafeAreaWrapper>

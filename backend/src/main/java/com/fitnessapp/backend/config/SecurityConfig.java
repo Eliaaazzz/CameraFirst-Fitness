@@ -1,6 +1,6 @@
 package com.fitnessapp.backend.config;
 
-import com.fitnessapp.backend.service.ApiKeyService;
+import com.fitnessapp.backend.user.service.ApiKeyService;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.context.annotation.Bean;
@@ -20,8 +20,7 @@ public class SecurityConfig {
         "/actuator/**",
         "/swagger-ui.html",
         "/swagger-ui/**",
-        "/v3/api-docs/**",
-        "/api/**"  // Allow all API endpoints for development
+        "/v3/api-docs/**"
     };
 
     @Bean

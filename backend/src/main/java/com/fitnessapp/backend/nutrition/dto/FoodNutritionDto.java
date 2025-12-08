@@ -51,7 +51,8 @@ public class FoodNutritionDto {
 
     private String category;
 
-    private Boolean isActive;
+    @Builder.Default
+    private Boolean isActive = Boolean.TRUE;
 
     private List<String> synonyms; // List of synonyms for this food
 }

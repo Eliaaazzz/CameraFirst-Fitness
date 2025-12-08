@@ -6,7 +6,7 @@ import { Container, SafeAreaWrapper, Text, Button, useSnackbar } from '@/compone
 import { spacing } from '@/utils';
 import mealPlanApi from '@/services/mealPlanApi';
 import nutritionApi from '@/services/nutritionApi';
-import { MealPlanHistoryItem, MealPlanResponse, NutritionInsightResponse } from '@/types/mealPlan';
+import { MealPlanHistoryItem, MealPlanResponse, NutritionInsightResponse, NutritionSummaryResponse } from '@/types/mealPlan';
 import MealDetailModal from '@/screens/components/MealDetailModal';
 import NutritionTrackerCard from '@/screens/components/NutritionTrackerCard';
 import useCurrentUser from '@/hooks/useCurrentUser';
@@ -52,24 +52,16 @@ export const MealPlanScreen = () => {
     enabled: !!userId,
   });
 
-  const summaryQuery = useQuery({
+  const summaryQuery = useQuery<NutritionSummaryResponse>({
     queryKey: ['nutrition', 'summary', 'daily', userId],
     queryFn: () => nutritionApi.getDailySummary(userId!),
     enabled: !!userId,
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Failed to load nutrition summary';
-      snackbar.showSnackbar(message, { variant: 'error' });
-    },
   });
 
   const insightQuery = useQuery<NutritionInsightResponse>({
     queryKey: ['nutrition', 'insight', 'weekly', userId],
     queryFn: () => nutritionApi.getWeeklyInsight(userId!),
     enabled: !!userId,
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Failed to load nutrition insight';
-      snackbar.showSnackbar(message, { variant: 'error' });
-    },
   });
 
   const generateMutation = useMutation<MealPlanResponse, Error, string>({
@@ -105,7 +97,7 @@ export const MealPlanScreen = () => {
     <View style={styles.dayCard}>
       <View style={styles.dayHeader}>
         <Avatar.Text size={36} label={`${item.dayNumber}`} style={styles.dayAvatar} />
-        <Text variant="heading3">Day {item.dayNumber}</Text>
+        <Text variant="heading2">Day {item.dayNumber}</Text>
       </View>
       {item.meals.map((meal) => (
         <PaperCard key={`${item.dayNumber}-${meal.mealType}`} style={styles.mealCard} onPress={() => {
@@ -154,7 +146,7 @@ export const MealPlanScreen = () => {
             <Card.Content>
               {insightQuery.data.summary.alerts.length > 0 && (
                 <View style={styles.alertContainer}>
-                  {insightQuery.data.summary.alerts.map((alert) => (
+                  {insightQuery.data.summary.alerts.map((alert: string) => (
                     <PaperText key={alert} variant="bodySmall" style={styles.alertText}>{alert}</PaperText>
                   ))}
                 </View>
