@@ -5,6 +5,13 @@
 -- created with NUMERIC columns, but their entities use Double fields which
 -- map to DOUBLE PRECISION. This migration fixes the type mismatch to ensure
 -- schema validation passes.
+--
+-- Why this change is safe:
+-- - NUMERIC(8,2) stores exact decimal values with up to 2 decimal places
+-- - DOUBLE PRECISION stores approximate floating-point values with ~15 significant digits
+-- - For nutrition values (typically 0-9999.99), no precision loss occurs during conversion
+-- - PostgreSQL automatically converts existing NUMERIC values to DOUBLE PRECISION
+-- - This matches the Java Double type used in FoodNutrition and MealLog entities
 -- ============================================================================
 
 -- Fix food_nutrition table
