@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 /**
  * Nutrition information DTO
  */
@@ -13,24 +15,24 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class NutritionInfo {
-  private Double calories;
-  private Double protein;
-  private Double fat;
-  private Double carbs;
+  private BigDecimal calories;
+  private BigDecimal protein;
+  private BigDecimal fat;
+  private BigDecimal carbs;
 
   public static NutritionInfo zero() {
     return NutritionInfo.builder()
-        .calories(0.0)
-        .protein(0.0)
-        .fat(0.0)
-        .carbs(0.0)
+        .calories(BigDecimal.ZERO)
+        .protein(BigDecimal.ZERO)
+        .fat(BigDecimal.ZERO)
+        .carbs(BigDecimal.ZERO)
         .build();
   }
 
   public void add(NutritionInfo other) {
-    this.calories += other.calories;
-    this.protein += other.protein;
-    this.fat += other.fat;
-    this.carbs += other.carbs;
+    this.calories = this.calories.add(other.calories);
+    this.protein = this.protein.add(other.protein);
+    this.fat = this.fat.add(other.fat);
+    this.carbs = this.carbs.add(other.carbs);
   }
 }

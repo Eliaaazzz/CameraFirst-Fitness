@@ -19,10 +19,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fitnessapp.backend.nutrition.entity.MealLog;
-import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResponse;
+import com.fitnessapp.backend.api.common.ApiEnvelope;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
+import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
+import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.service.FoodRecognitionService;
 import com.fitnessapp.backend.nutrition.service.NutritionEngine;
 import com.fitnessapp.backend.nutrition.service.NutritionInsightService;
@@ -54,7 +55,7 @@ public class NutritionController {
    * POST /api/v1/nutrition/analyze
    * 
    * @param image The food image to analyze
-   * @param provider Optional: preferred AI provider (e.g., "claude-vision", "openai-vision")
+   * @param provider Optional: preferred AI provider (e.g., "gemini", "claude", "openai")
    */
   @PostMapping(value = "/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<FoodRecognitionResponse> analyzeFoodImage(
@@ -112,9 +113,9 @@ public class NutritionController {
         .recipeId(request.recipeId())
         .recipeName(request.recipeName())
         .calories(request.calories())
-        .proteinGrams(request.protein())
-        .carbsGrams(request.carbs())
-        .fatGrams(request.fat())
+        .proteinGrams(request.protein() != null ? java.math.BigDecimal.valueOf(request.protein()) : null)
+        .carbsGrams(request.carbs() != null ? java.math.BigDecimal.valueOf(request.carbs()) : null)
+        .fatGrams(request.fat() != null ? java.math.BigDecimal.valueOf(request.fat()) : null)
         .consumedAt(request.consumedAt())
         .notes(request.notes())
         .build();
@@ -150,11 +151,26 @@ public class NutritionController {
     return ResponseEntity.ok(toInsightResponse(insight));
   }
 
-  private UUID parseUserId(String raw) {
-    if (raw == null || raw.isBlank() || "default-user".equalsIgnoreCase(raw)) {
+  /**
+   * Parse userId from string, handling the special "default-user" case.
+   * This allows the frontend to work without proper authentication by using a well-known UUID.
+   * 
+   * @param userId String representation of user ID or "default-user"
+   * @return UUID for the user
+   * @throws IllegalArgumentException if the string is not a valid UUID and not "default-user"
+   */
+  private UUID parseUserId(String userId) {
+    String cleaned = userId == null ? "" : userId.trim().replace("\"", "");
+    if ("default-user".equals(cleaned)) {
+      // Use a well-known UUID for the default user
+      // This is UUID("00000000-0000-0000-0000-000000000001")
       return UUID.fromString("00000000-0000-0000-0000-000000000001");
     }
-    return UUID.fromString(raw.replace("\"", "").trim());
+    try {
+      return UUID.fromString(cleaned);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Invalid userId format: " + userId + ". Must be a valid UUID or 'default-user'", e);
+    }
   }
 
   private MealLogResponse toResponse(MealLog log) {
@@ -168,9 +184,9 @@ public class NutritionController {
         log.getRecipeName(),
         log.getConsumedAt(),
         log.getCalories(),
-        log.getProteinGrams(),
-        log.getCarbsGrams(),
-        log.getFatGrams(),
+        log.getProteinGrams() != null ? log.getProteinGrams().doubleValue() : null,
+        log.getCarbsGrams() != null ? log.getCarbsGrams().doubleValue() : null,
+        log.getFatGrams() != null ? log.getFatGrams().doubleValue() : null,
         log.getNotes());
   }
 
@@ -187,7 +203,7 @@ public class NutritionController {
   }
 
   private NutritionMetricResponse toMetric(NutritionMetric metric) {
-    return new NutritionMetricResponse(metric.actual(), metric.target(), metric.percent());
+    return new NutritionMetricResponse(metric.actual().doubleValue(), metric.target().doubleValue(), metric.percent());
   }
 
   public record LogMealRequest(
@@ -240,4 +256,14 @@ public class NutritionController {
   public record NutritionInsightResponse(NutritionSummaryResponse summary,
                                          java.util.List<MealLogResponse> logs,
                                          String aiAdvice) {}
+
+  @lombok.Data
+  @lombok.Builder
+  @lombok.NoArgsConstructor
+  @lombok.AllArgsConstructor
+  public static class FoodRecognitionResponse {
+    private java.util.List<com.fitnessapp.backend.nutrition.dto.RecognizedFood> items;
+    private NutritionInfo totalNutrition;
+    private String suggestedMealType;
+  }
 }

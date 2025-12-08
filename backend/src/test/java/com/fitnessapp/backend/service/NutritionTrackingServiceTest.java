@@ -11,6 +11,7 @@ import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
 import com.fitnessapp.backend.user.repository.UserRepository;
 import com.fitnessapp.backend.nutrition.service.NutritionTrackingService;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -62,9 +63,9 @@ class NutritionTrackingServiceTest {
     LocalDate targetDate = LocalDate.of(2025, 11, 4);
 
     when(mealLogRepository.sumCalories(any(), any(), any())).thenReturn(1800L);
-    when(mealLogRepository.sumProtein(any(), any(), any())).thenReturn(120.0);
-    when(mealLogRepository.sumCarbs(any(), any(), any())).thenReturn(150.0);
-    when(mealLogRepository.sumFat(any(), any(), any())).thenReturn(45.0);
+    when(mealLogRepository.sumProtein(any(), any(), any())).thenReturn(new BigDecimal("120.0"));
+    when(mealLogRepository.sumCarbs(any(), any(), any())).thenReturn(new BigDecimal("150.0"));
+    when(mealLogRepository.sumFat(any(), any(), any())).thenReturn(new BigDecimal("45.0"));
 
     UserProfile profile = new UserProfile();
     profile.setUserId(userId);

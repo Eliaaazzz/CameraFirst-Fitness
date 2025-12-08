@@ -17,6 +17,7 @@ import com.fitnessapp.backend.recipe.service.SmartRecipeService;
 import com.fitnessapp.backend.user.service.UserProfileService;
 import com.fitnessapp.backend.workout.service.LeaderboardService;
 import com.fitnessapp.backend.nutrition.service.NutritionInsightService;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.Set;
@@ -63,8 +64,8 @@ class UserProfileControllerTest {
     profile.setUserId(userId);
     profile.setUser(user);
     profile.setHeightCm(180);
-    profile.setWeightKg(78.0);
-    profile.setBmi(24.07);
+    profile.setWeightKg(new BigDecimal("78.0"));
+    profile.setBmi(new BigDecimal("24.07"));
     profile.setFitnessGoal(FitnessGoal.GAIN_MUSCLE);
     profile.setDietaryPreference(DietaryPreference.NONE);
     profile.setDailyCalorieTarget(2600);
@@ -105,7 +106,7 @@ class UserProfileControllerTest {
     UserProfile profile = sampleProfile(userId);
     when(userProfileService.upsertProfile(eq(userId), any(UserProfile.class))).thenReturn(profile);
 
-    UserProfileRequest request = new UserProfileRequest(180, 78.0, 18.5, 1600, FitnessGoal.GAIN_MUSCLE,
+    UserProfileRequest request = new UserProfileRequest(180, new BigDecimal("78.0"), new BigDecimal("18.5"), 1600, FitnessGoal.GAIN_MUSCLE,
         DietaryPreference.NONE, Set.of(Allergen.NUTS), 2600, 180, 250, 70);
 
     mockMvc.perform(put("/api/v1/users/{userId}/profile", userId)

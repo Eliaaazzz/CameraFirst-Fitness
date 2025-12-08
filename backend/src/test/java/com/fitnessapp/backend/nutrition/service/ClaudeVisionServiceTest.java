@@ -52,7 +52,7 @@ class ClaudeVisionServiceTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        claudeVisionService = new ClaudeVisionServiceImpl(objectMapper, "test-api-key");
+        claudeVisionService = new ClaudeVisionServiceImpl(objectMapper, "test-api-key", true);
 
         // Replace the real HTTP client with mock
         ReflectionTestUtils.setField(claudeVisionService, "httpClient", mockHttpClient);
@@ -142,7 +142,7 @@ class ClaudeVisionServiceTest {
     @DisplayName("Should fail when API key is not configured")
     void testRecognizeFoods_NoApiKey() {
         // Given: Service without API key
-        ClaudeVisionServiceImpl serviceWithoutKey = new ClaudeVisionServiceImpl(objectMapper, "");
+        ClaudeVisionServiceImpl serviceWithoutKey = new ClaudeVisionServiceImpl(objectMapper, "", true);
 
         MultipartFile imageFile = new MockMultipartFile(
             "image", "food.jpg", "image/jpeg", "content".getBytes()
@@ -153,6 +153,21 @@ class ClaudeVisionServiceTest {
             .isInstanceOf(FoodRecognitionException.class)
             .hasMessageContaining("not configured");
     }
+
+    @Test
+    @DisplayName("Should be unavailable when provider disabled via config")
+    void testRecognizeFoods_DisabledByConfig() {
+        ClaudeVisionServiceImpl disabled = new ClaudeVisionServiceImpl(objectMapper, "test-api-key", false);
+
+        MultipartFile imageFile = new MockMultipartFile(
+            "image", "food.jpg", "image/jpeg", "content".getBytes()
+        );
+
+        assertThatThrownBy(() -> disabled.recognizeFoods(imageFile))
+            .isInstanceOf(FoodRecognitionException.class)
+            .hasMessageContaining("not configured");
+    }
+
 
     @Test
     @DisplayName("Should include correct headers in API request")

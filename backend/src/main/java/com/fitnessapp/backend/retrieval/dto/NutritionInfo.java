@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
 
+import java.math.BigDecimal;
+
 /**
  * Nutrition information for recipes
  *
@@ -24,27 +26,27 @@ public class NutritionInfo {
     /**
      * Protein in grams
      */
-    Double protein;
+    BigDecimal protein;
 
     /**
      * Carbohydrates in grams
      */
-    Double carbs;
+    BigDecimal carbs;
 
     /**
      * Fat in grams
      */
-    Double fat;
+    BigDecimal fat;
 
     /**
      * Fiber in grams (optional)
      */
-    Double fiber;
+    BigDecimal fiber;
 
     /**
      * Sugar in grams (optional)
      */
-    Double sugar;
+    BigDecimal sugar;
 
     /**
      * Sodium in milligrams (optional)
@@ -62,9 +64,9 @@ public class NutritionInfo {
     public static NutritionInfo createDefault() {
         return NutritionInfo.builder()
             .calories(350)
-            .protein(20.0)
-            .carbs(40.0)
-            .fat(12.0)
+            .protein(new BigDecimal("20.0"))
+            .carbs(new BigDecimal("40.0"))
+            .fat(new BigDecimal("12.0"))
             .build();
     }
 
@@ -73,11 +75,11 @@ public class NutritionInfo {
      */
     public static NutritionInfo fromSpoonacular(
         Integer calories,
-        Double protein,
-        Double carbs,
-        Double fat,
-        Double fiber,
-        Double sugar,
+        BigDecimal protein,
+        BigDecimal carbs,
+        BigDecimal fat,
+        BigDecimal fiber,
+        BigDecimal sugar,
         Integer sodium,
         Integer servings
     ) {

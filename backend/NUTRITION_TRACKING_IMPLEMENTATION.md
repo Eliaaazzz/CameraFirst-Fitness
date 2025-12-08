@@ -2,13 +2,24 @@
 
 ## 🎉 Implementation Complete
 
-Your nutrition tracking backend with Claude Vision AI integration is now fully implemented and production-ready!
+> Note: Gemini Flash 2.0 is now the primary vision model; Claude is kept only as an optional fallback and is disabled by default.
+
+Your nutrition tracking backend now ships with Gemini Flash 2.0 vision as the default (Claude kept as fallback) and is production-ready.
 
 ## 📋 What Was Implemented
 
 ### 1. **Core Services**
 
-#### ClaudeVisionService
+#### GeminiVisionService (primary)
+- **Location**: `backend/src/main/java/com/fitnessapp/backend/nutrition/service/`
+- **Purpose**: Integrates with Google Gemini Flash 2.0 Vision to recognize foods from photos
+- **Features**:
+  - Base64 inline image uploads with content-type validation
+  - 30-second timeout with 2 retry attempts and backoff
+  - Handles rate limiting (429) and server errors
+  - Returns structured JSON with food items and confidence scores
+
+#### ClaudeVisionService (fallback)
 - **Location**: `backend/src/main/java/com/fitnessapp/backend/nutrition/service/`
 - **Purpose**: Integrates with Claude 3.5 Sonnet Vision API to recognize foods from photos
 - **Features**:
@@ -68,16 +79,26 @@ Global exception handler with proper error codes:
 
 ## 🚀 Setup Instructions
 
-### 1. Add Anthropic API Key
+### 1. Add Google Gemini API Key (primary)
 
 Add to your `.env` file:
 ```bash
-ANTHROPIC_API_KEY=your_claude_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_ENABLED=true
+ANTHROPIC_ENABLED=false
 ```
 
-Get your API key from: https://console.anthropic.com/
+Get your key from: https://ai.google.dev/gemini-api/docs/api-key
 
-### 2. Run Database Migration
+### 2. (Optional) Enable Anthropic Claude fallback
+
+If you want Claude as a fallback, add:
+```bash
+ANTHROPIC_API_KEY=your_claude_api_key_here
+ANTHROPIC_ENABLED=true
+```
+
+### 3. Run Database Migration
 
 ```bash
 cd backend
@@ -86,7 +107,7 @@ cd backend
 
 This will add the new columns to `meal_log` table.
 
-### 3. Build and Run
+### 4. Build and Run
 
 ```bash
 ./gradlew clean build

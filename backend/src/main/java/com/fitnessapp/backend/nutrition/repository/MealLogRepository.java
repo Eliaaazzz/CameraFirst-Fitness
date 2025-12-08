@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.nutrition.repository;
 
 import com.fitnessapp.backend.nutrition.entity.MealLog;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -17,13 +18,13 @@ public interface MealLogRepository extends JpaRepository<MealLog, Long> {
   Long sumCalories(@Param("userId") UUID userId, @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
 
   @Query("select coalesce(sum(m.proteinGrams),0) from MealLog m where m.userId = :userId and m.consumedAt between :start and :end")
-  Double sumProtein(@Param("userId") UUID userId, @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
+  BigDecimal sumProtein(@Param("userId") UUID userId, @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
 
   @Query("select coalesce(sum(m.carbsGrams),0) from MealLog m where m.userId = :userId and m.consumedAt between :start and :end")
-  Double sumCarbs(@Param("userId") UUID userId, @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
+  BigDecimal sumCarbs(@Param("userId") UUID userId, @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
 
   @Query("select coalesce(sum(m.fatGrams),0) from MealLog m where m.userId = :userId and m.consumedAt between :start and :end")
-  Double sumFat(@Param("userId") UUID userId, @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
+  BigDecimal sumFat(@Param("userId") UUID userId, @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
 
   @Query("""
       select m.userId as userId,

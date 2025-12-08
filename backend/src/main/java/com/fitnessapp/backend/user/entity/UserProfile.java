@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.user.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Optional;
@@ -35,14 +36,14 @@ public class UserProfile {
   @Column(name = "height_cm")
   private Integer heightCm;
 
-  @Column(name = "weight_kg")
-  private Double weightKg;
+  @Column(name = "weight_kg", precision = 6, scale = 2)
+  private BigDecimal weightKg;
 
-  @Column(name = "bmi")
-  private Double bmi;
+  @Column(name = "bmi", precision = 5, scale = 2)
+  private BigDecimal bmi;
 
-  @Column(name = "body_fat_percentage")
-  private Double bodyFatPercentage;
+  @Column(name = "body_fat_percentage", precision = 5, scale = 2)
+  private BigDecimal bodyFatPercentage;
 
   @Column(name = "basal_metabolic_rate")
   private Integer basalMetabolicRate;

@@ -137,10 +137,10 @@ public class NutritionInsightService {
   private SummarySignature signatureFor(NutritionSummary summary) {
     return new SummarySignature(
         summary.days(),
-        summary.calories().actual(),
-        summary.protein().actual(),
-        summary.carbs().actual(),
-        summary.fat().actual()
+        summary.calories().actual().doubleValue(),
+        summary.protein().actual().doubleValue(),
+        summary.carbs().actual().doubleValue(),
+        summary.fat().actual().doubleValue()
     );
   }
 

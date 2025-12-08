@@ -52,7 +52,7 @@ class GeminiVisionServiceTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        geminiVisionService = new GeminiVisionServiceImpl(objectMapper, "test-api-key", "gemini-2.0-flash");
+        geminiVisionService = new GeminiVisionServiceImpl(objectMapper, "test-api-key", true);
 
         // Replace the real HTTP client with mock
         ReflectionTestUtils.setField(geminiVisionService, "httpClient", mockHttpClient);
@@ -148,7 +148,7 @@ class GeminiVisionServiceTest {
     @DisplayName("Should fail when API key is not configured")
     void testRecognizeFoods_NoApiKey() {
         // Given: Service without API key
-        GeminiVisionServiceImpl serviceWithoutKey = new GeminiVisionServiceImpl(objectMapper, "", "gemini-2.0-flash");
+        GeminiVisionServiceImpl serviceWithoutKey = new GeminiVisionServiceImpl(objectMapper, "", true);
 
         MultipartFile imageFile = new MockMultipartFile(
             "image", "food.jpg", "image/jpeg", "content".getBytes()
@@ -444,7 +444,7 @@ class GeminiVisionServiceTest {
     @Test
     @DisplayName("Should not be available when API key is not configured")
     void testIsAvailable_WithoutKey() {
-        GeminiVisionServiceImpl serviceWithoutKey = new GeminiVisionServiceImpl(objectMapper, "", "gemini-2.0-flash");
+        GeminiVisionServiceImpl serviceWithoutKey = new GeminiVisionServiceImpl(objectMapper, "", true);
         assertThat(serviceWithoutKey.isAvailable()).isFalse();
     }
 }

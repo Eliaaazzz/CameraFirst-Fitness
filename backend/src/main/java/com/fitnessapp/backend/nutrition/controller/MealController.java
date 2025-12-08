@@ -142,16 +142,16 @@ public class MealController {
     DailySummaryResponse response = DailySummaryResponse.builder()
         .date(today.toString())
         .current(NutritionSummary.builder()
-            .calories(summary.calories().actual())
-            .protein(summary.protein().actual())
-            .fat(summary.fat().actual())
-            .carbs(summary.carbs().actual())
+            .calories(summary.calories().actual().doubleValue())
+            .protein(summary.protein().actual().doubleValue())
+            .fat(summary.fat().actual().doubleValue())
+            .carbs(summary.carbs().actual().doubleValue())
             .build())
         .target(NutritionSummary.builder()
-            .calories(summary.calories().target())
-            .protein(summary.protein().target())
-            .fat(summary.fat().target())
-            .carbs(summary.carbs().target())
+            .calories(summary.calories().target().doubleValue())
+            .protein(summary.protein().target().doubleValue())
+            .fat(summary.fat().target().doubleValue())
+            .carbs(summary.carbs().target().doubleValue())
             .build())
         .meals(todayMeals.stream().map(this::toSimpleMeal).collect(Collectors.toList()))
         .healthScore(calculateHealthScore(summary))
@@ -183,10 +183,10 @@ public class MealController {
   private NutritionInfo calculateTotals(List<CreateMealRequest.FoodItemRequest> items) {
     NutritionInfo total = NutritionInfo.zero();
     for (CreateMealRequest.FoodItemRequest item : items) {
-      total.setCalories(total.getCalories() + item.getCalories());
-      total.setProtein(total.getProtein() + item.getProtein());
-      total.setFat(total.getFat() + item.getFat());
-      total.setCarbs(total.getCarbs() + item.getCarbs());
+      total.setCalories(total.getCalories().add(item.getCalories()));
+      total.setProtein(total.getProtein().add(item.getProtein()));
+      total.setFat(total.getFat().add(item.getFat()));
+      total.setCarbs(total.getCarbs().add(item.getCarbs()));
     }
     return total;
   }
@@ -212,9 +212,9 @@ public class MealController {
         .consumedAt(meal.getConsumedAt())
         .foodItems(foodItems)
         .totalCalories(meal.getTotalCalories())
-        .totalProtein(meal.getTotalProtein())
-        .totalCarbs(meal.getTotalCarbs())
-        .totalFat(meal.getTotalFat())
+        .totalProtein(meal.getTotalProtein() != null ? meal.getTotalProtein().doubleValue() : null)
+        .totalCarbs(meal.getTotalCarbs() != null ? meal.getTotalCarbs().doubleValue() : null)
+        .totalFat(meal.getTotalFat() != null ? meal.getTotalFat().doubleValue() : null)
         .imageUrl(meal.getImageUrl())
         .notes(meal.getNotes())
         .build();
@@ -247,8 +247,8 @@ public class MealController {
   }
 
   private int calculateHealthScore(NutritionTrackingService.NutritionSummary summary) {
-    double caloriesScore = Math.min(100, (summary.calories().actual() / summary.calories().target()) * 100);
-    double proteinScore = Math.min(100, (summary.protein().actual() / summary.protein().target()) * 100);
+    double caloriesScore = Math.min(100, summary.calories().actual().divide(summary.calories().target(), 4, java.math.RoundingMode.HALF_UP).multiply(new java.math.BigDecimal("100")).doubleValue());
+    double proteinScore = Math.min(100, summary.protein().actual().divide(summary.protein().target(), 4, java.math.RoundingMode.HALF_UP).multiply(new java.math.BigDecimal("100")).doubleValue());
     double balanceScore = 100 - Math.abs(summary.calories().percent() - 100);
 
     return (int) ((caloriesScore + proteinScore + balanceScore) / 3);

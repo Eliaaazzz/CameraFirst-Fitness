@@ -3,14 +3,16 @@ package com.fitnessapp.backend.user.dto;
 import com.fitnessapp.backend.user.entity.Allergen;
 import com.fitnessapp.backend.user.entity.DietaryPreference;
 import com.fitnessapp.backend.user.entity.FitnessGoal;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 import java.util.Set;
 
 public record UserProfileRequest(
     @Positive(message = "Height must be positive") Integer heightCm,
-    @Positive(message = "Weight must be positive") Double weightKg,
-    @Positive(message = "Body fat must be positive") Double bodyFatPercentage,
+    @DecimalMin(value = "0.0", inclusive = false, message = "Weight must be positive") BigDecimal weightKg,
+    @DecimalMin(value = "0.0", inclusive = false, message = "Body fat must be positive") BigDecimal bodyFatPercentage,
     @Positive(message = "BMR must be positive") Integer basalMetabolicRate,
     FitnessGoal fitnessGoal,
     DietaryPreference dietaryPreference,

@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -33,23 +34,23 @@ public class FoodNutrition {
     @Column(name = "display_name_cn", length = 200)
     private String displayNameCn;
 
-    @Column(nullable = false)
-    private Double calories;
+    @Column(nullable = false, precision = 8, scale = 2)
+    private BigDecimal calories;
 
-    @Column(nullable = false)
-    private Double protein;
+    @Column(nullable = false, precision = 8, scale = 2)
+    private BigDecimal protein;
 
-    @Column(nullable = false)
-    private Double fat;
+    @Column(nullable = false, precision = 8, scale = 2)
+    private BigDecimal fat;
 
-    @Column(nullable = false)
-    private Double carbs;
+    @Column(nullable = false, precision = 8, scale = 2)
+    private BigDecimal carbs;
 
-    @Column
-    private Double fiber;
+    @Column(precision = 8, scale = 2)
+    private BigDecimal fiber;
 
-    @Column
-    private Double sodium;
+    @Column(precision = 8, scale = 2)
+    private BigDecimal sodium;
 
     @Column(length = 50)
     private String category;

@@ -27,6 +27,7 @@ import com.fitnessapp.backend.user.repository.UserRepository;
 import com.fitnessapp.backend.user.service.UserProfileService;
 
 import jakarta.persistence.EntityNotFoundException;
+import java.math.BigDecimal;
 
 @DataJpaTest(properties = {
     "spring.jpa.hibernate.ddl-auto=create-drop",
@@ -106,7 +107,7 @@ class UserProfileServiceTest {
   void upsertProfileCalculatesBmi() {
     UserProfile payload = new UserProfile();
     payload.setHeightCm(180);
-    payload.setWeightKg(78.0);
+    payload.setWeightKg(new BigDecimal("78.0"));
     payload.setFitnessGoal(FitnessGoal.GAIN_MUSCLE);
     payload.setDietaryPreference(DietaryPreference.MEDITERRANEAN);
     payload.setDailyCalorieTarget(2600);
@@ -115,18 +116,18 @@ class UserProfileServiceTest {
     UserProfile saved = service.upsertProfile(user.getId(), payload);
 
     assertThat(saved.getUserId()).isEqualTo(user.getId());
-    assertThat(saved.getBmi()).isEqualTo(24.07);
+    assertThat(saved.getBmi()).isEqualTo(new BigDecimal("24.07"));
     assertThat(saved.getAllergens()).containsExactly(Allergen.SEAFOOD);
 
     UserProfile secondPayload = new UserProfile();
     secondPayload.setHeightCm(180);
-    secondPayload.setWeightKg(70.0);
+    secondPayload.setWeightKg(new BigDecimal("70.0"));
     secondPayload.setFitnessGoal(FitnessGoal.LOSE_WEIGHT);
     secondPayload.getAllergens().add(Allergen.LACTOSE);
 
     UserProfile updated = service.upsertProfile(user.getId(), secondPayload);
 
-    assertThat(updated.getBmi()).isEqualTo(21.6);
+    assertThat(updated.getBmi()).isEqualTo(new BigDecimal("21.6"));
     assertThat(updated.getFitnessGoal()).isEqualTo(FitnessGoal.LOSE_WEIGHT);
     assertThat(updated.getAllergens()).containsExactly(Allergen.LACTOSE);
     assertThat(userProfileRepository.count()).isEqualTo(1);
@@ -136,7 +137,7 @@ class UserProfileServiceTest {
   void upsertThrowsWhenUserMissing() {
     UserProfile payload = new UserProfile();
     payload.setHeightCm(175);
-    payload.setWeightKg(70.0);
+    payload.setWeightKg(new BigDecimal("70.0"));
 
     assertThatThrownBy(() -> service.upsertProfile(UUID.randomUUID(), payload))
         .isInstanceOf(EntityNotFoundException.class)

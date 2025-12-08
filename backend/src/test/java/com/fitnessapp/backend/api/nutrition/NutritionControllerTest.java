@@ -18,6 +18,7 @@ import com.fitnessapp.backend.nutrition.service.NutritionInsightService;
 import com.fitnessapp.backend.nutrition.service.NutritionTrackingService;
 import com.fitnessapp.backend.nutrition.service.NutritionTrackingService.NutritionMetric;
 import com.fitnessapp.backend.nutrition.service.NutritionTrackingService.NutritionSummary;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -112,9 +113,9 @@ class NutritionControllerTest {
         .recipeName("鸡胸肉沙拉")
         .consumedAt(OffsetDateTime.now().minusDays(1))
         .calories(520)
-        .proteinGrams(42.0)
-        .carbsGrams(35.0)
-        .fatGrams(16.0)
+        .proteinGrams(new BigDecimal("42.0"))
+        .carbsGrams(new BigDecimal("35.0"))
+        .fatGrams(new BigDecimal("16.0"))
         .build();
     NutritionInsightService.NutritionInsight insight =
         new NutritionInsightService.NutritionInsight(summary, java.util.List.of(log), "请继续保持蛋白质摄入，适当增加复合碳水。");

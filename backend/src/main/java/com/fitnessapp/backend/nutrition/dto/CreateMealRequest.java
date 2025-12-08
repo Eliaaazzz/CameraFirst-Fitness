@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,17 +50,17 @@ public class CreateMealRequest {
     private Integer grams;
 
     @NotNull
-    private Double calories;
+    private BigDecimal calories;
 
     @NotNull
-    private Double protein;
+    private BigDecimal protein;
 
     @NotNull
-    private Double fat;
+    private BigDecimal fat;
 
     @NotNull
-    private Double carbs;
+    private BigDecimal carbs;
 
-    private Double confidence;
+    private BigDecimal confidence;
   }
 }

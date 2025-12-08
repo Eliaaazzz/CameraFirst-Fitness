@@ -46,16 +46,21 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
   private final OkHttpClient httpClient;
   private final ObjectMapper objectMapper;
   private final String apiKey;
+  private final boolean enabled;
 
   public ClaudeVisionServiceImpl(
       ObjectMapper objectMapper,
-      @Value("${app.anthropic.api-key:}") String apiKey
+      @Value("${app.anthropic.api-key:}") String apiKey,
+      @Value("${app.anthropic.enabled:false}") boolean enabled
   ) {
-    if (apiKey == null || apiKey.isBlank()) {
+    if (!enabled) {
+      log.info("Claude vision provider disabled via configuration");
+    } else if (apiKey == null || apiKey.isBlank()) {
       log.warn("⚠️  Anthropic API key not configured - Claude food recognition will be disabled");
     }
     this.objectMapper = objectMapper;
     this.apiKey = apiKey;
+    this.enabled = enabled;
     this.httpClient = new OkHttpClient.Builder()
         .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
         .readTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
@@ -77,12 +82,12 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
 
   @Override
   public boolean isAvailable() {
-    return apiKey != null && !apiKey.isBlank();
+    return enabled && apiKey != null && !apiKey.isBlank();
   }
 
   @Override
   public int getPriority() {
-    return 100; // Low priority - Claude is deprecated, Gemini is primary provider
+    return 20; // Lower priority fallback behind Gemini
   }
 
   // ==================== ClaudeVisionService Interface ====================
@@ -128,7 +133,7 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
    */
   public FoodRecognitionResult recognizeFoods(String base64Image, String mediaType) {
     // Validate API key
-    if (apiKey == null || apiKey.isBlank()) {
+    if (!isAvailable()) {
       throw new FoodRecognitionException("AI food recognition is not configured. Please set ANTHROPIC_API_KEY.");
     }
 
@@ -199,23 +204,23 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
 
     String requestJson = String.format("""
         {
-          "model": "%s",
-          "max_tokens": %d,
-          "messages": [
+          \"model\": \"%s\",
+          \"max_tokens\": %d,
+          \"messages\": [
             {
-              "role": "user",
-              "content": [
+              \"role\": \"user\",
+              \"content\": [
                 {
-                  "type": "image",
-                  "source": {
-                    "type": "base64",
-                    "media_type": "%s",
-                    "data": "%s"
+                  \"type\": \"image\",
+                  \"source\": {
+                    \"type\": \"base64\",
+                    \"media_type\": \"%s\",
+                    \"data\": \"%s\"
                   }
                 },
                 {
-                  "type": "text",
-                  "text": "%s"
+                  \"type\": \"text\",
+                  \"text\": \"%s\"
                 }
               ]
             }
@@ -237,16 +242,16 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
 
         Return ONLY valid JSON, no other text:
         {
-            "items": [
+            \"items\": [
                 {
-                    "food_key": "snake_case_english_identifier",
-                    "display_name": "Chinese name",
-                    "estimated_grams": 200,
-                    "cooking_method": "steamed/fried/grilled/etc",
-                    "confidence": 0.95
+                    \"food_key\": \"snake_case_english_identifier\",
+                    \"display_name\": \"Chinese name\",
+                    \"estimated_grams\": 200,
+                    \"cooking_method\": \"steamed/fried/grilled/etc\",
+                    \"confidence\": 0.95
                 }
             ],
-            "meal_type": "breakfast/lunch/dinner/snack"
+            \"meal_type\": \"breakfast/lunch/dinner/snack\"
         }
 
         Common food_key examples:
@@ -255,7 +260,7 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
         - boiled_egg, fried_egg, scrambled_egg
         - stir_fried_vegetables, tomato_egg
 
-        If image is unclear or not food, return: {"items": [], "meal_type": "unknown"}
+        If image is unclear or not food, return: {\"items\": [], \"meal_type\": \"unknown\"}
         """;
   }
 
