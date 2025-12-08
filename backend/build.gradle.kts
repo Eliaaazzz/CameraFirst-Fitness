@@ -64,6 +64,13 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+
+    // Exclude slow integration tests in CI (controlled by property)
+    if (project.hasProperty("excludeSlowTests")) {
+        exclude("**/DatabaseSchemaIntegrationTest*")
+        exclude("**/RecipePerformanceTest*")
+        exclude("**/*IntegrationTest*")
+    }
 }
 
 tasks.jacocoTestReport {
