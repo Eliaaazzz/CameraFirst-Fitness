@@ -9,6 +9,7 @@ import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
 import com.fitnessapp.backend.user.repository.UserRepository;
+import java.math.BigDecimal;
 import java.util.Set;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -93,7 +94,7 @@ class UserProfileRepositoryTest {
     profile.setUser(user);
     profile.setUserId(user.getId());
     profile.setHeightCm(180);
-    profile.setWeightKg(75.5);
+    profile.setWeightKg(new BigDecimal("75.5"));
     profile.setFitnessGoal(FitnessGoal.MAINTAIN);
     profile.setDietaryPreference(DietaryPreference.NONE);
     profile.setDailyCalorieTarget(2200);
@@ -105,7 +106,7 @@ class UserProfileRepositoryTest {
 
     assertThat(persisted.getUserId()).isEqualTo(user.getId());
     assertThat(persisted.getHeightCm()).isEqualTo(180);
-    assertThat(persisted.getWeightKg()).isEqualTo(75.5);
+    assertThat(persisted.getWeightKg()).isEqualTo(new BigDecimal("75.5"));
     assertThat(persisted.getFitnessGoal()).isEqualTo(FitnessGoal.MAINTAIN);
     assertThat(persisted.getDietaryPreference()).isEqualTo(DietaryPreference.NONE);
     assertThat(persisted.getAllergens()).containsExactlyInAnyOrder(Allergen.NUTS, Allergen.SEAFOOD);

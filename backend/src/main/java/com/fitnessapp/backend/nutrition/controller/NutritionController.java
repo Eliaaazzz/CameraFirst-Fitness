@@ -113,9 +113,9 @@ public class NutritionController {
         .recipeId(request.recipeId())
         .recipeName(request.recipeName())
         .calories(request.calories())
-        .proteinGrams(request.protein())
-        .carbsGrams(request.carbs())
-        .fatGrams(request.fat())
+        .proteinGrams(request.protein() != null ? java.math.BigDecimal.valueOf(request.protein()) : null)
+        .carbsGrams(request.carbs() != null ? java.math.BigDecimal.valueOf(request.carbs()) : null)
+        .fatGrams(request.fat() != null ? java.math.BigDecimal.valueOf(request.fat()) : null)
         .consumedAt(request.consumedAt())
         .notes(request.notes())
         .build();
@@ -184,9 +184,9 @@ public class NutritionController {
         log.getRecipeName(),
         log.getConsumedAt(),
         log.getCalories(),
-        log.getProteinGrams(),
-        log.getCarbsGrams(),
-        log.getFatGrams(),
+        log.getProteinGrams() != null ? log.getProteinGrams().doubleValue() : null,
+        log.getCarbsGrams() != null ? log.getCarbsGrams().doubleValue() : null,
+        log.getFatGrams() != null ? log.getFatGrams().doubleValue() : null,
         log.getNotes());
   }
 
@@ -203,7 +203,7 @@ public class NutritionController {
   }
 
   private NutritionMetricResponse toMetric(NutritionMetric metric) {
-    return new NutritionMetricResponse(metric.actual(), metric.target(), metric.percent());
+    return new NutritionMetricResponse(metric.actual().doubleValue(), metric.target().doubleValue(), metric.percent());
   }
 
   public record LogMealRequest(

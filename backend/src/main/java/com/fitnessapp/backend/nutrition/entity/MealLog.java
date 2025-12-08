@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.nutrition.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -48,14 +49,14 @@ public class MealLog {
   @Column(name = "calories")
   private Integer calories;
 
-  @Column(name = "protein_grams")
-  private Double proteinGrams;
+  @Column(name = "protein_grams", precision = 6, scale = 2)
+  private BigDecimal proteinGrams;
 
-  @Column(name = "carbs_grams")
-  private Double carbsGrams;
+  @Column(name = "carbs_grams", precision = 6, scale = 2)
+  private BigDecimal carbsGrams;
 
-  @Column(name = "fat_grams")
-  private Double fatGrams;
+  @Column(name = "fat_grams", precision = 6, scale = 2)
+  private BigDecimal fatGrams;
 
   @Column(name = "notes", length = 500)
   private String notes;
@@ -72,14 +73,14 @@ public class MealLog {
   @Column(name = "total_calories")
   private Integer totalCalories;
 
-  @Column(name = "total_protein")
-  private Double totalProtein;
+  @Column(name = "total_protein", precision = 8, scale = 2)
+  private BigDecimal totalProtein;
 
-  @Column(name = "total_carbs")
-  private Double totalCarbs;
+  @Column(name = "total_carbs", precision = 8, scale = 2)
+  private BigDecimal totalCarbs;
 
-  @Column(name = "total_fat")
-  private Double totalFat;
+  @Column(name = "total_fat", precision = 8, scale = 2)
+  private BigDecimal totalFat;
 
   @PrePersist
   void onCreate() {

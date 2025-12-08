@@ -51,17 +51,22 @@ public class UserProfileService {
 
   private void computeDerivedMetrics(UserProfile profile) {
     Integer heightCm = profile.getHeightCm();
-    Double weightKg = profile.getWeightKg();
+    BigDecimal weightKg = profile.getWeightKg();
 
-    if (heightCm == null || heightCm <= 0 || weightKg == null || weightKg <= 0) {
+    if (heightCm == null || heightCm <= 0 || weightKg == null || weightKg.compareTo(BigDecimal.ZERO) <= 0) {
       profile.setBmi(null);
       return;
     }
 
-    double heightMeters = heightCm / 100.0;
-    double bmiValue = weightKg / (heightMeters * heightMeters);
-    BigDecimal rounded = BigDecimal.valueOf(bmiValue).setScale(2, RoundingMode.HALF_UP);
-    profile.setBmi(rounded.doubleValue());
+    // Convert height from cm to meters using BigDecimal for precision
+    BigDecimal heightMeters = BigDecimal.valueOf(heightCm).divide(
+        BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+
+    // Calculate BMI = weight / (height^2)
+    BigDecimal heightSquared = heightMeters.multiply(heightMeters);
+    BigDecimal bmiValue = weightKg.divide(heightSquared, 2, RoundingMode.HALF_UP);
+
+    profile.setBmi(bmiValue);
   }
 }
 

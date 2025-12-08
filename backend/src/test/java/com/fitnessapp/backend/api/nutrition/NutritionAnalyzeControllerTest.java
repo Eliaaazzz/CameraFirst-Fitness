@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -89,10 +90,10 @@ class NutritionAnalyzeControllerTest {
         // Mock total calculation
         when(nutritionEngine.calculateTotal(any())).thenReturn(
             NutritionInfo.builder()
-                .calories(572.0)
-                .protein(19.2)
-                .fat(28.6)
-                .carbs(56.2)
+                .calories(new BigDecimal("572.0"))
+                .protein(new BigDecimal("19.2"))
+                .fat(new BigDecimal("28.6"))
+                .carbs(new BigDecimal("56.2"))
                 .build()
         );
 
@@ -227,7 +228,7 @@ class NutritionAnalyzeControllerTest {
 
         when(nutritionEngine.calculateTotal(any())).thenReturn(
             NutritionInfo.builder()
-                .calories(98.0).protein(6.8).fat(7.65).carbs(0.55).build()
+                .calories(new BigDecimal("98.0")).protein(new BigDecimal("6.8")).fat(new BigDecimal("7.65")).carbs(new BigDecimal("0.55")).build()
         );
 
         // When/Then
@@ -268,7 +269,7 @@ class NutritionAnalyzeControllerTest {
 
         when(nutritionEngine.calculateTotal(any())).thenReturn(
             NutritionInfo.builder()
-                .calories(114.0).protein(7.2).fat(7.8).carbs(5.4).build()
+                .calories(new BigDecimal("114.0")).protein(new BigDecimal("7.2")).fat(new BigDecimal("7.8")).carbs(new BigDecimal("5.4")).build()
         );
 
         // When/Then

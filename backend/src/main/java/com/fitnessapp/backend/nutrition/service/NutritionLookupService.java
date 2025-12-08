@@ -31,10 +31,10 @@ public class NutritionLookupService {
 
     // Default nutrition for unknown foods (per 100g)
     private static final NutritionInfo DEFAULT_NUTRITION = NutritionInfo.builder()
-            .calories(150.0)
-            .protein(8.0)
-            .fat(6.0)
-            .carbs(15.0)
+            .calories(new java.math.BigDecimal("150.0"))
+            .protein(new java.math.BigDecimal("8.0"))
+            .fat(new java.math.BigDecimal("6.0"))
+            .carbs(new java.math.BigDecimal("15.0"))
             .build();
 
     /**
@@ -223,10 +223,10 @@ public class NutritionLookupService {
      */
     private NutritionInfo toNutritionInfo(FoodNutrition entity) {
         return NutritionInfo.builder()
-                .calories(entity.getCalories() != null ? entity.getCalories() : 0.0)
-                .protein(entity.getProtein() != null ? entity.getProtein() : 0.0)
-                .fat(entity.getFat() != null ? entity.getFat() : 0.0)
-                .carbs(entity.getCarbs() != null ? entity.getCarbs() : 0.0)
+                .calories(entity.getCalories() != null ? entity.getCalories() : java.math.BigDecimal.ZERO)
+                .protein(entity.getProtein() != null ? entity.getProtein() : java.math.BigDecimal.ZERO)
+                .fat(entity.getFat() != null ? entity.getFat() : java.math.BigDecimal.ZERO)
+                .carbs(entity.getCarbs() != null ? entity.getCarbs() : java.math.BigDecimal.ZERO)
                 .build();
     }
 
@@ -246,10 +246,10 @@ public class NutritionLookupService {
             }
             log.info("Using USDA nutrition for '{}' : {}", normalizedKey, food.getName());
             return NutritionInfo.builder()
-                    .calories(toDouble(food.getNutrition().getCalories()))
-                    .protein(toDouble(food.getNutrition().getProteinG()))
-                    .fat(toDouble(food.getNutrition().getFatG()))
-                    .carbs(toDouble(food.getNutrition().getCarbsG()))
+                    .calories(toBigDecimal(food.getNutrition().getCalories()))
+                    .protein(toBigDecimal(food.getNutrition().getProteinG()))
+                    .fat(toBigDecimal(food.getNutrition().getFatG()))
+                    .carbs(toBigDecimal(food.getNutrition().getCarbsG()))
                     .build();
         } catch (Exception e) {
             log.debug("USDA lookup failed for {}: {}", normalizedKey, e.getMessage());
@@ -257,7 +257,7 @@ public class NutritionLookupService {
         }
     }
 
-    private double toDouble(Number value) {
-        return value == null ? 0.0 : value.doubleValue();
+    private java.math.BigDecimal toBigDecimal(Number value) {
+        return value == null ? java.math.BigDecimal.ZERO : java.math.BigDecimal.valueOf(value.doubleValue());
     }
 }

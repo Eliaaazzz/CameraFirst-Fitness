@@ -19,6 +19,7 @@ import com.fitnessapp.backend.user.repository.UserRepository;
 import com.fitnessapp.backend.security.CurrentUser;
 import com.fitnessapp.backend.nutrition.service.NutritionInsightService;
 import com.fitnessapp.backend.user.service.UserProfileService;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -63,7 +64,7 @@ class CurrentUserControllerTest {
     when(userProfileService.getProfile(userId)).thenReturn(Optional.of(UserProfile.builder()
         .userId(userId)
         .heightCm(172)
-        .weightKg(70.0)
+        .weightKg(new BigDecimal("70.0"))
         .build()));
 
     mockMvc.perform(get("/api/v1/me"))
@@ -82,7 +83,7 @@ class CurrentUserControllerTest {
       return payload;
     });
 
-    UserProfileRequest request = new UserProfileRequest(180, 80.0, null, null, null, null, null, 2200, 160, 220, 70);
+    UserProfileRequest request = new UserProfileRequest(180, new BigDecimal("80.0"), null, null, null, null, null, 2200, 160, 220, 70);
 
     mockMvc.perform(put("/api/v1/me/profile")
             .contentType(MediaType.APPLICATION_JSON)

@@ -19,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -97,21 +98,21 @@ class MealControllerTest {
                     .foodKey("steamed_rice")
                     .displayName("白米饭")
                     .grams(200)
-                    .calories(232.0)
-                    .protein(5.2)
-                    .fat(0.6)
-                    .carbs(51.2)
-                    .confidence(0.95)
+                    .calories(new BigDecimal("232.0"))
+                    .protein(new BigDecimal("5.2"))
+                    .fat(new BigDecimal("0.6"))
+                    .carbs(new BigDecimal("51.2"))
+                    .confidence(new BigDecimal("0.95"))
                     .build(),
                 CreateMealRequest.FoodItemRequest.builder()
                     .foodKey("chicken_breast")
                     .displayName("鸡胸肉")
                     .grams(150)
-                    .calories(199.5)
-                    .protein(42.0)
-                    .fat(3.0)
-                    .carbs(0.0)
-                    .confidence(0.90)
+                    .calories(new BigDecimal("199.5"))
+                    .protein(new BigDecimal("42.0"))
+                    .fat(new BigDecimal("3.0"))
+                    .carbs(new BigDecimal("0.0"))
+                    .confidence(new BigDecimal("0.90"))
                     .build()
             ))
             .note("Healthy lunch")
@@ -152,10 +153,10 @@ class MealControllerTest {
                     .foodKey("steamed_rice")
                     .displayName("米饭")
                     .grams(200)
-                    .calories(232.0)
-                    .protein(5.2)
-                    .fat(0.6)
-                    .carbs(51.2)
+                    .calories(new BigDecimal("232.0"))
+                    .protein(new BigDecimal("5.2"))
+                    .fat(new BigDecimal("0.6"))
+                    .carbs(new BigDecimal("51.2"))
                     .build()
             ))
             .build();
@@ -223,9 +224,9 @@ class MealControllerTest {
             .mealType("lunch")
             .foodItems("[{\"foodKey\":\"steamed_rice\",\"displayName\":\"米饭\",\"grams\":200}]")
             .totalCalories(500)
-            .totalProtein(30.0)
-            .totalCarbs(60.0)
-            .totalFat(10.0)
+            .totalProtein(new BigDecimal("30.0"))
+            .totalCarbs(new BigDecimal("60.0"))
+            .totalFat(new BigDecimal("10.0"))
             .consumedAt(today.plusHours(12))
             .build();
         mealLogRepository.save(meal);
@@ -310,11 +311,11 @@ class MealControllerTest {
                     .foodKey("beef")
                     .displayName("牛肉")
                     .grams(100)
-                    .calories(125.0)
-                    .protein(20.0)
-                    .fat(4.5)
-                    .carbs(0.0)
-                    .confidence(0.85)
+                    .calories(new BigDecimal("125.0"))
+                    .protein(new BigDecimal("20.0"))
+                    .fat(new BigDecimal("4.5"))
+                    .carbs(new BigDecimal("0.0"))
+                    .confidence(new BigDecimal("0.85"))
                     .build()
             ))
             .build();

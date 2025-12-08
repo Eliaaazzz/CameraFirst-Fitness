@@ -74,18 +74,20 @@ public class NutritionEngineImpl implements NutritionEngine {
     return total;
   }
 
-  private Double scale(Double per100, BigDecimal factor) {
+  private BigDecimal scale(BigDecimal per100, BigDecimal factor) {
     if (per100 == null) {
-      return 0.0;
+      return BigDecimal.ZERO;
     }
-    return BigDecimal.valueOf(per100)
+    return per100
         .multiply(factor)
-        .setScale(2, RoundingMode.HALF_UP)
-        .doubleValue();
+        .setScale(2, RoundingMode.HALF_UP);
   }
 
-  private double roundToTwo(double value) {
-    return Math.round(value * 100.0) / 100.0;
+  private BigDecimal roundToTwo(BigDecimal value) {
+    if (value == null) {
+      return BigDecimal.ZERO;
+    }
+    return value.setScale(2, RoundingMode.HALF_UP);
   }
 }
 

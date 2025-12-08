@@ -9,6 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -94,7 +95,7 @@ class SmartRecipeServiceTest {
 
     UserProfile profile = new UserProfile();
     profile.setHeightCm(180);
-    profile.setWeightKg(78.0);
+    profile.setWeightKg(new BigDecimal("78.0"));
     profile.setDailyCalorieTarget(2500);
     profile.setAllergens(Set.of());
     when(userProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));

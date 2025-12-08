@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fitnessapp.backend.user.entity.Allergen;
 import com.fitnessapp.backend.user.entity.DietaryPreference;
 import com.fitnessapp.backend.user.entity.FitnessGoal;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
@@ -12,9 +13,9 @@ import java.util.UUID;
 public record UserProfileResponse(
     UUID userId,
     Integer heightCm,
-    Double weightKg,
-    Double bmi,
-    Double bodyFatPercentage,
+    BigDecimal weightKg,
+    BigDecimal bmi,
+    BigDecimal bodyFatPercentage,
     Integer basalMetabolicRate,
     FitnessGoal fitnessGoal,
     DietaryPreference dietaryPreference,
