@@ -16,7 +16,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
 
-import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -27,7 +26,6 @@ import okhttp3.Response;
  * Claude Vision API service implementation.
  * Implements FoodRecognitionProvider for multi-model support.
  */
-@Slf4j
 @Service
 @ConditionalOnExpression("!'${app.anthropic.api-key:}'.isEmpty()")
 public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecognitionProvider {
@@ -53,11 +51,6 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
       @Value("${app.anthropic.api-key:}") String apiKey,
       @Value("${app.anthropic.enabled:false}") boolean enabled
   ) {
-    if (!enabled) {
-      log.info("Claude vision provider disabled via configuration");
-    } else if (apiKey == null || apiKey.isBlank()) {
-      log.warn("⚠️  Anthropic API key not configured - Claude food recognition will be disabled");
-    }
     this.objectMapper = objectMapper;
     this.apiKey = apiKey;
     this.enabled = enabled;
@@ -112,9 +105,6 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
           ". Supported types: " + SUPPORTED_IMAGE_TYPES);
     }
 
-    log.info("Processing image file: {}, size: {} bytes, type: {}",
-        imageFile.getOriginalFilename(), imageFile.getSize(), contentType);
-
     byte[] imageBytes = imageFile.getBytes();
     String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
@@ -143,12 +133,9 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
     while (attempt < MAX_RETRIES) {
       attempt++;
       try {
-        log.info("Calling Claude Vision API (attempt {}/{})", attempt, MAX_RETRIES);
         return callClaudeVisionAPI(base64Image, mediaType);
       } catch (Exception e) {
         lastException = e;
-        log.warn("Claude Vision API call failed (attempt {}/{}): {}",
-            attempt, MAX_RETRIES, e.getMessage());
 
         if (attempt < MAX_RETRIES) {
           try {
@@ -181,8 +168,6 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
     try (Response response = httpClient.newCall(request).execute()) {
       if (!response.isSuccessful()) {
         String errorBody = response.body() != null ? response.body().string() : "No error body";
-        log.error("Claude API error ({}): {}", response.code(), errorBody);
-
         if (response.code() == 429) {
           throw new FoodRecognitionException("Rate limit exceeded, please try again later");
         } else if (response.code() >= 500) {
@@ -193,8 +178,6 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
       }
 
       String responseBody = response.body().string();
-      log.debug("Claude API response: {}", responseBody);
-
       return parseResponse(responseBody);
     }
   }
@@ -270,27 +253,19 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
       JsonNode contentArray = root.path("content");
 
       if (contentArray.isEmpty()) {
-        log.error("Empty content in Claude response");
         throw new FoodRecognitionException("Invalid response from Claude API");
       }
 
       String textContent = contentArray.get(0).path("text").asText();
-      log.info("Claude Vision text response: {}", textContent);
-
-      // Parse the JSON response from Claude
       FoodRecognitionResult result = objectMapper.readValue(textContent, FoodRecognitionResult.class);
 
       if (result.getItems() == null) {
         result.setItems(new ArrayList<>());
       }
 
-      log.info("Successfully recognized {} food items, meal type: {}",
-          result.getItems().size(), result.getMealType());
-
       return result;
 
     } catch (IOException e) {
-      log.error("Failed to parse Claude Vision response", e);
       throw new FoodRecognitionException("Failed to parse food recognition result", e);
     }
   }
