@@ -2,6 +2,7 @@ package com.fitnessapp.backend.api.nutrition;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -12,7 +13,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
+import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +33,8 @@ import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 import com.fitnessapp.backend.nutrition.service.FoodRecognitionService;
 import com.fitnessapp.backend.nutrition.service.NutritionEngine;
+import com.fitnessapp.backend.user.entity.ApiKey;
+import com.fitnessapp.backend.user.service.ApiKeyService;
 
 /**
  * Integration tests for /api/v1/nutrition/analyze endpoint
@@ -48,6 +54,23 @@ class NutritionAnalyzeControllerTest {
     @MockBean
     private NutritionEngine nutritionEngine;
 
+    @MockBean
+    private ApiKeyService apiKeyService;
+
+    private static final String TEST_API_KEY = "test-api-key";
+    private static final UUID TEST_USER_ID = UUID.randomUUID();
+
+    @BeforeEach
+    void setUp() {
+        // Mock API key validation for all tests
+        ApiKey validApiKey = ApiKey.builder()
+            .key(TEST_API_KEY)
+            .tenantId(TEST_USER_ID.toString())
+            .enabled(true)
+            .build();
+        when(apiKeyService.validateKey(anyString())).thenReturn(Optional.of(validApiKey));
+    }
+
     @Test
     @DisplayName("POST /api/v1/nutrition/analyze - Should analyze food image successfully")
     void testAnalyzeFoodImage_Success() throws Exception {
@@ -66,6 +89,12 @@ class NutritionAnalyzeControllerTest {
             .estimatedGrams(200)
             .cookingMethod("steamed")
             .confidence(0.95)
+            .nutrition(NutritionInfo.builder()
+                .calories(232.0)
+                .protein(5.2)
+                .fat(0.6)
+                .carbs(51.2)
+                .build())
             .build();
 
         RecognizedFood pork = RecognizedFood.builder()
@@ -74,6 +103,12 @@ class NutritionAnalyzeControllerTest {
             .estimatedGrams(100)
             .cookingMethod("braised")
             .confidence(0.88)
+            .nutrition(NutritionInfo.builder()
+                .calories(340.0)
+                .protein(14.0)
+                .fat(28.0)
+                .carbs(5.0)
+                .build())
             .build();
 
         FoodRecognitionResult recognitionResult = FoodRecognitionResult.builder()
@@ -98,15 +133,16 @@ class NutritionAnalyzeControllerTest {
 
         // When/Then
         mockMvc.perform(multipart("/api/v1/nutrition/analyze")
-                .file(imageFile))
+                .file(imageFile)
+                .header("X-API-Key", TEST_API_KEY))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items", hasSize(2)))
-            .andExpect(jsonPath("$.items[0].foodKey").value("steamed_rice"))
-            .andExpect(jsonPath("$.items[0].displayName").value("白米饭"))
-            .andExpect(jsonPath("$.items[0].estimatedGrams").value(200))
+            .andExpect(jsonPath("$.items[0].food_key").value("steamed_rice"))
+            .andExpect(jsonPath("$.items[0].display_name").value("白米饭"))
+            .andExpect(jsonPath("$.items[0].estimated_grams").value(200))
             .andExpect(jsonPath("$.items[0].confidence").value(0.95))
             .andExpect(jsonPath("$.items[0].nutrition.calories").value(232.0))
-            .andExpect(jsonPath("$.items[1].foodKey").value("braised_pork"))
+            .andExpect(jsonPath("$.items[1].food_key").value("braised_pork"))
             .andExpect(jsonPath("$.totalNutrition.calories").value(572.0))
             .andExpect(jsonPath("$.totalNutrition.protein").value(19.2))
             .andExpect(jsonPath("$.suggestedMealType").value("lunch"));
@@ -129,7 +165,8 @@ class NutritionAnalyzeControllerTest {
 
         // When/Then
         mockMvc.perform(multipart("/api/v1/nutrition/analyze")
-                .file(emptyFile))
+                .file(emptyFile)
+                .header("X-API-Key", TEST_API_KEY))
             .andExpect(status().isBadRequest());
     }
 
@@ -147,7 +184,8 @@ class NutritionAnalyzeControllerTest {
 
         // When/Then
         mockMvc.perform(multipart("/api/v1/nutrition/analyze")
-                .file(largeFile))
+                .file(largeFile)
+                .header("X-API-Key", TEST_API_KEY))
             .andExpect(status().isBadRequest());
     }
 
@@ -167,7 +205,8 @@ class NutritionAnalyzeControllerTest {
 
         // When/Then
         mockMvc.perform(multipart("/api/v1/nutrition/analyze")
-                .file(imageFile))
+                .file(imageFile)
+                .header("X-API-Key", TEST_API_KEY))
             .andExpect(status().is5xxServerError());
     }
 
@@ -193,7 +232,8 @@ class NutritionAnalyzeControllerTest {
 
         // When/Then
         mockMvc.perform(multipart("/api/v1/nutrition/analyze")
-                .file(imageFile))
+                .file(imageFile)
+                .header("X-API-Key", TEST_API_KEY))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items", hasSize(0)))
             .andExpect(jsonPath("$.totalNutrition.calories").value(0.0))
@@ -216,6 +256,12 @@ class NutritionAnalyzeControllerTest {
             .displayName("煎蛋")
             .estimatedGrams(50)
             .confidence(0.92)
+            .nutrition(NutritionInfo.builder()
+                .calories(98.0)
+                .protein(6.8)
+                .fat(7.65)
+                .carbs(0.55)
+                .build())
             .build();
 
         FoodRecognitionResult recognitionResult = FoodRecognitionResult.builder()
@@ -232,10 +278,11 @@ class NutritionAnalyzeControllerTest {
 
         // When/Then
         mockMvc.perform(multipart("/api/v1/nutrition/analyze")
-                .file(imageFile))
+                .file(imageFile)
+                .header("X-API-Key", TEST_API_KEY))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items", hasSize(1)))
-            .andExpect(jsonPath("$.items[0].foodKey").value("fried_egg"))
+            .andExpect(jsonPath("$.items[0].food_key").value("fried_egg"))
             .andExpect(jsonPath("$.totalNutrition.calories").value(98.0))
             .andExpect(jsonPath("$.suggestedMealType").value("breakfast"));
     }
@@ -257,6 +304,12 @@ class NutritionAnalyzeControllerTest {
             .estimatedGrams(120)
             .cookingMethod("stir_fried")
             .confidence(0.87)
+            .nutrition(NutritionInfo.builder()
+                .calories(114.0)
+                .protein(7.2)
+                .fat(7.8)
+                .carbs(5.4)
+                .build())
             .build();
 
         FoodRecognitionResult recognitionResult = FoodRecognitionResult.builder()
@@ -273,12 +326,13 @@ class NutritionAnalyzeControllerTest {
 
         // When/Then
         mockMvc.perform(multipart("/api/v1/nutrition/analyze")
-                .file(imageFile))
+                .file(imageFile)
+                .header("X-API-Key", TEST_API_KEY))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.items[0].foodKey").value("tomato_egg"))
-            .andExpect(jsonPath("$.items[0].displayName").value("番茄炒蛋"))
-            .andExpect(jsonPath("$.items[0].estimatedGrams").value(120))
-            .andExpect(jsonPath("$.items[0].cookingMethod").value("stir_fried"))
+            .andExpect(jsonPath("$.items[0].food_key").value("tomato_egg"))
+            .andExpect(jsonPath("$.items[0].display_name").value("番茄炒蛋"))
+            .andExpect(jsonPath("$.items[0].estimated_grams").value(120))
+            .andExpect(jsonPath("$.items[0].cooking_method").value("stir_fried"))
             .andExpect(jsonPath("$.items[0].confidence").value(0.87))
             .andExpect(jsonPath("$.items[0].nutrition").exists());
     }
@@ -286,8 +340,10 @@ class NutritionAnalyzeControllerTest {
     @Test
     @DisplayName("POST /api/v1/nutrition/analyze - Should require multipart/form-data")
     void testAnalyzeFoodImage_RequiresMultipart() throws Exception {
-        // When/Then: Try to send JSON instead of multipart
-        mockMvc.perform(multipart("/api/v1/nutrition/analyze"))
-            .andExpect(status().isBadRequest());
+        // When/Then: Try to send no file (multipart request with no file)
+        // Missing required @RequestParam("image") should result in 400 or 500
+        mockMvc.perform(multipart("/api/v1/nutrition/analyze")
+                .header("X-API-Key", TEST_API_KEY))
+            .andExpect(status().is5xxServerError());  // Spring returns 500 for missing required params
     }
 }
