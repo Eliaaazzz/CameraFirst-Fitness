@@ -9,27 +9,32 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.fitnessapp.backend.workout.controller.LeaderboardController;
 import com.fitnessapp.backend.workout.service.LeaderboardService;
 import com.fitnessapp.backend.workout.service.LeaderboardService.LeaderboardEntry;
 import com.fitnessapp.backend.workout.service.LeaderboardService.LeaderboardResult;
 
-@WebMvcTest(LeaderboardController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@ExtendWith(MockitoExtension.class)
 class LeaderboardControllerTest {
 
-  @Autowired
   private MockMvc mockMvc;
 
-  @MockBean
+  @Mock
   private LeaderboardService leaderboardService;
+
+  @BeforeEach
+  void setUp() {
+    LeaderboardController controller = new LeaderboardController(leaderboardService);
+    mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+  }
 
   @Test
   void returnsLeaderboardEntries() throws Exception {

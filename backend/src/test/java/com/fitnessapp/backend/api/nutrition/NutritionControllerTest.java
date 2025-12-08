@@ -22,35 +22,40 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-@WebMvcTest(NutritionController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@ExtendWith(MockitoExtension.class)
 class NutritionControllerTest {
 
-  @Autowired
   private MockMvc mockMvc;
-
-  @Autowired
   private ObjectMapper objectMapper;
 
-  @MockBean
+  @Mock
   private NutritionTrackingService trackingService;
 
-  @MockBean
+  @Mock
   private NutritionInsightService insightService;
 
-  @MockBean
+  @Mock
   private FoodRecognitionService foodRecognitionService;
 
-  @MockBean
+  @Mock
   private NutritionEngine nutritionEngine;
+
+  @BeforeEach
+  void setUp() {
+    objectMapper = new ObjectMapper();
+    objectMapper.findAndRegisterModules();
+    NutritionController controller = new NutritionController(trackingService, insightService, foodRecognitionService, nutritionEngine);
+    mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+  }
 
   @Test
   void logMealPersists() throws Exception {
@@ -131,7 +136,6 @@ class NutritionControllerTest {
 
   @Test
   void dailySummaryAcceptsDefaultUser() throws Exception {
-    // Test that "default-user" string is accepted and converted to the well-known UUID
     UUID defaultUuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
     NutritionSummary summary = new NutritionSummary(
         OffsetDateTime.now().minusDays(1),
@@ -152,7 +156,6 @@ class NutritionControllerTest {
 
   @Test
   void logMealAcceptsDefaultUser() throws Exception {
-    // Test that "default-user" string is accepted in POST request body
     UUID defaultUuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
     MealLog saved = MealLog.builder()
         .id(10L)

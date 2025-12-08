@@ -22,38 +22,43 @@ import com.fitnessapp.backend.user.service.UserProfileService;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-@WebMvcTest(CurrentUserController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@ExtendWith(MockitoExtension.class)
 class CurrentUserControllerTest {
 
-  @Autowired
   private MockMvc mockMvc;
-
-  @Autowired
   private ObjectMapper objectMapper;
 
-  @MockBean
+  @Mock
   private CurrentUser currentUser;
 
-  @MockBean
+  @Mock
   private UserRepository userRepository;
 
-  @MockBean
+  @Mock
   private UserProfileService userProfileService;
 
-  @MockBean
+  @Mock
   private SmartRecipeService smartRecipeService;
 
-  @MockBean
+  @Mock
   private NutritionInsightService nutritionInsightService;
+
+  @BeforeEach
+  void setUp() {
+    objectMapper = new ObjectMapper();
+    objectMapper.findAndRegisterModules();
+    CurrentUserController controller = new CurrentUserController(currentUser, userRepository, userProfileService, smartRecipeService, nutritionInsightService);
+    mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+  }
 
   @Test
   void returnsCurrentUserWithProfile() throws Exception {
