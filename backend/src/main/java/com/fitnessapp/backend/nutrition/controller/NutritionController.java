@@ -19,10 +19,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fitnessapp.backend.nutrition.entity.MealLog;
-import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResponse;
+import com.fitnessapp.backend.api.common.ApiEnvelope;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
+import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
+import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.service.FoodRecognitionService;
 import com.fitnessapp.backend.nutrition.service.NutritionEngine;
 import com.fitnessapp.backend.nutrition.service.NutritionInsightService;
@@ -150,7 +151,6 @@ public class NutritionController {
     return ResponseEntity.ok(toInsightResponse(insight));
   }
 
-<<<<<<< HEAD:backend/src/main/java/com/fitnessapp/backend/api/nutrition/NutritionController.java
   /**
    * Parse userId from string, handling the special "default-user" case.
    * This allows the frontend to work without proper authentication by using a well-known UUID.
@@ -171,13 +171,6 @@ public class NutritionController {
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException("Invalid userId format: " + userId + ". Must be a valid UUID or 'default-user'", e);
     }
-=======
-  private UUID parseUserId(String raw) {
-    if (raw == null || raw.isBlank() || "default-user".equalsIgnoreCase(raw)) {
-      return UUID.fromString("00000000-0000-0000-0000-000000000001");
-    }
-    return UUID.fromString(raw.replace("\"", "").trim());
->>>>>>> 7937dc9b44bf6e9a2e0922a18411e051e10fa8b9:backend/src/main/java/com/fitnessapp/backend/nutrition/controller/NutritionController.java
   }
 
   private MealLogResponse toResponse(MealLog log) {
@@ -263,4 +256,14 @@ public class NutritionController {
   public record NutritionInsightResponse(NutritionSummaryResponse summary,
                                          java.util.List<MealLogResponse> logs,
                                          String aiAdvice) {}
+
+  @lombok.Data
+  @lombok.Builder
+  @lombok.NoArgsConstructor
+  @lombok.AllArgsConstructor
+  public static class FoodRecognitionResponse {
+    private java.util.List<com.fitnessapp.backend.nutrition.dto.RecognizedFood> items;
+    private NutritionInfo totalNutrition;
+    private String suggestedMealType;
+  }
 }
