@@ -78,10 +78,10 @@ class NutritionTrackingServiceTest {
 
     var summary = service.dailySummary(userId, targetDate);
 
-    assertThat(summary.calories().actual()).isEqualTo(1800);
-    assertThat(summary.calories().target()).isEqualTo(2200);
+    assertThat(summary.calories().actual()).isEqualByComparingTo(new BigDecimal("1800"));
+    assertThat(summary.calories().target()).isEqualByComparingTo(new BigDecimal("2200"));
     assertThat(summary.calories().percent()).isBetween(80.0, 82.0);
-    assertThat(summary.protein().actual()).isEqualTo(120.0);
-    assertThat(summary.protein().target()).isEqualTo(160.0);
+    assertThat(summary.protein().actual()).isEqualByComparingTo(new BigDecimal("120.0"));
+    assertThat(summary.protein().target()).isEqualByComparingTo(new BigDecimal("160.0"));
   }
 }

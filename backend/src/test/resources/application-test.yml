@@ -1,6 +1,4 @@
 spring:
-  profiles:
-    active: test
   main:
     allow-bean-definition-overriding: true
   datasource:
@@ -16,10 +14,6 @@ spring:
     enabled: false
   cache:
     type: simple
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.cache.RedisCacheConfiguration
 
 app:
   seed:
