@@ -187,7 +187,7 @@ VALUES
 INSERT INTO ingredient (name)
 VALUES
     ('chicken breast'),
-    ('chicken'),  -- Generic chicken for search compatibility
+    ('chicken'),  -- Generic "chicken" needed for recipe search - queries use exact ingredient name match
     ('lemon'),
     ('quinoa'),
     ('shrimp'),
@@ -202,18 +202,20 @@ ON CONFLICT (name) DO NOTHING;
 WITH ingredient_map(recipe_title, ingredient_name, quantity, unit) AS (
     VALUES
         ('Lemon Garlic Chicken Bowls', 'chicken breast', 2.00, 'lb'),
-        ('Lemon Garlic Chicken Bowls', 'chicken', 2.00, 'lb'),  -- Add generic chicken for search
+        -- Adding 'chicken' as ingredient for search compatibility: RecipeRepository.findByIngredientsContainingAny uses exact match
+        -- so searches for "chicken" won't find "chicken breast" without this mapping
+        ('Lemon Garlic Chicken Bowls', 'chicken', 2.00, 'lb'),
         ('Lemon Garlic Chicken Bowls', 'lemon', 1.00, 'ea'),
         ('High-Protein Veggie Omelette', 'spinach', 0.50, 'cup'),
         ('Beef and Quinoa Power Bowl', 'quinoa', 1.50, 'cup'),
         ('Quick Shrimp Stir Fry', 'shrimp', 1.00, 'lb'),
         ('Hearty Lentil Soup', 'lentils', 1.00, 'cup'),
         ('Honey Mustard Chicken', 'chicken breast', 1.50, 'lb'),
-        ('Honey Mustard Chicken', 'chicken', 1.50, 'lb'),  -- Add generic chicken for search
+        ('Honey Mustard Chicken', 'chicken', 1.50, 'lb'),
         ('Honey Mustard Chicken', 'honey', 0.25, 'cup'),
         ('Honey Mustard Chicken', 'mustard', 0.25, 'cup'),
         ('Spicy Chicken Tacos', 'chicken breast', 1.00, 'lb'),
-        ('Spicy Chicken Tacos', 'chicken', 1.00, 'lb'),  -- Add generic chicken for search
+        ('Spicy Chicken Tacos', 'chicken', 1.00, 'lb'),
         ('Avocado Toast Deluxe', 'avocado', 2.00, 'ea'),
         ('Greek Yogurt Parfait', 'yogurt', 1.00, 'cup')
 )
