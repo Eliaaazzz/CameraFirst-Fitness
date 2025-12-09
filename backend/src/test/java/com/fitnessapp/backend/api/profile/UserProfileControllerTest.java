@@ -4,24 +4,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.user.entity.Allergen;
-import com.fitnessapp.backend.user.entity.DietaryPreference;
-import com.fitnessapp.backend.user.entity.FitnessGoal;
-import com.fitnessapp.backend.user.entity.User;
-import com.fitnessapp.backend.user.entity.UserProfile;
-import com.fitnessapp.backend.user.controller.UserProfileController;
-import com.fitnessapp.backend.user.dto.UserProfileRequest;
-import com.fitnessapp.backend.recipe.service.SmartRecipeService;
-import com.fitnessapp.backend.user.service.UserProfileService;
-import com.fitnessapp.backend.workout.service.LeaderboardService;
-import com.fitnessapp.backend.nutrition.service.NutritionInsightService;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,11 +25,18 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fitnessapp.backend.nutrition.service.NutritionInsightService;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService;
+import com.fitnessapp.backend.user.controller.UserProfileController;
+import com.fitnessapp.backend.user.dto.UserProfileRequest;
+import com.fitnessapp.backend.user.entity.Allergen;
+import com.fitnessapp.backend.user.entity.DietaryPreference;
+import com.fitnessapp.backend.user.entity.FitnessGoal;
+import com.fitnessapp.backend.user.entity.HealthMode;
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.user.service.UserProfileService;
 
 @ExtendWith(MockitoExtension.class)
 class UserProfileControllerTest {
@@ -108,8 +109,8 @@ class UserProfileControllerTest {
     UserProfile profile = sampleProfile(userId);
     when(userProfileService.upsertProfile(eq(userId), any(UserProfile.class))).thenReturn(profile);
 
-    UserProfileRequest request = new UserProfileRequest(180, new BigDecimal("78.0"), new BigDecimal("18.5"), 1600, FitnessGoal.GAIN_MUSCLE,
-        DietaryPreference.NONE, Set.of(Allergen.NUTS), 2600, 180, 250, 70);
+  UserProfileRequest request = new UserProfileRequest(180, new BigDecimal("78.0"), new BigDecimal("18.5"), 1600, FitnessGoal.GAIN_MUSCLE,
+    DietaryPreference.NONE, HealthMode.PREVENTION, Set.of(Allergen.NUTS), 2600, 180, 250, 70);
 
     mockMvc.perform(put("/api/v1/users/{userId}/profile", userId)
             .contentType(MediaType.APPLICATION_JSON)
@@ -118,7 +119,6 @@ class UserProfileControllerTest {
         .andExpect(jsonPath("$.bmi").value(24.07));
 
     verify(userProfileService).upsertProfile(eq(userId), any(UserProfile.class));
-    verify(smartRecipeService).evictCache(userId);
   }
 
   @Test

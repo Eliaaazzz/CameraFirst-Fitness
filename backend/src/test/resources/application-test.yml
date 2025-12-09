@@ -1,4 +1,8 @@
 spring:
+  profiles:
+    active: test
+  main:
+    allow-bean-definition-overriding: true
   datasource:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
@@ -10,21 +14,65 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
   flyway:
     enabled: false
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      timeout: 1000ms
   cache:
     type: simple
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.cache.RedisCacheConfiguration
 
 app:
   seed:
     enabled: false
   openai:
     enabled: false
+    api-key: ""
+    model: gpt-4o
+    meal-model: gpt-4o
+    timeout-seconds: 60
+    cost-per-thousand-tokens: 10.0
+    log-usage: false
+  google:
+    client-id: ""
+  apple:
+    client-id: ""
+  youtube:
+    api-key: ""
+    quota:
+      warnings-enabled: false
+      alert-percent: 80
+  spoonacular:
+    api-key: ""
+  gemini:
+    api-key: ""
+    model: gemini-2.0-flash
+  jwt:
+    secret: test-secret-key-that-is-long-enough-for-256-bits-for-jwt
+    expiration-days: 30
+  meal-plan:
+    cache-ttl-hours: 24
+  recipe-generation:
+    cache-ttl-hours: 24
+
+usda:
+  api:
+    key: ""
+    base-url: https://api.nal.usda.gov/fdc/v1
 
 management:
   health:
     redis:
       enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when_authorized
+
+logging:
+  level:
+    com.fitnessapp.backend: INFO
+    org.springframework.security: DEBUG

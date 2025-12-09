@@ -48,6 +48,12 @@ dependencies {
 	implementation("com.theokanning.openai-gpt3-java:service:0.18.2")
 	// HTTP client for Claude and Gemini APIs (using OkHttp)
 	implementation("com.squareup.okhttp3:okhttp:4.12.0")
+	// JWT for authentication
+	implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+	// Auth0 java-jwt for Apple Sign In token verification
+	implementation("com.auth0:java-jwt:4.4.0")
 	implementation("com.fasterxml.jackson.core:jackson-databind")
 	runtimeOnly("org.postgresql:postgresql")
 	compileOnly("org.projectlombok:lombok")

@@ -28,11 +28,19 @@ public class NutritionEngineImpl implements NutritionEngine {
 
     log.debug("Calculating nutrition for {} ({}g): factor={}", foodKey, grams, factor);
 
+    BigDecimal carbs = scale(per100g.getCarbs(), factor);
+    BigDecimal fiber = scale(per100g.getFiber(), factor);
+    BigDecimal sugar = scale(per100g.getSugar(), factor);
+
     return NutritionInfo.builder()
         .calories(scale(per100g.getCalories(), factor))
         .protein(scale(per100g.getProtein(), factor))
         .fat(scale(per100g.getFat(), factor))
-        .carbs(scale(per100g.getCarbs(), factor))
+        .carbs(carbs)
+        .fiber(fiber)
+        .sugar(sugar)
+        .netCarbs(calculateNetCarbs(carbs, fiber))
+        .sugarCubes(calculateSugarCubes(sugar))
         .build();
   }
 
@@ -46,9 +54,9 @@ public class NutritionEngineImpl implements NutritionEngine {
     NutritionInfo nutrition = calculateNutrition(food.getFoodKey(), food.getEstimatedGrams());
     food.setNutrition(nutrition);
 
-    log.info("Enriched food {} ({}g) with nutrition: {} cal, {}g protein",
+    log.info("Enriched food {} ({}g) with nutrition: {} cal, {}g protein, {} sugar cubes",
         food.getFoodKey(), food.getEstimatedGrams(),
-        nutrition.getCalories(), nutrition.getProtein());
+        nutrition.getCalories(), nutrition.getProtein(), nutrition.getSugarCubes());
   }
 
   @Override

@@ -227,6 +227,8 @@ public class NutritionLookupService {
                 .protein(entity.getProtein() != null ? entity.getProtein() : java.math.BigDecimal.ZERO)
                 .fat(entity.getFat() != null ? entity.getFat() : java.math.BigDecimal.ZERO)
                 .carbs(entity.getCarbs() != null ? entity.getCarbs() : java.math.BigDecimal.ZERO)
+                .fiber(entity.getFiber() != null ? entity.getFiber() : java.math.BigDecimal.ZERO)
+                .sugar(entity.getSugar() != null ? entity.getSugar() : java.math.BigDecimal.ZERO)
                 .build();
     }
 

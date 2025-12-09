@@ -1,5 +1,6 @@
 package com.fitnessapp.backend.user.entity;
 
+import com.fitnessapp.backend.auth.AuthProvider;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -20,6 +21,14 @@ public class User {
 
   @Column(nullable = false, unique = true, length = 255)
   private String email;
+
+  @Column(name = "password_hash", length = 255)
+  private String passwordHash;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "auth_provider", length = 20)
+  @Builder.Default
+  private AuthProvider authProvider = AuthProvider.LOCAL;
 
   @Column(name = "time_bucket", nullable = false)
   private Integer timeBucket;

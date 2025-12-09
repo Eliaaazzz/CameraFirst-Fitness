@@ -17,6 +17,7 @@ public final class UserProfileMapper {
     profile.setBasalMetabolicRate(request.basalMetabolicRate());
     profile.setFitnessGoal(request.fitnessGoal());
     profile.setDietaryPreference(request.dietaryPreference());
+    profile.setHealthMode(request.healthMode());
     profile.setDailyCalorieTarget(request.dailyCalorieTarget());
     profile.setDailyProteinTarget(request.dailyProteinTarget());
     profile.setDailyCarbsTarget(request.dailyCarbsTarget());
@@ -39,6 +40,7 @@ public final class UserProfileMapper {
         profile.getBasalMetabolicRate(),
         profile.getFitnessGoal(),
         profile.getDietaryPreference(),
+        profile.getHealthMode(),
         profile.getAllergens(),
         profile.getDailyCalorieTarget(),
         profile.getDailyProteinTarget(),

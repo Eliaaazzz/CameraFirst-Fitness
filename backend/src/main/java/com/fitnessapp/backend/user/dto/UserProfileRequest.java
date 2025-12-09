@@ -3,6 +3,7 @@ package com.fitnessapp.backend.user.dto;
 import com.fitnessapp.backend.user.entity.Allergen;
 import com.fitnessapp.backend.user.entity.DietaryPreference;
 import com.fitnessapp.backend.user.entity.FitnessGoal;
+import com.fitnessapp.backend.user.entity.HealthMode;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -16,6 +17,7 @@ public record UserProfileRequest(
     @Positive(message = "BMR must be positive") Integer basalMetabolicRate,
     FitnessGoal fitnessGoal,
     DietaryPreference dietaryPreference,
+    HealthMode healthMode,
     @Size(max = 8, message = "Allergen list too long") Set<Allergen> allergens,
     @Positive(message = "Calories must be positive") Integer dailyCalorieTarget,
     @Positive(message = "Protein target must be positive") Integer dailyProteinTarget,
