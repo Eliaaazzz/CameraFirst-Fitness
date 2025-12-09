@@ -4,6 +4,7 @@ import com.fitnessapp.backend.retrieval.dto.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
@@ -21,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "app.seed.enabled=false"
 })
 @ActiveProfiles("test")
+@WithMockUser
 class RecipeSearchServiceTest {
 
     @Autowired
