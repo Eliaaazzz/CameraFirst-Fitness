@@ -115,7 +115,7 @@ class MealPlanControllerTest {
 
     mockMvc.perform(get("/api/v1/meal-plan/history").param("userId", userId.toString()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].plan.target.calories").value(2400));
+        .andExpect(jsonPath("$[0].target.calories").value(2400));
 
     verify(mealPlanHistoryService).recentPlans(userId, 5);
   }

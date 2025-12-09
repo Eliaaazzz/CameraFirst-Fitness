@@ -5,6 +5,7 @@ import com.fitnessapp.backend.recipe.service.RecipeScalingService.ScaledRecipe;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.UUID;
@@ -23,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         "app.seed.enabled=false"
 })
 @ActiveProfiles("test")
+@WithMockUser
 class RecipeScalingServiceTest {
 
     @Autowired

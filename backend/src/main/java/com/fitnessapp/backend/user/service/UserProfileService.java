@@ -28,7 +28,6 @@ public class UserProfileService {
     UserProfile profile = userProfileRepository.findById(userId)
         .orElseGet(() -> {
           UserProfile created = new UserProfile();
-          created.setUserId(userId);
           created.setUser(user);
           return created;
         });

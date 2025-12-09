@@ -1,7 +1,6 @@
 package com.fitnessapp.backend.api.profile;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -66,10 +65,10 @@ class CurrentUserControllerTest {
   @Test
   void returnsCurrentUserWithProfile() throws Exception {
     UUID userId = UUID.randomUUID();
-    when(currentUser.requireUserId()).thenReturn(userId);
-    lenient().when(userRepository.findById(userId)).thenReturn(Optional.of(
+    when(currentUser.get()).thenReturn(Optional.of(new com.fitnessapp.backend.security.AuthenticatedUser(1L, "test-key", userId)));
+    when(userRepository.findById(userId)).thenReturn(Optional.of(
         User.builder().id(userId).email("user@example.com").level("INTERMEDIATE").timeBucket(2).build()));
-    lenient().when(userProfileService.getProfile(userId)).thenReturn(Optional.of(UserProfile.builder()
+    when(userProfileService.getProfile(userId)).thenReturn(Optional.of(UserProfile.builder()
         .userId(userId)
         .heightCm(172)
         .weightKg(new BigDecimal("70.0"))

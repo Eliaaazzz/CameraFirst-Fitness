@@ -62,10 +62,10 @@ class NutritionEngineTest {
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getCalories()).isEqualTo(new BigDecimal("232.0"));
-        assertThat(result.getProtein()).isEqualTo(new BigDecimal("5.2"));
-        assertThat(result.getFat()).isEqualTo(new BigDecimal("0.6"));
-        assertThat(result.getCarbs()).isEqualTo(new BigDecimal("51.2"));
+        assertThat(result.getCalories()).isEqualByComparingTo(new BigDecimal("232.0"));
+        assertThat(result.getProtein()).isEqualByComparingTo(new BigDecimal("5.2"));
+        assertThat(result.getFat()).isEqualByComparingTo(new BigDecimal("0.6"));
+        assertThat(result.getCarbs()).isEqualByComparingTo(new BigDecimal("51.2"));
     }
 
     @Test
@@ -79,10 +79,10 @@ class NutritionEngineTest {
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getCalories()).isEqualTo(new BigDecimal("199.5"));
-        assertThat(result.getProtein()).isEqualTo(new BigDecimal("42.0"));
-        assertThat(result.getFat()).isEqualTo(new BigDecimal("3.0"));
-        assertThat(result.getCarbs()).isEqualTo(new BigDecimal("0.0"));
+        assertThat(result.getCalories()).isEqualByComparingTo(new BigDecimal("199.5"));
+        assertThat(result.getProtein()).isEqualByComparingTo(new BigDecimal("42.0"));
+        assertThat(result.getFat()).isEqualByComparingTo(new BigDecimal("3.0"));
+        assertThat(result.getCarbs()).isEqualByComparingTo(new BigDecimal("0.0"));
     }
 
     @Test
@@ -96,10 +96,10 @@ class NutritionEngineTest {
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getCalories()).isEqualTo(new BigDecimal("150.0"));
-        assertThat(result.getProtein()).isEqualTo(new BigDecimal("8.0"));
-        assertThat(result.getFat()).isEqualTo(new BigDecimal("6.0"));
-        assertThat(result.getCarbs()).isEqualTo(new BigDecimal("15.0"));
+        assertThat(result.getCalories()).isEqualByComparingTo(new BigDecimal("150.0"));
+        assertThat(result.getProtein()).isEqualByComparingTo(new BigDecimal("8.0"));
+        assertThat(result.getFat()).isEqualByComparingTo(new BigDecimal("6.0"));
+        assertThat(result.getCarbs()).isEqualByComparingTo(new BigDecimal("15.0"));
     }
 
     @Test
@@ -113,10 +113,10 @@ class NutritionEngineTest {
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getCalories()).isEqualTo(new BigDecimal("0.0"));
-        assertThat(result.getProtein()).isEqualTo(new BigDecimal("0.0"));
-        assertThat(result.getFat()).isEqualTo(new BigDecimal("0.0"));
-        assertThat(result.getCarbs()).isEqualTo(new BigDecimal("0.0"));
+        assertThat(result.getCalories()).isEqualByComparingTo(new BigDecimal("0.0"));
+        assertThat(result.getProtein()).isEqualByComparingTo(new BigDecimal("0.0"));
+        assertThat(result.getFat()).isEqualByComparingTo(new BigDecimal("0.0"));
+        assertThat(result.getCarbs()).isEqualByComparingTo(new BigDecimal("0.0"));
     }
 
     @Test
@@ -137,8 +137,8 @@ class NutritionEngineTest {
 
         // Then
         assertThat(food.getNutrition()).isNotNull();
-        assertThat(food.getNutrition().getCalories()).isEqualTo(new BigDecimal("98.0")); // 196 * 0.5
-        assertThat(food.getNutrition().getProtein()).isEqualTo(new BigDecimal("6.8")); // 13.6 * 0.5
+        assertThat(food.getNutrition().getCalories()).isEqualByComparingTo(new BigDecimal("98.0")); // 196 * 0.5
+        assertThat(food.getNutrition().getProtein()).isEqualByComparingTo(new BigDecimal("6.8")); // 13.6 * 0.5
     }
 
     @Test
@@ -159,7 +159,7 @@ class NutritionEngineTest {
         // Then
         assertThat(food.getEstimatedGrams()).isEqualTo(100);
         assertThat(food.getNutrition()).isNotNull();
-        assertThat(food.getNutrition().getCalories()).isEqualTo(new BigDecimal("116.0"));
+        assertThat(food.getNutrition().getCalories()).isEqualByComparingTo(new BigDecimal("116.0"));
     }
 
     @Test
@@ -192,10 +192,10 @@ class NutritionEngineTest {
 
         // Then
         assertThat(total).isNotNull();
-        assertThat(total.getCalories()).isEqualTo(new BigDecimal("629.0")); // 232 + 340 + 57
-        assertThat(total.getProtein()).isEqualTo(new BigDecimal("22.65")); // 5.2 + 14 + 3.45
-        assertThat(total.getFat()).isEqualTo(new BigDecimal("31.75")); // 0.6 + 28 + 3.15
-        assertThat(total.getCarbs()).isEqualTo(new BigDecimal("61.0")); // 51.2 + 5 + 4.8
+        assertThat(total.getCalories()).isEqualByComparingTo(new BigDecimal("629.0")); // 232 + 340 + 57
+        assertThat(total.getProtein()).isEqualByComparingTo(new BigDecimal("22.65")); // 5.2 + 14 + 3.45
+        assertThat(total.getFat()).isEqualByComparingTo(new BigDecimal("31.75")); // 0.6 + 28 + 3.15
+        assertThat(total.getCarbs()).isEqualByComparingTo(new BigDecimal("61.0")); // 51.2 + 5 + 4.8
     }
 
     @Test
@@ -235,10 +235,10 @@ class NutritionEngineTest {
 
         // Then
         assertThat(total).isNotNull();
-        assertThat(total.getCalories()).isEqualTo(new BigDecimal("0.0"));
-        assertThat(total.getProtein()).isEqualTo(new BigDecimal("0.0"));
-        assertThat(total.getFat()).isEqualTo(new BigDecimal("0.0"));
-        assertThat(total.getCarbs()).isEqualTo(new BigDecimal("0.0"));
+        assertThat(total.getCalories()).isEqualByComparingTo(new BigDecimal("0.0"));
+        assertThat(total.getProtein()).isEqualByComparingTo(new BigDecimal("0.0"));
+        assertThat(total.getFat()).isEqualByComparingTo(new BigDecimal("0.0"));
+        assertThat(total.getCarbs()).isEqualByComparingTo(new BigDecimal("0.0"));
     }
 
     @Test
