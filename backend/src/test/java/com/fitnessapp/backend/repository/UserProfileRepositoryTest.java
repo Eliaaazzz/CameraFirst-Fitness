@@ -92,7 +92,6 @@ class UserProfileRepositoryTest {
 
     UserProfile profile = new UserProfile();
     profile.setUser(user);
-    profile.setUserId(user.getId());
     profile.setHeightCm(180);
     profile.setWeightKg(new BigDecimal("75.5"));
     profile.setFitnessGoal(FitnessGoal.MAINTAIN);
