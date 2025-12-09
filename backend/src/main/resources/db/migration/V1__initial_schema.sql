@@ -140,11 +140,21 @@ VALUES
     ('HIIT0001', '15-Minute Tabata Blaze', 15, 'intermediate', ARRAY['bodyweight'], ARRAY['cardio','full_body'], 'https://img.youtube.com/vi/HIIT0001/hqdefault.jpg', 245000),
     ('DBL0002', 'Dumbbell Strength Circuit', 30, 'intermediate', ARRAY['dumbbells'], ARRAY['upper','core'], 'https://img.youtube.com/vi/DBL0002/hqdefault.jpg', 91000),
     ('MAT0003', 'Mat Core Stability Flow', 20, 'beginner', ARRAY['mat'], ARRAY['core'], 'https://img.youtube.com/vi/MAT0003/hqdefault.jpg', 45500),
-    ('ADV0004', 'Advanced Power Builder', 45, 'advanced', ARRAY['barbell','resistance_bands'], ARRAY['lower','full_body'], 'https://img.youtube.com/vi/ADV0004/hqdefault.jpg', 7800);
+    ('ADV0004', 'Advanced Power Builder', 45, 'advanced', ARRAY['barbell','resistance_bands'], ARRAY['lower','full_body'], 'https://img.youtube.com/vi/ADV0004/hqdefault.jpg', 7800),
+    -- Additional beginner dumbbell workouts for test coverage
+    ('DBL0005', 'Beginner Dumbbell Arms', 20, 'beginner', ARRAY['dumbbells'], ARRAY['upper','arms'], 'https://img.youtube.com/vi/DBL0005/hqdefault.jpg', 50000),
+    ('DBL0006', 'Dumbbell Full Body Flow', 22, 'beginner', ARRAY['dumbbells'], ARRAY['full_body','legs'], 'https://img.youtube.com/vi/DBL0006/hqdefault.jpg', 48000),
+    ('DBL0007', 'Light Dumbbell Cardio', 18, 'beginner', ARRAY['dumbbells'], ARRAY['cardio','core'], 'https://img.youtube.com/vi/DBL0007/hqdefault.jpg', 42000),
+    ('DBL0008', 'Beginner Dumbbell Core', 15, 'beginner', ARRAY['dumbbells'], ARRAY['core','abs'], 'https://img.youtube.com/vi/DBL0008/hqdefault.jpg', 39000),
+    -- Additional intermediate mat workouts for test coverage
+    ('MAT0009', 'Intermediate Mat Pilates', 30, 'intermediate', ARRAY['mat'], ARRAY['core','full_body'], 'https://img.youtube.com/vi/MAT0009/hqdefault.jpg', 62000),
+    ('MAT0010', 'Mat Core Power', 28, 'intermediate', ARRAY['mat'], ARRAY['core','abs'], 'https://img.youtube.com/vi/MAT0010/hqdefault.jpg', 55000),
+    ('MAT0011', 'Advanced Mat Flows', 32, 'intermediate', ARRAY['mat'], ARRAY['core','flexibility'], 'https://img.youtube.com/vi/MAT0011/hqdefault.jpg', 47000),
+    ('MAT0012', 'Intermediate Yoga Mat', 25, 'intermediate', ARRAY['mat'], ARRAY['full_body','core'], 'https://img.youtube.com/vi/MAT0012/hqdefault.jpg', 51000);
 
 INSERT INTO recipe (title, image_url, time_minutes, difficulty, nutrition_summary, steps, swaps)
 VALUES
-    ('Lemon Garlic Chicken Bowls', 'https://example.com/images/lemon-garlic-chicken.jpg', 25, 'easy', '{"calories": 380, "protein_g": 32}',
+    ('Lemon Garlic Chicken Bowls', 'https://example.com/images/lemon-garlic-chicken.jpg', 25, 'easy', '{"calories": 380, "protein_g": 32, "primaryIngredient": "chicken"}',
      '[{"step":1,"instruction":"Season chicken and sear"},{"step":2,"instruction":"Simmer with lemon garlic sauce"}]',
      '[{"swap":"Use cauliflower rice for lighter option"}]'),
     ('High-Protein Veggie Omelette', 'https://example.com/images/veggie-omelette.jpg', 15, 'easy', '{"calories": 290, "protein_g": 28}',
@@ -158,26 +168,54 @@ VALUES
      '[{"swap":"Use tofu for vegetarian option"}]'),
     ('Hearty Lentil Soup', 'https://example.com/images/lentil-soup.jpg', 40, 'medium', '{"calories": 310, "protein_g": 22}',
      '[{"step":1,"instruction":"Saute aromatics"},{"step":2,"instruction":"Simmer lentils"},{"step":3,"instruction":"Finish with greens"}]',
-     '[{"swap":"Blend half the soup for creamier texture"}]');
+     '[{"swap":"Blend half the soup for creamier texture"}]'),
+    -- Additional chicken recipes for test coverage
+    ('Honey Mustard Chicken', 'https://example.com/images/honey-mustard-chicken.jpg', 35, 'easy', '{"calories": 420, "protein_g": 38, "primaryIngredient": "chicken"}',
+     '[{"step":1,"instruction":"Mix honey mustard glaze"},{"step":2,"instruction":"Bake chicken until golden"}]',
+     '[{"swap":"Use Greek yogurt instead of mayo"}]'),
+    ('Spicy Chicken Tacos', 'https://example.com/images/chicken-tacos.jpg', 30, 'easy', '{"calories": 390, "protein_g": 35, "primaryIngredient": "chicken"}',
+     '[{"step":1,"instruction":"Season and cook chicken"},{"step":2,"instruction":"Assemble tacos with toppings"}]',
+     '[{"swap":"Use lettuce wraps for low-carb option"}]'),
+    -- Additional quick and easy recipes for test coverage
+    ('Avocado Toast Deluxe', 'https://example.com/images/avocado-toast.jpg', 10, 'easy', '{"calories": 280, "protein_g": 12}',
+     '[{"step":1,"instruction":"Toast bread"},{"step":2,"instruction":"Mash avocado and spread"},{"step":3,"instruction":"Top with egg"}]',
+     '[{"swap":"Add smoked salmon for extra protein"}]'),
+    ('Greek Yogurt Parfait', 'https://example.com/images/yogurt-parfait.jpg', 8, 'easy', '{"calories": 250, "protein_g": 18}',
+     '[{"step":1,"instruction":"Layer yogurt"},{"step":2,"instruction":"Add fruits and granola"}]',
+     '[{"swap":"Use honey instead of maple syrup"}]');
 
 INSERT INTO ingredient (name)
 VALUES
     ('chicken breast'),
+    ('chicken'),  -- Generic chicken for search compatibility
     ('lemon'),
     ('quinoa'),
     ('shrimp'),
     ('lentils'),
-    ('spinach')
+    ('spinach'),
+    ('honey'),
+    ('mustard'),
+    ('avocado'),
+    ('yogurt')
 ON CONFLICT (name) DO NOTHING;
 
 WITH ingredient_map(recipe_title, ingredient_name, quantity, unit) AS (
     VALUES
         ('Lemon Garlic Chicken Bowls', 'chicken breast', 2.00, 'lb'),
+        ('Lemon Garlic Chicken Bowls', 'chicken', 2.00, 'lb'),  -- Add generic chicken for search
         ('Lemon Garlic Chicken Bowls', 'lemon', 1.00, 'ea'),
         ('High-Protein Veggie Omelette', 'spinach', 0.50, 'cup'),
         ('Beef and Quinoa Power Bowl', 'quinoa', 1.50, 'cup'),
         ('Quick Shrimp Stir Fry', 'shrimp', 1.00, 'lb'),
-        ('Hearty Lentil Soup', 'lentils', 1.00, 'cup')
+        ('Hearty Lentil Soup', 'lentils', 1.00, 'cup'),
+        ('Honey Mustard Chicken', 'chicken breast', 1.50, 'lb'),
+        ('Honey Mustard Chicken', 'chicken', 1.50, 'lb'),  -- Add generic chicken for search
+        ('Honey Mustard Chicken', 'honey', 0.25, 'cup'),
+        ('Honey Mustard Chicken', 'mustard', 0.25, 'cup'),
+        ('Spicy Chicken Tacos', 'chicken breast', 1.00, 'lb'),
+        ('Spicy Chicken Tacos', 'chicken', 1.00, 'lb'),  -- Add generic chicken for search
+        ('Avocado Toast Deluxe', 'avocado', 2.00, 'ea'),
+        ('Greek Yogurt Parfait', 'yogurt', 1.00, 'cup')
 )
 INSERT INTO recipe_ingredient (recipe_id, ingredient_id, quantity, unit)
 SELECT r.id, i.id, im.quantity, im.unit
