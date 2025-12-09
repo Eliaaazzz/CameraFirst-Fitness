@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.nutrition;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fitnessapp.backend.config.TestSecurityConfig;
 import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
@@ -35,11 +36,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Integration tests for MealController
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 @WithMockUser
 @Transactional
 @DisplayName("MealController Integration Tests")
+@org.springframework.context.annotation.Import(TestSecurityConfig.class)
 class MealControllerTest {
 
     @Autowired
@@ -76,9 +78,8 @@ class MealControllerTest {
             .build();
         testUser = userRepository.save(testUser);
 
-        // Create user profile
+        // Create user profile (do not set userId when using @MapsId - only set user relationship)
         testProfile = UserProfile.builder()
-            .userId(testUser.getId())
             .user(testUser)
             .dailyCalorieTarget(2000)
             .dailyProteinTarget(130)

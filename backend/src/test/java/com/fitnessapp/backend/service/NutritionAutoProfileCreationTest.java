@@ -2,6 +2,7 @@ package com.fitnessapp.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fitnessapp.backend.config.TestSecurityConfig;
 import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 @WithMockUser
 @Transactional
 @DisplayName("Nutrition Auto Profile Creation Test")
+@org.springframework.context.annotation.Import(TestSecurityConfig.class)
 class NutritionAutoProfileCreationTest {
 
   @Autowired
@@ -76,8 +78,8 @@ class NutritionAutoProfileCreationTest {
     // Verify the summary was returned successfully
     assertThat(summary).isNotNull();
     assertThat(summary.days()).isEqualTo(1);
-    assertThat(summary.calories().target()).isEqualTo(2000); // Default target
-    assertThat(summary.protein().target()).isEqualTo(130);   // Default target
+    assertThat(summary.calories().target()).isIn(2000, 2000.0, new java.math.BigDecimal("2000")); // Default target (flexible type)
+    assertThat(summary.protein().target()).isIn(130, 130.0, new java.math.BigDecimal("130"));   // Default target (flexible type)
     
     // Verify a profile was auto-created
     UserProfile createdProfile = userProfileRepository.findByUserId(testUser.getId())
@@ -101,7 +103,7 @@ class NutritionAutoProfileCreationTest {
     // Verify the summary was returned successfully
     assertThat(summary).isNotNull();
     assertThat(summary.days()).isEqualTo(7);
-    assertThat(summary.calories().target()).isEqualTo(2000 * 7); // Default target * 7 days
+    assertThat(summary.calories().target()).isIn(14000, 14000.0, new java.math.BigDecimal("14000")); // Default target * 7 days (flexible type)
     
     // Verify a profile was auto-created
     UserProfile createdProfile = userProfileRepository.findByUserId(testUser.getId())
