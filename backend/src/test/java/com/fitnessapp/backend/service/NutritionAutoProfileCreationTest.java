@@ -2,6 +2,7 @@ package com.fitnessapp.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fitnessapp.backend.config.TestSecurityConfig;
 import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 @WithMockUser
 @Transactional
 @DisplayName("Nutrition Auto Profile Creation Test")
+@org.springframework.context.annotation.Import(TestSecurityConfig.class)
 class NutritionAutoProfileCreationTest {
 
   @Autowired

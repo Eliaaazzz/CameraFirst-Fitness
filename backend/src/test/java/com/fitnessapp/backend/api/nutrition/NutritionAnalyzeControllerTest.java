@@ -26,6 +26,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fitnessapp.backend.config.TestSecurityConfig;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
@@ -36,9 +37,8 @@ import com.fitnessapp.backend.nutrition.service.NutritionEngine;
  * Integration tests for /api/v1/nutrition/analyze endpoint
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
-@WithMockUser
 @DisplayName("Nutrition Analyze Endpoint Tests")
 class NutritionAnalyzeControllerTest {
 
@@ -62,13 +62,19 @@ class NutritionAnalyzeControllerTest {
             "fake-image-content".getBytes()
         );
 
-        // Mock Claude Vision response
+        // Mock Claude Vision response with nutrition data
         RecognizedFood rice = RecognizedFood.builder()
             .foodKey("steamed_rice")
             .displayName("白米饭")
             .estimatedGrams(200)
             .cookingMethod("steamed")
             .confidence(0.95)
+            .nutrition(NutritionInfo.builder()
+                .calories(new BigDecimal("232.0"))
+                .protein(new BigDecimal("5.2"))
+                .fat(new BigDecimal("0.6"))
+                .carbs(new BigDecimal("51.2"))
+                .build())
             .build();
 
         RecognizedFood pork = RecognizedFood.builder()
@@ -77,6 +83,12 @@ class NutritionAnalyzeControllerTest {
             .estimatedGrams(100)
             .cookingMethod("braised")
             .confidence(0.88)
+            .nutrition(NutritionInfo.builder()
+                .calories(new BigDecimal("340.0"))
+                .protein(new BigDecimal("14.0"))
+                .fat(new BigDecimal("28.0"))
+                .carbs(new BigDecimal("5.0"))
+                .build())
             .build();
 
         FoodRecognitionResult recognitionResult = FoodRecognitionResult.builder()
@@ -102,14 +114,15 @@ class NutritionAnalyzeControllerTest {
         // When/Then
         mockMvc.perform(multipart("/api/v1/nutrition/analyze")
                 .file(imageFile))
+            .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items", hasSize(2)))
-            .andExpect(jsonPath("$.items[0].foodKey").value("steamed_rice"))
-            .andExpect(jsonPath("$.items[0].displayName").value("白米饭"))
-            .andExpect(jsonPath("$.items[0].estimatedGrams").value(200))
+            .andExpect(jsonPath("$.items[0].food_key").value("steamed_rice"))
+            .andExpect(jsonPath("$.items[0].display_name").value("白米饭"))
+            .andExpect(jsonPath("$.items[0].estimated_grams").value(200))
             .andExpect(jsonPath("$.items[0].confidence").value(0.95))
             .andExpect(jsonPath("$.items[0].nutrition.calories").value(232.0))
-            .andExpect(jsonPath("$.items[1].foodKey").value("braised_pork"))
+            .andExpect(jsonPath("$.items[1].food_key").value("braised_pork"))
             .andExpect(jsonPath("$.totalNutrition.calories").value(572.0))
             .andExpect(jsonPath("$.totalNutrition.protein").value(19.2))
             .andExpect(jsonPath("$.suggestedMealType").value("lunch"));
@@ -219,6 +232,12 @@ class NutritionAnalyzeControllerTest {
             .displayName("煎蛋")
             .estimatedGrams(50)
             .confidence(0.92)
+            .nutrition(NutritionInfo.builder()
+                .calories(new BigDecimal("98.0"))
+                .protein(new BigDecimal("6.8"))
+                .fat(new BigDecimal("7.65"))
+                .carbs(new BigDecimal("0.55"))
+                .build())
             .build();
 
         FoodRecognitionResult recognitionResult = FoodRecognitionResult.builder()
@@ -260,6 +279,12 @@ class NutritionAnalyzeControllerTest {
             .estimatedGrams(120)
             .cookingMethod("stir_fried")
             .confidence(0.87)
+            .nutrition(NutritionInfo.builder()
+                .calories(new BigDecimal("114.0"))
+                .protein(new BigDecimal("7.2"))
+                .fat(new BigDecimal("7.8"))
+                .carbs(new BigDecimal("5.4"))
+                .build())
             .build();
 
         FoodRecognitionResult recognitionResult = FoodRecognitionResult.builder()
