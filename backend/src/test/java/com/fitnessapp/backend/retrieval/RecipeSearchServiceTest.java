@@ -1,18 +1,15 @@
 package com.fitnessapp.backend.retrieval;
 
 import com.fitnessapp.backend.retrieval.dto.*;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 
@@ -23,62 +20,22 @@ import static org.assertj.core.api.Assertions.assertThat;
  * These tests require PostgreSQL due to JSONB native queries.
  * Tests will be skipped if Docker/Testcontainers is unavailable.
  */
-@Testcontainers
 @SpringBootTest(properties = {
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.flyway.enabled=false",
         "spring.cache.type=none",
         "app.seed.enabled=false"
 })
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
 @WithMockUser
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class RecipeSearchServiceTest {
+    @ServiceConnection
+    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
-    private static PostgreSQLContainer<?> postgres;
-    private static boolean postgresAvailable;
-
-    @DynamicPropertySource
-    static void registerDataSource(DynamicPropertyRegistry registry) {
-        ensurePostgres();
-        if (postgresAvailable) {
-            registry.add("spring.datasource.url", postgres::getJdbcUrl);
-            registry.add("spring.datasource.username", postgres::getUsername);
-            registry.add("spring.datasource.password", postgres::getPassword);
-            registry.add("spring.datasource.driver-class-name", postgres::getDriverClassName);
-            registry.add("spring.jpa.database-platform", () -> "org.hibernate.dialect.PostgreSQLDialect");
-        } else {
-            registry.add("spring.datasource.url", () -> "jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1");
-            registry.add("spring.datasource.username", () -> "sa");
-            registry.add("spring.datasource.password", () -> "");
-            registry.add("spring.datasource.driver-class-name", () -> "org.h2.Driver");
-            registry.add("spring.jpa.database-platform", () -> "org.hibernate.dialect.H2Dialect");
-        }
-    }
-
-    @BeforeAll
-    void checkPostgresAvailable() {
-        ensurePostgres();
-    }
-
-    private static void ensurePostgres() {
-        if (postgres != null && postgres.isRunning()) {
-            postgresAvailable = true;
-            return;
-        }
-        try {
-            postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-            postgres.start();
-            postgresAvailable = true;
-        } catch (Throwable ex) {
-            postgres = null;
-            postgresAvailable = false;
-        }
-    }
-
-    private void assumePostgresAvailable() {
-        Assumptions.assumeTrue(postgresAvailable,
-            "PostgreSQL container unavailable - these tests require PostgreSQL due to JSONB native queries");
+    static {
+        postgres.start();
     }
 
     @Autowired
@@ -86,7 +43,6 @@ class RecipeSearchServiceTest {
 
     @Test
     void testHighProteinRecipeSearch() {
-        assumePostgresAvailable();
         // Find high-protein recipes (30g+ protein)
         List<RecipeCard> recipes = recipeSearchService.findHighProteinRecipes(45);
 
@@ -118,7 +74,6 @@ class RecipeSearchServiceTest {
 
     @Test
     void testLowCarbRecipeSearch() {
-        assumePostgresAvailable();
         // Find low-carb recipes (under 20g carbs)
         List<RecipeCard> recipes = recipeSearchService.findLowCarbRecipes(45);
 
@@ -149,7 +104,6 @@ class RecipeSearchServiceTest {
 
     @Test
     void testLowCalorieRecipeSearch() {
-        assumePostgresAvailable();
         // Find low-calorie recipes (under 400 calories)
         List<RecipeCard> recipes = recipeSearchService.findLowCalorieRecipes(45);
 
@@ -180,7 +134,6 @@ class RecipeSearchServiceTest {
 
     @Test
     void testAdvancedSearchWithMultipleFilters() {
-        assumePostgresAvailable();
         // Search for high-protein, low-calorie recipes
         RecipeSearchRequest request = RecipeSearchRequest.builder()
                 .maxTimeMinutes(45)
@@ -225,7 +178,6 @@ class RecipeSearchServiceTest {
 
     @Test
     void testBalancedRecipeSearch() {
-        assumePostgresAvailable();
         List<RecipeCard> recipes = recipeSearchService.findBalancedRecipes(30);
 
         System.out.println("\n========================================");
@@ -258,7 +210,6 @@ class RecipeSearchServiceTest {
 
     @Test
     void testCalorieRangeSearch() {
-        assumePostgresAvailable();
         // Find recipes between 300-500 calories
         List<RecipeCard> recipes = recipeSearchService.findByCaloriesRange(300, 500);
 
