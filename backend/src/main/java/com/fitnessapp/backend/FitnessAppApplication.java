@@ -7,7 +7,9 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@ConfigurationPropertiesScan
+@ConfigurationPropertiesScan(basePackages = {
+    "com.fitnessapp.backend.config"
+})
 @EnableCaching
 @EnableJpaRepositories(basePackages = {
     "com.fitnessapp.backend.user.repository",

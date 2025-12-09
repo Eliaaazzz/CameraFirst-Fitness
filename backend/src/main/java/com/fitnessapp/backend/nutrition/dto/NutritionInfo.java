@@ -19,6 +19,12 @@ public class NutritionInfo {
   private BigDecimal protein;
   private BigDecimal fat;
   private BigDecimal carbs;
+  private BigDecimal fiber;
+  private BigDecimal sugar;
+
+  // Computed fields for visualization
+  private BigDecimal netCarbs;
+  private BigDecimal sugarCubes;
 
   public static NutritionInfo zero() {
     return NutritionInfo.builder()
@@ -26,13 +32,27 @@ public class NutritionInfo {
         .protein(BigDecimal.ZERO)
         .fat(BigDecimal.ZERO)
         .carbs(BigDecimal.ZERO)
+        .fiber(BigDecimal.ZERO)
+        .sugar(BigDecimal.ZERO)
+        .netCarbs(BigDecimal.ZERO)
+        .sugarCubes(BigDecimal.ZERO)
         .build();
   }
 
   public void add(NutritionInfo other) {
-    this.calories = this.calories.add(other.calories);
-    this.protein = this.protein.add(other.protein);
-    this.fat = this.fat.add(other.fat);
-    this.carbs = this.carbs.add(other.carbs);
+    this.calories = safeAdd(this.calories, other.calories);
+    this.protein = safeAdd(this.protein, other.protein);
+    this.fat = safeAdd(this.fat, other.fat);
+    this.carbs = safeAdd(this.carbs, other.carbs);
+    this.fiber = safeAdd(this.fiber, other.fiber);
+    this.sugar = safeAdd(this.sugar, other.sugar);
+    this.netCarbs = safeAdd(this.netCarbs, other.netCarbs);
+    this.sugarCubes = safeAdd(this.sugarCubes, other.sugarCubes);
+  }
+
+  private BigDecimal safeAdd(BigDecimal a, BigDecimal b) {
+    if (a == null) a = BigDecimal.ZERO;
+    if (b == null) b = BigDecimal.ZERO;
+    return a.add(b);
   }
 }

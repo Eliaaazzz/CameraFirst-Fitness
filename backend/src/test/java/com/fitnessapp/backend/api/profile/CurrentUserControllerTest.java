@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.api.profile;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -9,59 +10,66 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.user.controller.CurrentUserController;
-import com.fitnessapp.backend.user.entity.User;
-import com.fitnessapp.backend.user.entity.UserProfile;
-import com.fitnessapp.backend.user.dto.UserProfileRequest;
-import com.fitnessapp.backend.recipe.service.SmartRecipeService;
-import com.fitnessapp.backend.user.repository.UserRepository;
-import com.fitnessapp.backend.security.CurrentUser;
-import com.fitnessapp.backend.nutrition.service.NutritionInsightService;
-import com.fitnessapp.backend.user.service.UserProfileService;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-@WebMvcTest(CurrentUserController.class)
-@AutoConfigureMockMvc(addFilters = false)
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fitnessapp.backend.nutrition.service.NutritionInsightService;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService;
+import com.fitnessapp.backend.security.CurrentUser;
+import com.fitnessapp.backend.user.controller.CurrentUserController;
+import com.fitnessapp.backend.user.dto.UserProfileRequest;
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.user.repository.UserRepository;
+import com.fitnessapp.backend.user.service.UserProfileService;
+
+@ExtendWith(MockitoExtension.class)
 class CurrentUserControllerTest {
 
-  @Autowired
   private MockMvc mockMvc;
-
-  @Autowired
   private ObjectMapper objectMapper;
 
-  @MockBean
+  @Mock
   private CurrentUser currentUser;
 
-  @MockBean
+  @Mock
   private UserRepository userRepository;
 
-  @MockBean
+  @Mock
   private UserProfileService userProfileService;
 
-  @MockBean
+  @Mock
   private SmartRecipeService smartRecipeService;
 
-  @MockBean
+  @Mock
   private NutritionInsightService nutritionInsightService;
+
+  @BeforeEach
+  void setUp() {
+    objectMapper = new ObjectMapper();
+    objectMapper.findAndRegisterModules();
+    CurrentUserController controller = new CurrentUserController(currentUser, userRepository, userProfileService, smartRecipeService, nutritionInsightService);
+    mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+  }
 
   @Test
   void returnsCurrentUserWithProfile() throws Exception {
     UUID userId = UUID.randomUUID();
     when(currentUser.requireUserId()).thenReturn(userId);
-    when(userRepository.findById(userId)).thenReturn(Optional.of(
+    lenient().when(userRepository.findById(userId)).thenReturn(Optional.of(
         User.builder().id(userId).email("user@example.com").level("INTERMEDIATE").timeBucket(2).build()));
-    when(userProfileService.getProfile(userId)).thenReturn(Optional.of(UserProfile.builder()
+    lenient().when(userProfileService.getProfile(userId)).thenReturn(Optional.of(UserProfile.builder()
         .userId(userId)
         .heightCm(172)
         .weightKg(new BigDecimal("70.0"))
@@ -83,7 +91,7 @@ class CurrentUserControllerTest {
       return payload;
     });
 
-    UserProfileRequest request = new UserProfileRequest(180, new BigDecimal("80.0"), null, null, null, null, null, 2200, 160, 220, 70);
+  UserProfileRequest request = new UserProfileRequest(180, new BigDecimal("80.0"), null, null, null, null, null, null, 2200, 160, 220, 70);
 
     mockMvc.perform(put("/api/v1/me/profile")
             .contentType(MediaType.APPLICATION_JSON)

@@ -3,7 +3,9 @@ package com.fitnessapp.backend.nutrition.service;
 import java.time.Duration;
 import java.util.Optional;
 
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -37,9 +39,33 @@ public class FoodNutritionCacheService {
         return Optional.empty();
       }
       return Optional.of(objectMapper.readValue(payload, FoodNutritionDto.class));
+    } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+      // Corrupted JSON stored in cache — remove the key to avoid repeated failures
+      log.warn("Failed to deserialize cached food nutrition for key={}", foodKey, e);
+      try {
+        redisTemplate.delete(cacheKey);
+      } catch (Exception ex) {
+        log.warn("Failed to delete corrupted cache key={}", cacheKey, ex);
+      }
+      return Optional.empty();
+    } catch (SerializationException e) {
+      // Redis-side serialization/deserialization error (e.g. stored value can't be deserialized by Redis serializer)
+      log.warn("Redis serializer error for key={}; removing corrupted key", cacheKey, e);
+      try {
+        redisTemplate.delete(cacheKey);
+        log.info("Deleted corrupted key from Redis: {}", cacheKey);
+      } catch (Exception ex) {
+        // If delete fails (e.g. connection issue), swallow to preserve main flow
+        log.warn("Failed to delete corrupted key during fallback: {}", cacheKey, ex);
+      }
+      return Optional.empty();
+    } catch (DataAccessException e) {
+      // Redis access problem (connection, timeout, etc.). Treat as cache miss — do NOT delete key.
+      log.warn("Redis access error when reading cache for key={}; treating as cache miss", foodKey, e);
+      return Optional.empty();
     } catch (Exception e) {
-      log.warn("Failed to read food nutrition cache for key={}", foodKey, e);
-      redisTemplate.delete(cacheKey);
+      // Unexpected error — log and return empty, avoid deleting the key on unknown errors.
+      log.warn("Unexpected error reading food nutrition cache for key={}", foodKey, e);
       return Optional.empty();
     }
   }
@@ -65,3 +91,11 @@ public class FoodNutritionCacheService {
     return CACHE_PREFIX + foodKey;
   }
 }
+
+
+
+
+
+
+
+

@@ -11,13 +11,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.recipe.controller.MealPlanController;
@@ -34,24 +35,28 @@ import com.fitnessapp.backend.recipe.service.SmartRecipeService.MealPlanDay;
 import com.fitnessapp.backend.recipe.service.SmartRecipeService.MealPlanResponse;
 import com.fitnessapp.backend.recipe.service.SmartRecipeService.NutritionTarget;
 
-@WebMvcTest(MealPlanController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@ExtendWith(MockitoExtension.class)
 class MealPlanControllerTest {
 
-  @Autowired
   private MockMvc mockMvc;
-
-  @Autowired
   private ObjectMapper objectMapper;
 
-  @MockBean
+  @Mock
   private SmartRecipeService smartRecipeService;
 
-  @MockBean
+  @Mock
   private MealPlanHistoryService mealPlanHistoryService;
 
-  @MockBean
+  @Mock
   private RecipeSwapService recipeSwapService;
+
+  @BeforeEach
+  void setUp() {
+    objectMapper = new ObjectMapper();
+    objectMapper.findAndRegisterModules();
+    MealPlanController controller = new MealPlanController(smartRecipeService, mealPlanHistoryService, objectMapper, recipeSwapService);
+    mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+  }
 
   private MealPlanResponse samplePlan() {
     NutritionTarget target = new NutritionTarget(2400, 180, 260, 70);
@@ -154,49 +159,4 @@ class MealPlanControllerTest {
         .andExpect(jsonPath("$.suggestions[0].title").value("地中海烤鸡"))
         .andExpect(jsonPath("$.suggestions[0].calories").value(520.0));
   }
-
-//  @Test
-//   void shoppingListReturnsJson() throws Exception {
-//     UUID userId = UUID.randomUUID();
-//     LocalDate start = LocalDate.of(2025, 11, 4);
-//     ShoppingListDTO list = new ShoppingListDTO(
-//         start,
-//         start.plusDays(6),
-//         List.of(new Category("蔬菜水果", List.of(new Item("西兰花", new BigDecimal("2.0"), "棵", false, List.of("低碳晚餐"))))),
-//         null
-//     );
-//     when(shoppingListService.buildShoppingList(userId, null)).thenReturn(list);
-// 
-//     mockMvc.perform(get("/api/v1/meal-plan/shopping-list")
-//             .param("userId", userId.toString()))
-//         .andExpect(status().isOk())
-//         .andExpect(jsonPath("$.categories[0].items[0].ingredientName").value("西兰花"))
-//         .andExpect(jsonPath("$.categories[0].items[0].quantity").value("2 棵"));
-// 
-//     verify(shoppingListService).buildShoppingList(userId, null);
-//   }
-
-//  @Test
-//   void shoppingListPdfReturnsBinary() throws Exception {
-//     UUID userId = UUID.randomUUID();
-//     LocalDate start = LocalDate.of(2025, 11, 4);
-//     ShoppingListDTO list = new ShoppingListDTO(
-//         start,
-//         start.plusDays(6),
-//         List.of(),
-//         null
-//     );
-//     when(shoppingListService.buildShoppingList(userId, start)).thenReturn(list);
-//     when(shoppingListService.renderPdf(list)).thenReturn(new byte[]{1, 2, 3});
-// 
-//     mockMvc.perform(get("/api/v1/meal-plan/shopping-list")
-//             .param("userId", userId.toString())
-//             .param("weekStart", start.toString())
-//             .param("format", "pdf"))
-//         .andExpect(status().isOk())
-//         .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, Matchers.containsString("shopping-list-" + start)));
-// 
-//     verify(shoppingListService).buildShoppingList(userId, start);
-//     verify(shoppingListService).renderPdf(list);
-//   }
 }

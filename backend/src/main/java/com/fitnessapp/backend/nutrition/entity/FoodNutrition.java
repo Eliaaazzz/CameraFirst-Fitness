@@ -50,6 +50,9 @@ public class FoodNutrition {
     private BigDecimal fiber;
 
     @Column(precision = 8, scale = 2)
+    private BigDecimal sugar;
+
+    @Column(precision = 8, scale = 2)
     private BigDecimal sodium;
 
     @Column(length = 50)

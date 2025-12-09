@@ -38,6 +38,13 @@ app:
   gemini:
     api-key: ${GEMINI_API_KEY:}
     model: ${GEMINI_MODEL:gemini-2.0-flash}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+  apple:
+    client-id: ${APPLE_CLIENT_ID:}
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-production-this-needs-to-be-at-least-256-bits-long}
+    expiration-days: ${JWT_EXPIRATION_DAYS:30}
   meal-plan:
     cache-ttl-hours: 24
   recipe-generation:
@@ -123,15 +130,20 @@ spring:
       max-lifetime: 1800000
   data:
     redis:
-      host: ${SPRING_REDIS_HOST}
+      host: ${SPRING_REDIS_HOST:localhost}
       port: ${SPRING_REDIS_PORT:6379}
       password: ${SPRING_REDIS_PASSWORD:}
       timeout: 2000ms
+
+      ssl: 
+        enabled: ${SPRING_REDIS_SSL:true}
+
       lettuce:
         pool:
           max-active: 8
           max-idle: 4
           min-idle: 2
+
   cache:
     type: redis
   jpa:

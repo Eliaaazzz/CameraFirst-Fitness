@@ -23,31 +23,36 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.data.domain.Sort;
-import org.mockito.ArgumentCaptor;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-@WebMvcTest(UserLibraryController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@ExtendWith(MockitoExtension.class)
 class UserLibraryControllerTest {
 
-  @Autowired
   private MockMvc mockMvc;
-
-  @Autowired
   private ObjectMapper objectMapper;
 
-  @MockBean
+  @Mock
   private UserLibraryService libraryService;
 
-  @MockBean
+  @Mock
   private CurrentUser currentUser;
+
+  @BeforeEach
+  void setUp() {
+    objectMapper = new ObjectMapper();
+    objectMapper.findAndRegisterModules();
+    UserLibraryController controller = new UserLibraryController(libraryService, currentUser);
+    mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+  }
 
   @Test
   void saveWorkoutUsesAuthenticatedUserWhenMissingInPayload() throws Exception {

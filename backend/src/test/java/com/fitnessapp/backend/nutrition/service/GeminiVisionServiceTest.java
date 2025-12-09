@@ -423,9 +423,9 @@ class GeminiVisionServiceTest {
     }
 
     @Test
-    @DisplayName("Should verify model name is 'gemini-2.0-flash-exp'")
+    @DisplayName("Should verify model name is 'gemini-2.0-flash'")
     void testGetModelName() {
-        assertThat(geminiVisionService.getModelName()).isEqualTo("gemini-2.0-flash-exp");
+        assertThat(geminiVisionService.getModelName()).isEqualTo("gemini-2.0-flash");
     }
 
     @Test

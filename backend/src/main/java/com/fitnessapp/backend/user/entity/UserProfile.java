@@ -56,6 +56,11 @@ public class UserProfile {
   @Column(name = "dietary_preference", length = 32)
   private DietaryPreference dietaryPreference;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "health_mode", length = 20)
+  @Builder.Default
+  private HealthMode healthMode = HealthMode.PREVENTION;
+
   @ElementCollection(fetch = FetchType.LAZY)
   @CollectionTable(name = "user_profile_allergens", joinColumns = @JoinColumn(name = "user_id"))
   @Enumerated(EnumType.STRING)
@@ -101,6 +106,7 @@ public class UserProfile {
     this.basalMetabolicRate = source.getBasalMetabolicRate();
     this.fitnessGoal = source.getFitnessGoal();
     this.dietaryPreference = source.getDietaryPreference();
+    this.healthMode = source.getHealthMode();
     this.dailyCalorieTarget = source.getDailyCalorieTarget();
     this.dailyProteinTarget = source.getDailyProteinTarget();
     this.dailyCarbsTarget = source.getDailyCarbsTarget();
