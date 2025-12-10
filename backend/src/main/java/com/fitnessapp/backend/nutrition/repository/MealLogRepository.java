@@ -14,16 +14,16 @@ public interface MealLogRepository extends JpaRepository<MealLog, Long> {
 
   List<MealLog> findByUserIdAndConsumedAtBetweenOrderByConsumedAtAsc(UUID userId, OffsetDateTime start, OffsetDateTime end);
 
-  @Query("select coalesce(sum(m.calories),0) from MealLog m where m.userId = :userId and m.consumedAt between :start and :end")
+  @Query("select coalesce(sum(coalesce(m.calories, 0) + coalesce(m.totalCalories, 0)), 0) from MealLog m where m.userId = :userId and m.consumedAt between :start and :end")
   Long sumCalories(@Param("userId") UUID userId, @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
 
-  @Query("select coalesce(sum(m.proteinGrams),0) from MealLog m where m.userId = :userId and m.consumedAt between :start and :end")
+  @Query("select coalesce(sum(coalesce(m.proteinGrams, 0) + coalesce(m.totalProtein, 0)), 0) from MealLog m where m.userId = :userId and m.consumedAt between :start and :end")
   BigDecimal sumProtein(@Param("userId") UUID userId, @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
 
-  @Query("select coalesce(sum(m.carbsGrams),0) from MealLog m where m.userId = :userId and m.consumedAt between :start and :end")
+  @Query("select coalesce(sum(coalesce(m.carbsGrams, 0) + coalesce(m.totalCarbs, 0)), 0) from MealLog m where m.userId = :userId and m.consumedAt between :start and :end")
   BigDecimal sumCarbs(@Param("userId") UUID userId, @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
 
-  @Query("select coalesce(sum(m.fatGrams),0) from MealLog m where m.userId = :userId and m.consumedAt between :start and :end")
+  @Query("select coalesce(sum(coalesce(m.fatGrams, 0) + coalesce(m.totalFat, 0)), 0) from MealLog m where m.userId = :userId and m.consumedAt between :start and :end")
   BigDecimal sumFat(@Param("userId") UUID userId, @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
 
   @Query("""

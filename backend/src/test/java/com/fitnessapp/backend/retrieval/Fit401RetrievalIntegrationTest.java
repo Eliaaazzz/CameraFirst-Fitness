@@ -22,9 +22,15 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = {
                 "app.seed.enabled=true",
-                "spring.jpa.hibernate.ddl-auto=none"
+                "spring.jpa.hibernate.ddl-auto=none",
+                "spring.cache.type=none"
         })
 @TestInstance(Lifecycle.PER_CLASS)
+@org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(
+        named = "FIT401_INTEGRATION_TESTS_ENABLED",
+        matches = "true",
+        disabledReason = "FIT-401 integration tests require Docker with seeded data. Set FIT401_INTEGRATION_TESTS_ENABLED=true to run."
+)
 class Fit401RetrievalIntegrationTest {
 
     private static PostgreSQLContainer<?> postgres;

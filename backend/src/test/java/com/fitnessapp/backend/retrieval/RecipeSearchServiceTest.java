@@ -1,29 +1,51 @@
 package com.fitnessapp.backend.retrieval;
 
-import com.fitnessapp.backend.retrieval.dto.*;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
+import org.testcontainers.containers.PostgreSQLContainer;
+
+import com.fitnessapp.backend.retrieval.dto.NutritionFilter;
+import com.fitnessapp.backend.retrieval.dto.RecipeCard;
+import com.fitnessapp.backend.retrieval.dto.RecipeSearchRequest;
 
 /**
- * Tests for advanced recipe search with macro filtering
+ * Tests for advanced recipe search with macro filtering.
+ * These tests require PostgreSQL due to JSONB native queries.
+ * Tests will be skipped if Docker/Testcontainers is unavailable.
  */
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
-        "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.flyway.enabled=false",
+        "spring.cache.type=none",
         "app.seed.enabled=false"
 })
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
 @WithMockUser
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Import(RecipeSearchServiceTest.TestcontainersConfig.class)
 class RecipeSearchServiceTest {
+    @TestConfiguration(proxyBeanMethods = false)
+    static class TestcontainersConfig {
+        @Bean
+        @ServiceConnection
+        PostgreSQLContainer<?> postgresContainer() {
+            return new PostgreSQLContainer<>("postgres:16-alpine");
+        }
+    }
 
     @Autowired
     private RecipeSearchService recipeSearchService;

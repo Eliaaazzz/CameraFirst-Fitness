@@ -14,6 +14,10 @@ spring:
     enabled: false
   cache:
     type: simple
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
 app:
   seed:
