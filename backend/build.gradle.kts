@@ -88,7 +88,8 @@ tasks.withType<Test> {
         exclude("**/MealPlanControllerTest*")
         exclude("**/MealControllerTest*")
         exclude("**/NutritionAnalyzeControllerTest*")
-        exclude("**/RecipeSearchServiceTest*")
+        // RecipeSearchServiceTest now uses Testcontainers and works!
+        // exclude("**/RecipeSearchServiceTest*")
         exclude("**/NutritionAutoProfileCreationTest*")
         exclude("**/NutritionTrackingServiceTest*")
         exclude("**/RecipeScalingServiceTest*")
