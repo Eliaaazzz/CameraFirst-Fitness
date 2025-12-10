@@ -162,7 +162,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
@@ -393,7 +393,7 @@ jobs:
           
           ssh -i ~/.ssh/id_rsa \
             "$EC2_USER@$EC2_HOST" \
-            "cd /home/\$USER/infrastructure/backend && docker-compose pull && docker-compose up -d"
+            "cd /home/$EC2_USER/infrastructure/backend && docker-compose pull && docker-compose up -d"
           
           echo "✅ Rollback complete"
 
