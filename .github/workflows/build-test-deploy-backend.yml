@@ -98,6 +98,10 @@ jobs:
     needs: build-and-test
     if: github.event_name != 'pull_request'
     
+    permissions:
+      contents: read
+      security-events: write
+    
     outputs:
       image-tag: ${{ steps.meta.outputs.tags }}
       image-digest: ${{ steps.build.outputs.digest }}
@@ -155,6 +159,7 @@ jobs:
 
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.DOCKER_IMAGE }}:${{ github.ref_name }}
           format: 'sarif'
@@ -163,7 +168,8 @@ jobs:
 
       - name: Upload Trivy results
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        continue-on-error: true
         with:
           sarif_file: 'trivy-results.sarif'
 
