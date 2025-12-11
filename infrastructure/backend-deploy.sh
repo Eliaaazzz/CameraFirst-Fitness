@@ -167,6 +167,17 @@ EOF
 
 echo -e "${GREEN}Step 6: Pulling latest Docker image...${NC}"
 echo "Pulling image: ${DOCKER_IMAGE}"
+echo -e "${GREEN}Pre-clean: reclaiming unused Docker space (safe)${NC}"
+# By default run a safe prune to remove stopped containers, unused networks and dangling images.
+# Override by setting DOCKER_CLEANUP=false to skip this step (e.g., in CI where caching matters).
+if [ "${DOCKER_CLEANUP:-true}" = "true" ]; then
+  echo "Running docker system prune -f to remove stopped containers, unused networks & dangling images..."
+  # don't fail the deployment if prune fails for any reason
+  docker system prune -f || echo -e "${YELLOW}docker system prune failed or returned non-zero; continuing${NC}"
+else
+  echo "DOCKER_CLEANUP is set to false; skipping docker space cleanup"
+fi
+
 if docker pull ${DOCKER_IMAGE}; then
     echo -e "${GREEN}Image pulled successfully${NC}"
 else

@@ -96,9 +96,9 @@ spring:
     open-in-view: false
   data:
     redis:
-      host: ${SPRING_REDIS_HOST:localhost}
-      port: ${SPRING_REDIS_PORT:6379}
-      password: ${SPRING_REDIS_PASSWORD:}
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
   cache:
     type: redis
   flyway:
@@ -130,20 +130,17 @@ spring:
       max-lifetime: 1800000
   data:
     redis:
-      host: ${SPRING_REDIS_HOST:localhost}
-      port: ${SPRING_REDIS_PORT:6379}
-      password: ${SPRING_REDIS_PASSWORD:}
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
       timeout: 2000ms
-
-      ssl: 
-        enabled: ${SPRING_REDIS_SSL:true}
-
+      ssl:
+        enabled: ${SPRING_DATA_REDIS_SSL:false}
       lettuce:
         pool:
           max-active: 8
           max-idle: 4
           min-idle: 2
-
   cache:
     type: redis
   jpa:
@@ -197,19 +194,26 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
-# AWS-specific environment variable mappings
+# AWS Environment Variables (12-Factor App)
 # Set these in ECS Task Definition or via AWS Secrets Manager:
-# SPRING_DATASOURCE_URL=jdbc:postgresql://rds-endpoint:5432/fitness_mvp
-# SPRING_DATASOURCE_USERNAME=fitnessuser
-# SPRING_DATASOURCE_PASSWORD=<from-secrets-manager>
-# SPRING_REDIS_HOST=<elasticache-endpoint>
-# SPRING_REDIS_PASSWORD=<from-secrets-manager>
-# SPRING_REDIS_SSL=true
-# OPENAI_API_KEY=<from-secrets-manager>
-# ANTHROPIC_API_KEY=<from-secrets-manager>
-# SPOONACULAR_API_KEY=<from-secrets-manager>
-# YOUTUBE_API_KEY=<from-secrets-manager>
-# CORS_ALLOWED_ORIGINS=https://app.yourfitnessdomain.com (optional)
+#
+# Database:
+#   SPRING_DATASOURCE_URL=jdbc:postgresql://rds-endpoint:5432/fitness_mvp
+#   SPRING_DATASOURCE_USERNAME=fitnessuser
+#   SPRING_DATASOURCE_PASSWORD=<from-secrets-manager>
+#
+# Redis (ElastiCache):
+#   SPRING_DATA_REDIS_HOST=<elasticache-endpoint>
+#   SPRING_DATA_REDIS_PORT=6379
+#   SPRING_DATA_REDIS_PASSWORD=<from-secrets-manager>
+#   SPRING_DATA_REDIS_SSL=true
+#
+# API Keys:
+#   OPENAI_API_KEY=<from-secrets-manager>
+#   GEMINI_API_KEY=<from-secrets-manager>
+#   SPOONACULAR_API_KEY=<from-secrets-manager>
+#   YOUTUBE_API_KEY=<from-secrets-manager>
+#   USDA_API_KEY=<from-secrets-manager>
 
 
 

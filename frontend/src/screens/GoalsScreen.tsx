@@ -1,6 +1,7 @@
 import { Feather } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Chip, FAB } from 'react-native-paper';
 
 import {
@@ -16,10 +17,12 @@ import useCurrentUser from '@/hooks/useCurrentUser';
 import { useCreateGoal, useDeleteGoal, useGoals, useGoalStatistics, useLogGoalProgress } from '@/services/goalsApi';
 import type { Goal, GoalType } from '@/types';
 import { spacing } from '@/utils';
+import { clearJWT } from '@/utils/jwtStorage';
 
 type FilterType = GoalType | 'all';
 
 export const GoalsScreen = () => {
+  const navigation = useNavigation();
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId || '';
 
@@ -32,6 +35,27 @@ export const GoalsScreen = () => {
   const [filter, setFilter] = useState<FilterType>('all');
   const [showFab, setShowFab] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await clearJWT();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' } as any],
+            });
+          },
+        },
+      ]
+    );
+  };
 
   // Filter goals
   const filteredGoals = React.useMemo(() => {
@@ -203,9 +227,14 @@ export const GoalsScreen = () => {
     <SafeAreaWrapper>
       <Container style={styles.container}>
         <View style={styles.header}>
-          <Text variant="heading1" weight="bold">
-            Goals
-          </Text>
+          <View style={styles.headerRow}>
+            <Text variant="heading1" weight="bold">
+              Goals
+            </Text>
+            <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+              <Feather name="log-out" size={20} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
           <Text variant="body" style={styles.subtitle}>
             Track your progress and stay motivated
           </Text>
@@ -275,6 +304,14 @@ const styles = StyleSheet.create({
   header: {
     gap: spacing.xs,
     marginBottom: spacing.md,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  logoutButton: {
+    padding: spacing.sm,
   },
   subtitle: {
     opacity: 0.7,
