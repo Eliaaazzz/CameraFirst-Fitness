@@ -8,7 +8,7 @@ WORKDIR /home/gradle/project
 COPY build.gradle.kts settings.gradle.kts gradle.properties ./
 COPY gradle gradle
 COPY gradlew ./
-
+RUN chmod +x ./gradlew
 # Download dependencies (cached unless build files change)
 RUN ./gradlew dependencies --no-daemon || true
 
