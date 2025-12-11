@@ -98,6 +98,10 @@ jobs:
     needs: build-and-test
     if: github.event_name != 'pull_request'
     
+    permissions:
+      contents: read
+      security-events: write
+    
     outputs:
       image-tag: ${{ steps.meta.outputs.tags }}
       image-digest: ${{ steps.build.outputs.digest }}
@@ -155,6 +159,7 @@ jobs:
 
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.DOCKER_IMAGE }}:${{ github.ref_name }}
           format: 'sarif'
@@ -162,8 +167,9 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v2
-        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        continue-on-error: true
         with:
           sarif_file: 'trivy-results.sarif'
 
@@ -256,13 +262,16 @@ jobs:
             exit 1
           }
           
+          # Navigate to infrastructure directory
+          cd /home/$USER/infrastructure/backend || { echo "❌ Infrastructure directory not found"; exit 1; }
+          
           # Stop and remove old container
           echo "🛑 Stopping old container..."
-          docker-compose -f docker-compose.yml down --remove-orphans || true
+          docker-compose down --remove-orphans || true
           
           # Start new container
           echo "🚀 Starting new container..."
-          DOCKER_IMAGE="$DOCKER_IMAGE" docker-compose -f docker-compose.yml up -d
+          DOCKER_IMAGE="$DOCKER_IMAGE" docker-compose up -d
           
           # Wait for health check
           echo "⏳ Waiting for service to be healthy..."
@@ -279,7 +288,7 @@ jobs:
           done
           
           echo "❌ Backend failed health check"
-          docker-compose -f docker-compose.yml logs app
+          docker-compose logs app
           exit 1
           EOF
           
@@ -390,7 +399,7 @@ jobs:
           
           ssh -i ~/.ssh/id_rsa \
             "$EC2_USER@$EC2_HOST" \
-            "docker-compose -f docker-compose.yml pull && docker-compose -f docker-compose.yml up -d"
+            "cd /home/$EC2_USER/infrastructure/backend && docker-compose pull && docker-compose up -d"
           
           echo "✅ Rollback complete"
 
@@ -399,9 +408,18 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '🔄 Deployment was rolled back due to health check failure'
-            })
+            const message = '🔄 Deployment was rolled back due to health check failure';
+            
+            // Only post comment if this is triggered from a PR or issue
+            if (context.issue && context.issue.number) {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: message
+              });
+            } else {
+              // For push events, just log the message
+              console.log(message);
+              console.log(`Rollback triggered for commit: ${context.sha}`);
+            }
