@@ -1,11 +1,13 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { Platform, useColorScheme, View } from 'react-native';
 
 import { ErrorBoundary } from '@/components';
 import { GoalsScreen } from '@/screens/GoalsScreen';
+import LoginScreen from '@/screens/LoginScreen';
 import { MealPlanScreen } from '@/screens/MealPlanScreen';
 import { NutritionScreen } from '@/screens/NutritionScreen';
 import { RecipeDetailScreen } from '@/screens/RecipeDetailScreen';
@@ -13,6 +15,7 @@ import { RecipesScreen } from '@/screens/RecipesScreen';
 import { ResultsScreen } from '@/screens/ResultsScreen';
 import { ReviewMealScreen } from '@/screens/ReviewMealScreen';
 import { SearchScreen } from '@/screens/SearchScreen';
+import SplashScreen from '@/screens/SplashScreen';
 import { WorkoutsScreen } from '@/screens/WorkoutsScreen';
 import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive } from '@/utils';
 
@@ -38,6 +41,7 @@ const SafeNutritionScreen = withErrorBoundary(NutritionScreen, 'Nutrition');
 const SafeReviewMealScreen = withErrorBoundary(ReviewMealScreen, 'ReviewMeal');
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
 const tabBarBackground = () => (
   <View
@@ -75,8 +79,7 @@ const DarkNavigationTheme = {
   },
 };
 
-export const AppNavigator = () => {
-  const colorScheme = useColorScheme();
+const MainTabs = () => {
   const { isDesktop, isTablet, isMobile, isWeb } = useResponsive();
 
   // Calculate responsive tab bar dimensions
@@ -85,8 +88,7 @@ export const AppNavigator = () => {
   const tabBarPaddingTop = isDesktop ? 12 : 8;
 
   return (
-    <NavigationContainer theme={colorScheme === 'dark' ? DarkNavigationTheme : LightNavigationTheme}>
-      <Tab.Navigator
+    <Tab.Navigator
         initialRouteName="Search"
         screenOptions={({ route }) => ({
           headerShown: false,
@@ -232,6 +234,22 @@ export const AppNavigator = () => {
           }}
         />
       </Tab.Navigator>
+  );
+};
+
+export const AppNavigator = () => {
+  const colorScheme = useColorScheme();
+
+  return (
+    <NavigationContainer theme={colorScheme === 'dark' ? DarkNavigationTheme : LightNavigationTheme}>
+      <Stack.Navigator
+        initialRouteName="Splash"
+        screenOptions={{ headerShown: false }}
+      >
+        <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Main" component={MainTabs} />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 };

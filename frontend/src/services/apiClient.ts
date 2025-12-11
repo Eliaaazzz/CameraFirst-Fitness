@@ -5,6 +5,7 @@
 
 import { API_BASE_URL, API_KEY } from '@env';
 import { Platform } from 'react-native';
+import { getJWT } from '../utils/jwtStorage';
 
 // Use the environment variable for all platforms
 const normalizeBaseUrl = (url: string) => {
@@ -69,6 +70,12 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
       'X-API-Key': API_KEY || '',
       ...config.headers,
     };
+
+    // Add JWT token from SecureStore if available
+    const jwtToken = await getJWT();
+    if (jwtToken) {
+      headers['Authorization'] = `Bearer ${jwtToken}`;
+    }
 
     // Add Content-Type for JSON requests
     if (config.body && !(config.body instanceof FormData)) {

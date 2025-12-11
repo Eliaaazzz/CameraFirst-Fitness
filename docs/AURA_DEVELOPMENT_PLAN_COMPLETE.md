@@ -67,6 +67,11 @@ API Key 认证流程:
 4. Deep link 处理 (exp://localhost:8081/--/auth?token=JWT)
 ```
 
+- 后端: 在 `build.gradle.kts` 中加入 `spring-boot-starter-oauth2-client`，于 `SecurityConfig` 配置 `oauth2Login().userInfoEndpoint()`，并在 `application.yml` 添加 Google `client-id` 与 `client-secret` 占位；`CustomOAuth2SuccessHandler` 内序列化/签发 JWT，并向前端回调 URL 附带 token。
+- 前端: 安装 `expo-auth-session`，在 `authConfig.ts` 定义 `redirectUri`、`scopes: ['profile', 'email']`，并在 `LoginScreen` 触发 `promptAsync()`；处理回调后将 JWT 与 refresh token 存入安全存储并更新 React Query 客户端。
+- Deep Link: 在 `app.json` 中配置 `scheme` 与 `ios.bundleIdentifier`/`android.package`，Expo 本地调试使用 `makeRedirectUri({scheme:'aurafitness'})`，生产环境改为 `https://app.aurafitness.com/auth/callback` 并更新 Nginx 反向代理规则。
+- 测试: 使用 Google OAuth 测试账户验证登录流程，确认 token 失效后的刷新逻辑与后端 API 权限控制，确保自动化集成测试跳过需要外部登录的环节。
+
 ---
 
 ### Day 3: 模式选择 (Onboarding) ✅
@@ -400,7 +405,7 @@ eas submit --platform ios
 | 1 | 添加 health_mode 字段到 UserProfile | 2h | Backend |
 | 2 | 实现 SugarStackVisualizer 组件 | 4h | Frontend |
 | 3 | 添加 MandatoryDisclaimer 弹窗 | 2h | Frontend |
-| 4 | 添加 "(Est. by AI)" 标签到所有 AI 结果 | 1h | Frontend |
+| 4 | 添加 "(Est. by AI)" 标签到所有 AI 结果 ✅ | 1h | Frontend |
 | 5 | 实现账号删除功能 (GDPR) | 2h | Full Stack |
 | 6 | 设计 App 图标 | 2h | Design |
 | 7 | 准备 App Store 截图 | 2h | Design |

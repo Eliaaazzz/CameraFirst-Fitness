@@ -6,7 +6,7 @@
     "jsx": "react-native",
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "types": ["jest", "react-native"],
+  "types": ["jest", "react-native", "expo", "expo__web-browser"],
     "paths": {
       "@/*": [
         "./src/*"
