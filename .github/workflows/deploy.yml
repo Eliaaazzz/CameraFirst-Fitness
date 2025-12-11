@@ -1,7 +1,7 @@
 name: Deploy Full Stack (Legacy JAR - Disabled)
 
 # ⚠️ This workflow is disabled in favor of Docker-based deployment
-# Use deploy-backend.yml instead for Docker deployment
+# Use build-test-deploy-backend.yml and build-test-deploy-frontend.yml instead
 # To re-enable, uncomment the 'push' trigger below
 
 on:
