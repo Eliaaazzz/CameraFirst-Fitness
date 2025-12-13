@@ -62,6 +62,34 @@ interface BackendFoodRecognitionResponse {
   suggestedMealType?: string;
 }
 
+/**
+ * Transform backend response to frontend format
+ */
+function transformBackendResponse(backendResponse: BackendFoodRecognitionResponse): FoodRecognitionResponse {
+  const items: DetectedFood[] = backendResponse.items.map((item, index) => ({
+    id: item.foodKey || `food_${index}`,
+    name: item.displayName || 'Unknown Food',
+    amount: item.estimatedGrams || 100,
+    unit: 'g',
+    calories: item.nutrition?.calories || 0,
+    protein: item.nutrition?.protein || 0,
+    carbs: item.nutrition?.carbs || 0,
+    fat: item.nutrition?.fat || 0,
+    confidence: item.confidence || 0,
+  }));
+
+  return {
+    items,
+    totalNutrition: {
+      calories: backendResponse.totalNutrition.calories || 0,
+      protein: backendResponse.totalNutrition.protein || 0,
+      carbs: backendResponse.totalNutrition.carbs || 0,
+      fat: backendResponse.totalNutrition.fat || 0,
+    },
+    suggestedMealType: backendResponse.suggestedMealType,
+  };
+}
+
 export interface SaveMealPayload {
   imageUri: string;
   items: DetectedFood[];
@@ -108,11 +136,18 @@ const getWeeklyInsight = async (userId: string, weekStart?: string): Promise<Nut
 
 // Analyze food image with Gemini AI
 const analyzeFoodImage = async (imageUri: string): Promise<FoodRecognitionResponse> => {
-  const response = await api.uploadImage<FoodRecognitionResponse>(
-    '/api/v1/nutrition/analyze',
-    imageUri
-  );
-  return response;
+  try {
+    const backendResponse = await api.uploadImage<BackendFoodRecognitionResponse>(
+      '/api/v1/nutrition/analyze',
+      imageUri
+    );
+    
+    // Transform backend response to frontend format
+    return transformBackendResponse(backendResponse);
+  } catch (error) {
+    console.error('Food recognition error:', error);
+    throw error;
+  }
 };
 
 // Save analyzed meal to today's log
