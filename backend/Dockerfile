@@ -8,7 +8,7 @@ WORKDIR /home/gradle/project
 COPY build.gradle.kts settings.gradle.kts gradle.properties ./
 COPY gradle gradle
 COPY gradlew ./
-
+RUN chmod +x ./gradlew
 # Download dependencies (cached unless build files change)
 RUN ./gradlew dependencies --no-daemon || true
 
@@ -40,6 +40,6 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
 # JVM options for containerized environments
-ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+ENV JAVA_TOOL_OPTIONS="-Xms256m -Xmx512m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
