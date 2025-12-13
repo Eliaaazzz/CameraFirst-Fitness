@@ -63,7 +63,20 @@ public class FoodRecognitionService {
         FoodRecognitionProvider provider = selectProvider(preferredProvider);
         
         if (provider == null) {
-            throw new FoodRecognitionException("No AI food recognition providers available");
+            // Build helpful error message listing why providers aren't available
+            List<String> providerStatus = providers.stream()
+                    .map(p -> String.format("%s: %s", 
+                            p.getProviderName(), 
+                            p.isAvailable() ? "available" : "not configured"))
+                    .toList();
+            
+            String errorMsg = "No AI food recognition providers available. Configure at least one provider:\n" +
+                    "- Gemini: Set GEMINI_API_KEY environment variable\n" +
+                    "- Claude: Set ANTHROPIC_API_KEY environment variable\n" +
+                    "Current status: " + String.join(", ", providerStatus);
+            
+            log.error(errorMsg);
+            throw new FoodRecognitionException(errorMsg);
         }
 
         log.info("Using provider '{}' ({}) for food recognition",
@@ -83,12 +96,25 @@ public class FoodRecognitionService {
             FoodRecognitionProvider fallback = selectFallbackProvider(provider);
             if (fallback != null) {
                 log.info("Falling back to provider '{}'", fallback.getProviderName());
-                FoodRecognitionResult result = fallback.recognizeFoods(image);
-                enrichWithNutrition(result);
-                return result;
+                try {
+                    FoodRecognitionResult result = fallback.recognizeFoods(image);
+                    enrichWithNutrition(result);
+                    return result;
+                } catch (Exception fallbackError) {
+                    log.error("Fallback provider '{}' also failed: {}", 
+                            fallback.getProviderName(), fallbackError.getMessage());
+                    // Continue to throw original exception
+                }
             }
 
-            throw new FoodRecognitionException("All providers failed: " + e.getMessage(), e);
+            // If we get here, all providers failed
+            String errorMsg = String.format(
+                    "Food recognition failed. Primary provider (%s) error: %s. " +
+                    "Please check API keys and try again.",
+                    provider.getProviderName(),
+                    e.getMessage()
+            );
+            throw new FoodRecognitionException(errorMsg, e);
         }
     }
 

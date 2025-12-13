@@ -36,9 +36,18 @@ export function ReviewMealScreen({ route, navigation }: any) {
         const response = await nutritionApi.analyzeFoodImage(imageUri);
         setItems(response.items);
         setTotal(response.totalNutrition);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Food analysis failed:', error);
-        Alert.alert('Error', 'Failed to analyze the image. Please try again.');
+        
+        // Extract error message from API response
+        let errorMessage = 'Failed to analyze the image. Please try again.';
+        if (error?.message) {
+          errorMessage = error.message;
+        } else if (error?.error?.message) {
+          errorMessage = error.error.message;
+        }
+        
+        Alert.alert('Food Analysis Error', errorMessage);
         navigation.goBack();
       } finally {
         setLoading(false);
