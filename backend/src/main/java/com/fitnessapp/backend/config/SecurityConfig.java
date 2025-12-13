@@ -1,10 +1,8 @@
 package com.fitnessapp.backend.config;
 
-import com.fitnessapp.backend.auth.JwtAuthFilter;
-import com.fitnessapp.backend.auth.JwtUtils;
-import com.fitnessapp.backend.user.service.ApiKeyService;
 import java.util.List;
 import java.util.stream.Collectors;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,6 +14,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfigurationSource;
+
+import com.fitnessapp.backend.auth.JwtAuthFilter;
+import com.fitnessapp.backend.auth.JwtUtils;
 
 @Configuration
 public class SecurityConfig {
@@ -34,11 +35,11 @@ public class SecurityConfig {
     }
 
     @Bean
-    ApiKeyAuthFilter apiKeyAuthFilter(ApiKeyService apiKeyService) {
+    ApiKeyAuthFilter apiKeyAuthFilter() {
         List<RequestMatcher> matchers = java.util.Arrays.stream(PUBLIC_ENDPOINTS)
             .map(AntPathRequestMatcher::new)
             .collect(Collectors.toList());
-        return new ApiKeyAuthFilter(apiKeyService, matchers);
+        return new ApiKeyAuthFilter(matchers);
     }
 
     @Bean
@@ -59,9 +60,12 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // JWT filter first, then API key filter as fallback
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(apiKeyAuthFilter, JwtAuthFilter.class)
+            // Layer 1: API Key validation (Access Card / 门禁卡)
+            // Checks X-API-Key header first - this is the first line of defense
+            .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            // Layer 2: JWT validation (ID Card / 身份证)
+            // After API Key passes, validates Bearer token - second line of defense
+            .addFilterAfter(jwtAuthFilter, ApiKeyAuthFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                 .anyRequest().authenticated()

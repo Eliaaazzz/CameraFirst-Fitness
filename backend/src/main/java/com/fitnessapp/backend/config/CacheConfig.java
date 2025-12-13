@@ -1,8 +1,5 @@
 package com.fitnessapp.backend.config;
 
-import com.fitnessapp.backend.service.cache.LeaderboardCacheKeys;
-import com.fitnessapp.backend.service.cache.NutritionCacheKeys;
-import com.fitnessapp.backend.service.cache.UserLibraryCacheKeys;
 import java.time.Duration;
 import java.util.Set;
 import org.springframework.boot.autoconfigure.cache.CacheManagerCustomizer;
@@ -13,6 +10,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+
+import com.fitnessapp.backend.Cacheservice.cache.LeaderboardCacheKeys;
+import com.fitnessapp.backend.Cacheservice.cache.NutritionCacheKeys;
+import com.fitnessapp.backend.Cacheservice.cache.UserLibraryCacheKeys;
 
 @Configuration
 public class CacheConfig {

@@ -2,7 +2,7 @@ import { DetectedItemRow } from '@/components/nutrition/DetectedItemRow';
 import { NutritionSummaryCard } from '@/components/nutrition/NutritionSummaryCard';
 import nutritionApi, {
   DetectedFood,
-  FoodRecognitionResponse,
+  TotalNutrition,
 } from '@/services/nutritionApi';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -24,7 +24,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<1 | 2 | 3>(1);
   const [items, setItems] = useState<DetectedFood[]>([]);
-  const [total, setTotal] = useState<FoodRecognitionResponse['totalNutrition'] | null>(null);
+  const [total, setTotal] = useState<TotalNutrition | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -69,6 +69,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
             protein: item.protein * ratio,
             carbs: item.carbs * ratio,
             fat: item.fat * ratio,
+            fiber: item.fiber ? item.fiber * ratio : undefined,
+            sugar: item.sugar ? item.sugar * ratio : undefined,
           };
         }
         return item;
@@ -81,11 +83,19 @@ export function ReviewMealScreen({ route, navigation }: any) {
         if (item.id === id) {
           const newAmount = Math.max(0, item.amount + delta);
           const ratio = newAmount / item.amount;
+          const deltaSugar = item.sugar ? item.sugar * (ratio - 1) : 0;
+          const deltaFiber = item.fiber ? item.fiber * (ratio - 1) : 0;
+          const newSugar = (acc.sugar || 0) + deltaSugar;
+          const newFiber = (acc.fiber || 0) + deltaFiber;
           return {
             calories: acc.calories + item.calories * (ratio - 1),
             protein: acc.protein + item.protein * (ratio - 1),
             carbs: acc.carbs + item.carbs * (ratio - 1),
             fat: acc.fat + item.fat * (ratio - 1),
+            fiber: newFiber > 0 ? newFiber : undefined,
+            sugar: newSugar > 0 ? newSugar : undefined,
+            sugarCubes: newSugar > 0 ? newSugar / 4 : undefined,
+            netCarbs: acc.carbs + item.carbs * (ratio - 1) - newFiber,
           };
         }
         return acc;
@@ -111,7 +121,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
       Alert.alert('Success', 'Meal saved to today!', [
         {
           text: 'OK',
-          onPress: () => navigation.navigate('Nutrition'),
+          onPress: () => navigation.navigate('Dashboard'),
         },
       ]);
     } catch (error) {

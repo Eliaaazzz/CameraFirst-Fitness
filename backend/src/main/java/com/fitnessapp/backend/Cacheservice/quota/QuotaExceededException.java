@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.service.quota;
+package com.fitnessapp.backend.Cacheservice.quota;
 
 /**
  * Exception thrown when a user exceeds their quota.

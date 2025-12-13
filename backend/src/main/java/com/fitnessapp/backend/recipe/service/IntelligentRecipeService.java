@@ -1,5 +1,23 @@
 package com.fitnessapp.backend.recipe.service;
 
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -11,21 +29,10 @@ import com.fitnessapp.backend.recipe.repository.IngredientRepository;
 import com.fitnessapp.backend.recipe.repository.RecipeRepository;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
+
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
-import java.math.BigDecimal;
-import java.time.Duration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 /**
  * Intelligent Recipe Generation Service using GPT-4
@@ -53,6 +60,7 @@ public class IntelligentRecipeService {
       UserProfileRepository userProfileRepository,
       RecipeRepository recipeRepository,
       IngredientRepository ingredientRepository,
+      //Optional<ChatCompletionClient> chatCompletionClient,
       ObjectMapper objectMapper,
       StringRedisTemplate redisTemplate,
       MeterRegistry meterRegistry) {
@@ -63,6 +71,9 @@ public class IntelligentRecipeService {
     this.redisTemplate = redisTemplate;
     this.meterRegistry = meterRegistry;
   }
+
+  @Value("${app.openai.model:gpt-4o}")
+  private String recipeModel;
 
   @Value("${app.recipe-generation.cache-ttl-hours:24}")
   private long cacheTtlHours;
@@ -93,27 +104,213 @@ public class IntelligentRecipeService {
     UserProfile profile = userProfileRepository.findByUserId(userId)
         .orElseThrow(() -> new EntityNotFoundException("User profile not found: " + userId));
 
-    GeneratedRecipeResponse generated = fallbackRecipe(profile, mealType);
-    Recipe savedRecipe = persistRecipe(generated, userId);
-    GeneratedRecipeResponse response = new GeneratedRecipeResponse(
+    // OpenAI integration removed - using fallback recipe generation
+    log.debug("Using fallback recipe generation for user {}", userId);
+    meterRegistry.counter("recipe.generation.fallback_only").increment();
+    GeneratedRecipeResponse fallback = fallbackRecipe(profile, mealType);
+    Recipe savedRecipe = persistRecipe(fallback, userId);
+    return new GeneratedRecipeResponse(
         savedRecipe.getId().toString(),
-        generated.title(),
-        generated.timeMinutes(),
-        generated.difficulty(),
-        generated.calories(),
-        generated.protein(),
-        generated.carbs(),
-        generated.fat(),
-        generated.ingredients(),
-        generated.steps(),
-        generated.tips(),
-        generated.imageUrl(),
+        fallback.title(),
+        fallback.timeMinutes(),
+        fallback.difficulty(),
+        fallback.calories(),
+        fallback.protein(),
+        fallback.carbs(),
+        fallback.fat(),
+        fallback.ingredients(),
+        fallback.steps(),
+        fallback.tips(),
+        fallback.imageUrl(),
         false
     );
+  }
 
-    writeCache(cacheKey, response);
-    meterRegistry.counter("recipe.generation.fallback").increment();
-    return response;
+  /**
+      Recipe savedRecipe = persistRecipe(response, userId);
+      response = new GeneratedRecipeResponse(
+          savedRecipe.getId().toString(),
+          response.title(),
+          response.timeMinutes(),
+          response.difficulty(),
+          response.calories(),
+          response.protein(),
+          response.carbs(),
+          response.fat(),
+          response.ingredients(),
+          response.steps(),
+          response.tips(),
+          response.imageUrl(),
+          true  // isAiGenerated
+      );
+
+      // Cache result
+      writeCache(cacheKey, response);
+
+      meterRegistry.counter("recipe.generation.success").increment();
+      return response;
+
+    } catch (Exception ex) {
+      log.error("Failed to generate recipe for user {} via GPT-4", userId, ex);
+      meterRegistry.counter("recipe.generation.error").increment();
+      GeneratedRecipeResponse fallback = fallbackRecipe(profile, mealType);
+      Recipe savedRecipe = persistRecipe(fallback, userId);
+      return new GeneratedRecipeResponse(
+          savedRecipe.getId().toString(),
+          fallback.title(),
+          fallback.timeMinutes(),
+          fallback.difficulty(),
+          fallback.calories(),
+          fallback.protein(),
+          fallback.carbs(),
+          fallback.fat(),
+          fallback.ingredients(),
+          fallback.steps(),
+          fallback.tips(),
+          fallback.imageUrl(),
+          true
+      );
+    }
+  }
+
+  /**
+   * Build GPT-4 prompt for recipe generation
+   * NOTE: Currently unused as OpenAI integration was removed. Kept for future use.
+   */
+  @SuppressWarnings("unused")
+  private String buildPrompt(UserProfile profile, String mealType, List<String> equipment) {
+    String goal = profile.getFitnessGoal() != null ? profile.getFitnessGoal().name() : "MAINTAIN";
+    String dietary = profile.getDietaryPreference() != null ? profile.getDietaryPreference().name() : "NONE";
+    String allergens = profile.getAllergens() != null && !profile.getAllergens().isEmpty()
+        ? profile.getAllergens().stream().map(Enum::name).collect(Collectors.joining(", "))
+        : "NONE";
+
+    int targetCalories = Optional.ofNullable(profile.getDailyCalorieTarget())
+        .orElseGet(() -> Optional.ofNullable(profile.getBasalMetabolicRate()).orElse(2000));
+    int targetProtein = Optional.ofNullable(profile.getDailyProteinTarget())
+        .orElse((int) Math.round(targetCalories * 0.30 / 4));
+    int targetCarbs = Optional.ofNullable(profile.getDailyCarbsTarget())
+        .orElse((int) Math.round(targetCalories * 0.40 / 4));
+    int targetFat = Optional.ofNullable(profile.getDailyFatTarget())
+        .orElse((int) Math.round(targetCalories * 0.30 / 9));
+
+    // Calculate per-meal targets (assuming 4 meals per day)
+    int mealCalories = targetCalories / 4;
+    int mealProtein = targetProtein / 4;
+    int mealCarbs = targetCarbs / 4;
+    int mealFat = targetFat / 4;
+
+    String mealTypeStr = StringUtils.hasText(mealType) ? mealType : "any meal type";
+    String equipmentStr = equipment != null && !equipment.isEmpty()
+        ? String.join(", ", equipment)
+        : "basic kitchen equipment";
+
+    return "Generate a personalized recipe with the following requirements:\n\n" +
+        "User Profile:\n" +
+        "- Fitness Goal: " + goal + "\n" +
+        "- Dietary Preference: " + dietary + "\n" +
+        "- Allergens to Avoid: " + allergens + "\n" +
+        "- Height: " + Optional.ofNullable(profile.getHeightCm()).orElse(170) + " cm\n" +
+        "- Weight: " + Optional.ofNullable(profile.getWeightKg()).orElse(new BigDecimal("65.0")) + " kg\n\n" +
+        "Recipe Requirements:\n" +
+        "- Meal Type: " + mealTypeStr + "\n" +
+        "- Available Equipment: " + equipmentStr + "\n" +
+        "- Target Nutrition (per meal):\n" +
+        "  * Calories: ~" + mealCalories + " kcal\n" +
+        "  * Protein: ~" + mealProtein + " g\n" +
+        "  * Carbs: ~" + mealCarbs + " g\n" +
+        "  * Fat: ~" + mealFat + " g\n\n" +
+        "Please generate a recipe in the following JSON format (no extra text):\n" +
+        "{\n" +
+        "  \"title\": \"Recipe Name\",\n" +
+        "  \"timeMinutes\": 30,\n" +
+        "  \"difficulty\": \"EASY\",  // EASY, MEDIUM, or HARD\n" +
+        "  \"calories\": 450,\n" +
+        "  \"protein\": 35,\n" +
+        "  \"carbs\": 45,\n" +
+        "  \"fat\": 15,\n" +
+        "  \"ingredients\": [\n" +
+        "    {\"name\": \"Chicken breast\", \"amount\": \"200g\"},\n" +
+        "    {\"name\": \"Brown rice\", \"amount\": \"100g\"}\n" +
+        "  ],\n" +
+        "  \"steps\": [\n" +
+        "    \"Step 1 description\",\n" +
+        "    \"Step 2 description\"\n" +
+        "  ],\n" +
+        "  \"tips\": \"Optional cooking tips or substitutions\"\n" +
+        "}\n\n" +
+        "Requirements:\n" +
+        "1. The recipe must avoid all listed allergens\n" +
+        "2. Match the dietary preference (e.g., vegetarian, vegan, etc.)\n" +
+        "3. Target the specified nutrition values (±10% is acceptable)\n" +
+        "4. Be practical and achievable with the available equipment\n" +
+        "5. Support the user's fitness goal (e.g., high protein for muscle gain)";
+  }
+
+  /**
+   * Parse GPT-4 response into a GeneratedRecipeResponse
+   * NOTE: Currently unused as OpenAI integration was removed. Kept for future use.
+   */
+  @SuppressWarnings("unused")
+  private GeneratedRecipeResponse parseRecipeResponse(String rawContent, UserProfile profile)
+      throws JsonProcessingException {
+    if (!StringUtils.hasText(rawContent)) {
+      return null;
+    }
+
+    String sanitized = sanitizeJson(rawContent);
+    JsonNode root = objectMapper.readTree(sanitized);
+
+    if (root == null || !root.has("title")) {
+      return null;
+    }
+
+    String title = root.path("title").asText(null);
+    int timeMinutes = root.path("timeMinutes").asInt(30);
+    String difficulty = root.path("difficulty").asText("MEDIUM").toUpperCase();
+    int calories = root.path("calories").asInt(0);
+    double protein = root.path("protein").asDouble(0.0);
+    double carbs = root.path("carbs").asDouble(0.0);
+    double fat = root.path("fat").asDouble(0.0);
+
+    List<IngredientEntry> ingredients = new ArrayList<>();
+    if (root.has("ingredients")) {
+      for (JsonNode ingredientNode : root.get("ingredients")) {
+        String name = ingredientNode.path("name").asText("");
+        String amount = ingredientNode.path("amount").asText("");
+        if (StringUtils.hasText(name)) {
+          ingredients.add(new IngredientEntry(name, amount));
+        }
+      }
+    }
+
+    List<String> steps = new ArrayList<>();
+    if (root.has("steps")) {
+      for (JsonNode stepNode : root.get("steps")) {
+        String step = stepNode.asText("");
+        if (StringUtils.hasText(step)) {
+          steps.add(step);
+        }
+      }
+    }
+
+    String tips = root.path("tips").asText(null);
+
+    return new GeneratedRecipeResponse(
+        null,  // ID will be set after persistence
+        title,
+        timeMinutes,
+        difficulty,
+        calories,
+        protein,
+        carbs,
+        fat,
+        ingredients,
+        steps,
+        tips,
+        null,  // imageUrl - could be generated via DALL-E in future
+        true
+    );
   }
 
   /**
@@ -182,7 +379,7 @@ public class IntelligentRecipeService {
 
     // Save again to persist ingredients
     saved = recipeRepository.save(saved);
-    log.info("Persisted generated recipe: id={}, title={}, ingredients={}",
+    log.info("Persisted AI-generated recipe: id={}, title={}, ingredients={}",
         saved.getId(), saved.getTitle(), saved.getIngredients().size());
 
     return saved;
@@ -234,6 +431,40 @@ public class IntelligentRecipeService {
   }
 
   /**
+   * Sanitize JSON from GPT-4 response (remove markdown code blocks, etc.)
+   */
+  private String sanitizeJson(String content) {
+    String trimmed = content.trim();
+
+    // Remove markdown code blocks
+    if (trimmed.startsWith("```")) {
+      int lastFence = trimmed.lastIndexOf("```");
+      int firstLineBreak = trimmed.indexOf('\n');
+      if (lastFence > firstLineBreak && firstLineBreak >= 0) {
+        trimmed = trimmed.substring(firstLineBreak + 1, lastFence).trim();
+      }
+    }
+
+    // Remove "json" language identifier
+    if (trimmed.startsWith("json")) {
+      trimmed = trimmed.substring(4).trim();
+    }
+
+    // Extract JSON object
+    if (trimmed.startsWith("{")) {
+      return trimmed;
+    }
+
+    int start = trimmed.indexOf('{');
+    int end = trimmed.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      return trimmed.substring(start, end + 1);
+    }
+
+    return trimmed;
+  }
+
+  /**
    * Build cache key for recipe generation request
    */
   private String buildCacheKey(UUID userId, String mealType, List<String> equipment) {
@@ -262,7 +493,9 @@ public class IntelligentRecipeService {
 
   /**
    * Write to cache
+   * NOTE: Currently unused as OpenAI integration was removed. Kept for future use.
    */
+  @SuppressWarnings("unused")
   private void writeCache(String cacheKey, GeneratedRecipeResponse response) {
     try {
       String payload = objectMapper.writeValueAsString(response);

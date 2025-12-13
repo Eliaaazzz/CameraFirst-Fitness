@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.service.quota;
+package com.fitnessapp.backend.Cacheservice.quota;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;

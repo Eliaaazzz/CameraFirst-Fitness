@@ -5,22 +5,20 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { Platform, useColorScheme, View } from 'react-native';
 
-import { ErrorBoundary } from '@/components';
-import { GoalsScreen } from '@/screens/GoalsScreen';
+import { ErrorBoundary, AuthGuard } from '@/components';
+import DashboardScreen from '@/screens/DashboardScreen';
 import LoginScreen from '@/screens/LoginScreen';
-import { MealPlanScreen } from '@/screens/MealPlanScreen';
-import { NutritionScreen } from '@/screens/NutritionScreen';
+import ProfileScreen from '@/screens/ProfileScreen';
 import { RecipeDetailScreen } from '@/screens/RecipeDetailScreen';
 import { RecipesScreen } from '@/screens/RecipesScreen';
 import { ResultsScreen } from '@/screens/ResultsScreen';
 import { ReviewMealScreen } from '@/screens/ReviewMealScreen';
-import { SearchScreen } from '@/screens/SearchScreen';
 import SplashScreen from '@/screens/SplashScreen';
 import { WorkoutsScreen } from '@/screens/WorkoutsScreen';
 import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive } from '@/utils';
 
 // Wrap screens with ErrorBoundary to prevent white screen crashes
-const withErrorBoundary = (Component: React.ComponentType<any>, screenName: string) => {
+const withErrorBoundary = (Component: React.ComponentType<any>, _screenName: string) => {
   return function WrappedScreen(props: any) {
     return (
       <ErrorBoundary>
@@ -30,14 +28,12 @@ const withErrorBoundary = (Component: React.ComponentType<any>, screenName: stri
   };
 };
 
-const SafeSearchScreen = withErrorBoundary(SearchScreen, 'Search');
+const SafeDashboardScreen = withErrorBoundary(DashboardScreen, 'Dashboard');
 const SafeWorkoutsScreen = withErrorBoundary(WorkoutsScreen, 'Workouts');
 const SafeRecipesScreen = withErrorBoundary(RecipesScreen, 'Recipes');
+const SafeProfileScreen = withErrorBoundary(ProfileScreen, 'Profile');
 const SafeRecipeDetailScreen = withErrorBoundary(RecipeDetailScreen, 'RecipeDetail');
 const SafeResultsScreen = withErrorBoundary(ResultsScreen, 'Results');
-const SafeMealPlanScreen = withErrorBoundary(MealPlanScreen, 'MealPlan');
-const SafeGoalsScreen = withErrorBoundary(GoalsScreen, 'Goals');
-const SafeNutritionScreen = withErrorBoundary(NutritionScreen, 'Nutrition');
 const SafeReviewMealScreen = withErrorBoundary(ReviewMealScreen, 'ReviewMeal');
 
 const Tab = createBottomTabNavigator();
@@ -79,161 +75,148 @@ const DarkNavigationTheme = {
   },
 };
 
+// Tab configuration for cleaner code
+const TAB_CONFIG = [
+  {
+    name: 'Dashboard',
+    component: SafeDashboardScreen,
+    label: 'Home',
+    iconActive: 'home',
+    iconInactive: 'home-outline',
+    iconFamily: 'MaterialCommunityIcons',
+  },
+  {
+    name: 'Workouts',
+    component: SafeWorkoutsScreen,
+    label: 'Workouts',
+    iconActive: 'dumbbell',
+    iconInactive: 'dumbbell',
+    iconFamily: 'MaterialCommunityIcons',
+  },
+  {
+    name: 'Recipes',
+    component: SafeRecipesScreen,
+    label: 'Recipes',
+    iconActive: 'book-open-variant',
+    iconInactive: 'book-open-outline',
+    iconFamily: 'MaterialCommunityIcons',
+  },
+  {
+    name: 'Profile',
+    component: SafeProfileScreen,
+    label: 'Profile',
+    iconActive: 'user',
+    iconInactive: 'user',
+    iconFamily: 'Feather',
+  },
+];
+
 const MainTabs = () => {
-  const { isDesktop, isTablet, isMobile, isWeb } = useResponsive();
+  const { isDesktop, isTablet, isWeb } = useResponsive();
 
   // Calculate responsive tab bar dimensions
-  const tabBarHeight = isDesktop ? 70 : isTablet ? 65 : Platform.select({ ios: 60, android: 56 });
-  const tabBarPaddingBottom = isDesktop ? 16 : isTablet ? 12 : Platform.select({ ios: 12, android: 8 });
+  const tabBarHeight = isDesktop ? 70 : isTablet ? 65 : Platform.select({ ios: 85, android: 65 });
+  const tabBarPaddingBottom = isDesktop ? 16 : isTablet ? 12 : Platform.select({ ios: 28, android: 10 });
   const tabBarPaddingTop = isDesktop ? 12 : 8;
+
+  const getTabBarIcon = (routeName: string, focused: boolean, color: string) => {
+    const config = TAB_CONFIG.find(t => t.name === routeName);
+    if (!config) return null;
+
+    const iconName = focused ? config.iconActive : config.iconInactive;
+    const size = focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default;
+
+    if (config.iconFamily === 'Feather') {
+      return <Feather name={iconName as any} size={size} color={color} />;
+    }
+    return <MaterialCommunityIcons name={iconName as any} size={size} color={color} />;
+  };
 
   return (
     <Tab.Navigator
-        initialRouteName="Search"
-        screenOptions={({ route }) => ({
-          headerShown: false,
-          tabBarActiveTintColor: BRAND_COLORS.primary,
-          tabBarInactiveTintColor: BRAND_COLORS.tabInactive,
-          tabBarHideOnKeyboard: true,
-          // Show label text on desktop/tablet for better UX
-          tabBarLabelStyle: {
-            fontSize: isDesktop ? 13 : isTablet ? 12 : 11,
-            fontWeight: '600',
-          },
-          tabBarStyle: {
-            height: tabBarHeight,
-            paddingBottom: tabBarPaddingBottom,
-            paddingTop: tabBarPaddingTop,
-            paddingHorizontal: isDesktop ? 32 : isTablet ? 16 : 0,
-            backgroundColor: BRAND_COLORS.surface,
-            borderTopWidth: 0,
-            elevation: 10,
-            shadowColor: '#000',
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: -2 },
-            // Add max-width constraint on desktop for centered tab bar
-            ...(isDesktop && isWeb && {
-              alignSelf: 'center',
-              width: '100%',
-              maxWidth: 1200,
-            }),
-          },
-          tabBarBackground,
-          tabBarIcon: ({ color, focused }) => {
-            switch (route.name) {
-              case 'Search':
-                return (
-                  <Feather
-                    name="search"
-                    size={focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default}
-                    color={color}
-                  />
-                );
-              case 'Workouts':
-                return (
-                  <MaterialCommunityIcons
-                    name={focused ? 'dumbbell' : 'dumbbell'}
-                    size={focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default}
-                    color={color}
-                  />
-                );
-              case 'Recipes':
-                return (
-                  <Feather
-                    name="coffee"
-                    size={focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default}
-                    color={color}
-                  />
-                );
-              case 'Community':
-                return (
-                  <MaterialCommunityIcons
-                    name={focused ? 'trophy' : 'trophy-outline'}
-                    size={focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default}
-                    color={color}
-                  />
-                );
-              case 'MealPlan':
-                return (
-                  <MaterialCommunityIcons
-                    name={focused ? 'food-apple' : 'food-apple-outline'}
-                    size={focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default}
-                    color={color}
-                  />
-                );
-              case 'Goals':
-                return (
-                  <MaterialCommunityIcons
-                    name={focused ? 'target' : 'target-variant'}
-                    size={focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default}
-                    color={color}
-                  />
-                );
-              case 'DesignSystem':
-                return (
-                  <Feather
-                    name="tool"
-                    size={focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default}
-                    color={color}
-                  />
-                );
-              case 'Results':
-                return (
-                  <Feather
-                    name="list"
-                    size={focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default}
-                    color={color}
-                  />
-                );
-              case 'Nutrition':
-                return (
-                  <MaterialCommunityIcons
-                    name={focused ? 'nutrition' : 'food-variant'}
-                    size={focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default}
-                    color={color}
-                  />
-                );
-              default:
-                return null;
-            }
-          },
-        })}
-      >
-        <Tab.Screen name="Search" component={SafeSearchScreen} options={{ title: 'Search' }} />
-        <Tab.Screen name="Workouts" component={SafeWorkoutsScreen} options={{ title: 'Workouts' }} />
-        <Tab.Screen name="Nutrition" component={SafeNutritionScreen} options={{ title: 'Nutrition' }} />
-        <Tab.Screen name="MealPlan" component={SafeMealPlanScreen} options={{ title: 'Meal Plan' }} />
-        <Tab.Screen name="Recipes" component={SafeRecipesScreen} options={{ title: 'Recipes' }} />
-        <Tab.Screen name="Goals" component={SafeGoalsScreen} options={{ title: 'Goals' }} />
+      initialRouteName="Dashboard"
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: BRAND_COLORS.primary,
+        tabBarInactiveTintColor: BRAND_COLORS.tabInactive,
+        tabBarHideOnKeyboard: true,
+        // Fixed: Ensure labels don't truncate
+        tabBarLabelStyle: {
+          fontSize: isDesktop ? 12 : isTablet ? 11 : 10,
+          fontWeight: '600',
+          marginTop: 2,
+        },
+        // Fixed: Even distribution of tabs - use minWidth to ensure equal sizing
+        tabBarItemStyle: {
+          flex: 1,
+          minWidth: 60,
+          paddingTop: 4,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        tabBarStyle: {
+          height: tabBarHeight,
+          paddingBottom: tabBarPaddingBottom,
+          paddingTop: tabBarPaddingTop,
+          // Remove horizontal padding to ensure full-width even distribution
+          paddingHorizontal: 0,
+          backgroundColor: BRAND_COLORS.surface,
+          borderTopWidth: 0,
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: -2 },
+          // Ensure the tab bar items container uses flexbox properly
+          flexDirection: 'row',
+          justifyContent: 'space-evenly',
+          // Add max-width constraint on desktop for centered tab bar
+          ...(isDesktop && isWeb && {
+            alignSelf: 'center',
+            width: '100%',
+            maxWidth: 1200,
+            paddingHorizontal: 32,
+          }),
+        },
+        tabBarBackground,
+        tabBarIcon: ({ focused, color }) => getTabBarIcon(route.name, focused, color),
+      })}
+    >
+      {TAB_CONFIG.map((tab) => (
         <Tab.Screen
-          name="Results"
-          component={SafeResultsScreen}
-          options={{
-            title: 'Results',
-            // Hide from the tab bar but keep routable for navigation
-            tabBarButton: () => null,
-          }}
+          key={tab.name}
+          name={tab.name}
+          component={tab.component}
+          options={{ title: tab.label }}
         />
-        <Tab.Screen
-          name="RecipeDetail"
-          component={SafeRecipeDetailScreen}
-          options={{
-            title: 'Recipe',
-            // Hide from the tab bar but keep routable for navigation
-            tabBarButton: () => null,
-          }}
-        />
-        <Tab.Screen
-          name="ReviewMeal"
-          component={SafeReviewMealScreen}
-          options={{
-            title: 'Review Meal',
-            // Hide from the tab bar but keep routable for navigation
-            tabBarButton: () => null,
-          }}
-        />
-      </Tab.Navigator>
+      ))}
+
+      {/* Hidden screens - accessible via navigation but not shown in tab bar */}
+      <Tab.Screen
+        name="Results"
+        component={SafeResultsScreen}
+        options={{
+          title: 'Results',
+          tabBarButton: () => null,
+        }}
+      />
+      <Tab.Screen
+        name="RecipeDetail"
+        component={SafeRecipeDetailScreen}
+        options={{
+          title: 'Recipe',
+          tabBarButton: () => null,
+        }}
+      />
+      <Tab.Screen
+        name="ReviewMeal"
+        component={SafeReviewMealScreen}
+        options={{
+          title: 'Review Meal',
+          tabBarButton: () => null,
+        }}
+      />
+    </Tab.Navigator>
   );
 };
 

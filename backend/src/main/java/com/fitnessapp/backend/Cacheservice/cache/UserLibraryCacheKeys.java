@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.service.cache;
+package com.fitnessapp.backend.Cacheservice.cache;
 
 import java.util.UUID;
 import org.springframework.data.domain.Sort;

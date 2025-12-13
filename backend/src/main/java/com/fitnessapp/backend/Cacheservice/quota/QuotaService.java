@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.service.quota;
+package com.fitnessapp.backend.Cacheservice.quota;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;

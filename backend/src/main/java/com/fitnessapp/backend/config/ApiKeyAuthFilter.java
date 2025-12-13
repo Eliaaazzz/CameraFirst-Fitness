@@ -1,86 +1,62 @@
 package com.fitnessapp.backend.config;
 
-import com.fitnessapp.backend.user.entity.ApiKey;
-import com.fitnessapp.backend.security.AuthenticatedUser;
-import com.fitnessapp.backend.user.service.ApiKeyService;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+
 @RequiredArgsConstructor
 public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
-    public static final String HEADER_NAME = "X-API-Key";
+    // API Key from application-dev.yml (e.g., app.api-key: fitness-secret-key-123)
+    @Value("${app.api-key}")
+    private String appApiKey;
 
-    private final ApiKeyService apiKeyService;
     private final List<RequestMatcher> publicEndpoints;
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        return publicEndpoints.stream().anyMatch(matcher -> matcher.matches(request));
-    }
-
-    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-        throws ServletException, IOException {
+            throws ServletException, IOException {
 
-        String presentedKey = request.getHeader(HEADER_NAME);
-        if (!StringUtils.hasText(presentedKey)) {
-            writeUnauthorized(response, "Missing API key");
-            return;
-        }
-
-        Optional<ApiKey> apiKeyOpt = apiKeyService.validateKey(presentedKey);
-        if (apiKeyOpt.isEmpty()) {
-            writeUnauthorized(response, "Invalid or disabled API key");
-            return;
-        }
-
-        ApiKey apiKey = apiKeyOpt.get();
-        if (!StringUtils.hasText(apiKey.getTenantId())) {
-            writeUnauthorized(response, "API key is missing tenant/user binding");
-            return;
-        }
-
-        UUID userId;
-        try {
-            userId = UUID.fromString(apiKey.getTenantId());
-        } catch (IllegalArgumentException ex) {
-            writeUnauthorized(response, "API key tenant is not a valid UUID");
-            return;
-        }
-
-        AuthenticatedUser principal = new AuthenticatedUser(apiKey.getId(), apiKey.getName(), userId);
-        UsernamePasswordAuthenticationToken authentication =
-            new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList());
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        try {
+        // Step 1: Check if this is a public endpoint (Swagger, Actuator, Auth)
+        // Public endpoints can be accessed without API Key for debugging and new user registration
+        if (isPublicEndpoint(request)) {
             filterChain.doFilter(request, response);
-        } finally {
-            SecurityContextHolder.clearContext();
+            return;
         }
+
+        // Step 2: Extract X-API-Key header from request
+        // This is the "Access Card" (门禁卡) - must be present in every request
+        String requestApiKey = request.getHeader("X-API-Key");
+
+        // Step 3: Strict comparison - direct match with application-dev.yml value
+        // If Key is empty OR Key doesn't match appApiKey -> reject immediately
+        if (!StringUtils.hasText(requestApiKey) || !requestApiKey.equals(appApiKey)) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"message\":\"Invalid or missing API Key\"}");
+            return; // Deny request, stop processing
+        }
+
+        // Step 4: Key is valid - allow request to continue
+        // Pass to next filter (JwtAuthFilter for user authentication)
+        filterChain.doFilter(request, response);
     }
 
-    private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
-        if (!response.isCommitted()) {
-            response.setStatus(HttpStatus.UNAUTHORIZED.value());
-            response.setContentType("application/json");
-            response.getWriter().write("{\"message\":\"" + message + "\"}");
-        }
-        SecurityContextHolder.clearContext();
+    /**
+     * Check if the request path matches any public endpoint
+     * Public endpoints: auth routes, Swagger docs, health checks
+     */
+    private boolean isPublicEndpoint(HttpServletRequest request) {
+        return publicEndpoints.stream().anyMatch(matcher -> matcher.matches(request));
     }
 }

@@ -1,11 +1,12 @@
 package com.fitnessapp.backend.api.common;
 
-import com.fitnessapp.backend.service.quota.QuotaExceededException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import com.fitnessapp.backend.Cacheservice.quota.QuotaExceededException;
 
 /**
  * Global exception handler for quota-related errors.
@@ -32,6 +33,6 @@ public class QuotaExceptionHandler {
   public record QuotaErrorResponse(
       String code,
       String message,
-      com.fitnessapp.backend.service.quota.QuotaUsage quotaUsage
+      com.fitnessapp.backend.Cacheservice.quota.QuotaUsage quotaUsage
   ) {}
 }

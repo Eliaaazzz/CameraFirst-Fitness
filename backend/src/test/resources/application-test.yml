@@ -20,6 +20,7 @@ spring:
       port: 6379
 
 app:
+  api-key: test-api-key-123  # Used for API Key authentication
   seed:
     enabled: false
   openai:

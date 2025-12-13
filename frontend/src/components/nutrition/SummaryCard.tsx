@@ -13,9 +13,11 @@ interface SummaryCardProps {
   protein: { current: number; goal: number };
   carbs: { current: number; goal: number };
   fat: { current: number; goal: number };
+  netCarbs?: { current: number; goal: number };
+  sugar?: { current: number; goal: number };
 }
 
-export function SummaryCard({ calories, goal, protein, carbs, fat }: SummaryCardProps) {
+export function SummaryCard({ calories, goal, protein, carbs, fat, netCarbs, sugar }: SummaryCardProps) {
   const progressWidth = useSharedValue(0);
 
   useEffect(() => {
@@ -48,9 +50,14 @@ export function SummaryCard({ calories, goal, protein, carbs, fat }: SummaryCard
       </View>
 
       <View style={styles.macros}>
-        <MacroPill label="Protein" {...protein} color="#E91E63" />
-        <MacroPill label="Carbs" {...carbs} color="#9C27B0" />
-        <MacroPill label="Fat" {...fat} color="#673AB7" />
+        <MacroPill label="Protein" {...protein} color="#10B981" />
+        <MacroPill label="Fat" {...fat} color="#EF4444" />
+        {netCarbs && (
+          <MacroPill label="Net Carbs" {...netCarbs} color="#F59E0B" />
+        )}
+        {sugar && (
+          <MacroPill label="Sugar" {...sugar} color="#EC4899" />
+        )}
       </View>
     </View>
   );

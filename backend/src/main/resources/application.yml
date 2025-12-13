@@ -16,6 +16,7 @@ usda:
     base-url: https://api.nal.usda.gov/fdc/v1
 
 app:
+  api-key: ${APP_API_KEY:fitness-secret-key-123}  # API Key for request authentication (X-API-Key header)
   youtube:
     api-key: ${YOUTUBE_API_KEY:}
     quota:

@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.service.cache;
+package com.fitnessapp.backend.Cacheservice.cache;
 
 import com.fitnessapp.backend.workout.service.UserLibraryService.PageResult;
 import com.fitnessapp.backend.workout.service.UserLibraryService.SavedWorkout;

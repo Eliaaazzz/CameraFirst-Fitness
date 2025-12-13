@@ -1,18 +1,5 @@
 package com.fitnessapp.backend.youtube;
 
-import com.fitnessapp.backend.config.YouTubeProperties;
-import com.fitnessapp.backend.workout.entity.WorkoutVideo;
-import com.fitnessapp.backend.workout.repository.WorkoutVideoRepository;
-import com.fitnessapp.backend.youtube.dto.ChannelMetadata;
-import com.fitnessapp.backend.youtube.dto.CuratedCoverageReport;
-import com.fitnessapp.backend.youtube.dto.PlaylistImportRequest;
-import com.fitnessapp.backend.youtube.dto.PlaylistImportResult;
-import com.fitnessapp.backend.youtube.dto.VideoMetadata;
-import com.google.api.services.youtube.YouTube;
-import com.google.api.services.youtube.model.Channel;
-import com.google.api.services.youtube.model.ChannelListResponse;
-import com.google.api.services.youtube.model.PlaylistItem;
-import com.google.api.services.youtube.model.PlaylistItemListResponse;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -28,11 +15,27 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
+
+import com.fitnessapp.backend.config.YouTubeProperties;
+import com.fitnessapp.backend.workout.entity.WorkoutVideo;
+import com.fitnessapp.backend.workout.repository.WorkoutVideoRepository;
+import com.fitnessapp.backend.youtube.dto.ChannelMetadata;
+import com.fitnessapp.backend.youtube.dto.CuratedCoverageReport;
+import com.fitnessapp.backend.youtube.dto.PlaylistImportRequest;
+import com.fitnessapp.backend.youtube.dto.PlaylistImportResult;
+import com.fitnessapp.backend.youtube.dto.VideoMetadata;
+import com.google.api.services.youtube.YouTube;
+import com.google.api.services.youtube.model.Channel;
+import com.google.api.services.youtube.model.ChannelListResponse;
+import com.google.api.services.youtube.model.PlaylistItem;
+import com.google.api.services.youtube.model.PlaylistItemListResponse;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -571,7 +574,7 @@ public class YouTubeCuratorService {
             parts.stream()
                     .filter(StringUtils::hasText)
                     .map(part -> part.toLowerCase(Locale.ROOT))
-                    .forEach(part -> categoryCounts.merge(part, 1L, Long::sum));
+                    .forEach(part -> categoryCounts.merge(part, 1L, (oldVal, newVal) -> oldVal + newVal));
         });
 
         List<String> requiredCategories = List.of("breast", "chest", "shoulders", "legs", "back", "biceps", "triceps", "cardio");
