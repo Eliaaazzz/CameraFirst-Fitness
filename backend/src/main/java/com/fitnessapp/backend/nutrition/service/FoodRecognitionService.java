@@ -64,19 +64,22 @@ public class FoodRecognitionService {
         
         if (provider == null) {
             // Build helpful error message listing why providers aren't available
+            StringBuilder errorMsg = new StringBuilder(
+                    "No AI food recognition providers available. Configure at least one provider:\n")
+                    .append("- Gemini: Set GEMINI_API_KEY environment variable\n")
+                    .append("- Claude: Set ANTHROPIC_API_KEY environment variable\n")
+                    .append("Current status: ");
+            
             List<String> providerStatus = providers.stream()
                     .map(p -> String.format("%s: %s", 
                             p.getProviderName(), 
                             p.isAvailable() ? "available" : "not configured"))
                     .toList();
             
-            String errorMsg = "No AI food recognition providers available. Configure at least one provider:\n" +
-                    "- Gemini: Set GEMINI_API_KEY environment variable\n" +
-                    "- Claude: Set ANTHROPIC_API_KEY environment variable\n" +
-                    "Current status: " + String.join(", ", providerStatus);
+            errorMsg.append(String.join(", ", providerStatus));
             
-            log.error(errorMsg);
-            throw new FoodRecognitionException(errorMsg);
+            log.error(errorMsg.toString());
+            throw new FoodRecognitionException(errorMsg.toString());
         }
 
         log.info("Using provider '{}' ({}) for food recognition",

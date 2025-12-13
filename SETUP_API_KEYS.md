@@ -44,7 +44,7 @@ Your fitness app needs the following API keys to function properly:
 
 ---
 
-### 4. Google Gemini API Key (Optional - Recommended for Food Recognition)
+### 4. Google Gemini API Key (Recommended for Food Recognition)
 **Purpose:** AI-powered food recognition from photos
 
 **How to get:**
@@ -55,7 +55,22 @@ Your fitness app needs the following API keys to function properly:
 
 **Cost:** Free tier (60 requests per minute for Gemini 2.0 Flash)
 
-**Note:** This is the primary provider for food recognition. The app will work without it but food photo analysis will be disabled.
+**Note:** This is the primary provider for food recognition. Without it, the food photo analysis feature will return an error message indicating the API key needs to be configured.
+
+---
+
+### 5. Anthropic Claude API Key (Optional - Alternative for Food Recognition)
+**Purpose:** Alternative AI provider for food recognition from photos
+
+**How to get:**
+1. Go to [Anthropic Console](https://console.anthropic.com/)
+2. Sign up for an account
+3. Navigate to API Keys section
+4. Create a new API key
+
+**Cost:** Pay-as-you-go pricing
+
+**Note:** This serves as a fallback provider if Gemini is unavailable. At least one of Gemini or Claude API keys should be configured for food recognition to work.
 
 ---
 
@@ -72,8 +87,9 @@ Your fitness app needs the following API keys to function properly:
    YOUTUBE_API_KEY=your_youtube_key_here
    SPOONACULAR_API_KEY=your_spoonacular_key_here
 
-   # Optional - for food recognition:
+   # Optional - for food recognition (at least one recommended):
    GEMINI_API_KEY=your_gemini_key_here
+   ANTHROPIC_API_KEY=your_claude_key_here
 
    # Optional - for AI meal plans:
    OPENAI_ENABLED=true
@@ -104,8 +120,11 @@ Add these lines:
 YOUTUBE_API_KEY=your_youtube_key_here
 SPOONACULAR_API_KEY=your_spoonacular_key_here
 GEMINI_API_KEY=your_gemini_key_here
+ANTHROPIC_API_KEY=your_claude_key_here
 OPENAI_ENABLED=true
 OPENAI_API_KEY=your_openai_key_here
+DATABASE_URL=jdbc:postgresql://localhost:5432/fitnessdb
+JWT_SECRET=your-secret-key-at-least-256-bits
 ```
 
 Then update the Docker Compose file to use this env file:
@@ -172,17 +191,60 @@ curl -X POST http://localhost:8080/api/v1/meal-plan/generate \
 
 ## Troubleshooting
 
-### "API key missing" error
+### Common Issues After Latest Updates
+
+#### 1. Nutrition API returning 500 errors
+**Symptoms:**
+- `/api/v1/nutrition/insights/weekly` returns 500
+- `/api/v1/nutrition/summary/daily` returns 500
+
+**Solution:**
+This has been fixed in the latest update. The backend now automatically creates the default user and profile when needed. If you still see this error:
+1. Restart the backend service
+2. Check that the database is running and accessible
+3. Verify database migrations have run successfully
+
+#### 2. Food photo analysis failing
+**Symptoms:**
+- Error: "Failed to recognize foods after 2 attempts"
+- Error: "No AI food recognition providers available"
+
+**Solution:**
+Configure at least one AI provider API key:
+- For Gemini (recommended): Set `GEMINI_API_KEY` environment variable
+- For Claude (fallback): Set `ANTHROPIC_API_KEY` environment variable
+
+Without these keys, food photo analysis cannot work. The error message will now clearly indicate which keys are missing.
+
+#### 3. Logout not navigating to login screen
+**Symptoms:**
+- Clicking logout does nothing
+- App stays on the Goals screen
+
+**Solution:**
+This has been fixed in the latest frontend update. The logout now properly uses `CommonActions.reset()` to navigate back to the login screen. Update your frontend code and rebuild the app.
+
+#### 4. Apple Sign-In button not showing
+**Symptoms:**
+- Apple login button missing on iOS devices
+
+**Solution:**
+This has been fixed in the latest update. The Apple Sign-In button now appears on iOS devices that support it. Make sure:
+1. You're running on an actual iOS device or simulator (not web)
+2. The `expo-apple-authentication` package is installed
+3. You've rebuilt the app after pulling the latest changes
+
+#### 5. "API key missing" error
 - Check backend logs: `sudo docker logs fitness-app-backend`
 - Verify .env file exists and has correct keys
 - Restart backend after adding keys
 
-### "OpenAI features disabled"
+#### 6. "OpenAI features disabled"
 - This is normal if OPENAI_ENABLED=false
 - App works fine without OpenAI
 - AI features (meal plans, smart suggestions) won't work
 
-### YouTube/Spoonacular quota exceeded
+#### 7. YouTube/Spoonacular quota exceeded
 - YouTube: 10,000 units/day (resets at midnight Pacific)
 - Spoonacular: 150 requests/day on free tier
 - Upgrade to paid tier if needed

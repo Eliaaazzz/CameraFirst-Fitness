@@ -29,6 +29,9 @@ public class NutritionTrackingService {
   private static final int DEFAULT_DAILY_PROTEIN = 130;
   private static final int DEFAULT_DAILY_CARBS = 220;
   private static final int DEFAULT_DAILY_FAT = 70;
+  
+  // Default user UUID for frontend compatibility
+  private static final UUID DEFAULT_USER_UUID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
   private final MealLogRepository mealLogRepository;
   private final UserProfileRepository userProfileRepository;
@@ -134,7 +137,7 @@ public class NutritionTrackingService {
   private void ensureUserExists(UUID userId) {
     if (!userRepository.existsById(userId)) {
       // Check if this is the default user UUID
-      if (userId.equals(UUID.fromString("00000000-0000-0000-0000-000000000001"))) {
+      if (userId.equals(DEFAULT_USER_UUID)) {
         log.info("Creating default user for frontend: {}", userId);
         User defaultUser = User.builder()
             .id(userId)

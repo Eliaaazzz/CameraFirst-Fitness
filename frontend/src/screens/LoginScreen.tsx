@@ -9,10 +9,17 @@ import { saveJWT } from '../utils/jwtStorage';
 // Required for Web support and handling redirect callbacks
 WebBrowser.maybeCompleteAuthSession();
 
-
+// Configuration constants
 const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+
+// Backend API URL - can be overridden via environment variable
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://api.aurafitness.com';
+const AUTH_LOGIN_ENDPOINT = `${BACKEND_URL}/api/v1/auth/login`;
+
+// Default email for Apple users when email is not provided
+const DEFAULT_APPLE_USER_EMAIL = 'apple-user@aurafitness.com';
 
 export default function LoginScreen() {
     const navigation = useNavigation();
@@ -41,10 +48,8 @@ export default function LoginScreen() {
         setIsLoading(true);
         try {
             console.log("Sending token to backend...");
-            
-            const BACKEND_URL = 'https://api.aurafitness.com/api/v1/auth/login'; 
 
-            const res = await fetch(BACKEND_URL, {
+            const res = await fetch(AUTH_LOGIN_ENDPOINT, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -136,9 +141,7 @@ export default function LoginScreen() {
             });
 
             // Send Apple credential to backend
-            const BACKEND_URL = 'https://api.aurafitness.com/api/v1/auth/login';
-
-            const res = await fetch(BACKEND_URL, {
+            const res = await fetch(AUTH_LOGIN_ENDPOINT, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -158,7 +161,11 @@ export default function LoginScreen() {
             console.log('✅ Apple login successful! JWT:', data.token);
 
             // Save JWT and user email to SecureStore
-            await saveJWT(data.token, data.refreshToken, data.email || credential.email || 'apple-user@aurafitness.com');
+            await saveJWT(
+                data.token, 
+                data.refreshToken, 
+                data.email || credential.email || DEFAULT_APPLE_USER_EMAIL
+            );
 
             setIsLoading(false);
             navigation.reset({
