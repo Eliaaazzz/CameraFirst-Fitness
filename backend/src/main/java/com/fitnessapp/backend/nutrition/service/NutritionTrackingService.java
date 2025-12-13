@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,9 @@ public class NutritionTrackingService {
   private final MealLogRepository mealLogRepository;
   private final UserProfileRepository userProfileRepository;
   private final UserRepository userRepository;
+  
+  @Value("${app.user.generated-email-domain:generated.fitnessapp.com}")
+  private String generatedEmailDomain;
 
   @Transactional
   public MealLog logMeal(MealLog payload) {
@@ -122,7 +126,7 @@ public class NutritionTrackingService {
       log.warn("User {} doesn't exist, creating default user", userId);
       User newUser = User.builder()
           .id(userId)
-          .email("user-" + userId + "@generated.fitnessapp.com")
+          .email("user-" + userId + "@" + generatedEmailDomain)
           .timeBucket(20)
           .level("beginner")
           .dietTilt("lighter")

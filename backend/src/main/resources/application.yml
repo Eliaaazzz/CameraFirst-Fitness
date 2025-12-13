@@ -45,6 +45,8 @@ app:
   jwt:
     secret: ${JWT_SECRET:change-me-in-production-this-needs-to-be-at-least-256-bits-long}
     expiration-days: ${JWT_EXPIRATION_DAYS:30}
+  user:
+    generated-email-domain: ${GENERATED_EMAIL_DOMAIN:generated.fitnessapp.com}
   meal-plan:
     cache-ttl-hours: 24
   recipe-generation:

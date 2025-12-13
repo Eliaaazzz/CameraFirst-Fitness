@@ -1,6 +1,16 @@
 import { MealLogResponse, NutritionInsightResponse, NutritionSummaryResponse } from '@/types/mealPlan';
 import { api } from './apiClient';
 
+// Simple counter for generating unique IDs
+let foodIdCounter = 0;
+
+/**
+ * Generate a unique ID for a detected food item
+ */
+function generateFoodId(): string {
+  return `food_${Date.now()}_${++foodIdCounter}`;
+}
+
 export interface LogMealPayload {
   mealPlanId?: number | null;
   mealDay?: number | null;
@@ -67,7 +77,7 @@ interface BackendFoodRecognitionResponse {
  */
 function transformBackendResponse(backendResponse: BackendFoodRecognitionResponse): FoodRecognitionResponse {
   const items: DetectedFood[] = backendResponse.items.map((item) => ({
-    id: item.foodKey || `food_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    id: item.foodKey || generateFoodId(),
     name: item.displayName || 'Unknown Food',
     amount: item.estimatedGrams || 100,
     unit: 'g',
