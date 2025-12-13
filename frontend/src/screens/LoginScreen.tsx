@@ -1,8 +1,9 @@
 import { useNavigation } from '@react-navigation/native';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Button, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Button, Platform, Text, View } from 'react-native';
 import { saveJWT } from '../utils/jwtStorage';
 
 // Required for Web support and handling redirect callbacks
@@ -16,6 +17,7 @@ const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 export default function LoginScreen() {
     const navigation = useNavigation();
     const [isLoading, setIsLoading] = useState(false);
+    const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
     
     const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
         iosClientId: GOOGLE_IOS_CLIENT_ID,
@@ -23,6 +25,17 @@ export default function LoginScreen() {
         webClientId: GOOGLE_WEB_CLIENT_ID,
         scopes: ['profile', 'email'],
     });
+
+    // Check if Apple Authentication is available
+    useEffect(() => {
+        const checkAppleAuth = async () => {
+            if (Platform.OS === 'ios') {
+                const isAvailable = await AppleAuthentication.isAvailableAsync();
+                setAppleAuthAvailable(isAvailable);
+            }
+        };
+        checkAppleAuth();
+    }, []);
 
     const sendTokenToBackend = useCallback(async (idToken: string) => {
         setIsLoading(true);
@@ -112,6 +125,62 @@ export default function LoginScreen() {
         }
     };
 
+    const handleAppleSignIn = async () => {
+        setIsLoading(true);
+        try {
+            const credential = await AppleAuthentication.signInAsync({
+                requestedScopes: [
+                    AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                    AppleAuthentication.AppleAuthenticationScope.EMAIL,
+                ],
+            });
+
+            // Send Apple credential to backend
+            const BACKEND_URL = 'https://api.aurafitness.com/api/v1/auth/login';
+
+            const res = await fetch(BACKEND_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    loginType: 'APPLE',
+                    idToken: credential.identityToken,
+                }),
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`Status ${res.status}: ${errorText}`);
+            }
+
+            const data = await res.json();
+            console.log('✅ Apple login successful! JWT:', data.token);
+
+            // Save JWT and user email to SecureStore
+            await saveJWT(data.token, data.refreshToken, data.email || credential.email || 'apple-user@aurafitness.com');
+
+            setIsLoading(false);
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Main' } as any],
+            });
+
+        } catch (error: any) {
+            setIsLoading(false);
+            if (error.code === 'ERR_REQUEST_CANCELED') {
+                // User canceled the sign-in flow
+                console.log('Apple Sign-In canceled');
+            } else {
+                console.error('❌ Apple Sign-In failed:', error);
+                Alert.alert(
+                    'Login Failed',
+                    error instanceof Error ? error.message : 'Unable to sign in with Apple. Please try again.'
+                );
+            }
+        }
+    };
+
     return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
             <Text style={{ marginBottom: 30, fontSize: 28, fontWeight: 'bold' }}>Welcome to Aura Fitness</Text>
@@ -129,6 +198,16 @@ export default function LoginScreen() {
             )}
 
             <View style={{ width: '100%', gap: 16 }}>
+                {appleAuthAvailable && (
+                    <AppleAuthentication.AppleAuthenticationButton
+                        buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                        buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                        cornerRadius={5}
+                        style={{ width: '100%', height: 44 }}
+                        onPress={handleAppleSignIn}
+                    />
+                )}
+
                 <Button
                     title={isLoading ? "Signing in..." : "Sign in with Google"}
                     disabled={!request || isLoading}

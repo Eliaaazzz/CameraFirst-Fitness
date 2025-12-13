@@ -39,6 +39,10 @@ public class NutritionTrackingService {
     if (payload.getConsumedAt() == null) {
       payload.setConsumedAt(OffsetDateTime.now());
     }
+    
+    // Ensure user exists before saving meal (to satisfy foreign key constraint)
+    ensureUserExists(payload.getUserId());
+    
     return mealLogRepository.save(payload);
   }
 
@@ -70,13 +74,31 @@ public class NutritionTrackingService {
     BigDecimal carbs = Optional.ofNullable(mealLogRepository.sumCarbs(userId, start, end)).orElse(BigDecimal.ZERO);
     BigDecimal fat = Optional.ofNullable(mealLogRepository.sumFat(userId, start, end)).orElse(BigDecimal.ZERO);
 
+    // Try to get profile, or create if user exists, or use defaults if user doesn't exist
     UserProfile profile = userProfileRepository.findByUserId(userId)
-        .orElseGet(() -> createDefaultProfile(userId));
+        .orElseGet(() -> {
+          try {
+            return createDefaultProfile(userId);
+          } catch (EntityNotFoundException e) {
+            // User doesn't exist - return null to use default values below
+            log.warn("User {} not found when building nutrition summary, using default targets", userId);
+            return null;
+          }
+        });
 
-    int targetCalories = Optional.ofNullable(profile.getDailyCalorieTarget()).orElse(2000) * days;
-    BigDecimal targetProtein = BigDecimal.valueOf(Optional.ofNullable(profile.getDailyProteinTarget()).orElse(130) * days);
-    BigDecimal targetCarbs = BigDecimal.valueOf(Optional.ofNullable(profile.getDailyCarbsTarget()).orElse(220) * days);
-    BigDecimal targetFat = BigDecimal.valueOf(Optional.ofNullable(profile.getDailyFatTarget()).orElse(70) * days);
+    // Use profile targets if available, otherwise use defaults
+    int targetCalories = (profile != null ? 
+        Optional.ofNullable(profile.getDailyCalorieTarget()).orElse(DEFAULT_DAILY_CALORIES) : 
+        DEFAULT_DAILY_CALORIES) * days;
+    BigDecimal targetProtein = BigDecimal.valueOf((profile != null ? 
+        Optional.ofNullable(profile.getDailyProteinTarget()).orElse(DEFAULT_DAILY_PROTEIN) : 
+        DEFAULT_DAILY_PROTEIN) * days);
+    BigDecimal targetCarbs = BigDecimal.valueOf((profile != null ? 
+        Optional.ofNullable(profile.getDailyCarbsTarget()).orElse(DEFAULT_DAILY_CARBS) : 
+        DEFAULT_DAILY_CARBS) * days);
+    BigDecimal targetFat = BigDecimal.valueOf((profile != null ? 
+        Optional.ofNullable(profile.getDailyFatTarget()).orElse(DEFAULT_DAILY_FAT) : 
+        DEFAULT_DAILY_FAT) * days);
 
     List<String> alerts = generateNutritionAlerts(
         new NutritionMetric(calories, targetCalories),
@@ -103,6 +125,33 @@ public class NutritionTrackingService {
   }
 
   /**
+   * Ensure the user exists in the database. If not, create a default user.
+   * This is particularly important for the default-user UUID which is used by the frontend.
+   * 
+   * @param userId The user ID to check/create
+   */
+  @Transactional
+  private void ensureUserExists(UUID userId) {
+    if (!userRepository.existsById(userId)) {
+      // Check if this is the default user UUID
+      if (userId.equals(UUID.fromString("00000000-0000-0000-0000-000000000001"))) {
+        log.info("Creating default user for frontend: {}", userId);
+        User defaultUser = User.builder()
+            .id(userId)
+            .email("default-user@fitnessapp.com")
+            .timeBucket(20)
+            .level("beginner")
+            .dietTilt("lighter")
+            .authProvider(com.fitnessapp.backend.auth.AuthProvider.LOCAL)
+            .build();
+        userRepository.save(defaultUser);
+      } else {
+        throw new EntityNotFoundException("User not found: " + userId);
+      }
+    }
+  }
+
+  /**
    * Create a default user profile with standard nutrition targets
    * This ensures the nutrition tracking API never fails due to missing profiles
    * 
@@ -112,6 +161,9 @@ public class NutritionTrackingService {
   @Transactional
   private UserProfile createDefaultProfile(UUID userId) {
     log.warn("Creating default user profile for userId: {} as none exists", userId);
+    
+    // Ensure user exists first
+    ensureUserExists(userId);
     
     // Get the user entity (required for @MapsId relationship)
     User user = userRepository.findById(userId)

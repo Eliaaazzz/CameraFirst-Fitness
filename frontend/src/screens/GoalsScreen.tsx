@@ -1,5 +1,5 @@
 import { Feather } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { Alert, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Chip, FAB } from 'react-native-paper';
@@ -47,10 +47,13 @@ export const GoalsScreen = () => {
           style: 'destructive',
           onPress: async () => {
             await clearJWT();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' } as any],
-            });
+            // Use CommonActions to properly navigate to root navigator
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              })
+            );
           },
         },
       ]
