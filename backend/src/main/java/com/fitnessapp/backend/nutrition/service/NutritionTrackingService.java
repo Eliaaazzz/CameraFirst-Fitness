@@ -115,6 +115,7 @@ public class NutritionTrackingService {
     
     // Try to get the user entity (required for @MapsId relationship)
     Optional<User> userOptional = userRepository.findById(userId);
+    User user;
     
     if (userOptional.isEmpty()) {
       // If user doesn't exist, create and save the user first
@@ -129,16 +130,16 @@ public class NutritionTrackingService {
           .build();
       
       try {
-        newUser = userRepository.save(newUser);
+        user = userRepository.save(newUser);
         log.info("Created default user: {}", userId);
       } catch (Exception e) {
         log.error("Failed to create default user {}: {}", userId, e.getMessage());
         // Return a transient default profile without saving
         return createTransientProfile(userId);
       }
+    } else {
+      user = userOptional.get();
     }
-    
-    User user = userOptional.orElseGet(() -> userRepository.findById(userId).get());
     
     // Create profile using builder - @MapsId will derive the ID from the user relationship
     UserProfile defaultProfile = UserProfile.builder()

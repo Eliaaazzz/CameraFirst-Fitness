@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Button, Platform, Text, View } from 'react-native';
 import { saveJWT } from '../utils/jwtStorage';
+import { API_BASE_URL } from '@env';
 
 // Required for Web support and handling redirect callbacks
 WebBrowser.maybeCompleteAuthSession();
@@ -13,6 +14,13 @@ WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+
+// Normalize base URL for login endpoints
+const normalizeBaseUrl = (url: string) => {
+  if (!url) return 'http://localhost:8080';
+  return url.replace(/\/+$/, '').replace(/\/api\/v1$/, '');
+};
+const BASE_URL = normalizeBaseUrl(API_BASE_URL);
 
 export default function LoginScreen() {
     const navigation = useNavigation();
@@ -42,7 +50,7 @@ export default function LoginScreen() {
         try {
             console.log("Sending token to backend...");
             
-            const BACKEND_URL = 'https://api.aurafitness.com/api/v1/auth/login'; 
+            const BACKEND_URL = `${BASE_URL}/api/v1/auth/login`;
 
             const res = await fetch(BACKEND_URL, {
                 method: 'POST',
@@ -136,7 +144,7 @@ export default function LoginScreen() {
             });
 
             // Send Apple ID token to backend
-            const BACKEND_URL = 'https://api.aurafitness.com/api/v1/auth/login';
+            const BACKEND_URL = `${BASE_URL}/api/v1/auth/login`;
             
             const res = await fetch(BACKEND_URL, {
                 method: 'POST',

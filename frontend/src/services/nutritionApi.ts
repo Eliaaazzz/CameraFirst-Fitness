@@ -66,8 +66,8 @@ interface BackendFoodRecognitionResponse {
  * Transform backend response to frontend format
  */
 function transformBackendResponse(backendResponse: BackendFoodRecognitionResponse): FoodRecognitionResponse {
-  const items: DetectedFood[] = backendResponse.items.map((item, index) => ({
-    id: item.foodKey || `food_${index}`,
+  const items: DetectedFood[] = backendResponse.items.map((item) => ({
+    id: item.foodKey || `food_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
     name: item.displayName || 'Unknown Food',
     amount: item.estimatedGrams || 100,
     unit: 'g',
