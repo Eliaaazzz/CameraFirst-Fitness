@@ -1,5 +1,5 @@
 import { Feather } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { Alert, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Chip, FAB } from 'react-native-paper';
@@ -46,11 +46,19 @@ export const GoalsScreen = () => {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-            await clearJWT();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' } as any],
-            });
+            try {
+              await clearJWT();
+              // Use CommonActions.reset to navigate to Login screen
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [{ name: 'Login' }],
+                })
+              );
+            } catch (error) {
+              console.error('Logout failed:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
           },
         },
       ]

@@ -107,15 +107,38 @@ public class NutritionTrackingService {
    * This ensures the nutrition tracking API never fails due to missing profiles
    * 
    * @param userId The user ID to create a profile for
-   * @return The newly created default profile
+   * @return The newly created default profile, or a transient profile if user doesn't exist
    */
   @Transactional
   private UserProfile createDefaultProfile(UUID userId) {
     log.warn("Creating default user profile for userId: {} as none exists", userId);
     
-    // Get the user entity (required for @MapsId relationship)
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+    // Try to get the user entity (required for @MapsId relationship)
+    Optional<User> userOptional = userRepository.findById(userId);
+    
+    if (userOptional.isEmpty()) {
+      // If user doesn't exist, create and save the user first
+      log.warn("User {} doesn't exist, creating default user", userId);
+      User newUser = User.builder()
+          .id(userId)
+          .email("user-" + userId + "@generated.fitnessapp.com")
+          .timeBucket(20)
+          .level("beginner")
+          .dietTilt("lighter")
+          .authProvider(com.fitnessapp.backend.auth.AuthProvider.LOCAL)
+          .build();
+      
+      try {
+        newUser = userRepository.save(newUser);
+        log.info("Created default user: {}", userId);
+      } catch (Exception e) {
+        log.error("Failed to create default user {}: {}", userId, e.getMessage());
+        // Return a transient default profile without saving
+        return createTransientProfile(userId);
+      }
+    }
+    
+    User user = userOptional.orElseGet(() -> userRepository.findById(userId).get());
     
     // Create profile using builder - @MapsId will derive the ID from the user relationship
     UserProfile defaultProfile = UserProfile.builder()
@@ -128,7 +151,29 @@ public class NutritionTrackingService {
         .dietaryPreference(com.fitnessapp.backend.user.entity.DietaryPreference.NONE)
         .build();
     
-    return userProfileRepository.save(defaultProfile);
+    try {
+      return userProfileRepository.save(defaultProfile);
+    } catch (Exception e) {
+      log.error("Failed to save default profile for user {}: {}", userId, e.getMessage());
+      // Return a transient default profile without saving
+      return createTransientProfile(userId);
+    }
+  }
+  
+  /**
+   * Create a transient (non-persisted) profile with default values
+   * Used as a fallback when database operations fail
+   */
+  private UserProfile createTransientProfile(UUID userId) {
+    log.warn("Creating transient profile for userId: {}", userId);
+    return UserProfile.builder()
+        .dailyCalorieTarget(DEFAULT_DAILY_CALORIES)
+        .dailyProteinTarget(DEFAULT_DAILY_PROTEIN)
+        .dailyCarbsTarget(DEFAULT_DAILY_CARBS)
+        .dailyFatTarget(DEFAULT_DAILY_FAT)
+        .fitnessGoal(com.fitnessapp.backend.user.entity.FitnessGoal.MAINTAIN)
+        .dietaryPreference(com.fitnessapp.backend.user.entity.DietaryPreference.NONE)
+        .build();
   }
 
   public record NutritionSummary(OffsetDateTime rangeStart,
