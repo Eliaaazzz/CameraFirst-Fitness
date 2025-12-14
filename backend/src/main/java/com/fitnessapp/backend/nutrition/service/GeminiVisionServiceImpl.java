@@ -219,29 +219,56 @@ public class GeminiVisionServiceImpl implements FoodRecognitionProvider {
             - Form/cut (e.g., "Breast", "Thigh", "Fillet", "Whole")
             - Cooking method: One of [RAW, STEAMED, BOILED, GRILLED, ROASTED, FRIED, STIR_FRIED, BREADED]
             - Visual attributes/modifiers (e.g., "skin-on", "breaded", "with sauce")
-            - Portion size: One of [small, medium, large] if exact weight unknown
+            - Density category: Classify the food type (see categories below)
+            - Portion size: One of [small, medium, large] relative to the density category
             - Proportion percentage: Estimate what % of the meal this ingredient represents (if multiple items)
 
-            IMPORTANT: Do NOT assume grams. Instead:
-            1. If you can see exact measurement (scale, portion container), provide "estimated_weight_g"
-            2. Otherwise, provide "portion_size" (small/medium/large) based on visual comparison
-            3. For meals with multiple items, estimate "proportion_percentage" (0-100) for each ingredient
+            CRITICAL - DENSITY CATEGORY CLASSIFICATION:
+            You MUST classify each food into one of these categories:
+            - "leafy_veg": Salads, spinach, lettuce, mixed greens (50-200g range)
+            - "carb_staple": Rice, pasta, potatoes, bread, noodles (100-350g range)
+            - "meat_main": Steak, chicken breast, fish fillet, pork chop (120-350g range)
+            - "liquid_soup": Soups, stews, broths, curries with liquid (200-500g range)
+            - "fats_dressing": Butter, oil, mayo, dressings, sauces (10-40g range)
+            - "garnish": Garlic, ginger, fresh herbs, chili, scallions, cilantro, parsley (3-20g range)
+            - "mixed_dish": Stir-fry, fried rice, buddha bowl, bento (150-450g range)
+            - "fruit": Apple, banana, berries, melon (80-250g range)
+            - "dairy": Milk, yogurt, cheese (100-300g range)
+            - "snack": Chips, crackers, nuts, small pastries (30-100g range)
+            - "beverage": Juice, smoothie, coffee drinks (200-500g range)
+            - "generic": Use only if none of the above fit (100-300g range)
+
+            IMPORTANT CLASSIFICATION RULES:
+            - Garlic cloves, minced garlic, roasted garlic -> "garnish" (NOT vegetable!)
+            - Ginger, fresh herbs, chili peppers -> "garnish" (used for flavoring)
+            - Whole roasted garlic head = "garnish" with portion_size="large" (20g max)
+
+            PORTION SIZE is relative to the density category:
+            - "small": Lower end of the category's gram range
+            - "medium": Middle of the category's gram range
+            - "large": Upper end of the category's gram range
+
+            IMPORTANT: Do NOT guess exact grams blindly. Instead:
+            1. First identify the FOOD TYPE and classify into a density_category
+            2. Then estimate portion_size (small/medium/large) based on visual comparison WITHIN that category
+            3. Only provide "estimated_weight_g" if you can see a scale or known reference object
 
             Return ONLY valid JSON, no other text:
             {
                 "items": [
                     {
-                        "food_key": "snake_case_english_identifier",
-                        "display_name": "Descriptive name",
-                        "cooking_method": "fried",
+                        "food_key": "grilled_chicken_breast",
+                        "display_name": "Grilled Chicken Breast",
+                        "cooking_method": "grilled",
                         "confidence": 0.95,
                         "metadata": {
                             "base_ingredient": "Chicken",
                             "form": "Breast",
-                            "cooking_method": "FRIED",
-                            "modifiers": ["Breaded", "Crispy"],
+                            "cooking_method": "GRILLED",
+                            "modifiers": ["Skinless"],
                             "search_terms": ["Chicken", "Breast"],
-                            "visual_attributes": ["breaded", "golden"],
+                            "visual_attributes": ["grilled", "charred"],
+                            "density_category": "meat_main",
                             "portion_size": "medium",
                             "proportion_percentage": 60
                         }
@@ -256,24 +283,56 @@ public class GeminiVisionServiceImpl implements FoodRecognitionProvider {
                             "form": "White",
                             "cooking_method": "STEAMED",
                             "search_terms": ["Rice", "White"],
+                            "density_category": "carb_staple",
+                            "portion_size": "small",
+                            "proportion_percentage": 30
+                        }
+                    },
+                    {
+                        "food_key": "garden_salad",
+                        "display_name": "Garden Salad",
+                        "cooking_method": "raw",
+                        "confidence": 0.85,
+                        "metadata": {
+                            "base_ingredient": "Mixed Greens",
+                            "form": "Salad",
+                            "cooking_method": "RAW",
+                            "search_terms": ["Salad", "Mixed Greens"],
+                            "density_category": "leafy_veg",
                             "portion_size": "medium",
-                            "proportion_percentage": 40
+                            "proportion_percentage": 10
                         }
                     }
                 ],
                 "meal_type": "breakfast/lunch/dinner/snack"
             }
 
-            Portion size reference (meal-sized portions):
-            - Small: ~150g (light meal, smaller appetite, side dish)
-            - Medium: ~250g (standard meal, typical restaurant serving)
-            - Large: ~350g (generous meal, large appetite, main protein dish)
+            GRAM REFERENCE BY CATEGORY (use these to calibrate your portion estimates):
+            | Category      | Small  | Medium | Large  |
+            |---------------|--------|--------|--------|
+            | leafy_veg     | 50g    | 100g   | 200g   |
+            | carb_staple   | 100g   | 200g   | 350g   |
+            | meat_main     | 120g   | 200g   | 350g   |
+            | liquid_soup   | 200g   | 350g   | 500g   |
+            | fats_dressing | 10g    | 20g    | 40g    |
+            | garnish       | 3g     | 10g    | 20g    |
+            | mixed_dish    | 150g   | 300g   | 450g   |
+            | fruit         | 80g    | 150g   | 250g   |
+            | dairy         | 100g   | 200g   | 300g   |
+            | snack         | 30g    | 60g    | 100g   |
+            | beverage      | 200g   | 350g   | 500g   |
+            | generic       | 100g   | 200g   | 300g   |
 
             Common examples:
-            - Fried chicken breast: portion_size="medium" (~250g)
-            - Grilled salmon fillet: portion_size="large" (~350g for main dish)
-            - Steamed rice (as side): portion_size="small" (~150g)
-            - Steak: portion_size="large" (~350g)
+            - Steak on plate: density_category="meat_main", portion_size="large" (350g)
+            - Side of rice: density_category="carb_staple", portion_size="small" (100g)
+            - Large salad bowl: density_category="leafy_veg", portion_size="large" (200g)
+            - Tablespoon of butter: density_category="fats_dressing", portion_size="medium" (20g)
+            - Bowl of soup: density_category="liquid_soup", portion_size="medium" (350g)
+            - Handful of nuts: density_category="snack", portion_size="small" (30g)
+            - Garlic cloves (2-3): density_category="garnish", portion_size="small" (3g)
+            - Roasted garlic head: density_category="garnish", portion_size="large" (20g)
+            - Fresh herbs/ginger: density_category="garnish", portion_size="medium" (10g)
 
             If image is unclear or not food, return: {"items": [], "meal_type": "unknown"}
             """;

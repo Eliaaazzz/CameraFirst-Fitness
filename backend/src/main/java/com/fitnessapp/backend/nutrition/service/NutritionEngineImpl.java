@@ -101,36 +101,41 @@ public class NutritionEngineImpl implements NutritionEngine {
 
   /**
    * Determine grams from metadata or estimated grams.
-   * Priority: 
+   * Priority:
    * 1. Metadata estimated_weight_g (if present)
-   * 2. Metadata portion_size (small/medium/large)
-   * 3. RecognizedFood estimated_grams
-   * 
+   * 2. Metadata portion_size + density_category (category-based calculation)
+   * 3. Metadata portion_size only (generic category fallback)
+   * 4. RecognizedFood estimated_grams
+   *
    * @param food The recognized food
    * @return Grams to use, or null if cannot be determined
    */
   private Integer determineGrams(RecognizedFood food) {
     FoodMetadata metadata = food.getMetadata();
-    
+
     // Priority 1: Metadata has exact weight
     if (metadata != null && metadata.getEstimatedWeightG() != null && metadata.getEstimatedWeightG() > 0) {
       log.debug("Using metadata estimated weight: {}g", metadata.getEstimatedWeightG());
       return metadata.getEstimatedWeightG();
     }
-    
-    // Priority 2: Metadata has portion size
+
+    // Priority 2: Metadata has portion size (uses density category if available)
     if (metadata != null && metadata.getPortionSizeStr() != null) {
-      int portionGrams = metadata.getPortionSize().calculateGrams();
-      log.debug("Using portion size {} : {}g", metadata.getPortionSize(), portionGrams);
+      // Use the new calculateGramsFromPortion() which considers density category
+      int portionGrams = metadata.calculateGramsFromPortion();
+      log.debug("Using portion size {} with density category {}: {}g",
+          metadata.getPortionSize(),
+          metadata.getDensityCategory(),
+          portionGrams);
       return portionGrams;
     }
-    
+
     // Priority 3: RecognizedFood has estimated grams
     if (food.getEstimatedGrams() != null && food.getEstimatedGrams() > 0) {
       log.debug("Using RecognizedFood estimated grams: {}g", food.getEstimatedGrams());
       return food.getEstimatedGrams();
     }
-    
+
     return null;
   }
 

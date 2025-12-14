@@ -48,6 +48,8 @@ dependencies {
 	implementation("com.theokanning.openai-gpt3-java:service:0.18.2")
 	// HTTP client for Claude and Gemini APIs (using OkHttp)
 	implementation("com.squareup.okhttp3:okhttp:4.12.0")
+	// OpenAI Java SDK for embeddings (already have openai-gpt3-java above for chat)
+	// Using OkHttp for embeddings API call to avoid SDK version conflicts
 	// JWT for authentication
 	implementation("io.jsonwebtoken:jjwt-api:0.12.6")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")

@@ -5,15 +5,59 @@ package com.fitnessapp.backend.nutrition.enums;
  * Used to match against USDA database entries and apply cooking multipliers.
  */
 public enum CookingMethod {
+    /**
+     * Raw/uncooked - baseline nutrition values apply directly.
+     */
     RAW("raw", "uncooked", 1.0),
+
+    /**
+     * Steamed - minimal nutrient change, slight water absorption possible.
+     */
     STEAMED("steamed", "steam", 1.0),
+
+    /**
+     * Boiled - some nutrient leaching into water, minimal calorie change.
+     */
     BOILED("boiled", "cooked", 1.0),
-    GRILLED("grilled", "broiled", 1.1),
-    ROASTED("roasted", "baked", 1.1),
-    FRIED("fried", "deep-fried", 1.3),
-    STIR_FRIED("stir-fried", "pan-fried", 1.2),
-    BREADED("breaded", "battered", 1.4),
+
+    /**
+     * Grilled/Broiled - significant water loss (20-30%), concentrates calories.
+     * Meat loses moisture, so per-gram calorie density increases.
+     */
+    GRILLED("grilled", "broiled", 1.3),
+
+    /**
+     * Roasted/Baked - significant water loss (25-35%), concentrates calories.
+     * Similar to grilling, dry heat causes moisture evaporation.
+     */
+    ROASTED("roasted", "baked", 1.3),
+
+    /**
+     * Deep-fried - oil absorption + water loss, significant calorie increase.
+     * Foods absorb oil while losing moisture.
+     */
+    FRIED("fried", "deep-fried", 1.5),
+
+    /**
+     * Stir-fried/Pan-fried - moderate oil absorption, some water loss.
+     * Less oil than deep frying, but still significant.
+     */
+    STIR_FRIED("stir-fried", "pan-fried", 1.3),
+
+    /**
+     * Breaded/Battered - coating adds carbs + oil absorption.
+     * Combination of batter/breading calories and frying.
+     */
+    BREADED("breaded", "battered", 1.6),
+
+    /**
+     * Processed/Prepared - varies widely, use base multiplier.
+     */
     PROCESSED("processed", "prepared", 1.0),
+
+    /**
+     * Unknown cooking method - conservative estimate.
+     */
     UNKNOWN("unknown", "", 1.0);
 
     private final String displayName;
