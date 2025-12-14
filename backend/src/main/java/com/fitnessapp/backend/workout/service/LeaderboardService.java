@@ -1,10 +1,11 @@
 package com.fitnessapp.backend.workout.service;
 
+import com.fitnessapp.backend.Cacheservice.cache.LeaderboardCacheStore;
+import com.fitnessapp.backend.Cacheservice.cache.LeaderboardCacheStore.LeaderboardSnapshot;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository.MealLogLeaderboardRow;
 import com.fitnessapp.backend.user.repository.UserRepository;
-import com.fitnessapp.backend.service.cache.LeaderboardCacheStore;
-import com.fitnessapp.backend.service.cache.LeaderboardCacheStore.LeaderboardSnapshot;
+
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;

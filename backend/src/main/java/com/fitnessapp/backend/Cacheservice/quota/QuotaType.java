@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.service.quota;
+package com.fitnessapp.backend.Cacheservice.quota;
 
 /**
  * Types of quotas available in the system.

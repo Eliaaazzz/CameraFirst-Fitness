@@ -20,7 +20,16 @@
     "ios": {
       "bundleIdentifier": "com.fitnessapp.mvp",
       "supportsTablet": true,
+      "usesAppleSignIn": true,
       "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.fitnessapp.mvp", 
+              "com.googleusercontent.apps.113023901864-n9pe3iu6v0s0f3gq2u0mu6d9rfqbke8l"
+            ]
+          }
+        ],
         "NSCameraUsageDescription": "We need camera access to help you discover workouts and recipes based on your equipment and ingredients.",
         "NSPhotoLibraryUsageDescription": "We need photo library access so you can choose existing photos of your equipment or ingredients.",
         "NSUserNotificationsUsageDescription": "We use notifications to remind you about your fitness goals, workouts, and meal plans."
@@ -73,7 +82,9 @@
           "mode": "production"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "notification": {
       "icon": "./assets/icon.png",

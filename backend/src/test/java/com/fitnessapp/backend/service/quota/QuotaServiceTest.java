@@ -24,6 +24,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
+import com.fitnessapp.backend.Cacheservice.quota.QuotaExceededException;
+import com.fitnessapp.backend.Cacheservice.quota.QuotaResetPeriod;
+import com.fitnessapp.backend.Cacheservice.quota.QuotaService;
+import com.fitnessapp.backend.Cacheservice.quota.QuotaType;
+import com.fitnessapp.backend.Cacheservice.quota.QuotaUsage;
+
 @ExtendWith(MockitoExtension.class)
 class QuotaServiceTest {
 

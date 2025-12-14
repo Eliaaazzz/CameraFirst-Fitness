@@ -200,7 +200,9 @@ public class GeminiVisionServiceImpl implements FoodRecognitionProvider {
                 }
               ],
               \"generationConfig\": {
-                \"maxOutputTokens\": %d
+                \"maxOutputTokens\": %d,
+                \"temperature\": 0.0,
+                \"topK\": 1
               }
             }
             """, mediaType, base64Image, escapeJson(prompt), MAX_OUTPUT_TOKENS);
@@ -258,8 +260,11 @@ public class GeminiVisionServiceImpl implements FoodRecognitionProvider {
                 }
             }
 
-            String textContent = textBuilder.toString();
+            String textContent = textBuilder.toString().trim();
             log.info("Gemini Vision text response: {}", textContent);
+
+            // Extract JSON from markdown code blocks if present
+            textContent = extractJsonFromText(textContent);
 
             FoodRecognitionResult result = objectMapper.readValue(textContent, FoodRecognitionResult.class);
             if (result.getItems() == null) {
@@ -275,6 +280,45 @@ public class GeminiVisionServiceImpl implements FoodRecognitionProvider {
             log.error("Failed to parse Gemini Vision response", e);
             throw new FoodRecognitionException("Failed to parse food recognition result", e);
         }
+    }
+
+    /**
+     * Extract JSON from text, handling markdown code blocks.
+     * Gemini sometimes wraps JSON in ```json ... ``` markers.
+     */
+    private String extractJsonFromText(String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+
+        // Remove markdown code block markers if present
+        text = text.trim();
+
+        // Handle ```json ... ``` format
+        if (text.startsWith("```json")) {
+            text = text.substring(7);
+        } else if (text.startsWith("```")) {
+            text = text.substring(3);
+        }
+
+        if (text.endsWith("```")) {
+            text = text.substring(0, text.length() - 3);
+        }
+
+        text = text.trim();
+
+        // If text still doesn't start with {, try to find the first {
+        if (!text.startsWith("{")) {
+            int jsonStart = text.indexOf("{");
+            if (jsonStart >= 0) {
+                int jsonEnd = text.lastIndexOf("}");
+                if (jsonEnd > jsonStart) {
+                    text = text.substring(jsonStart, jsonEnd + 1);
+                }
+            }
+        }
+
+        return text;
     }
 
     private String escapeJson(String text) {

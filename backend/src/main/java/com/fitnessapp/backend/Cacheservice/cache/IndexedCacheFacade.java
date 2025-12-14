@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.service.cache;
+package com.fitnessapp.backend.Cacheservice.cache;
 
 import java.time.Duration;
 import java.time.Instant;

@@ -1,11 +1,12 @@
 package com.fitnessapp.backend.api.quota;
 
+import com.fitnessapp.backend.Cacheservice.quota.QuotaService;
+import com.fitnessapp.backend.Cacheservice.quota.QuotaType;
+import com.fitnessapp.backend.Cacheservice.quota.QuotaUsage;
 import com.fitnessapp.backend.api.common.ApiEnvelope;
 import com.fitnessapp.backend.security.AuthenticatedUser;
 import com.fitnessapp.backend.security.CurrentUser;
-import com.fitnessapp.backend.service.quota.QuotaService;
-import com.fitnessapp.backend.service.quota.QuotaType;
-import com.fitnessapp.backend.service.quota.QuotaUsage;
+
 import java.time.ZoneId;
 import java.util.Map;
 import java.util.UUID;

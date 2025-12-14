@@ -40,6 +40,7 @@ export default function SplashScreen() {
         });
       }
     };
+	
 
     checkAuth();
   }, [navigation]);

@@ -11,11 +11,11 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fitnessapp.backend.Cacheservice.cache.NutritionAdviceStore;
+import com.fitnessapp.backend.Cacheservice.cache.NutritionAdviceStore.AdviceEntry;
 import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
 import com.fitnessapp.backend.nutrition.service.NutritionTrackingService.NutritionSummary;
-import com.fitnessapp.backend.service.cache.NutritionAdviceStore;
-import com.fitnessapp.backend.service.cache.NutritionAdviceStore.AdviceEntry;
 
 import lombok.extern.slf4j.Slf4j;
 

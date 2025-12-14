@@ -1,16 +1,19 @@
 package com.fitnessapp.backend.user.service;
 
-import com.fitnessapp.backend.user.entity.ApiKey;
-import com.fitnessapp.backend.user.repository.ApiKeyRepository;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import org.springframework.data.domain.Sort;
+
+import com.fitnessapp.backend.user.entity.ApiKey;
+import com.fitnessapp.backend.user.repository.ApiKeyRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +54,23 @@ public class ApiKeyService {
                 found.setLastUsedAt(OffsetDateTime.now());
                 return found;
             });
+    }
+
+    /**
+     * Check if API Key is valid (simplified boolean version)
+     * Currently not used by ApiKeyAuthFilter (which uses hardcoded config)
+     * but available for admin endpoints or future features
+     * @param key The API Key to validate
+     * @return true if key is valid and enabled, false otherwise
+     */
+    @Transactional(readOnly = true)
+    public boolean isValidApiKey(String key) {
+        if (!StringUtils.hasText(key)) {
+            return false;
+        }
+        return apiKeyRepository.findByKey(key.trim())
+            .map(ApiKey::isEnabled)
+            .orElse(false);
     }
 
     @Transactional

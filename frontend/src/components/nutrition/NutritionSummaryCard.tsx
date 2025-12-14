@@ -6,12 +6,17 @@ import Animated, {
   withTiming,
   withDelay,
 } from 'react-native-reanimated';
+import { SugarStackVisualizer } from './SugarStackVisualizer';
 
 interface Total {
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
+  fiber?: number;
+  sugar?: number;
+  netCarbs?: number;
+  sugarCubes?: number;
 }
 
 interface NutritionSummaryCardProps {
@@ -32,6 +37,10 @@ export function NutritionSummaryCard({ total }: NutritionSummaryCardProps) {
     transform: [{ translateY: translateY.value }],
   }));
 
+  // Calculate sugar cubes if not provided (1 cube = 4g sugar)
+  const sugarCubes = total.sugarCubes ?? (total.sugar ? total.sugar / 4 : 0);
+  const hasSugarData = sugarCubes > 0;
+
   return (
     <Animated.View style={[styles.card, animatedStyle]}>
       <Text style={styles.title}>Total for this meal</Text>
@@ -40,6 +49,17 @@ export function NutritionSummaryCard({ total }: NutritionSummaryCardProps) {
         Protein {Math.round(total.protein)}g · Carbs {Math.round(total.carbs)}g · Fat{' '}
         {Math.round(total.fat)}g
       </Text>
+
+      {hasSugarData && (
+        <View style={styles.sugarSection}>
+          <View style={styles.divider} />
+          <SugarStackVisualizer
+            count={sugarCubes}
+            mode="PREVENTION"
+            animated={true}
+          />
+        </View>
+      )}
     </Animated.View>
   );
 }
@@ -72,5 +92,13 @@ const styles = StyleSheet.create({
   macros: {
     fontSize: 14,
     color: '#999',
+  },
+  sugarSection: {
+    marginTop: 16,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginBottom: 16,
   },
 });

@@ -71,7 +71,7 @@ export function NutritionScreen({ navigation }: any) {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -99,7 +99,7 @@ export function NutritionScreen({ navigation }: any) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -129,6 +129,8 @@ export function NutritionScreen({ navigation }: any) {
           protein={data.protein}
           carbs={data.carbs}
           fat={data.fat}
+          netCarbs={data.netCarbs}
+          sugar={data.sugar}
         />
 
         <AddFoodButton onPress={handleAddPress} />

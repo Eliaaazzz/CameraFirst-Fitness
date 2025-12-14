@@ -49,19 +49,19 @@ export const MealPlanScreen = () => {
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['meal-plan', 'history', userId],
     queryFn: () => mealPlanApi.getHistory(userId!, 5),
-    enabled: !!userId,
+    enabled: !!userId && !currentUserQuery.isError,
   });
 
   const summaryQuery = useQuery({
     queryKey: ['nutrition', 'summary', 'daily', userId],
     queryFn: () => nutritionApi.getDailySummary(userId!),
-    enabled: !!userId,
+    enabled: !!userId && !currentUserQuery.isError,
   });
 
   const insightQuery = useQuery<NutritionInsightResponse>({
     queryKey: ['nutrition', 'insight', 'weekly', userId],
     queryFn: () => nutritionApi.getWeeklyInsight(userId!),
-    enabled: !!userId,
+    enabled: !!userId && !currentUserQuery.isError,
   });
 
   const generateMutation = useMutation<MealPlanResponse, Error, string>({

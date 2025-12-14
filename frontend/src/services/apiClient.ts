@@ -7,6 +7,9 @@ import { API_BASE_URL, API_KEY } from '@env';
 import { Platform } from 'react-native';
 import { getJWT } from '../utils/jwtStorage';
 
+// Ensure API Key is available (prioritize .env API_KEY, fallback to Expo environment variable)
+const APP_API_KEY = API_KEY || process.env.EXPO_PUBLIC_API_KEY || '';
+
 // Use the environment variable for all platforms
 const normalizeBaseUrl = (url: string) => {
   if (!url) return 'http://localhost:8080';
@@ -19,15 +22,6 @@ const normalizeBaseUrl = (url: string) => {
 
 const BASE_URL = normalizeBaseUrl(API_BASE_URL);
 const TIMEOUT = 30000; // 30 seconds
-
-// Log configuration on startup
-if (typeof console !== 'undefined') {
-  console.log('[APIClient Config]', {
-    API_BASE_URL,
-    BASE_URL,
-    normalized: `Strips trailing slashes and /api/v1 suffix`,
-  });
-}
 
 interface RequestConfig {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -57,21 +51,16 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
   try {
     const url = `${BASE_URL}${endpoint}`;
 
-    // Log for debugging
-    console.log('[APIClient]', {
-      BASE_URL,
-      endpoint,
-      finalURL: url,
-      method: config.method,
-    });
-
+    // CRITICAL: Always inject X-API-Key header in every request
+    // This is the "Access Card" (门禁卡) - required for all endpoints
     const headers: Record<string, string> = {
       'Accept': 'application/json',
-      'X-API-Key': API_KEY || '',
+      'X-API-Key': APP_API_KEY,
       ...config.headers,
     };
 
-    // Add JWT token from SecureStore if available
+    // If JWT token exists locally, include it (dual authentication)
+    // This is the "ID Card" (身份证) - used for user session validation
     const jwtToken = await getJWT();
     if (jwtToken) {
       headers['Authorization'] = `Bearer ${jwtToken}`;
@@ -81,6 +70,14 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
     if (config.body && !(config.body instanceof FormData)) {
       headers['Content-Type'] = 'application/json';
     }
+
+    // Debug logging - verify API Key is actually being sent
+    console.log('[APIClient Request]', {
+      method: config.method,
+      url,
+      hasApiKey: !!headers['X-API-Key'], // Should always be true
+      hasToken: !!headers['Authorization'] // True after login
+    });
 
     const response = await fetch(url, {
       method: config.method,
@@ -105,6 +102,31 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      
+      // Handle authentication failures (401/403)
+      if (response.status === 401 || response.status === 403) {
+        console.warn('[APIClient Auth Error]', {
+          status: response.status,
+          url,
+          message: 'Authentication failed - JWT may be expired or invalid'
+        });
+        
+        // Clear expired/invalid JWT and notify user
+        // We'll import and call clearJWT here, but avoid circular navigation
+        // Navigation will be handled by the root-level auth context
+        const { clearJWT } = await import('@/utils/jwtStorage');
+        await clearJWT();
+        
+        // Throw a specific error that can be caught by error boundaries
+        throw new APIError(
+          'Your session has expired. Please sign in again.',
+          response.status,
+          { ...errorData, authError: true }
+        );
+      }
+      
+      // Handle other errors
+      console.log('[APIClient Error]', { status: response.status, data: errorData });
       throw new APIError(
         errorData.message || `HTTP ${response.status}: ${response.statusText}`,
         response.status,

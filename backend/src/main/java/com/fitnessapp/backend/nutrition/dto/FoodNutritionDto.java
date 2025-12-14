@@ -1,5 +1,9 @@
 package com.fitnessapp.backend.nutrition.dto;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -7,10 +11,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.UUID;
 
 /**
  * DTO for Food Nutrition CRUD operations
@@ -52,8 +52,8 @@ public class FoodNutritionDto {
 
     private String category;
 
-    @Builder.Default
-    private Boolean isActive = Boolean.TRUE;
+    private Boolean isActive;
 
     private List<String> synonyms; // List of synonyms for this food
+
 }

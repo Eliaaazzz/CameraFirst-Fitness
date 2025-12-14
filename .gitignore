@@ -35,9 +35,12 @@ backend/logs/
 backend/system.log*
 backend/application.log*
 backend/spring.log*
+backend/src/main/resources/application-dev.yml
 !backend/gradle/wrapper/gradle-wrapper.jar
 !backend/**/src/main/**/build/
 !backend/**/src/test/**/build/
+
+
 
 # ==========================================
 # FRONTEND (React Native/Expo)

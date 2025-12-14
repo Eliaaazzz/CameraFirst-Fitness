@@ -6,6 +6,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Sort;
 
+import com.fitnessapp.backend.Cacheservice.cache.UserLibraryCacheKeys;
+
 class UserLibraryCacheKeysTest {
 
   @Test
