@@ -51,7 +51,41 @@ public class NutritionEngineImpl implements NutritionEngine {
       food.setEstimatedGrams(100); // Default to 100g
     }
 
-    NutritionInfo nutrition = calculateNutrition(food.getFoodKey(), food.getEstimatedGrams());
+    NutritionInfo nutrition;
+    
+    // Use metadata-based lookup if available (RAG pipeline)
+    if (food.getMetadata() != null && food.getMetadata().getSearchTerms() != null 
+        && !food.getMetadata().getSearchTerms().isEmpty()) {
+      log.debug("Using metadata-based lookup for food: {}", food.getFoodKey());
+      nutrition = nutritionLookupService.lookupNutritionWithMetadata(food.getMetadata());
+    } else {
+      // Fall back to traditional key-based lookup
+      log.debug("Using traditional key-based lookup for food: {}", food.getFoodKey());
+      nutrition = calculateNutrition(food.getFoodKey(), food.getEstimatedGrams());
+      food.setNutrition(nutrition);
+      log.info("Enriched food {} ({}g) with nutrition: {} cal, {}g protein, {} sugar cubes",
+          food.getFoodKey(), food.getEstimatedGrams(),
+          nutrition.getCalories(), nutrition.getProtein(), nutrition.getSugarCubes());
+      return;
+    }
+
+    // Scale nutrition based on actual grams
+    BigDecimal factor = BigDecimal.valueOf(food.getEstimatedGrams()).divide(HUNDRED, 4, RoundingMode.HALF_UP);
+    BigDecimal carbs = scale(nutrition.getCarbs(), factor);
+    BigDecimal fiber = scale(nutrition.getFiber(), factor);
+    BigDecimal sugar = scale(nutrition.getSugar(), factor);
+
+    nutrition = NutritionInfo.builder()
+        .calories(scale(nutrition.getCalories(), factor))
+        .protein(scale(nutrition.getProtein(), factor))
+        .fat(scale(nutrition.getFat(), factor))
+        .carbs(carbs)
+        .fiber(fiber)
+        .sugar(sugar)
+        .netCarbs(calculateNetCarbs(carbs, fiber))
+        .sugarCubes(calculateSugarCubes(sugar))
+        .build();
+
     food.setNutrition(nutrition);
 
     log.info("Enriched food {} ({}g) with nutrition: {} cal, {}g protein, {} sugar cubes",

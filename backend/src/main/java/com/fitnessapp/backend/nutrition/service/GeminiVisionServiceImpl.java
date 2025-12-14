@@ -214,32 +214,43 @@ public class GeminiVisionServiceImpl implements FoodRecognitionProvider {
         return """
             You are a professional nutritionist AI. Analyze this meal photo and identify all visible foods.
 
-            For each food item, estimate:
+            For each food item, provide structured metadata to query a USDA nutrition database:
+            - Base ingredient (e.g., "Chicken", "Salmon", "Beef", "Rice")
+            - Form/cut (e.g., "Breast", "Thigh", "Fillet", "Whole")
+            - Cooking method: One of [RAW, STEAMED, BOILED, GRILLED, ROASTED, FRIED, STIR_FRIED, BREADED]
+            - Visual attributes/modifiers (e.g., "skin-on", "breaded", "with sauce")
             - Weight in grams (reference: standard bowl = 200g rice, fist-size meat = 100g)
-            - Cooking method
-            - Your confidence level (0-1)
 
             Return ONLY valid JSON, no other text:
             {
-                \"items\": [
+                "items": [
                     {
-                        \"food_key\": \"snake_case_english_identifier\",
-                        \"display_name\": \"Chinese name\",
-                        \"estimated_grams\": 200,
-                        \"cooking_method\": \"steamed/fried/grilled/etc\",
-                        \"confidence\": 0.95
+                        "food_key": "snake_case_english_identifier",
+                        "display_name": "Descriptive name",
+                        "estimated_grams": 200,
+                        "cooking_method": "fried",
+                        "confidence": 0.95,
+                        "metadata": {
+                            "base_ingredient": "Chicken",
+                            "form": "Breast",
+                            "cooking_method": "FRIED",
+                            "modifiers": ["Breaded", "Crispy"],
+                            "search_terms": ["Chicken", "Breast"],
+                            "visual_attributes": ["breaded", "golden"],
+                            "estimated_weight_g": 150
+                        }
                     }
                 ],
-                \"meal_type\": \"breakfast/lunch/dinner/snack\"
+                "meal_type": "breakfast/lunch/dinner/snack"
             }
 
-            Common food_key examples:
-            - steamed_rice, fried_rice, noodles
-            - chicken_breast, braised_pork, beef_stir_fry
-            - boiled_egg, fried_egg, scrambled_egg
-            - stir_fried_vegetables, tomato_egg
+            Common examples:
+            - Fried chicken: base="Chicken", form="Breast", cooking_method="FRIED", modifiers=["Breaded"]
+            - Grilled salmon: base="Salmon", form="Fillet", cooking_method="GRILLED", modifiers=["Skin-on"]
+            - Steamed rice: base="Rice", form="White", cooking_method="STEAMED"
+            - Raw beef: base="Beef", form="Steak", cooking_method="RAW"
 
-            If image is unclear or not food, return: {\"items\": [], \"meal_type\": \"unknown\"}
+            If image is unclear or not food, return: {"items": [], "meal_type": "unknown"}
             """;
     }
 
