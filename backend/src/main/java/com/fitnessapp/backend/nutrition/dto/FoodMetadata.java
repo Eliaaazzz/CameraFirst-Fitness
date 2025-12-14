@@ -2,6 +2,7 @@ package com.fitnessapp.backend.nutrition.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fitnessapp.backend.nutrition.enums.CookingMethod;
+import com.fitnessapp.backend.nutrition.enums.PortionSize;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -60,10 +61,23 @@ public class FoodMetadata {
     private List<String> visualAttributes = new ArrayList<>();
     
     /**
-     * Estimated weight in grams
+     * Estimated weight in grams (if AI can determine exact)
      */
     @JsonProperty("estimated_weight_g")
     private Integer estimatedWeightG;
+    
+    /**
+     * Portion size (small/medium/large) when exact grams not provided
+     */
+    @JsonProperty("portion_size")
+    private String portionSizeStr;
+    
+    /**
+     * Proportion percentage for this ingredient in the meal (0-100)
+     * Used when multiple ingredients are present
+     */
+    @JsonProperty("proportion_percentage")
+    private Integer proportionPercentage;
     
     /**
      * Get cooking method as enum
@@ -78,4 +92,19 @@ public class FoodMetadata {
     public void setCookingMethod(CookingMethod method) {
         this.cookingMethodStr = method != null ? method.getDisplayName() : null;
     }
+    
+    /**
+     * Get portion size as enum
+     */
+    public PortionSize getPortionSize() {
+        return PortionSize.fromString(portionSizeStr);
+    }
+    
+    /**
+     * Set portion size from enum
+     */
+    public void setPortionSize(PortionSize size) {
+        this.portionSizeStr = size != null ? size.getDisplayName() : null;
+    }
 }
+

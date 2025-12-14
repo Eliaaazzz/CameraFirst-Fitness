@@ -2,6 +2,10 @@ package com.fitnessapp.backend.nutrition.service;
 
 import com.fitnessapp.backend.nutrition.dto.FoodMetadata;
 import com.fitnessapp.backend.nutrition.enums.CookingMethod;
+import com.fitnessapp.backend.nutrition.strategy.BaseMatchStrategy;
+import com.fitnessapp.backend.nutrition.strategy.ExactMatchStrategy;
+import com.fitnessapp.backend.nutrition.strategy.FoodMatchStrategy;
+import com.fitnessapp.backend.nutrition.strategy.MethodMatchStrategy;
 import com.fitnessapp.backend.usda.domain.UsdaFood;
 import com.fitnessapp.backend.usda.domain.UsdaFoodNutrition;
 import com.fitnessapp.backend.usda.repository.UsdaFoodRepository;
@@ -35,7 +39,18 @@ class FoodSearchStrategyServiceTest {
 
     @BeforeEach
     void setUp() {
-        searchService = new FoodSearchStrategyService(usdaFoodRepository);
+        // Create strategy instances
+        ExactMatchStrategy exactMatchStrategy = new ExactMatchStrategy(usdaFoodRepository);
+        MethodMatchStrategy methodMatchStrategy = new MethodMatchStrategy(usdaFoodRepository);
+        BaseMatchStrategy baseMatchStrategy = new BaseMatchStrategy(usdaFoodRepository);
+        
+        List<FoodMatchStrategy> strategies = Arrays.asList(
+            exactMatchStrategy,
+            methodMatchStrategy,
+            baseMatchStrategy
+        );
+        
+        searchService = new FoodSearchStrategyService(usdaFoodRepository, strategies);
     }
 
     @Test
@@ -51,6 +66,7 @@ class FoodSearchStrategyServiceTest {
                 .build();
 
         UsdaFood friedChicken = createMockFood(1L, "Chicken, breast, fried, breaded");
+        when(usdaFoodRepository.count()).thenReturn(1L); // USDA data available
         when(usdaFoodRepository.findByNameContainingIgnoreCase(anyString()))
                 .thenReturn(Collections.singletonList(friedChicken));
         when(usdaFoodRepository.searchByAlias(anyString()))
@@ -78,6 +94,7 @@ class FoodSearchStrategyServiceTest {
                 .build();
 
         UsdaFood grilledSalmon = createMockFood(1L, "Salmon, grilled");
+        when(usdaFoodRepository.count()).thenReturn(1L);
         when(usdaFoodRepository.findByNameContainingIgnoreCase(anyString()))
                 .thenReturn(Collections.singletonList(grilledSalmon));
         when(usdaFoodRepository.searchByAlias(anyString()))
@@ -105,6 +122,7 @@ class FoodSearchStrategyServiceTest {
         UsdaFood rawBeef = createMockFood(1L, "Beef, raw");
         
         // Mock all possible queries
+        when(usdaFoodRepository.count()).thenReturn(1L);
         when(usdaFoodRepository.findByNameContainingIgnoreCase(anyString()))
                 .thenAnswer(invocation -> {
                     String query = invocation.getArgument(0);
@@ -153,6 +171,7 @@ class FoodSearchStrategyServiceTest {
                 .searchTerms(Collections.singletonList("UnknownFood"))
                 .build();
 
+        when(usdaFoodRepository.count()).thenReturn(1L);
         when(usdaFoodRepository.findByNameContainingIgnoreCase(anyString()))
                 .thenReturn(Collections.emptyList());
         when(usdaFoodRepository.searchByAlias(anyString()))
@@ -177,6 +196,7 @@ class FoodSearchStrategyServiceTest {
         UsdaFood exactMatch = createMockFood(1L, "Chicken breast, fried, breaded, with skin");
         UsdaFood methodMatch = createMockFood(2L, "Chicken, fried");
 
+        when(usdaFoodRepository.count()).thenReturn(1L);
         when(usdaFoodRepository.findByNameContainingIgnoreCase(anyString()))
                 .thenReturn(Arrays.asList(exactMatch, methodMatch));
         when(usdaFoodRepository.searchByAlias(anyString()))
@@ -201,6 +221,7 @@ class FoodSearchStrategyServiceTest {
 
         UsdaFood salmon = createMockFood(1L, "Salmo salar, raw");
         
+        when(usdaFoodRepository.count()).thenReturn(1L);
         when(usdaFoodRepository.findByNameContainingIgnoreCase(anyString()))
                 .thenReturn(Collections.emptyList());
         when(usdaFoodRepository.searchByAlias("Salmon"))

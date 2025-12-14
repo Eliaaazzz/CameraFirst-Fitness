@@ -47,10 +47,15 @@ public class NutritionEngineImpl implements NutritionEngine {
 
   @Override
   public void enrichWithNutrition(RecognizedFood food) {
-    if (food.getEstimatedGrams() == null || food.getEstimatedGrams() <= 0) {
-      log.warn("Invalid grams for food {}: {}", food.getFoodKey(), food.getEstimatedGrams());
-      food.setEstimatedGrams(100); // Default to 100g
+    // Determine grams from metadata or estimated grams
+    Integer grams = determineGrams(food);
+    
+    if (grams == null || grams <= 0) {
+      log.warn("Unable to determine valid grams for food {}, using medium portion (100g)", food.getFoodKey());
+      grams = 100; // Fallback to medium portion
     }
+    
+    food.setEstimatedGrams(grams);
 
     NutritionInfo nutrition;
     
@@ -91,6 +96,42 @@ public class NutritionEngineImpl implements NutritionEngine {
     log.info("Enriched food {} ({}g) with nutrition: {} cal, {}g protein, {} sugar cubes",
         food.getFoodKey(), food.getEstimatedGrams(),
         nutrition.getCalories(), nutrition.getProtein(), nutrition.getSugarCubes());
+  }
+
+  /**
+   * Determine grams from metadata or estimated grams.
+   * Priority: 
+   * 1. Metadata estimated_weight_g (if present)
+   * 2. Metadata portion_size (small/medium/large)
+   * 3. RecognizedFood estimated_grams
+   * 
+   * @param food The recognized food
+   * @return Grams to use, or null if cannot be determined
+   */
+  private Integer determineGrams(RecognizedFood food) {
+    FoodMetadata metadata = food.getMetadata();
+    
+    // Priority 1: Metadata has exact weight
+    if (metadata != null && metadata.getEstimatedWeightG() != null && metadata.getEstimatedWeightG() > 0) {
+      log.debug("Using metadata estimated weight: {}g", metadata.getEstimatedWeightG());
+      return metadata.getEstimatedWeightG();
+    }
+    
+    // Priority 2: Metadata has portion size
+    if (metadata != null && metadata.getPortionSizeStr() != null) {
+      int baseGrams = 100; // Standard serving
+      int portionGrams = metadata.getPortionSize().calculateGrams(baseGrams);
+      log.debug("Using portion size {} : {}g", metadata.getPortionSize(), portionGrams);
+      return portionGrams;
+    }
+    
+    // Priority 3: RecognizedFood has estimated grams
+    if (food.getEstimatedGrams() != null && food.getEstimatedGrams() > 0) {
+      log.debug("Using RecognizedFood estimated grams: {}g", food.getEstimatedGrams());
+      return food.getEstimatedGrams();
+    }
+    
+    return null;
   }
 
   /**

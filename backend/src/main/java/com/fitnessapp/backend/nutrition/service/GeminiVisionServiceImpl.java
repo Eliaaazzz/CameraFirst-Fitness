@@ -219,7 +219,13 @@ public class GeminiVisionServiceImpl implements FoodRecognitionProvider {
             - Form/cut (e.g., "Breast", "Thigh", "Fillet", "Whole")
             - Cooking method: One of [RAW, STEAMED, BOILED, GRILLED, ROASTED, FRIED, STIR_FRIED, BREADED]
             - Visual attributes/modifiers (e.g., "skin-on", "breaded", "with sauce")
-            - Weight in grams (reference: standard bowl = 200g rice, fist-size meat = 100g)
+            - Portion size: One of [small, medium, large] if exact weight unknown
+            - Proportion percentage: Estimate what % of the meal this ingredient represents (if multiple items)
+
+            IMPORTANT: Do NOT assume grams. Instead:
+            1. If you can see exact measurement (scale, portion container), provide "estimated_weight_g"
+            2. Otherwise, provide "portion_size" (small/medium/large) based on visual comparison
+            3. For meals with multiple items, estimate "proportion_percentage" (0-100) for each ingredient
 
             Return ONLY valid JSON, no other text:
             {
@@ -227,7 +233,6 @@ public class GeminiVisionServiceImpl implements FoodRecognitionProvider {
                     {
                         "food_key": "snake_case_english_identifier",
                         "display_name": "Descriptive name",
-                        "estimated_grams": 200,
                         "cooking_method": "fried",
                         "confidence": 0.95,
                         "metadata": {
@@ -237,18 +242,37 @@ public class GeminiVisionServiceImpl implements FoodRecognitionProvider {
                             "modifiers": ["Breaded", "Crispy"],
                             "search_terms": ["Chicken", "Breast"],
                             "visual_attributes": ["breaded", "golden"],
-                            "estimated_weight_g": 150
+                            "portion_size": "medium",
+                            "proportion_percentage": 60
+                        }
+                    },
+                    {
+                        "food_key": "steamed_rice",
+                        "display_name": "Steamed Rice",
+                        "cooking_method": "steamed",
+                        "confidence": 0.90,
+                        "metadata": {
+                            "base_ingredient": "Rice",
+                            "form": "White",
+                            "cooking_method": "STEAMED",
+                            "search_terms": ["Rice", "White"],
+                            "portion_size": "medium",
+                            "proportion_percentage": 40
                         }
                     }
                 ],
                 "meal_type": "breakfast/lunch/dinner/snack"
             }
 
+            Portion size reference:
+            - Small: ~70g (child portion, side dish)
+            - Medium: ~100g (standard adult serving)
+            - Large: ~150g (generous portion, main dish)
+
             Common examples:
-            - Fried chicken: base="Chicken", form="Breast", cooking_method="FRIED", modifiers=["Breaded"]
-            - Grilled salmon: base="Salmon", form="Fillet", cooking_method="GRILLED", modifiers=["Skin-on"]
-            - Steamed rice: base="Rice", form="White", cooking_method="STEAMED"
-            - Raw beef: base="Beef", form="Steak", cooking_method="RAW"
+            - Fried chicken: base="Chicken", form="Breast", cooking_method="FRIED", portion_size="medium"
+            - Grilled salmon: base="Salmon", form="Fillet", cooking_method="GRILLED", portion_size="large"
+            - Steamed rice: base="Rice", cooking_method="STEAMED", portion_size="medium"
 
             If image is unclear or not food, return: {"items": [], "meal_type": "unknown"}
             """;
