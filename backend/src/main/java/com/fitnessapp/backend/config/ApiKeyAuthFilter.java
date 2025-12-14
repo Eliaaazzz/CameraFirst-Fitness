@@ -1,9 +1,13 @@
 package com.fitnessapp.backend.config;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -47,8 +51,19 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             return; // Deny request, stop processing
         }
 
-        // Step 4: Key is valid - allow request to continue
-        // Pass to next filter (JwtAuthFilter for user authentication)
+        // Step 4: Key is valid - set API key authentication in security context
+        // This allows requests with valid API key to proceed even without JWT
+        // The JwtAuthFilter will later upgrade this to user-specific auth if JWT is present
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            UsernamePasswordAuthenticationToken apiKeyAuth = new UsernamePasswordAuthenticationToken(
+                "api-key-user",
+                null,
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_API_CLIENT"))
+            );
+            SecurityContextHolder.getContext().setAuthentication(apiKeyAuth);
+        }
+
+        // Step 5: Pass to next filter (JwtAuthFilter for user authentication)
         filterChain.doFilter(request, response);
     }
 

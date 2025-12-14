@@ -6,5 +6,6 @@ package com.fitnessapp.backend.auth;
 public enum AuthProvider {
     GOOGLE,
     APPLE,
-    LOCAL
+    LOCAL,
+    API_KEY
 }

@@ -35,8 +35,15 @@ export default function LoginScreen() {
   useEffect(() => {
     const checkAppleAuth = async () => {
       if (Platform.OS === 'ios') {
-        const isAvailable = await AppleAuthentication.isAvailableAsync();
-        setAppleAuthAvailable(isAvailable);
+        try {
+          const isAvailable = await AppleAuthentication.isAvailableAsync();
+          console.log('[LoginScreen] Apple Sign In available:', isAvailable);
+          setAppleAuthAvailable(isAvailable);
+        } catch (error) {
+          console.error('[LoginScreen] Failed to check Apple Sign In availability:', error);
+          // On simulator or when API fails, assume available for testing
+          setAppleAuthAvailable(true);
+        }
       }
     };
     checkAppleAuth();

@@ -129,14 +129,22 @@ const ProfileScreen = () => {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-            await clearJWT();
-            // Use CommonActions.reset to properly navigate from nested navigator
-            navigation.dispatch(
-              CommonActions.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-              })
-            );
+            try {
+              await clearJWT();
+              // Use CommonActions.reset to properly navigate from nested navigator
+              // setTimeout ensures navigation happens after state updates
+              setTimeout(() => {
+                navigation.dispatch(
+                  CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'Login' as never }],
+                  })
+                );
+              }, 100);
+            } catch (error) {
+              console.error('Logout failed:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
           },
         },
       ]
