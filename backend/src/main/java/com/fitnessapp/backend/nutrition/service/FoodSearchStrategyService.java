@@ -107,8 +107,8 @@ public class FoodSearchStrategyService {
         
         log.debug("Searching exact match for: {}", queryBase);
         
-        // Search by name
-        List<UsdaFood> foods = usdaFoodRepository.findByNameContainingIgnoreCase(queryBase);
+        // Search by name - create mutable list
+        List<UsdaFood> foods = new ArrayList<>(usdaFoodRepository.findByNameContainingIgnoreCase(queryBase));
         
         // Also search by aliases
         foods.addAll(usdaFoodRepository.searchByAlias(queryBase));
@@ -141,7 +141,7 @@ public class FoodSearchStrategyService {
             String query = cookingMethod.getDisplayName() + " " + term;
             log.debug("Searching method match for: {}", query);
 
-            List<UsdaFood> foods = usdaFoodRepository.findByNameContainingIgnoreCase(query);
+            List<UsdaFood> foods = new ArrayList<>(usdaFoodRepository.findByNameContainingIgnoreCase(query));
             foods.addAll(usdaFoodRepository.searchByAlias(query));
 
             for (UsdaFood food : foods) {
@@ -171,7 +171,7 @@ public class FoodSearchStrategyService {
         for (String term : metadata.getSearchTerms()) {
             log.debug("Searching base match for: {}", term);
 
-            List<UsdaFood> foods = usdaFoodRepository.findByNameContainingIgnoreCase(term);
+            List<UsdaFood> foods = new ArrayList<>(usdaFoodRepository.findByNameContainingIgnoreCase(term));
             foods.addAll(usdaFoodRepository.searchByAlias(term));
 
             // Prefer raw/uncooked entries
