@@ -3,6 +3,7 @@ package com.fitnessapp.backend.nutrition.service;
 import com.fitnessapp.backend.nutrition.dto.FoodMetadata;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
+import com.fitnessapp.backend.nutrition.enums.PortionSize;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -51,8 +52,8 @@ public class NutritionEngineImpl implements NutritionEngine {
     Integer grams = determineGrams(food);
     
     if (grams == null || grams <= 0) {
-      log.warn("Unable to determine valid grams for food {}, using medium portion (100g)", food.getFoodKey());
-      grams = 100; // Fallback to medium portion
+      log.warn("Unable to determine valid grams for food {}, using medium portion (250g)", food.getFoodKey());
+      grams = PortionSize.MEDIUM.calculateGrams(); // Fallback to medium portion
     }
     
     food.setEstimatedGrams(grams);
@@ -119,8 +120,7 @@ public class NutritionEngineImpl implements NutritionEngine {
     
     // Priority 2: Metadata has portion size
     if (metadata != null && metadata.getPortionSizeStr() != null) {
-      int baseGrams = 100; // Standard serving
-      int portionGrams = metadata.getPortionSize().calculateGrams(baseGrams);
+      int portionGrams = metadata.getPortionSize().calculateGrams();
       log.debug("Using portion size {} : {}g", metadata.getPortionSize(), portionGrams);
       return portionGrams;
     }

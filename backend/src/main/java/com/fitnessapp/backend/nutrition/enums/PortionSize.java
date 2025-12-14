@@ -3,19 +3,22 @@ package com.fitnessapp.backend.nutrition.enums;
 /**
  * Portion size levels for food estimation.
  * Used when exact grams are not provided.
+ * 
+ * Sizes reflect typical meal portions, not ingredient measurements.
+ * Based on typical restaurant/home meal servings.
  */
 public enum PortionSize {
-    SMALL("small", 0.7, "Small portion (e.g., 70g for 100g standard)"),
-    MEDIUM("medium", 1.0, "Medium/standard portion (100g standard)"),
-    LARGE("large", 1.5, "Large portion (e.g., 150g for 100g standard)");
+    SMALL("small", 150, "Small portion (~150g, light meal or side)"),
+    MEDIUM("medium", 250, "Medium portion (~250g, standard meal)"),
+    LARGE("large", 350, "Large portion (~350g, generous meal)");
     
     private final String displayName;
-    private final double multiplier;
+    private final int baseGrams;
     private final String description;
     
-    PortionSize(String displayName, double multiplier, String description) {
+    PortionSize(String displayName, int baseGrams, String description) {
         this.displayName = displayName;
-        this.multiplier = multiplier;
+        this.baseGrams = baseGrams;
         this.description = description;
     }
     
@@ -23,8 +26,8 @@ public enum PortionSize {
         return displayName;
     }
     
-    public double getMultiplier() {
-        return multiplier;
+    public int getBaseGrams() {
+        return baseGrams;
     }
     
     public String getDescription() {
@@ -32,13 +35,12 @@ public enum PortionSize {
     }
     
     /**
-     * Calculate grams based on portion size and standard serving (100g).
+     * Get the grams for this portion size.
      * 
-     * @param standardGrams The standard serving size (typically 100g)
-     * @return Actual grams for this portion size
+     * @return Grams for this portion size
      */
-    public int calculateGrams(int standardGrams) {
-        return (int) (standardGrams * multiplier);
+    public int calculateGrams() {
+        return baseGrams;
     }
     
     /**

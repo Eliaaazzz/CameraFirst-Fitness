@@ -264,15 +264,16 @@ public class GeminiVisionServiceImpl implements FoodRecognitionProvider {
                 "meal_type": "breakfast/lunch/dinner/snack"
             }
 
-            Portion size reference:
-            - Small: ~70g (child portion, side dish)
-            - Medium: ~100g (standard adult serving)
-            - Large: ~150g (generous portion, main dish)
+            Portion size reference (meal-sized portions):
+            - Small: ~150g (light meal, smaller appetite, side dish)
+            - Medium: ~250g (standard meal, typical restaurant serving)
+            - Large: ~350g (generous meal, large appetite, main protein dish)
 
             Common examples:
-            - Fried chicken: base="Chicken", form="Breast", cooking_method="FRIED", portion_size="medium"
-            - Grilled salmon: base="Salmon", form="Fillet", cooking_method="GRILLED", portion_size="large"
-            - Steamed rice: base="Rice", cooking_method="STEAMED", portion_size="medium"
+            - Fried chicken breast: portion_size="medium" (~250g)
+            - Grilled salmon fillet: portion_size="large" (~350g for main dish)
+            - Steamed rice (as side): portion_size="small" (~150g)
+            - Steak: portion_size="large" (~350g)
 
             If image is unclear or not food, return: {"items": [], "meal_type": "unknown"}
             """;
