@@ -142,7 +142,7 @@ class NutritionEngineTest {
     }
 
     @Test
-    @DisplayName("Should default to 100g when grams is null")
+    @DisplayName("Should default to 250g (medium portion) when grams is null")
     void testEnrichWithNutrition_NullGrams() {
         // Given
         when(nutritionLookupService.lookupNutrition("steamed_rice")).thenReturn(STEAMED_RICE);
@@ -157,9 +157,9 @@ class NutritionEngineTest {
         nutritionEngine.enrichWithNutrition(food);
 
         // Then
-        assertThat(food.getEstimatedGrams()).isEqualTo(100);
+        assertThat(food.getEstimatedGrams()).isEqualTo(250);
         assertThat(food.getNutrition()).isNotNull();
-        assertThat(food.getNutrition().getCalories()).isEqualByComparingTo(new BigDecimal("116.0"));
+        assertThat(food.getNutrition().getCalories()).isEqualByComparingTo(new BigDecimal("290.0")); // 116 * 2.5
     }
 
     @Test

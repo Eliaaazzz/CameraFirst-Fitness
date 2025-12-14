@@ -1,7 +1,9 @@
 package com.fitnessapp.backend.nutrition.service;
 
+import com.fitnessapp.backend.nutrition.dto.FoodMetadata;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
+import com.fitnessapp.backend.nutrition.enums.PortionSize;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,17 +48,99 @@ public class NutritionEngineImpl implements NutritionEngine {
 
   @Override
   public void enrichWithNutrition(RecognizedFood food) {
-    if (food.getEstimatedGrams() == null || food.getEstimatedGrams() <= 0) {
-      log.warn("Invalid grams for food {}: {}", food.getFoodKey(), food.getEstimatedGrams());
-      food.setEstimatedGrams(100); // Default to 100g
+    // Determine grams from metadata or estimated grams
+    Integer grams = determineGrams(food);
+    
+    if (grams == null || grams <= 0) {
+      log.warn("Unable to determine valid grams for food {}, using medium portion (250g)", food.getFoodKey());
+      grams = PortionSize.MEDIUM.calculateGrams(); // Fallback to medium portion
+    }
+    
+    food.setEstimatedGrams(grams);
+
+    NutritionInfo nutrition;
+    
+    // Use metadata-based lookup if available (RAG pipeline)
+    if (hasValidMetadata(food.getMetadata())) {
+      log.debug("Using metadata-based lookup for food: {}", food.getFoodKey());
+      nutrition = nutritionLookupService.lookupNutritionWithMetadata(food.getMetadata());
+    } else {
+      // Fall back to traditional key-based lookup
+      log.debug("Using traditional key-based lookup for food: {}", food.getFoodKey());
+      nutrition = calculateNutrition(food.getFoodKey(), food.getEstimatedGrams());
+      food.setNutrition(nutrition);
+      log.info("Enriched food {} ({}g) with nutrition: {} cal, {}g protein, {} sugar cubes",
+          food.getFoodKey(), food.getEstimatedGrams(),
+          nutrition.getCalories(), nutrition.getProtein(), nutrition.getSugarCubes());
+      return;
     }
 
-    NutritionInfo nutrition = calculateNutrition(food.getFoodKey(), food.getEstimatedGrams());
+    // Scale nutrition based on actual grams
+    BigDecimal factor = BigDecimal.valueOf(food.getEstimatedGrams()).divide(HUNDRED, 4, RoundingMode.HALF_UP);
+    BigDecimal carbs = scale(nutrition.getCarbs(), factor);
+    BigDecimal fiber = scale(nutrition.getFiber(), factor);
+    BigDecimal sugar = scale(nutrition.getSugar(), factor);
+
+    nutrition = NutritionInfo.builder()
+        .calories(scale(nutrition.getCalories(), factor))
+        .protein(scale(nutrition.getProtein(), factor))
+        .fat(scale(nutrition.getFat(), factor))
+        .carbs(carbs)
+        .fiber(fiber)
+        .sugar(sugar)
+        .netCarbs(calculateNetCarbs(carbs, fiber))
+        .sugarCubes(calculateSugarCubes(sugar))
+        .build();
+
     food.setNutrition(nutrition);
 
     log.info("Enriched food {} ({}g) with nutrition: {} cal, {}g protein, {} sugar cubes",
         food.getFoodKey(), food.getEstimatedGrams(),
         nutrition.getCalories(), nutrition.getProtein(), nutrition.getSugarCubes());
+  }
+
+  /**
+   * Determine grams from metadata or estimated grams.
+   * Priority: 
+   * 1. Metadata estimated_weight_g (if present)
+   * 2. Metadata portion_size (small/medium/large)
+   * 3. RecognizedFood estimated_grams
+   * 
+   * @param food The recognized food
+   * @return Grams to use, or null if cannot be determined
+   */
+  private Integer determineGrams(RecognizedFood food) {
+    FoodMetadata metadata = food.getMetadata();
+    
+    // Priority 1: Metadata has exact weight
+    if (metadata != null && metadata.getEstimatedWeightG() != null && metadata.getEstimatedWeightG() > 0) {
+      log.debug("Using metadata estimated weight: {}g", metadata.getEstimatedWeightG());
+      return metadata.getEstimatedWeightG();
+    }
+    
+    // Priority 2: Metadata has portion size
+    if (metadata != null && metadata.getPortionSizeStr() != null) {
+      int portionGrams = metadata.getPortionSize().calculateGrams();
+      log.debug("Using portion size {} : {}g", metadata.getPortionSize(), portionGrams);
+      return portionGrams;
+    }
+    
+    // Priority 3: RecognizedFood has estimated grams
+    if (food.getEstimatedGrams() != null && food.getEstimatedGrams() > 0) {
+      log.debug("Using RecognizedFood estimated grams: {}g", food.getEstimatedGrams());
+      return food.getEstimatedGrams();
+    }
+    
+    return null;
+  }
+
+  /**
+   * Check if metadata is valid and has search terms for RAG pipeline
+   */
+  private boolean hasValidMetadata(FoodMetadata metadata) {
+    return metadata != null && 
+           metadata.getSearchTerms() != null && 
+           !metadata.getSearchTerms().isEmpty();
   }
 
   @Override

@@ -214,32 +214,68 @@ public class GeminiVisionServiceImpl implements FoodRecognitionProvider {
         return """
             You are a professional nutritionist AI. Analyze this meal photo and identify all visible foods.
 
-            For each food item, estimate:
-            - Weight in grams (reference: standard bowl = 200g rice, fist-size meat = 100g)
-            - Cooking method
-            - Your confidence level (0-1)
+            For each food item, provide structured metadata to query a USDA nutrition database:
+            - Base ingredient (e.g., "Chicken", "Salmon", "Beef", "Rice")
+            - Form/cut (e.g., "Breast", "Thigh", "Fillet", "Whole")
+            - Cooking method: One of [RAW, STEAMED, BOILED, GRILLED, ROASTED, FRIED, STIR_FRIED, BREADED]
+            - Visual attributes/modifiers (e.g., "skin-on", "breaded", "with sauce")
+            - Portion size: One of [small, medium, large] if exact weight unknown
+            - Proportion percentage: Estimate what % of the meal this ingredient represents (if multiple items)
+
+            IMPORTANT: Do NOT assume grams. Instead:
+            1. If you can see exact measurement (scale, portion container), provide "estimated_weight_g"
+            2. Otherwise, provide "portion_size" (small/medium/large) based on visual comparison
+            3. For meals with multiple items, estimate "proportion_percentage" (0-100) for each ingredient
 
             Return ONLY valid JSON, no other text:
             {
-                \"items\": [
+                "items": [
                     {
-                        \"food_key\": \"snake_case_english_identifier\",
-                        \"display_name\": \"Chinese name\",
-                        \"estimated_grams\": 200,
-                        \"cooking_method\": \"steamed/fried/grilled/etc\",
-                        \"confidence\": 0.95
+                        "food_key": "snake_case_english_identifier",
+                        "display_name": "Descriptive name",
+                        "cooking_method": "fried",
+                        "confidence": 0.95,
+                        "metadata": {
+                            "base_ingredient": "Chicken",
+                            "form": "Breast",
+                            "cooking_method": "FRIED",
+                            "modifiers": ["Breaded", "Crispy"],
+                            "search_terms": ["Chicken", "Breast"],
+                            "visual_attributes": ["breaded", "golden"],
+                            "portion_size": "medium",
+                            "proportion_percentage": 60
+                        }
+                    },
+                    {
+                        "food_key": "steamed_rice",
+                        "display_name": "Steamed Rice",
+                        "cooking_method": "steamed",
+                        "confidence": 0.90,
+                        "metadata": {
+                            "base_ingredient": "Rice",
+                            "form": "White",
+                            "cooking_method": "STEAMED",
+                            "search_terms": ["Rice", "White"],
+                            "portion_size": "medium",
+                            "proportion_percentage": 40
+                        }
                     }
                 ],
-                \"meal_type\": \"breakfast/lunch/dinner/snack\"
+                "meal_type": "breakfast/lunch/dinner/snack"
             }
 
-            Common food_key examples:
-            - steamed_rice, fried_rice, noodles
-            - chicken_breast, braised_pork, beef_stir_fry
-            - boiled_egg, fried_egg, scrambled_egg
-            - stir_fried_vegetables, tomato_egg
+            Portion size reference (meal-sized portions):
+            - Small: ~150g (light meal, smaller appetite, side dish)
+            - Medium: ~250g (standard meal, typical restaurant serving)
+            - Large: ~350g (generous meal, large appetite, main protein dish)
 
-            If image is unclear or not food, return: {\"items\": [], \"meal_type\": \"unknown\"}
+            Common examples:
+            - Fried chicken breast: portion_size="medium" (~250g)
+            - Grilled salmon fillet: portion_size="large" (~350g for main dish)
+            - Steamed rice (as side): portion_size="small" (~150g)
+            - Steak: portion_size="large" (~350g)
+
+            If image is unclear or not food, return: {"items": [], "meal_type": "unknown"}
             """;
     }
 

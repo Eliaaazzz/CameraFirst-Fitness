@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Represents a food item recognized from image by Claude Vision
+ * Represents a food item recognized from image by AI Vision
  */
 @Data
 @Builder
@@ -27,6 +27,9 @@ public class RecognizedFood {
   private String cookingMethod;
 
   private Double confidence;
+
+  // Structured metadata for RAG pipeline (optional, for enhanced search)
+  private FoodMetadata metadata;
 
   // Nutrition info will be calculated by NutritionEngine
   private NutritionInfo nutrition;

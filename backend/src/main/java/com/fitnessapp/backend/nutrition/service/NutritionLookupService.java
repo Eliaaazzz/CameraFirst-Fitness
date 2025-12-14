@@ -2,7 +2,9 @@ package com.fitnessapp.backend.nutrition.service;
 
 import com.fitnessapp.backend.nutrition.entity.FoodNutrition;
 import com.fitnessapp.backend.nutrition.entity.FoodSynonym;
+import com.fitnessapp.backend.nutrition.dto.FoodMetadata;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
+import com.fitnessapp.backend.nutrition.enums.CookingMethod;
 import com.fitnessapp.backend.nutrition.repository.FoodNutritionRepository;
 import com.fitnessapp.backend.nutrition.repository.FoodSynonymRepository;
 import com.fitnessapp.backend.usda.domain.UsdaFood;
@@ -12,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +31,7 @@ public class NutritionLookupService {
     private final FoodSynonymRepository foodSynonymRepository;
     private final FoodKeyNormalizer foodKeyNormalizer;
     private final UsdaFoodSearchService usdaFoodSearchService;
+    private final FoodSearchStrategyService foodSearchStrategyService;
 
     // Default nutrition for unknown foods (per 100g)
     private static final NutritionInfo DEFAULT_NUTRITION = NutritionInfo.builder()
@@ -92,6 +96,87 @@ public class NutritionLookupService {
         // Strategy 7: Default
         log.warn("No nutrition data found for: {}, using default", foodKey);
         return DEFAULT_NUTRITION;
+    }
+
+    /**
+     * Look up nutrition using structured metadata from AI.
+     * Uses dynamic search strategy with cooking method multipliers.
+     * 
+     * @param metadata Structured food metadata
+     * @return Nutrition info with applied cooking multipliers if needed
+     */
+    @Transactional(readOnly = true)
+    public NutritionInfo lookupNutritionWithMetadata(FoodMetadata metadata) {
+        if (metadata == null) {
+            log.warn("Null metadata provided, using default nutrition");
+            return DEFAULT_NUTRITION;
+        }
+
+        log.debug("Looking up nutrition with metadata: base={}, form={}, method={}", 
+                metadata.getBaseIngredient(), metadata.getForm(), metadata.getCookingMethodStr());
+
+        // Use dynamic search strategy
+        Optional<FoodSearchStrategyService.SearchResult> searchResult = 
+                foodSearchStrategyService.findBestMatch(metadata);
+
+        if (searchResult.isPresent()) {
+            FoodSearchStrategyService.SearchResult result = searchResult.get();
+            UsdaFood food = result.getFood();
+            
+            log.info("Found match for metadata search: {} (priority={}, score={}, reason={})",
+                    food.getName(), result.getPriority(), result.getMatchScore(), result.getMatchReason());
+
+            if (food.getNutrition() == null) {
+                log.warn("Found food {} but nutrition data is missing", food.getName());
+                return DEFAULT_NUTRITION;
+            }
+
+            NutritionInfo baseNutrition = NutritionInfo.builder()
+                    .calories(toBigDecimal(food.getNutrition().getCalories()))
+                    .protein(toBigDecimal(food.getNutrition().getProteinG()))
+                    .fat(toBigDecimal(food.getNutrition().getFatG()))
+                    .carbs(toBigDecimal(food.getNutrition().getCarbsG()))
+                    .fiber(toBigDecimal(food.getNutrition().getFiberG()))
+                    .sugar(toBigDecimal(food.getNutrition().getSugarG()))
+                    .build();
+
+            // Apply cooking method multiplier for base matches (priority 1)
+            if (result.getPriority() == 1 && metadata.getCookingMethod() != CookingMethod.UNKNOWN) {
+                return applyCookingMethodMultiplier(baseNutrition, metadata.getCookingMethod());
+            }
+
+            return baseNutrition;
+        }
+
+        // Fallback to traditional lookup if no metadata match
+        log.debug("No metadata match found, falling back to traditional lookup");
+        if (metadata.getSearchTerms() != null && !metadata.getSearchTerms().isEmpty()) {
+            String firstTerm = metadata.getSearchTerms().get(0);
+            return lookupNutrition(firstTerm);
+        }
+
+        return DEFAULT_NUTRITION;
+    }
+
+    /**
+     * Apply cooking method multiplier to base nutrition values.
+     * Used when only raw/uncooked data is available.
+     */
+    private NutritionInfo applyCookingMethodMultiplier(NutritionInfo baseNutrition, CookingMethod method) {
+        double multiplier = method.getCalorieMultiplier();
+        
+        log.info("Applying cooking method multiplier: {} ({}x)", method.getDisplayName(), multiplier);
+
+        BigDecimal mult = BigDecimal.valueOf(multiplier);
+        
+        return NutritionInfo.builder()
+                .calories(baseNutrition.getCalories().multiply(mult))
+                .protein(baseNutrition.getProtein()) // Protein doesn't change much
+                .fat(baseNutrition.getFat().multiply(mult)) // Fat increases with frying
+                .carbs(baseNutrition.getCarbs().multiply(mult)) // Carbs can increase with breading
+                .fiber(baseNutrition.getFiber())
+                .sugar(baseNutrition.getSugar())
+                .build();
     }
 
     /**
