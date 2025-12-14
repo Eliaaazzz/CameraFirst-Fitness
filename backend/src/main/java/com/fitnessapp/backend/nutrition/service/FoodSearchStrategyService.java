@@ -58,9 +58,9 @@ public class FoodSearchStrategyService {
     /**
      * Find best match using dynamic search strategy.
      * 
-     * Priority 1 (Exact Match): Name + Method + Modifiers
-     * Priority 2 (Method Match): Name + Method
-     * Priority 3 (Base Match): Name only (raw/base form)
+     * Priority 3 (Highest - Exact Match): Name + Method + Modifiers
+     * Priority 2 (Medium - Method Match): Name + Method
+     * Priority 1 (Lowest - Base Match): Name only (raw/base form)
      * 
      * @param metadata Food metadata from AI
      * @return Best matching food or empty

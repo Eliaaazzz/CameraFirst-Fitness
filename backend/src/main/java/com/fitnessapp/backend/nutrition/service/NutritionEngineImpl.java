@@ -1,5 +1,6 @@
 package com.fitnessapp.backend.nutrition.service;
 
+import com.fitnessapp.backend.nutrition.dto.FoodMetadata;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 import lombok.RequiredArgsConstructor;
@@ -54,8 +55,7 @@ public class NutritionEngineImpl implements NutritionEngine {
     NutritionInfo nutrition;
     
     // Use metadata-based lookup if available (RAG pipeline)
-    if (food.getMetadata() != null && food.getMetadata().getSearchTerms() != null 
-        && !food.getMetadata().getSearchTerms().isEmpty()) {
+    if (hasValidMetadata(food.getMetadata())) {
       log.debug("Using metadata-based lookup for food: {}", food.getFoodKey());
       nutrition = nutritionLookupService.lookupNutritionWithMetadata(food.getMetadata());
     } else {
@@ -91,6 +91,15 @@ public class NutritionEngineImpl implements NutritionEngine {
     log.info("Enriched food {} ({}g) with nutrition: {} cal, {}g protein, {} sugar cubes",
         food.getFoodKey(), food.getEstimatedGrams(),
         nutrition.getCalories(), nutrition.getProtein(), nutrition.getSugarCubes());
+  }
+
+  /**
+   * Check if metadata is valid and has search terms for RAG pipeline
+   */
+  private boolean hasValidMetadata(FoodMetadata metadata) {
+    return metadata != null && 
+           metadata.getSearchTerms() != null && 
+           !metadata.getSearchTerms().isEmpty();
   }
 
   @Override

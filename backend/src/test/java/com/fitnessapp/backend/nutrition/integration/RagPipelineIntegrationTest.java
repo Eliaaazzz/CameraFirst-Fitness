@@ -200,7 +200,7 @@ class RagPipelineIntegrationTest {
         UsdaFood food = UsdaFood.builder()
                 .fdcId(fdcId)
                 .name(name)
-                .description(name)
+                .description(name + " (test data)") // Differentiate description for test clarity
                 .category("Test")
                 .build();
 
