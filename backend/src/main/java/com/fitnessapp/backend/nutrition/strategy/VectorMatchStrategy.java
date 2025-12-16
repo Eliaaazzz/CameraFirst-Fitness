@@ -1,17 +1,23 @@
 package com.fitnessapp.backend.nutrition.strategy;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+
 import com.fitnessapp.backend.embedding.EmbeddingService;
 import com.fitnessapp.backend.nutrition.dto.FoodMetadata;
 import com.fitnessapp.backend.nutrition.enums.CookingMethod;
 import com.fitnessapp.backend.usda.domain.UsdaFood;
 import com.fitnessapp.backend.usda.repository.UsdaFoodRepository;
+import com.fitnessapp.backend.usda.repository.UsdaFoodRepository.FoodSimilarityResult;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Vector-based semantic search strategy using pgvector.
@@ -27,8 +33,8 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class VectorMatchStrategy implements FoodMatchStrategy {
     
-    private static final double HIGH_CONFIDENCE_THRESHOLD = 0.85;
-    private static final double MINIMUM_THRESHOLD = 0.70;
+    private static final double HIGH_CONFIDENCE_THRESHOLD = 0.70;
+    private static final double MINIMUM_THRESHOLD = 0.45;
     private static final int MAX_RESULTS = 10;
     
     /**
@@ -50,68 +56,87 @@ public class VectorMatchStrategy implements FoodMatchStrategy {
     @Override
     public List<MatchResult> findMatches(FoodMetadata metadata) {
         List<MatchResult> results = new ArrayList<>();
-        
+
         // Build semantic query from metadata
         String queryText = buildQueryText(metadata);
         if (queryText.isEmpty()) {
             log.debug("[VectorMatch] No query text to search");
             return results;
         }
-        
+
         log.debug("[VectorMatch] Searching for: '{}'", queryText);
-        
+
         // Generate embedding for the query
         float[] queryEmbedding = embeddingService.generateEmbedding(queryText);
-        
+
         // Check if embedding is valid (non-zero)
         if (isZeroVector(queryEmbedding)) {
             log.warn("[VectorMatch] Failed to generate embedding, falling back");
             return results;
         }
-        
+
         // Convert embedding to PostgreSQL vector string format
         String embeddingString = toVectorString(queryEmbedding);
-        
+
         // Determine if we should exclude raw entries
         CookingMethod cookingMethod = metadata.getCookingMethod();
         boolean excludeRaw = cookingMethod != null && COOKED_METHODS.contains(cookingMethod);
-        
-        List<UsdaFood> foods;
+
+        // Query database for similarity results (ID + similarity score from pgvector)
+        List<FoodSimilarityResult> similarityResults;
         if (excludeRaw) {
             log.debug("[VectorMatch] Excluding raw entries (cooking method: {})", cookingMethod);
-            foods = usdaFoodRepository.findBySimilarityExcluding(embeddingString, "%raw%", MAX_RESULTS);
+            similarityResults = usdaFoodRepository.findBySimilarityExcludingWithScore(embeddingString, "%raw%", MAX_RESULTS);
         } else {
-            foods = usdaFoodRepository.findBySimilarity(embeddingString, MAX_RESULTS);
+            similarityResults = usdaFoodRepository.findBySimilarityWithScore(embeddingString, MAX_RESULTS);
         }
-        
-        if (foods.isEmpty()) {
+
+        if (similarityResults.isEmpty()) {
             log.debug("[VectorMatch] No results from vector search");
             return results;
         }
-        
-        // Calculate actual similarity scores and filter by threshold
+
+        // Filter by minimum threshold and collect IDs
+        List<Long> matchingIds = similarityResults.stream()
+                .filter(r -> r.getSimilarity() != null && r.getSimilarity() >= MINIMUM_THRESHOLD)
+                .map(FoodSimilarityResult::getId)
+                .toList();
+
+        if (matchingIds.isEmpty()) {
+            log.debug("[VectorMatch] No results above minimum threshold ({})", MINIMUM_THRESHOLD);
+            return results;
+        }
+
+        // Fetch full food entities for matching IDs
+        List<UsdaFood> foods = usdaFoodRepository.findAllById(matchingIds);
+
+        // Create a map of ID -> similarity for quick lookup
+        Map<Long, Double> similarityMap = similarityResults.stream()
+                .filter(r -> r.getSimilarity() != null && r.getSimilarity() >= MINIMUM_THRESHOLD)
+                .collect(Collectors.toMap(FoodSimilarityResult::getId, FoodSimilarityResult::getSimilarity));
+
+        // Build match results using database-calculated similarity scores
         for (UsdaFood food : foods) {
-            double similarity = calculateCosineSimilarity(queryEmbedding, food.getEmbedding());
-            
-            if (similarity >= MINIMUM_THRESHOLD) {
+            Double similarity = similarityMap.get(food.getId());
+            if (similarity != null) {
                 String reason = buildMatchReason(similarity, cookingMethod);
                 results.add(new MatchResult(food, similarity, reason));
-                
-                log.info("[VectorMatch] Found: {} (similarity: {:.4f})", 
+
+                log.info("[VectorMatch] Found: {} (similarity: {:.4f})",
                         food.getName(), similarity);
             }
         }
-        
+
         // Sort by similarity descending
         results.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
-        
+
         // Log high-confidence matches
         results.stream()
                 .filter(r -> r.getScore() >= HIGH_CONFIDENCE_THRESHOLD)
                 .findFirst()
-                .ifPresent(r -> log.info("[VectorMatch] High-confidence match: {} ({})", 
+                .ifPresent(r -> log.info("[VectorMatch] High-confidence match: {} ({})",
                         r.getFood().getName(), r.getScore()));
-        
+
         return results;
     }
     
@@ -178,35 +203,15 @@ public class VectorMatchStrategy implements FoodMatchStrategy {
      * Check if embedding is a zero vector (failed generation).
      */
     private boolean isZeroVector(float[] embedding) {
-        if (embedding == null || embedding.length == 0) return true;
+        if (embedding == null || embedding.length == 0) {
+            return true;
+        }
         for (float f : embedding) {
             if (f != 0.0f) return false;
         }
         return true;
     }
-    
-    /**
-     * Calculate cosine similarity between two vectors.
-     */
-    private double calculateCosineSimilarity(float[] a, float[] b) {
-        if (a == null || b == null || a.length != b.length) {
-            return 0.0;
-        }
-        
-        double dotProduct = 0.0;
-        double normA = 0.0;
-        double normB = 0.0;
-        
-        for (int i = 0; i < a.length; i++) {
-            dotProduct += a[i] * b[i];
-            normA += a[i] * a[i];
-            normB += b[i] * b[i];
-        }
-        
-        double denominator = Math.sqrt(normA) * Math.sqrt(normB);
-        return denominator == 0 ? 0.0 : dotProduct / denominator;
-    }
-    
+
     /**
      * Build descriptive match reason.
      */

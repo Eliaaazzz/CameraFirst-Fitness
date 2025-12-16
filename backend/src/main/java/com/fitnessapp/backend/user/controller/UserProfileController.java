@@ -5,7 +5,7 @@ import com.fitnessapp.backend.user.dto.UserProfileRequest;
 import com.fitnessapp.backend.user.dto.UserProfileResponse;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.recipe.service.SmartRecipeService;
-import com.fitnessapp.backend.nutrition.service.NutritionInsightService;
+import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService;
 import com.fitnessapp.backend.user.service.UserProfileService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;

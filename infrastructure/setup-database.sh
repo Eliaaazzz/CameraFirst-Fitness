@@ -28,19 +28,34 @@ fi
 
 echo -e "${GREEN}Step 1: Checking PostgreSQL installation...${NC}"
 if ! command -v psql &> /dev/null; then
-    echo -e "${YELLOW}PostgreSQL not found. Installing PostgreSQL 15...${NC}"
+    echo -e "${YELLOW}PostgreSQL not found. Installing PostgreSQL 16 with pgvector...${NC}"
 
-    # Install PostgreSQL
+    # Install PostgreSQL 16
     apt-get update
-    apt-get install -y postgresql postgresql-contrib
+    apt-get install -y gnupg lsb-release
+
+    # Add PostgreSQL APT repository
+    sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+
+    apt-get update
+    apt-get install -y postgresql-16 postgresql-contrib-16
+
+    # Install pgvector extension
+    apt-get install -y postgresql-16-pgvector
 
     # Start PostgreSQL
     systemctl start postgresql
     systemctl enable postgresql
 
-    echo "PostgreSQL installed successfully"
+    echo "PostgreSQL 16 with pgvector installed successfully"
 else
     echo "PostgreSQL is already installed"
+    # Ensure pgvector is installed for existing PostgreSQL
+    echo -e "${YELLOW}Checking pgvector extension...${NC}"
+    PG_VERSION=$(psql --version | grep -oP '(?<=PostgreSQL )\d+')
+    apt-get update
+    apt-get install -y postgresql-${PG_VERSION}-pgvector 2>/dev/null || echo "pgvector may already be installed or not available for this version"
 fi
 
 # Generate random password if not provided
@@ -75,6 +90,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO ${DB_USER};
 -- Create extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+CREATE EXTENSION IF NOT EXISTS "vector";
 
 EOF
 

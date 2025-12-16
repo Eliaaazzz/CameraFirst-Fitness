@@ -118,16 +118,10 @@ export function ReviewMealScreen({ route, navigation }: any) {
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Success', 'Meal saved to today!', [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('Dashboard'),
-        },
-      ]);
+      navigation.navigate('Dashboard');
     } catch (error) {
       console.error('Save failed:', error);
       Alert.alert('Error', 'Failed to save meal. Please try again.');
-    } finally {
       setSaving(false);
     }
   };

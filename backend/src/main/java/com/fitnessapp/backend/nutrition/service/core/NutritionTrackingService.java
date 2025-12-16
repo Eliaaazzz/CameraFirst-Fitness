@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.nutrition.service;
+package com.fitnessapp.backend.nutrition.service.core;
 
 import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.user.entity.User;

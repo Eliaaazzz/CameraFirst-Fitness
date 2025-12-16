@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.nutrition.service;
+package com.fitnessapp.backend.nutrition.service.ai.impl;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -15,6 +15,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
+import com.fitnessapp.backend.nutrition.service.ai.ClaudeVisionService;
+import com.fitnessapp.backend.nutrition.service.ai.FoodRecognitionProvider;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;

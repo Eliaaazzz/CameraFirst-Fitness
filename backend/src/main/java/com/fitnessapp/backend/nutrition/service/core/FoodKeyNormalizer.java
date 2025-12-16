@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.nutrition.service;
+package com.fitnessapp.backend.nutrition.service.core;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

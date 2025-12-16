@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   ActionSheetIOS,
   Alert,
+  Image,
   Platform,
   Pressable,
   RefreshControl,
@@ -435,9 +436,13 @@ const DashboardScreen = () => {
           ) : (
             nutritionData.meals.map((meal) => (
               <Card key={meal.id} style={styles.mealItem}>
-                <View style={styles.mealIcon}>
-                  <MaterialCommunityIcons name="food" size={24} color={BRAND_COLORS.primary} />
-                </View>
+                {meal.imageUrl ? (
+                  <Image source={{ uri: meal.imageUrl }} style={styles.mealImage} />
+                ) : (
+                  <View style={styles.mealIcon}>
+                    <MaterialCommunityIcons name="food" size={24} color={BRAND_COLORS.primary} />
+                  </View>
+                )}
                 <View style={styles.mealInfo}>
                   <Text variant="body" weight="semibold">{meal.name}</Text>
                   <Text variant="caption" style={styles.mealTime}>
@@ -697,6 +702,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(167, 139, 250, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  mealImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
   },
   mealInfo: {
     flex: 1,

@@ -58,6 +58,8 @@ dependencies {
 	implementation("com.auth0:java-jwt:4.4.0")
 	implementation("com.fasterxml.jackson.core:jackson-databind")
 	runtimeOnly("org.postgresql:postgresql")
+	// pgvector type support for Hibernate
+	implementation("io.hypersistence:hypersistence-utils-hibernate-63:3.9.0")
 	compileOnly("org.projectlombok:lombok")
 	annotationProcessor("org.projectlombok:lombok")
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")

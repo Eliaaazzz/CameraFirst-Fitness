@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.nutrition.service;
+package com.fitnessapp.backend.nutrition.service.core;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -15,7 +15,7 @@ import com.fitnessapp.backend.Cacheservice.cache.NutritionAdviceStore;
 import com.fitnessapp.backend.Cacheservice.cache.NutritionAdviceStore.AdviceEntry;
 import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
-import com.fitnessapp.backend.nutrition.service.NutritionTrackingService.NutritionSummary;
+import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService.NutritionSummary;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -57,7 +57,7 @@ export function useDailyNutrition() {
           id: m.id?.toString() || Math.random().toString(),
           name: m.recipeName || 'Unknown',
           calories: m.calories || 0,
-          imageUrl: undefined,
+          imageUrl: m.imageUrl || undefined,
           consumedAt: m.consumedAt,
         }));
 

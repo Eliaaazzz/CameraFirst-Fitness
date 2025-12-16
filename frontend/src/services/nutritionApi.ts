@@ -13,6 +13,7 @@ export interface LogMealPayload {
   fat?: number | null;
   consumedAt?: string;
   notes?: string | null;
+  imageUrl?: string | null;
 }
 
 // Food recognition types (Frontend display format)
@@ -208,12 +209,13 @@ const saveMealFromImage = async (payload: SaveMealPayload): Promise<MealLogRespo
   const mealPayload: LogMealPayload = {
     mealType: payload.mealType || 'other',
     recipeName: 'AI Detected Meal',
-    calories: payload.totalNutrition.calories,
-    protein: payload.totalNutrition.protein,
-    carbs: payload.totalNutrition.carbs,
-    fat: payload.totalNutrition.fat,
+    calories: Math.round(payload.totalNutrition.calories),
+    protein: Math.round(payload.totalNutrition.protein),
+    carbs: Math.round(payload.totalNutrition.carbs),
+    fat: Math.round(payload.totalNutrition.fat),
     consumedAt: new Date().toISOString(),
     notes: payload.notes || `Detected: ${payload.items.map(f => f.name).join(', ')}`,
+    imageUrl: payload.imageUri,
   };
 
   // Use 'me' to let the backend extract user from JWT token

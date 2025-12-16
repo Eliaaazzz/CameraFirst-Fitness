@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fitnessapp.backend.nutrition.dto.FoodNutritionDto;
-import com.fitnessapp.backend.nutrition.service.FoodNutritionAdminService;
+import com.fitnessapp.backend.nutrition.service.admin.FoodNutritionAdminService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

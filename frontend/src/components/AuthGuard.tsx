@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useNavigation, CommonActions } from '@react-navigation/native';
-import { isAuthenticated, clearJWT } from '@/utils/jwtStorage';
 import { BRAND_COLORS } from '@/utils';
+import { clearJWT, isAuthenticated } from '@/utils/jwtStorage';
+import { CommonActions, useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 interface AuthGuardProps {
   children: React.ReactNode;
