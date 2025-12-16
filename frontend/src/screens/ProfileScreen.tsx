@@ -1,34 +1,34 @@
-import React, { useState, useMemo } from 'react';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CommonActions, useNavigation } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  Dimensions,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
-  Modal,
-  ActivityIndicator,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { useNavigation, CommonActions } from '@react-navigation/native';
-import * as Haptics from 'expo-haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { SafeAreaWrapper, Text, Card, Button, WheelPicker } from '@/components';
+import { Button, Card, SafeAreaWrapper, Text, WheelPicker } from '@/components';
 import { StateView } from '@/components/common/StateView';
 import useCurrentUser from '@/hooks/useCurrentUser';
-import { useGoalStatistics } from '@/services/goalsApi';
-import { clearJWT, getUserEmail } from '@/utils/jwtStorage';
-import { spacing, BRAND_COLORS } from '@/utils';
 import {
   GeneratedGoals,
   generateGoals,
-  Sex,
-  GoalType,
   GenerateGoalsRequest,
+  GoalType,
+  Sex,
 } from '@/services/geminiApi';
+import { useGoalStatistics } from '@/services/goalsApi';
+import { BRAND_COLORS, spacing } from '@/utils';
+import { clearJWT, getUserEmail } from '@/utils/jwtStorage';
 
 export const GENERATED_GOALS_KEY = '@generated_fitness_goals';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -132,15 +132,12 @@ const ProfileScreen = () => {
             try {
               await clearJWT();
               // Use CommonActions.reset to properly navigate from nested navigator
-              // setTimeout ensures navigation happens after state updates
-              setTimeout(() => {
-                navigation.dispatch(
-                  CommonActions.reset({
-                    index: 0,
-                    routes: [{ name: 'Login' as never }],
-                  })
-                );
-              }, 100);
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [{ name: 'Login' as never }],
+                })
+              );
             } catch (error) {
               console.error('Logout failed:', error);
               Alert.alert('Error', 'Failed to logout. Please try again.');

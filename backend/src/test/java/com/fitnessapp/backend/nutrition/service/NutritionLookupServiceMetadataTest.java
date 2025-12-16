@@ -3,6 +3,9 @@ package com.fitnessapp.backend.nutrition.service;
 import com.fitnessapp.backend.nutrition.dto.FoodMetadata;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.enums.CookingMethod;
+import com.fitnessapp.backend.nutrition.service.core.FoodKeyNormalizer;
+import com.fitnessapp.backend.nutrition.service.core.FoodSearchStrategyService;
+import com.fitnessapp.backend.nutrition.service.core.NutritionLookupService;
 import com.fitnessapp.backend.usda.domain.UsdaFood;
 import com.fitnessapp.backend.usda.domain.UsdaFoodNutrition;
 import org.junit.jupiter.api.BeforeEach;
@@ -110,15 +113,15 @@ class NutritionLookupServiceMetadataTest {
         // When
         NutritionInfo result = nutritionLookupService.lookupNutritionWithMetadata(metadata);
 
-        // Then - FRIED multiplier is 1.3x
+        // Then - FRIED multiplier is 1.5x
         assertThat(result).isNotNull();
-        assertThat(result.getCalories()).isEqualByComparingTo(new BigDecimal("130.0")); // 100 * 1.3
+        assertThat(result.getCalories()).isEqualByComparingTo(new BigDecimal("150.0")); // 100 * 1.5
         assertThat(result.getProtein()).isEqualByComparingTo(new BigDecimal("20.0")); // Protein unchanged
-        assertThat(result.getFat()).isEqualByComparingTo(new BigDecimal("2.60")); // 2.0 * 1.3
+        assertThat(result.getFat()).isEqualByComparingTo(new BigDecimal("3.00")); // 2.0 * 1.5
     }
 
     @Test
-    @DisplayName("Should apply BREADED multiplier (1.4x)")
+    @DisplayName("Should apply BREADED multiplier (1.6x)")
     void shouldApplyBreadedMultiplier() {
         // Given: Raw chicken with BREADED cooking method
         FoodMetadata metadata = FoodMetadata.builder()
@@ -139,10 +142,10 @@ class NutritionLookupServiceMetadataTest {
         // When
         NutritionInfo result = nutritionLookupService.lookupNutritionWithMetadata(metadata);
 
-        // Then - BREADED multiplier is 1.4x
+        // Then - BREADED multiplier is 1.6x
         assertThat(result).isNotNull();
-        assertThat(result.getCalories()).isEqualByComparingTo(new BigDecimal("140.0")); // 100 * 1.4
-        assertThat(result.getFat()).isEqualByComparingTo(new BigDecimal("2.80")); // 2.0 * 1.4
+        assertThat(result.getCalories()).isEqualByComparingTo(new BigDecimal("160.0")); // 100 * 1.6
+        assertThat(result.getFat()).isEqualByComparingTo(new BigDecimal("3.20")); // 2.0 * 1.6
     }
 
     @Test

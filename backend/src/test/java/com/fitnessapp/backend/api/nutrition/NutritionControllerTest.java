@@ -69,7 +69,7 @@ class NutritionControllerTest {
         .build();
     when(trackingService.logMeal(any(MealLog.class))).thenReturn(saved);
 
-    LogMealRequest request = new LogMealRequest(userId.toString(), null, 1, "breakfast", null, "Oats", 400, 25.0, 45.0, 12.0, null, null);
+    LogMealRequest request = new LogMealRequest(null, 1, "breakfast", null, "Oats", 400, 25.0, 45.0, 12.0, null, null, null);
 
     mockMvc.perform(post("/api/v1/nutrition/meals")
             .contentType(MediaType.APPLICATION_JSON)
@@ -166,7 +166,7 @@ class NutritionControllerTest {
         .build();
     when(trackingService.logMeal(any(MealLog.class))).thenReturn(saved);
 
-    LogMealRequest request = new LogMealRequest("default-user", null, 1, "snack", null, "Apple", 200, 5.0, 25.0, 2.0, null, null);
+    LogMealRequest request = new LogMealRequest(null, 1, "snack", null, "Apple", 200, 5.0, 25.0, 2.0, null, null, null);
 
     mockMvc.perform(post("/api/v1/nutrition/meals")
             .contentType(MediaType.APPLICATION_JSON)

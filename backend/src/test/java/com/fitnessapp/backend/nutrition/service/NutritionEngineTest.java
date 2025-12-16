@@ -17,6 +17,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
+import com.fitnessapp.backend.nutrition.service.core.NutritionEngine;
+import com.fitnessapp.backend.nutrition.service.core.NutritionEngineImpl;
+import com.fitnessapp.backend.nutrition.service.core.NutritionLookupService;
 
 /**
  * Unit tests for NutritionEngine

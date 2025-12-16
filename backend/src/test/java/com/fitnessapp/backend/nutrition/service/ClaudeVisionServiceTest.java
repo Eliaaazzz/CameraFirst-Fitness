@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
+import com.fitnessapp.backend.nutrition.service.ai.impl.ClaudeVisionServiceImpl;
 
 import okhttp3.Call;
 import okhttp3.MediaType;

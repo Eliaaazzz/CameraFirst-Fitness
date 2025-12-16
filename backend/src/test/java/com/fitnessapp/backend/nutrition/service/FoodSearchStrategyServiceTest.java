@@ -2,6 +2,7 @@ package com.fitnessapp.backend.nutrition.service;
 
 import com.fitnessapp.backend.nutrition.dto.FoodMetadata;
 import com.fitnessapp.backend.nutrition.enums.CookingMethod;
+import com.fitnessapp.backend.nutrition.service.core.FoodSearchStrategyService;
 import com.fitnessapp.backend.nutrition.strategy.BaseMatchStrategy;
 import com.fitnessapp.backend.nutrition.strategy.ExactMatchStrategy;
 import com.fitnessapp.backend.nutrition.strategy.FoodMatchStrategy;

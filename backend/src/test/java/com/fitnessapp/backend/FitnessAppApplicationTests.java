@@ -45,7 +45,7 @@ class FitnessAppApplicationTests {
     @MockBean private com.fitnessapp.backend.user.service.UserProfileService userProfileService;
     @MockBean private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
     @MockBean private com.fitnessapp.backend.recipe.service.MealPlanHistoryService mealPlanHistoryService;
-    @MockBean private com.fitnessapp.backend.nutrition.service.NutritionTrackingService nutritionTrackingService;
+    @MockBean private com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService nutritionTrackingService;
     @MockBean private com.fitnessapp.backend.user.repository.UserRepository userRepository;
     @MockBean private com.fitnessapp.backend.nutrition.repository.MealLogRepository mealLogRepository;
     @MockBean private com.fitnessapp.backend.workout.service.LeaderboardService leaderboardService;
