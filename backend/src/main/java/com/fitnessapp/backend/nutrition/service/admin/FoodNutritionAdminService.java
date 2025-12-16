@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.nutrition.service;
+package com.fitnessapp.backend.nutrition.service.admin;
 
 import com.fitnessapp.backend.nutrition.entity.FoodNutrition;
 import com.fitnessapp.backend.nutrition.entity.FoodSynonym;

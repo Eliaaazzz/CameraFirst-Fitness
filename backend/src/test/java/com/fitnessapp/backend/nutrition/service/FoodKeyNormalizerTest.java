@@ -1,5 +1,6 @@
 package com.fitnessapp.backend.nutrition.service;
 
+import com.fitnessapp.backend.nutrition.service.core.FoodKeyNormalizer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

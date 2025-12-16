@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.nutrition.service;
+package com.fitnessapp.backend.nutrition.service.core;
 
 import java.time.Duration;
 import java.util.Optional;

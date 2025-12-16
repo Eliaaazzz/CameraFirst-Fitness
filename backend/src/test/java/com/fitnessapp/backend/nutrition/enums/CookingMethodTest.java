@@ -66,11 +66,11 @@ class CookingMethodTest {
         assertThat(CookingMethod.RAW.getCalorieMultiplier()).isEqualTo(1.0);
         assertThat(CookingMethod.STEAMED.getCalorieMultiplier()).isEqualTo(1.0);
         assertThat(CookingMethod.BOILED.getCalorieMultiplier()).isEqualTo(1.0);
-        assertThat(CookingMethod.GRILLED.getCalorieMultiplier()).isEqualTo(1.1);
-        assertThat(CookingMethod.ROASTED.getCalorieMultiplier()).isEqualTo(1.1);
-        assertThat(CookingMethod.STIR_FRIED.getCalorieMultiplier()).isEqualTo(1.2);
-        assertThat(CookingMethod.FRIED.getCalorieMultiplier()).isEqualTo(1.3);
-        assertThat(CookingMethod.BREADED.getCalorieMultiplier()).isEqualTo(1.4);
+        assertThat(CookingMethod.GRILLED.getCalorieMultiplier()).isEqualTo(1.3);
+        assertThat(CookingMethod.ROASTED.getCalorieMultiplier()).isEqualTo(1.3);
+        assertThat(CookingMethod.STIR_FRIED.getCalorieMultiplier()).isEqualTo(1.3);
+        assertThat(CookingMethod.FRIED.getCalorieMultiplier()).isEqualTo(1.5);
+        assertThat(CookingMethod.BREADED.getCalorieMultiplier()).isEqualTo(1.6);
     }
 
     @Test

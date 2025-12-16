@@ -68,7 +68,7 @@ class Fit401RetrievalIntegrationTest {
             return;
         }
         try {
-            postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+            postgres = new PostgreSQLContainer<>("pgvector/pgvector:pg16");
             postgres.start();
             postgresAvailable = true;
         } catch (Throwable ex) {

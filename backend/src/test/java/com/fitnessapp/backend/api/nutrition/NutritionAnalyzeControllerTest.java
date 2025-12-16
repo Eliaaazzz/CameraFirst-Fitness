@@ -30,8 +30,8 @@ import com.fitnessapp.backend.config.TestSecurityConfig;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
-import com.fitnessapp.backend.nutrition.service.FoodRecognitionService;
-import com.fitnessapp.backend.nutrition.service.NutritionEngine;
+import com.fitnessapp.backend.nutrition.service.ai.FoodRecognitionService;
+import com.fitnessapp.backend.nutrition.service.core.NutritionEngine;
 
 /**
  * Integration tests for /api/v1/nutrition/analyze endpoint

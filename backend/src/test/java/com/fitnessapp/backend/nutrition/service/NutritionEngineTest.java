@@ -17,6 +17,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
+import com.fitnessapp.backend.nutrition.service.core.NutritionEngine;
+import com.fitnessapp.backend.nutrition.service.core.NutritionEngineImpl;
+import com.fitnessapp.backend.nutrition.service.core.NutritionLookupService;
 
 /**
  * Unit tests for NutritionEngine
@@ -142,7 +145,7 @@ class NutritionEngineTest {
     }
 
     @Test
-    @DisplayName("Should default to 250g (medium portion) when grams is null")
+    @DisplayName("Should default to 200g (medium portion, generic category) when grams is null")
     void testEnrichWithNutrition_NullGrams() {
         // Given
         when(nutritionLookupService.lookupNutrition("steamed_rice")).thenReturn(STEAMED_RICE);
@@ -157,9 +160,10 @@ class NutritionEngineTest {
         nutritionEngine.enrichWithNutrition(food);
 
         // Then
-        assertThat(food.getEstimatedGrams()).isEqualTo(250);
+        // Default is now GENERIC category MEDIUM portion = 200g
+        assertThat(food.getEstimatedGrams()).isEqualTo(200);
         assertThat(food.getNutrition()).isNotNull();
-        assertThat(food.getNutrition().getCalories()).isEqualByComparingTo(new BigDecimal("290.0")); // 116 * 2.5
+        assertThat(food.getNutrition().getCalories()).isEqualByComparingTo(new BigDecimal("232.0")); // 116 * 2.0
     }
 
     @Test

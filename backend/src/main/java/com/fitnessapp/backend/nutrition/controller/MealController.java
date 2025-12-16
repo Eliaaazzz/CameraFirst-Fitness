@@ -8,7 +8,7 @@ import com.fitnessapp.backend.nutrition.dto.CreateMealRequest;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
-import com.fitnessapp.backend.nutrition.service.NutritionTrackingService;
+import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

@@ -65,7 +65,7 @@ class RepositoryTests {
     if (!docker) {
       return;
     }
-    PostgreSQLContainer<?> container = new PostgreSQLContainer<>("postgres:16-alpine");
+    PostgreSQLContainer<?> container = new PostgreSQLContainer<>("pgvector/pgvector:pg16");
     try {
       container.start();
       postgres = container;

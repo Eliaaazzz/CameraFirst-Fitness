@@ -19,7 +19,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateMealRequest {
-  // Optional: if not provided, will use the authenticated user's ID
+  @NotNull
   private UUID userId;
 
   @NotNull

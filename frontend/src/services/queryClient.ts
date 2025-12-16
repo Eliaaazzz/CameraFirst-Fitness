@@ -1,5 +1,5 @@
-import { QueryClient } from '@tanstack/react-query';
 import { clearJWT } from '@/utils/jwtStorage';
+import { QueryClient } from '@tanstack/react-query';
 
 // Global auth error handler
 const handleAuthError = async (error: any) => {

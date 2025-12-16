@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.nutrition.service;
+package com.fitnessapp.backend.nutrition.service.ai;
 
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import org.springframework.web.multipart.MultipartFile;

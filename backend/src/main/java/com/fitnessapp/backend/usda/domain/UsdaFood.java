@@ -56,6 +56,32 @@ public class UsdaFood {
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
+    /**
+     * Vector embedding for semantic search (1536 dimensions for OpenAI compatibility).
+     *
+     * NOTE: This field is marked as @Transient because:
+     * 1. Hibernate cannot map pgvector 'vector' type to Java float[]
+     * 2. Embeddings are written via native SQL (see UsdaFoodRepository.updateEmbedding)
+     * 3. Similarity searches use database-side calculations (pgvector <=> operator)
+     * 4. We never need to read the raw embedding back into Java
+     *
+     * The column still exists in the database and is used for vector similarity search.
+     */
+    @Transient
+    private float[] embedding;
+
+    /**
+     * Timestamp when embedding was last generated.
+     */
+    @Column(name = "embedding_generated_at")
+    private OffsetDateTime embeddingGeneratedAt;
+
+    /**
+     * Combined searchable text (name + description + category) for embedding generation.
+     */
+    @Column(name = "search_text", columnDefinition = "TEXT")
+    private String searchText;
+
     @OneToOne(mappedBy = "food", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private UsdaFoodNutrition nutrition;
 

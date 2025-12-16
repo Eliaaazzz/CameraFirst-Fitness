@@ -1,40 +1,102 @@
 # Local Development Docker Compose
-# Usage: docker-compose up -d
-# Reads from .env file in the same directory
+# Usage: docker-compose up -d --build
+# Reads environment variables from a .env file in the same directory
 
 services:
+  # -----------------------------------------------------------------
+  # 1. Database Service (PostgreSQL + pgvector)
+  # -----------------------------------------------------------------
   postgres:
-    image: postgres:16-alpine
+    # Use the official image with pgvector pre-installed
+    image: pgvector/pgvector:pg16
     container_name: fitness-postgres
     restart: unless-stopped
+    
+    # Environment variables for DB initialization
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-fitness_mvp}
       POSTGRES_USER: ${POSTGRES_USER:-fitnessuser}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
+    
+    # Port Mapping: Host_Port:Container_Port
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
+    
+    # Persist data to a named volume
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    
+    # Healthcheck to ensure DB is ready before backend starts
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fitnessuser} -d ${POSTGRES_DB:-fitness_mvp}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # -----------------------------------------------------------------
+  # 2. Cache Service (Redis)
+  # -----------------------------------------------------------------
   redis:
     image: redis:7-alpine
     container_name: fitness-redis
     restart: unless-stopped
+    
     ports:
       - "${REDIS_PORT:-6379}:6379"
+    
     volumes:
       - redis_data:/data
+    
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # -----------------------------------------------------------------
+  # 3. Backend Service (Spring Boot Application)
+  # -----------------------------------------------------------------
+  backend:
+    container_name: fitness-backend
+    
+    # Build the image using the Dockerfile in the backend directory
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    
+    restart: unless-stopped
+    
+    # Wait for DB and Redis to be healthy before starting Spring Boot
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    environment:
+      # NETWORK CONFIGURATION:
+      # Inside Docker, we must use the service name 'fitness-postgres' as the host.
+      # Localhost would refer to the backend container itself, not the DB.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://fitness-postgres:5432/${POSTGRES_DB:-fitness_mvp}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-fitnessuser}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
+      
+      # Redis configuration using service name 'fitness-redis'
+      SPRING_DATA_REDIS_HOST: fitness-redis
+      SPRING_DATA_REDIS_PORT: 6379
+
+      # API Keys (Passed from host environment or .env file)
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      USDA_API_KEY: ${USDA_API_KEY}
+      
+    # Map Host Port 8080 to Container Port 8080
+    # This allows you to access http://localhost:8080 on your machine
+    ports:
+      - "8080:8080"
+
+# Define named volumes for persistence
 volumes:
   postgres_data:
   redis_data:

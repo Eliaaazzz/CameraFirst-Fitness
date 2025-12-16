@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { Platform, useColorScheme, View } from 'react-native';
 
-import { ErrorBoundary, AuthGuard } from '@/components';
+import { ErrorBoundary } from '@/components';
 import DashboardScreen from '@/screens/DashboardScreen';
 import LoginScreen from '@/screens/LoginScreen';
 import ProfileScreen from '@/screens/ProfileScreen';

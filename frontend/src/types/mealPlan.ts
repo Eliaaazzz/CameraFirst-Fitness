@@ -65,6 +65,7 @@ export interface MealLogResponse {
   carbs?: number | null;
   fat?: number | null;
   notes?: string | null;
+  imageUrl?: string | null;
 }
 
 export interface NutritionInsightResponse {

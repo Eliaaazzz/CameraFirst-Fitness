@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.nutrition.service;
+package com.fitnessapp.backend.nutrition.service.ai.impl;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -15,6 +15,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
+import com.fitnessapp.backend.nutrition.service.ai.ClaudeVisionService;
+import com.fitnessapp.backend.nutrition.service.ai.FoodRecognitionProvider;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -218,30 +220,86 @@ public class ClaudeVisionServiceImpl implements ClaudeVisionService, FoodRecogni
     return """
         You are a professional nutritionist AI. Analyze this meal photo and identify all visible foods.
 
-        For each food item, estimate:
-        - Weight in grams (reference: standard bowl = 200g rice, fist-size meat = 100g)
-        - Cooking method
+        For each food item, provide structured metadata to query a USDA nutrition database:
+        - Base ingredient (e.g., "Chicken", "Salmon", "Beef", "Rice")
+        - Form/cut (e.g., "Breast", "Thigh", "Fillet", "Whole")
+        - Cooking method: One of [RAW, STEAMED, BOILED, GRILLED, ROASTED, FRIED, STIR_FRIED, BREADED]
+        - Density category: Classify the food type (see categories below)
+        - Portion size: One of [small, medium, large] relative to the density category
         - Your confidence level (0-1)
+
+        CRITICAL - DENSITY CATEGORY CLASSIFICATION:
+        You MUST classify each food into one of these categories:
+        - "leafy_veg": Salads, spinach, lettuce, mixed greens (50-200g range)
+        - "carb_staple": Rice, pasta, potatoes, bread, noodles (100-350g range)
+        - "meat_main": Steak, chicken breast, fish fillet, pork chop (120-350g range)
+        - "liquid_soup": Soups, stews, broths, curries with liquid (200-500g range)
+        - "fats_dressing": Butter, oil, mayo, dressings, sauces (10-40g range)
+        - "garnish": Garlic, ginger, fresh herbs, chili, scallions, cilantro (3-20g range)
+        - "mixed_dish": Stir-fry, fried rice, buddha bowl, bento (150-450g range)
+        - "fruit": Apple, banana, berries, melon (80-250g range)
+        - "dairy": Milk, yogurt, cheese (100-300g range)
+        - "snack": Chips, crackers, nuts, small pastries (30-100g range)
+        - "beverage": Juice, smoothie, coffee drinks (200-500g range)
+        - "generic": Use only if none of the above fit (100-300g range)
+
+        IMPORTANT CLASSIFICATION RULES:
+        - Garlic, ginger, herbs, chili -> "garnish" (NOT vegetable!)
+
+        PORTION SIZE is relative to the density category:
+        - "small": Lower end of the category's gram range
+        - "medium": Middle of the category's gram range
+        - "large": Upper end of the category's gram range
+
+        IMPORTANT: Do NOT guess exact grams blindly. Instead:
+        1. First identify the FOOD TYPE and classify into a density_category
+        2. Then estimate portion_size (small/medium/large) based on visual comparison WITHIN that category
+        3. Only provide "estimated_weight_g" if you can see a scale or known reference object
 
         Return ONLY valid JSON, no other text:
         {
             \"items\": [
                 {
-                    \"food_key\": \"snake_case_english_identifier\",
-                    \"display_name\": \"Chinese name\",
-                    \"estimated_grams\": 200,
-                    \"cooking_method\": \"steamed/fried/grilled/etc\",
-                    \"confidence\": 0.95
+                    \"food_key\": \"grilled_chicken_breast\",
+                    \"display_name\": \"Grilled Chicken Breast\",
+                    \"cooking_method\": \"grilled\",
+                    \"confidence\": 0.95,
+                    \"metadata\": {
+                        \"base_ingredient\": \"Chicken\",
+                        \"form\": \"Breast\",
+                        \"cooking_method\": \"GRILLED\",
+                        \"search_terms\": [\"Chicken\", \"Breast\"],
+                        \"density_category\": \"meat_main\",
+                        \"portion_size\": \"medium\"
+                    }
                 }
             ],
             \"meal_type\": \"breakfast/lunch/dinner/snack\"
         }
 
-        Common food_key examples:
-        - steamed_rice, fried_rice, noodles
-        - chicken_breast, braised_pork, beef_stir_fry
-        - boiled_egg, fried_egg, scrambled_egg
-        - stir_fried_vegetables, tomato_egg
+        GRAM REFERENCE BY CATEGORY:
+        | Category      | Small  | Medium | Large  |
+        |---------------|--------|--------|--------|
+        | leafy_veg     | 50g    | 100g   | 200g   |
+        | carb_staple   | 100g   | 200g   | 350g   |
+        | meat_main     | 120g   | 200g   | 350g   |
+        | liquid_soup   | 200g   | 350g   | 500g   |
+        | fats_dressing | 10g    | 20g    | 40g    |
+        | garnish       | 3g     | 10g    | 20g    |
+        | mixed_dish    | 150g   | 300g   | 450g   |
+        | fruit         | 80g    | 150g   | 250g   |
+        | dairy         | 100g   | 200g   | 300g   |
+        | snack         | 30g    | 60g    | 100g   |
+        | beverage      | 200g   | 350g   | 500g   |
+        | generic       | 100g   | 200g   | 300g   |
+
+        Common examples:
+        - Steak on plate: density_category=\"meat_main\", portion_size=\"large\" (350g)
+        - Side of rice: density_category=\"carb_staple\", portion_size=\"small\" (100g)
+        - Large salad bowl: density_category=\"leafy_veg\", portion_size=\"large\" (200g)
+        - Tablespoon of butter: density_category=\"fats_dressing\", portion_size=\"medium\" (20g)
+        - Garlic cloves: density_category=\"garnish\", portion_size=\"small\" (3g)
+        - Roasted garlic head: density_category=\"garnish\", portion_size=\"large\" (20g)
 
         If image is unclear or not food, return: {\"items\": [], \"meal_type\": \"unknown\"}
         """;

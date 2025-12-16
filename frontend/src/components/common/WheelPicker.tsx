@@ -16,6 +16,8 @@ import * as Haptics from 'expo-haptics';
 const ITEM_HEIGHT = 50;
 const VISIBLE_ITEMS = 5;
 const PICKER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS;
+// Number of padding items at top/bottom to allow first/last items to be centered
+const PADDING_ITEMS = 2;
 
 interface WheelPickerProps {
   data: Array<{ value: number | string; label: string }>;
@@ -38,7 +40,7 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
   const scrollOffset = useRef(new Animated.Value(0)).current;
   const lastHapticIndex = useRef(-1);
 
-  // Find initial index
+  // Find initial index in the original data
   const initialIndex = data.findIndex((item) => item.value === selectedValue);
   const validInitialIndex = initialIndex >= 0 ? initialIndex : 0;
 
@@ -86,13 +88,22 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
 
   const renderItem = useCallback(
     ({ item, index }: { item: { value: number | string; label: string }; index: number }) => {
-      // Calculate opacity based on distance from center
+      // Adjust index for padding items (first PADDING_ITEMS are empty)
+      const dataIndex = index - PADDING_ITEMS;
+
+      // For padding items, just render empty space
+      if (dataIndex < 0 || dataIndex >= data.length) {
+        return <View style={styles.item} />;
+      }
+
+      // Calculate opacity/scale based on scroll position
+      // When scrollOffset = dataIndex * ITEM_HEIGHT, this item is centered
       const inputRange = [
-        (index - 2) * ITEM_HEIGHT,
-        (index - 1) * ITEM_HEIGHT,
-        index * ITEM_HEIGHT,
-        (index + 1) * ITEM_HEIGHT,
-        (index + 2) * ITEM_HEIGHT,
+        (dataIndex - 2) * ITEM_HEIGHT,
+        (dataIndex - 1) * ITEM_HEIGHT,
+        dataIndex * ITEM_HEIGHT,
+        (dataIndex + 1) * ITEM_HEIGHT,
+        (dataIndex + 2) * ITEM_HEIGHT,
       ];
 
       const opacity = scrollOffset.interpolate({
@@ -123,11 +134,11 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
         </Animated.View>
       );
     },
-    [scrollOffset]
+    [scrollOffset, data.length]
   );
 
   const keyExtractor = useCallback(
-    (item: { value: number | string; label: string }) => String(item.value),
+    (item: { value: number | string; label: string }, index: number) => `${item.value}-${index}`,
     []
   );
 
@@ -140,13 +151,11 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
     []
   );
 
-  // Add padding items for centering
+  // Create padded data array with empty items for centering
   const paddedData = [
-    { value: 'pad-top-1', label: '' },
-    { value: 'pad-top-2', label: '' },
+    ...Array(PADDING_ITEMS).fill(null).map((_, i) => ({ value: `pad-top-${i}`, label: '' })),
     ...data,
-    { value: 'pad-bottom-1', label: '' },
-    { value: 'pad-bottom-2', label: '' },
+    ...Array(PADDING_ITEMS).fill(null).map((_, i) => ({ value: `pad-bottom-${i}`, label: '' })),
   ];
 
   return (
@@ -158,7 +167,7 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
       )}
 
       <View style={styles.pickerWrapper}>
-        {/* Selection highlight */}
+        {/* Selection highlight - positioned at center of visible area */}
         <View style={styles.selectionHighlight} pointerEvents="none" />
 
         <Animated.FlatList
@@ -170,6 +179,7 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
           snapToInterval={ITEM_HEIGHT}
           decelerationRate="fast"
           bounces={false}
+          // Start at the valid index, accounting for padding
           initialScrollIndex={validInitialIndex}
           getItemLayout={getItemLayout}
           onScroll={Animated.event(
@@ -182,6 +192,7 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
           onMomentumScrollEnd={handleMomentumScrollEnd}
           scrollEventThrottle={16}
           style={styles.flatList}
+          // Add padding to content so first/last real items can be centered
           contentContainerStyle={styles.contentContainer}
         />
 
@@ -214,7 +225,7 @@ const styles = StyleSheet.create({
     height: PICKER_HEIGHT,
   },
   contentContainer: {
-    paddingVertical: 0,
+    // No extra padding needed since we have padding items
   },
   item: {
     height: ITEM_HEIGHT,
@@ -227,7 +238,9 @@ const styles = StyleSheet.create({
   },
   selectionHighlight: {
     position: 'absolute',
-    top: ITEM_HEIGHT * 2,
+    // Center of 5 visible items = position 2 (0-indexed)
+    // With PADDING_ITEMS at top, when scroll is at 0, first data item is at visual position 2
+    top: PADDING_ITEMS * ITEM_HEIGHT,
     left: 0,
     right: 0,
     height: ITEM_HEIGHT,
@@ -240,7 +253,7 @@ const styles = StyleSheet.create({
   unitContainer: {
     position: 'absolute',
     right: -40,
-    top: ITEM_HEIGHT * 2,
+    top: PADDING_ITEMS * ITEM_HEIGHT,
     height: ITEM_HEIGHT,
     justifyContent: 'center',
   },
