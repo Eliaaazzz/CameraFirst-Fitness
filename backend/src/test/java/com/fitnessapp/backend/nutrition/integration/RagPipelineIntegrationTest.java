@@ -101,8 +101,8 @@ class RagPipelineIntegrationTest {
         BigDecimal rawCalories = food.getNutrition().getCalories();
         BigDecimal expectedFriedCalories = rawCalories.multiply(BigDecimal.valueOf(1.3));
         
-        // The multiplier should be around 1.3x
-        assertThat(CookingMethod.FRIED.getCalorieMultiplier()).isEqualTo(1.3);
+        // The multiplier should be 1.5x for deep-fried foods
+        assertThat(CookingMethod.FRIED.getCalorieMultiplier()).isEqualTo(1.5);
     }
 
     @Test

@@ -43,7 +43,7 @@ class DatabaseSchemaIntegrationTest {
      * Uses official PostgreSQL 16 image (same as production)
      */
     @Container
-    private static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
+    private static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("pgvector/pgvector:pg16")
             .withDatabaseName("fitness_test")
             .withUsername("test")
             .withPassword("test")

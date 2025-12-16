@@ -2,59 +2,40 @@ package com.fitnessapp.backend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import com.fitnessapp.backend.workout.repository.WorkoutVideoRepository;
-import com.fitnessapp.backend.recipe.repository.IngredientRepository;
-import com.fitnessapp.backend.recipe.repository.RecipeRepository;
-import com.fitnessapp.backend.youtube.YouTubeService;
-import com.fitnessapp.backend.importer.DataImportService;
-import com.fitnessapp.backend.importer.RecipeImportService;
-import com.fitnessapp.backend.user.service.ApiKeyService;
-import com.fitnessapp.backend.repository.ImageQueryRepository;
-import javax.sql.DataSource;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
-@SpringBootTest(properties = {
-        "spring.flyway.enabled=false",
-        "spring.datasource.url=jdbc:h2:mem:fitness_test;DB_CLOSE_DELAY=-1",
-        "spring.datasource.driver-class-name=org.h2.Driver",
-        "spring.datasource.username=sa",
-        "spring.datasource.password=",
-        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-        "spring.jpa.hibernate.ddl-auto=none",
-        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration",
-        "app.seed.enabled=false"
-})
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Basic context load test using Testcontainers.
+ * Validates that the Spring Boot application starts successfully.
+ */
+@SpringBootTest
+@Testcontainers
 class FitnessAppApplicationTests {
 
-    @MockBean private WorkoutVideoRepository workoutVideoRepository;
-    @MockBean private RecipeRepository recipeRepository;
-    @MockBean private IngredientRepository ingredientRepository;
-    @MockBean private ImageQueryRepository imageQueryRepository;
-    @MockBean private com.fitnessapp.backend.workout.repository.WorkoutSessionRepository workoutSessionRepository;
-    @MockBean private com.fitnessapp.backend.user.repository.UserProfileRepository userProfileRepository;
-    @MockBean private com.fitnessapp.backend.workout.repository.PoseAnalysisResultRepository poseAnalysisResultRepository;
-    @MockBean private DataSource dataSource;
-    @MockBean private EntityManagerFactory entityManagerFactory;
-    @MockBean private EntityManager entityManager;
-    @MockBean private YouTubeService youTubeService;
-    @MockBean private DataImportService dataImportService;
-    @MockBean private RecipeImportService recipeImportService;
-    @MockBean private ApiKeyService apiKeyService;
-    @MockBean private com.fitnessapp.backend.user.service.UserProfileService userProfileService;
-    @MockBean private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
-    @MockBean private com.fitnessapp.backend.recipe.service.MealPlanHistoryService mealPlanHistoryService;
-    @MockBean private com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService nutritionTrackingService;
-    @MockBean private com.fitnessapp.backend.user.repository.UserRepository userRepository;
-    @MockBean private com.fitnessapp.backend.nutrition.repository.MealLogRepository mealLogRepository;
-    @MockBean private com.fitnessapp.backend.workout.service.LeaderboardService leaderboardService;
-    @MockBean private com.fitnessapp.backend.workout.repository.UserSavedWorkoutRepository userSavedWorkoutRepository;
-    @MockBean private com.fitnessapp.backend.recipe.repository.UserSavedRecipeRepository userSavedRecipeRepository;
-    @MockBean private com.fitnessapp.backend.Cacheservice.quota.QuotaService quotaService;
+    @Container
+    private static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("pgvector/pgvector:pg16")
+            .withDatabaseName("fitness_test")
+            .withUsername("test")
+            .withPassword("test");
 
-	@Test
-	void contextLoads() {
-	}
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.flyway.enabled", () -> true);
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
+        registry.add("app.seed.enabled", () -> false);
+    }
 
+    @Test
+    void contextLoads() {
+        assertTrue(postgres.isRunning(), "PostgreSQL container should be running");
+    }
 }
