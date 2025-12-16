@@ -169,7 +169,7 @@ jobs:
     name: Deploy to EC2
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/CF-17-mvp')
     
     steps:
       - name: Checkout code
@@ -368,76 +368,16 @@ jobs:
           LHCI_GITHUB_UPLOAD_ARTIFACT: 'true'
 
   # ========================================
-  # ROLLBACK (Manual Trigger)
+  # ROLLBACK (Disabled - Manual rollback only)
   # ========================================
-  rollback:
-    name: Rollback Deployment
-    runs-on: ubuntu-latest
-    if: failure() && github.ref == 'refs/heads/main'
-    needs: deploy
-    
-    steps:
-      - name: Configure SSH
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_SSH_KEY_B64: ${{ secrets.EC2_SSH_KEY_B64 }}
-          EC2_USER: ${{ secrets.EC2_USER }}
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          
-          if [ -n "${EC2_SSH_KEY_B64:-}" ]; then
-            printf '%s' "$EC2_SSH_KEY_B64" | base64 -d > ~/.ssh/id_rsa 2>/dev/null || true
-          else
-            printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/id_rsa
-          fi
-          
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-
-      - name: Rollback to previous version
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
-        run: |
-          set -euo pipefail
-          echo "⚠️ Rolling back frontend..."
-          
-          ssh -i ~/.ssh/id_rsa \
-            "$EC2_USER@$EC2_HOST" << 'ROLLBACK_SCRIPT'
-            set -euo pipefail
-            
-            DEPLOY_DIR="/var/www/fitness-app"
-            BACKUP_DIR=$(ls -t /var/www/fitness-app-backup-* 2>/dev/null | head -1)
-            
-            if [ -n "$BACKUP_DIR" ] && [ -d "$BACKUP_DIR" ]; then
-              echo "🔄 Rolling back from $BACKUP_DIR..."
-              sudo rm -rf "$DEPLOY_DIR"/*
-              sudo cp -r "$BACKUP_DIR"/* "$DEPLOY_DIR/"
-              echo "✅ Rollback complete"
-            else
-              echo "❌ No backup found for rollback"
-              exit 1
-            fi
-          ROLLBACK_SCRIPT
-
-      - name: Notify rollback
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const message = '🔄 Frontend deployment failed and was rolled back';
-            
-            // Only post comment if this is triggered from a PR or issue
-            if (context.issue && context.issue.number) {
-              await github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: message
-              });
-            } else {
-              // For push events, just log the message
-              console.log(message);
-              console.log(`Rollback triggered for commit: ${context.sha}`);
-            }
+  # rollback:
+  #   name: Rollback Deployment
+  #   runs-on: ubuntu-latest
+  #   if: false
+  #   needs: deploy
+  #   
+  #   steps:
+  #     - name: Rollback disabled
+  #       run: |
+  #         echo "⚠️ Automatic rollback is disabled"
+  #         echo "To rollback manually, use workflow_dispatch or SSH to EC2"
