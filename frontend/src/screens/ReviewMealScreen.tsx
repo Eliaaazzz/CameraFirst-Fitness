@@ -51,7 +51,12 @@ export function ReviewMealScreen({ route, navigation }: any) {
       } catch (error) {
         console.error('Food analysis failed:', error);
         Alert.alert('Error', 'Failed to analyze the image. Please try again.');
-        navigation.goBack();
+        // Navigate back if possible, otherwise go to Dashboard
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate('Dashboard');
+        }
       } finally {
         setLoading(false);
         clearTimeout(timer1);
@@ -161,7 +166,16 @@ export function ReviewMealScreen({ route, navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+        <Pressable 
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Dashboard');
+            }
+          }} 
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </Pressable>
         <Text style={styles.headerTitle}>Review your meal</Text>
