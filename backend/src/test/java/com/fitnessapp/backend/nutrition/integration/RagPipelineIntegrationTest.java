@@ -13,10 +13,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -27,13 +30,30 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Integration test for the complete RAG pipeline:
  * AI metadata extraction → Dynamic USDA search → Cooking method multiplier → Nutrition calculation
+ *
+ * Uses Testcontainers with pgvector-enabled PostgreSQL for realistic database testing.
  */
 @SpringBootTest
-@ActiveProfiles("test")
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Testcontainers
 @Transactional
 @DisplayName("RAG Pipeline Integration Tests")
 class RagPipelineIntegrationTest {
+
+    @Container
+    private static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("pgvector/pgvector:pg16")
+            .withDatabaseName("fitness_test")
+            .withUsername("test")
+            .withPassword("test");
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.flyway.enabled", () -> true);
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
+        registry.add("app.seed.enabled", () -> false);
+    }
 
     @Autowired
     private UsdaFoodRepository usdaFoodRepository;
@@ -96,11 +116,11 @@ class RagPipelineIntegrationTest {
         assertThat(searchResult).isPresent();
         assertThat(searchResult.get().getPriority()).isEqualTo(1); // Base match (needs multiplier)
         
-        // Verify nutrition has multiplier applied (1.3x for FRIED)
+        // Verify found food has nutrition data
         UsdaFood food = searchResult.get().getFood();
-        BigDecimal rawCalories = food.getNutrition().getCalories();
-        BigDecimal expectedFriedCalories = rawCalories.multiply(BigDecimal.valueOf(1.3));
-        
+        assertThat(food.getNutrition()).isNotNull();
+        assertThat(food.getNutrition().getCalories()).isGreaterThan(BigDecimal.ZERO);
+
         // The multiplier should be 1.5x for deep-fried foods
         assertThat(CookingMethod.FRIED.getCalorieMultiplier()).isEqualTo(1.5);
     }

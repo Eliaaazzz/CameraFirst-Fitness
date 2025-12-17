@@ -97,7 +97,7 @@ public class VectorizationService {
     /**
      * Generate and save embedding for a single food item by ID.
      * Each call is a separate transaction to avoid long-running transactions.
-     * Uses native query to save embedding due to pgvector type mapping.
+     * Uses JPA save() - the driver layer handles pgvector serialization automatically.
      *
      * @param foodId The food ID to generate embedding for
      * @return true if embedding was successfully generated and saved, false otherwise
@@ -119,30 +119,17 @@ public class VectorizationService {
             return false;
         }
 
-        // Convert float array to PostgreSQL vector string format
-        String embeddingString = toVectorString(embedding);
-
-        // Use programmatic transaction for native query (bypasses Spring proxy issues)
+        // Use programmatic transaction with JPA save (driver handles pgvector serialization)
         transactionTemplate.executeWithoutResult(status -> {
-            usdaFoodRepository.updateEmbedding(foodId, embeddingString, searchText, OffsetDateTime.now());
+            food.setEmbedding(embedding);
+            food.setSearchText(searchText);
+            food.setEmbeddingGeneratedAt(OffsetDateTime.now());
+            usdaFoodRepository.save(food);
         });
 
         log.debug("Generated embedding for: {} (dims: {})",
                 food.getName(), embedding.length);
         return true;
-    }
-
-    /**
-     * Convert float array to PostgreSQL vector string format: [0.1,0.2,0.3,...]
-     */
-    private String toVectorString(float[] embedding) {
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < embedding.length; i++) {
-            if (i > 0) sb.append(",");
-            sb.append(String.format("%.8f", embedding[i]));
-        }
-        sb.append("]");
-        return sb.toString();
     }
 
     /**

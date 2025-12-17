@@ -1,11 +1,9 @@
 package com.fitnessapp.backend.usda.repository;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -107,28 +105,8 @@ public interface UsdaFoodRepository extends JpaRepository<UsdaFood, Long> {
             @Param("limit") int limit);
 
     /**
-     * Find foods by IDs using JPQL (avoids pgvector type conversion issues).
-     * This query explicitly doesn't select the embedding column.
+     * Find foods by IDs using JPQL.
      */
     @Query("SELECT f FROM UsdaFood f WHERE f.id IN :ids")
     List<UsdaFood> findByIdsWithoutEmbedding(@Param("ids") List<Long> ids);
-
-    /**
-     * Update embedding for a food item using native query.
-     * Required because the embedding field is marked as insertable=false, updatable=false
-     * to avoid Hibernate type mapping issues with pgvector.
-     */
-    @Modifying(clearAutomatically = true)
-    @Query(value = """
-            UPDATE usda_food
-            SET embedding = CAST(:embedding AS vector),
-                search_text = :searchText,
-                embedding_generated_at = :generatedAt
-            WHERE id = :foodId
-            """, nativeQuery = true)
-    void updateEmbedding(
-            @Param("foodId") Long foodId,
-            @Param("embedding") String embedding,
-            @Param("searchText") String searchText,
-            @Param("generatedAt") OffsetDateTime generatedAt);
 }

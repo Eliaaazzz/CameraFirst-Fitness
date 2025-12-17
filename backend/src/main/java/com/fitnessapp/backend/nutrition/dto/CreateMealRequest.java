@@ -19,7 +19,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateMealRequest {
-  @NotNull
+  // userId is optional - if not provided, will be extracted from JWT token
   private UUID userId;
 
   @NotNull

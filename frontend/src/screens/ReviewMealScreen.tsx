@@ -4,20 +4,23 @@ import nutritionApi, {
   DetectedFood,
   TotalNutrition,
 } from '@/services/nutritionApi';
-import { Ionicons } from '@expo/vector-icons';
+import { BRAND_COLORS } from '@/utils';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Image,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export function ReviewMealScreen({ route, navigation }: any) {
   const { imageUri } = route.params;
@@ -26,8 +29,17 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const [items, setItems] = useState<DetectedFood[]>([]);
   const [total, setTotal] = useState<TotalNutrition | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successAnim] = useState(new Animated.Value(0));
 
   useEffect(() => {
+    // Reset all state when imageUri changes (new photo taken)
+    setLoading(true);
+    setPhase(1);
+    setItems([]);
+    setTotal(null);
+    setSaving(false);
+
     const timer1 = setTimeout(() => setPhase(2), 1200);
     const timer2 = setTimeout(() => setPhase(3), 2400);
 
@@ -118,7 +130,20 @@ export function ReviewMealScreen({ route, navigation }: any) {
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      navigation.navigate('Dashboard');
+
+      // Show success animation
+      setShowSuccess(true);
+      Animated.sequence([
+        Animated.timing(successAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.delay(800),
+      ]).start(() => {
+        // Navigate to Dashboard after animation
+        navigation.navigate('Dashboard');
+      });
     } catch (error) {
       console.error('Save failed:', error);
       Alert.alert('Error', 'Failed to save meal. Please try again.');
@@ -173,7 +198,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
         )}
       </ScrollView>
 
-      {!loading && (
+      {!loading && !showSuccess && (
         <View style={styles.bottomBar}>
           <Pressable
             onPress={handleSave}
@@ -187,6 +212,53 @@ export function ReviewMealScreen({ route, navigation }: any) {
             )}
           </Pressable>
         </View>
+      )}
+
+      {/* Success Animation Overlay */}
+      {showSuccess && total && (
+        <Animated.View
+          style={[
+            styles.successOverlay,
+            {
+              opacity: successAnim,
+              transform: [
+                {
+                  scale: successAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.8, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.successGradient}
+          >
+            <MaterialCommunityIcons name="check-circle" size={80} color="#FFF" />
+            <Text style={styles.successTitle}>Meal Saved!</Text>
+            <View style={styles.successStats}>
+              <View style={styles.successStatItem}>
+                <Text style={styles.successStatValue}>+{Math.round(total.calories)}</Text>
+                <Text style={styles.successStatLabel}>kcal</Text>
+              </View>
+              <View style={styles.successStatDivider} />
+              <View style={styles.successStatItem}>
+                <Text style={styles.successStatValue}>+{Math.round(total.protein)}g</Text>
+                <Text style={styles.successStatLabel}>protein</Text>
+              </View>
+              <View style={styles.successStatDivider} />
+              <View style={styles.successStatItem}>
+                <Text style={styles.successStatValue}>+{Math.round(total.carbs)}g</Text>
+                <Text style={styles.successStatLabel}>carbs</Text>
+              </View>
+            </View>
+            <Text style={styles.successSubtitle}>Added to today's nutrition</Text>
+          </LinearGradient>
+        </Animated.View>
       )}
     </SafeAreaView>
   );
@@ -286,5 +358,58 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 18,
     fontWeight: '600',
+  },
+  // Success overlay styles
+  successOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  successGradient: {
+    width: '85%',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    gap: 16,
+  },
+  successTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFF',
+    marginTop: 8,
+  },
+  successStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  successStatItem: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  successStatValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  successStatLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  successStatDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  successSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 8,
   },
 });

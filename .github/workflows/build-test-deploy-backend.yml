@@ -2,7 +2,7 @@ name: Build, Test & Deploy Backend (Improved)
 
 on:
   push:
-    branches: [main, develop, CF-17-mvp]
+    branches: [main, develop, CF-**]
     paths:
       - 'backend/**'
       - 'infrastructure/backend/**'
