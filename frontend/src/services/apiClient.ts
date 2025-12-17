@@ -52,7 +52,7 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
     const url = `${BASE_URL}${endpoint}`;
 
     // CRITICAL: Always inject X-API-Key header in every request
-    // This is the "Access Card" (门禁卡) - required for all endpoints
+    // This is the "Access Card"  - required for all endpoints
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'X-API-Key': APP_API_KEY,
@@ -60,7 +60,7 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
     };
 
     // If JWT token exists locally, include it (dual authentication)
-    // This is the "ID Card" (身份证) - used for user session validation
+    // This is the "ID Card"  - used for user session validation
     const jwtToken = await getJWT();
     if (jwtToken) {
       headers['Authorization'] = `Bearer ${jwtToken}`;
@@ -104,7 +104,7 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
       const errorData = await response.json().catch(() => ({ message: response.statusText }));
       
       // Handle authentication failures (401/403)
-      if (response.status === 401 || response.status === 403) {
+      if ((response.status === 401 || response.status === 403) && headers['Authorization']) {
         console.warn('[APIClient Auth Error]', {
           status: response.status,
           url,
@@ -113,7 +113,7 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
         
         // Clear expired/invalid JWT and notify user
         // We'll import and call clearJWT here, but avoid circular navigation
-        // Navigation will be handled by the root-level auth context
+        // Navigation will be handled by the root-level auth context or error boundary
         const { clearJWT } = await import('@/utils/jwtStorage');
         await clearJWT();
         

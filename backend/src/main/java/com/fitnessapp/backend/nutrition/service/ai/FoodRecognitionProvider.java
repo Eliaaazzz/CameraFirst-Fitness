@@ -1,9 +1,10 @@
 package com.fitnessapp.backend.nutrition.service.ai;
 
-import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
+import java.io.IOException;
+
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 
 /**
  * Interface for food recognition services.

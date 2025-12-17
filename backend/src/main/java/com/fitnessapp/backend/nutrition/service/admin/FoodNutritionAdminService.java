@@ -1,19 +1,21 @@
 package com.fitnessapp.backend.nutrition.service.admin;
 
-import com.fitnessapp.backend.nutrition.entity.FoodNutrition;
-import com.fitnessapp.backend.nutrition.entity.FoodSynonym;
-import com.fitnessapp.backend.nutrition.dto.FoodNutritionDto;
-import com.fitnessapp.backend.nutrition.repository.FoodNutritionRepository;
-import com.fitnessapp.backend.nutrition.repository.FoodSynonymRepository;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.fitnessapp.backend.nutrition.dto.FoodNutritionDto;
+import com.fitnessapp.backend.nutrition.entity.FoodNutrition;
+import com.fitnessapp.backend.nutrition.entity.FoodSynonym;
+import com.fitnessapp.backend.nutrition.repository.FoodNutritionRepository;
+import com.fitnessapp.backend.nutrition.repository.FoodSynonymRepository;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Admin service for managing food nutrition database

@@ -1,5 +1,8 @@
 package com.fitnessapp.backend.nutrition.dto;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -7,20 +10,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.UUID;
-
 /**
  * Request for POST /api/v1/meals endpoint
+ * Note: userId is ALWAYS extracted from JWT token (@AuthenticationPrincipal)
+ * Client cannot specify userId - this prevents IDOR attacks
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateMealRequest {
-  // userId is optional - if not provided, will be extracted from JWT token
-  private UUID userId;
 
   @NotNull
   @Size(max = 32)

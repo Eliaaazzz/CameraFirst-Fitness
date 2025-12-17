@@ -1,4 +1,4 @@
-package com.fitnessapp.backend.recipe.service;
+rootpackage com.fitnessapp.backend.recipe.service;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;

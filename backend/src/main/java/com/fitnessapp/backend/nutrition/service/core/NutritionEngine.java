@@ -1,10 +1,10 @@
 package com.fitnessapp.backend.nutrition.service.core;
 
-import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
-import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
-
 import java.math.BigDecimal;
 import java.util.List;
+
+import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
+import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 
 /**
  * Nutrition calculation engine interface

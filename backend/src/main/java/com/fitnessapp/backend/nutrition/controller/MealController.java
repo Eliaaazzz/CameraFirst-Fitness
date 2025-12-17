@@ -1,15 +1,36 @@
 package com.fitnessapp.backend.nutrition.controller;
 
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.dto.CreateMealRequest;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
+import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
-import com.fitnessapp.backend.user.repository.UserProfileRepository;
 import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService;
 import com.fitnessapp.backend.security.CurrentUser;
+import com.fitnessapp.backend.user.repository.UserProfileRepository;
+
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -19,17 +40,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Meal CRUD operations controller
@@ -50,18 +60,16 @@ public class MealController {
   /**
    * Create new meal log from recognized foods
    * POST /api/v1/meals
+   * Security: userId is ALWAYS extracted from JWT token (@AuthenticationPrincipal)
+   * Client cannot specify userId - this prevents IDOR attacks
    */
   @PostMapping
-  public ResponseEntity<MealResponse> createMeal(@Valid @RequestBody CreateMealRequest request) {
-    // Extract userId from JWT token if not provided in request
-    final UUID userId;
-    if (request.getUserId() != null) {
-      userId = request.getUserId();
-    } else {
-      userId = currentUser.get()
-          .map(com.fitnessapp.backend.security.AuthenticatedUser::userId)
-          .orElseThrow(() -> new EntityNotFoundException("User not authenticated"));
-    }
+  public ResponseEntity<MealResponse> createMeal(
+      @Valid @RequestBody CreateMealRequest request,
+      @AuthenticationPrincipal com.fitnessapp.backend.security.AuthenticatedUser currentUser) {
+    
+    // Extract userId from JWT token (always from authenticated user)
+    final UUID userId = currentUser.userId();
     
     log.info("Creating meal log for user {} with {} items",
         userId, request.getItems().size());

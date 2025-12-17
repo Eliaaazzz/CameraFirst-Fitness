@@ -1,22 +1,24 @@
 package com.fitnessapp.backend.nutrition.service.core;
 
-import com.fitnessapp.backend.nutrition.entity.FoodNutrition;
-import com.fitnessapp.backend.nutrition.entity.FoodSynonym;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.fitnessapp.backend.nutrition.dto.FoodMetadata;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
+import com.fitnessapp.backend.nutrition.entity.FoodNutrition;
+import com.fitnessapp.backend.nutrition.entity.FoodSynonym;
 import com.fitnessapp.backend.nutrition.enums.CookingMethod;
 import com.fitnessapp.backend.nutrition.repository.FoodNutritionRepository;
 import com.fitnessapp.backend.nutrition.repository.FoodSynonymRepository;
 import com.fitnessapp.backend.usda.domain.UsdaFood;
 import com.fitnessapp.backend.usda.service.UsdaFoodSearchService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Service for looking up food nutrition data from database
