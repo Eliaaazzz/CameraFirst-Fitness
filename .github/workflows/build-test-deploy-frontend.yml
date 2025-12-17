@@ -2,15 +2,11 @@ name: Build, Test & Deploy Frontend (Improved)
 
 on:
   push:
-    branches: [main, develop, CF-17-mvp]
+    branches: [main]
     paths:
       - 'frontend/**'
       - '!frontend/README.md'
       - '.github/workflows/build-test-deploy-frontend.yml'
-  pull_request:
-    branches: [main, develop]
-    paths:
-      - 'frontend/**'
   workflow_dispatch:
 
 env:
@@ -169,7 +165,6 @@ jobs:
     name: Deploy to EC2
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name != 'pull_request'
     
     steps:
       - name: Checkout code
