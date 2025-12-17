@@ -4,22 +4,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.fitnessapp.backend.nutrition.entity.MealLog;
-import com.fitnessapp.backend.user.entity.User;
-import com.fitnessapp.backend.user.entity.UserProfile;
-import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
-import com.fitnessapp.backend.user.repository.UserProfileRepository;
-import com.fitnessapp.backend.user.repository.UserRepository;
-import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.fitnessapp.backend.nutrition.entity.MealLog;
+import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
+import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService;
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.user.repository.UserProfileRepository;
+import com.fitnessapp.backend.user.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 class NutritionTrackingServiceTest {

@@ -1,15 +1,18 @@
 package com.fitnessapp.backend.nutrition.service.core;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+
 import com.fitnessapp.backend.nutrition.dto.FoodMetadata;
 import com.fitnessapp.backend.nutrition.strategy.FoodMatchStrategy;
 import com.fitnessapp.backend.usda.domain.UsdaFood;
 import com.fitnessapp.backend.usda.repository.UsdaFoodRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Dynamic food search coordinator using Strategy Pattern.

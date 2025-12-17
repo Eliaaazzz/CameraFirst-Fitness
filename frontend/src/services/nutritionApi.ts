@@ -119,7 +119,7 @@ const logMeal = async (userId: string, payload: LogMealPayload): Promise<MealLog
 
   console.log('[NutritionApi] logMeal body:', JSON.stringify(body, null, 2));
 
-  return await api.post<MealLogResponse>('/api/v1/meals', body);
+  return await api.post<MealLogResponse>('/api/v1/nutrition/meals', body);
 };
 
 const getDailySummary = async (userId: string, date?: string): Promise<NutritionSummaryResponse> => {
@@ -243,20 +243,19 @@ const saveMealFromImage = async (payload: SaveMealPayload): Promise<MealLogRespo
     confidence: item.confidence || 0.8,
   }));
 
-  // Build the request payload matching CreateMealRequest structure
-  // The backend will extract userId from JWT token when using 'me' user ID
+  // Build the request payload for /api/v1/nutrition/meals
+  // The backend will extract userId from JWT token
   const mealPayload = {
-    userId: undefined as any, // Will be overridden by backend from JWT
     mealType: payload.mealType || 'other',
     items: foodItems,
-    note: payload.notes || `Detected: ${payload.items.map(f => f.name).join(', ')}`.slice(0, 500),
+    notes: payload.notes || `Detected: ${payload.items.map(f => f.name).join(', ')}`.slice(0, 500),
     imageUrl: null, // Local file URIs are not accessible server-side
   };
 
   console.log('[NutritionApi] Saving meal with payload:', JSON.stringify(mealPayload, null, 2));
 
-  // POST to /api/v1/meals and let backend extract userId from JWT token
-  return await api.post<MealLogResponse>('/api/v1/meals', mealPayload);
+  // POST to /api/v1/nutrition/meals - accepts items array and extracts userId from JWT
+  return await api.post<MealLogResponse>('/api/v1/nutrition/meals', mealPayload);
 };
 
 export default {

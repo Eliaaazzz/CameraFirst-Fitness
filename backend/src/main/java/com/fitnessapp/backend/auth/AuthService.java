@@ -1,31 +1,39 @@
 package com.fitnessapp.backend.auth;
 
-import com.fitnessapp.backend.user.entity.User;
-import com.fitnessapp.backend.user.repository.UserRepository;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.user.repository.UserProfileRepository;
+import com.fitnessapp.backend.user.repository.UserRepository;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
     private final JwtUtils jwtUtils;
     private final PasswordEncoder passwordEncoder;
     private final Map<AuthProvider, SocialTokenValidator> validators;
 
     public AuthService(
             UserRepository userRepository,
+            UserProfileRepository userProfileRepository,
             JwtUtils jwtUtils,
             PasswordEncoder passwordEncoder,
             List<SocialTokenValidator> validatorList) {
         this.userRepository = userRepository;
+        this.userProfileRepository = userProfileRepository;
         this.jwtUtils = jwtUtils;
         this.passwordEncoder = passwordEncoder;
 
@@ -74,6 +82,12 @@ public class AuthService {
                     .build();
             user = userRepository.save(user);
             log.info("Created new user via {}: {}", provider, userInfo.email());
+            
+            // Create empty UserProfile for new users (required for nutrition tracking)
+            UserProfile profile = new UserProfile();
+            profile.setUser(user);
+            userProfileRepository.save(profile);
+            log.info("Created default UserProfile for user: {}", user.getId());
         } else {
             user = existingUser.get();
             // Optionally update auth provider if user previously registered differently
@@ -136,6 +150,12 @@ public class AuthService {
                 .level("beginner")
                 .build();
         user = userRepository.save(user);
+        
+        // Create empty UserProfile for new users (required for nutrition tracking)
+        UserProfile profile = new UserProfile();
+        profile.setUser(user);
+        userProfileRepository.save(profile);
+        log.info("Created default UserProfile for user: {}", user.getId());
 
         String jwt = jwtUtils.generateToken(user.getId(), user.getEmail());
         log.info("Registered new user via email: {}", email);

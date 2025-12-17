@@ -1,17 +1,8 @@
 package com.fitnessapp.backend.user.controller;
 
-import com.fitnessapp.backend.user.dto.UserProfileMapper;
-import com.fitnessapp.backend.user.dto.UserProfileRequest;
-import com.fitnessapp.backend.user.dto.UserProfileResponse;
-import com.fitnessapp.backend.user.entity.UserProfile;
-import com.fitnessapp.backend.recipe.service.SmartRecipeService;
-import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService;
-import com.fitnessapp.backend.user.service.UserProfileService;
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.validation.Valid;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -23,6 +14,18 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService;
+import com.fitnessapp.backend.user.dto.UserProfileMapper;
+import com.fitnessapp.backend.user.dto.UserProfileRequest;
+import com.fitnessapp.backend.user.dto.UserProfileResponse;
+import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.user.service.UserProfileService;
+
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/users/{userId}/profile")

@@ -1,12 +1,5 @@
 package com.fitnessapp.backend.nutrition.service.core;
 
-import com.fitnessapp.backend.nutrition.entity.MealLog;
-import com.fitnessapp.backend.user.entity.User;
-import com.fitnessapp.backend.user.entity.UserProfile;
-import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
-import com.fitnessapp.backend.user.repository.UserProfileRepository;
-import com.fitnessapp.backend.user.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -14,10 +7,20 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fitnessapp.backend.nutrition.entity.MealLog;
+import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.user.repository.UserProfileRepository;
+import com.fitnessapp.backend.user.repository.UserRepository;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service

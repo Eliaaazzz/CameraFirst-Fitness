@@ -1,6 +1,6 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
@@ -131,21 +131,14 @@ const ProfileScreen = () => {
           onPress: async () => {
             try {
               await clearJWT();
-              // Get the root Stack navigator (parent of the Tab navigator)
-              // and reset it to show the Login screen
-              const rootNavigation = navigation.getParent();
-              if (rootNavigation) {
-                rootNavigation.reset({
+              // Use CommonActions.reset to reset the root navigator to Login screen
+              // This dispatches to the root navigator, bypassing the Tab navigator
+              navigation.dispatch(
+                CommonActions.reset({
                   index: 0,
                   routes: [{ name: 'Login' }],
-                });
-              } else {
-                // Fallback: try resetting current navigation
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'Login' }],
-                });
-              }
+                })
+              );
             } catch (error) {
               console.error('Logout failed:', error);
               Alert.alert('Error', 'Failed to logout. Please try again.');

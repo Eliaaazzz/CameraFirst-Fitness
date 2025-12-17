@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.nutrition.controller;
 
 import java.io.IOException;
+import java.net.Authenticator;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -20,10 +21,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fitnessapp.backend.api.common.ApiEnvelope;
+
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
-import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.service.ai.FoodRecognitionService;
 import com.fitnessapp.backend.nutrition.service.core.NutritionEngine;
@@ -33,6 +33,7 @@ import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService;
 import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService.NutritionMetric;
 import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService.NutritionSummary;
 import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.security.AuthenticatedUser;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -106,10 +107,9 @@ public class NutritionController {
 
   @PostMapping("/meals")
   public ResponseEntity<MealLogResponse> logMeal(@Valid @RequestBody LogMealRequest request,
-    @AuthenticationPrincipal User currentUser) {
+    @AuthenticationPrincipal AuthenticatedUser currentUser) {
     // Always use JWT-authenticated user - ignore any userId in request body for security (prevents IDOR)
-    UUID userUuid = (currentUser != null && currentUser.getId() != null)
-        ? currentUser.getId()
+    UUID userUuid = (currentUser != null) ? currentUser.userId()
         : parseUserId("default-user");  // Dev-friendly fallback for unauthenticated testing
 
     MealLog entity = MealLog.builder()
@@ -137,7 +137,7 @@ public class NutritionController {
   public ResponseEntity<NutritionSummaryResponse> dailySummary(
       @RequestParam(required = false) String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-      @AuthenticationPrincipal User currentUser
+      @AuthenticationPrincipal AuthenticatedUser currentUser
     ) {
     LocalDate targetDate = date != null ? date : LocalDate.now();
     NutritionSummary summary = trackingService.dailySummary(resolveUserId(userId, currentUser), targetDate);
@@ -148,7 +148,7 @@ public class NutritionController {
   public ResponseEntity<NutritionSummaryResponse> weeklySummary(
       @RequestParam(required = false) String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart,
-      @AuthenticationPrincipal User currentUser
+      @AuthenticationPrincipal AuthenticatedUser currentUser
     ) {
     LocalDate start = weekStart != null ? weekStart : LocalDate.now().with(java.time.DayOfWeek.MONDAY);
     NutritionSummary summary = trackingService.weeklySummary(resolveUserId(userId, currentUser), start);
@@ -159,7 +159,7 @@ public class NutritionController {
   public ResponseEntity<NutritionInsightResponse> weeklyInsight(
       @RequestParam(required = false) String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart,
-      @AuthenticationPrincipal User currentUser) {
+      @AuthenticationPrincipal AuthenticatedUser currentUser) {
     NutritionInsight insight = insightService.generateWeeklyInsight(resolveUserId(userId, currentUser), weekStart);
     return ResponseEntity.ok(toInsightResponse(insight));
   }
@@ -186,12 +186,12 @@ public class NutritionController {
     }
   }
 
-  private UUID resolveUserId(String userId, User currentUser) {
+  private UUID resolveUserId(String userId, AuthenticatedUser currentUser) {
     if (userId != null && !userId.isBlank()) {
       return parseUserId(userId);
     }
-    if (currentUser != null && currentUser.getId() != null) {
-      return currentUser.getId();
+    if (currentUser != null && currentUser.userId() != null) {
+      return currentUser.userId();
     }
     // Dev-friendly fallback for unauthenticated usage
     return parseUserId("default-user");
@@ -295,3 +295,9 @@ public class NutritionController {
     private String suggestedMealType;
   }
 }
+
+
+
+
+
+

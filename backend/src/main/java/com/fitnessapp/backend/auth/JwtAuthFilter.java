@@ -37,28 +37,28 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
-        // Skip if already authenticated (e.g., by ApiKeyAuthFilter)
-        if (SecurityContextHolder.getContext().getAuthentication() != null) {
-            chain.doFilter(request, response);
-            return;
-        }
-
+        // Check if JWT token is present in the request
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (!StringUtils.hasText(header) || !header.startsWith(BEARER_PREFIX)) {
+            // No JWT token - continue with existing authentication (from API key)
             chain.doFilter(request, response);
             return;
         }
 
+        // JWT token is present - extract and validate it
         String token = header.substring(BEARER_PREFIX.length());
         try {
             UUID userId = jwtUtils.getUserId(token);
+            // Replace any existing authentication (e.g., from API key) with JWT-based user auth
             AuthenticatedUser principal = new AuthenticatedUser(null, "jwt-user", userId);
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList());
             SecurityContextHolder.getContext().setAuthentication(auth);
+            log.debug("JWT authentication successful for user: {}", userId);
         } catch (JwtException e) {
-            log.debug("Invalid JWT: {}", e.getMessage());
-            // Don't set auth - let request continue, will be rejected if endpoint requires auth
+            log.warn("Invalid JWT token provided - continuing with existing authentication: {}", e.getMessage());
+            // Don't replace auth - let request continue with existing auth (from API key)
+            // This allows graceful degradation but should be monitored for security
         }
 
         chain.doFilter(request, response);

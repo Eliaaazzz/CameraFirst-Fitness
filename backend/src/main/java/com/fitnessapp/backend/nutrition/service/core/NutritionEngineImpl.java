@@ -1,16 +1,18 @@
 package com.fitnessapp.backend.nutrition.service.core;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.fitnessapp.backend.nutrition.dto.FoodMetadata;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 import com.fitnessapp.backend.nutrition.enums.PortionSize;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.List;
 
 /**
  * Nutrition calculation engine implementation using database lookup

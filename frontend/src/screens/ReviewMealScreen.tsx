@@ -6,6 +6,7 @@ import nutritionApi, {
 } from '@/services/nutritionApi';
 import { BRAND_COLORS } from '@/utils';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
@@ -24,6 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export function ReviewMealScreen({ route, navigation }: any) {
   const { imageUri } = route.params;
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<1 | 2 | 3>(1);
   const [items, setItems] = useState<DetectedFood[]>([]);
@@ -40,6 +42,9 @@ export function ReviewMealScreen({ route, navigation }: any) {
     setTotal(null);
     setSaving(false);
 
+    setShowSuccess(false);
+    successAnim.setValue(0);
+
     const timer1 = setTimeout(() => setPhase(2), 1200);
     const timer2 = setTimeout(() => setPhase(3), 2400);
 
@@ -51,7 +56,12 @@ export function ReviewMealScreen({ route, navigation }: any) {
       } catch (error) {
         console.error('Food analysis failed:', error);
         Alert.alert('Error', 'Failed to analyze the image. Please try again.');
-        navigation.goBack();
+        // Navigate back if possible, otherwise go to Dashboard
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate('Dashboard');
+        }
       } finally {
         setLoading(false);
         clearTimeout(timer1);
@@ -129,6 +139,9 @@ export function ReviewMealScreen({ route, navigation }: any) {
         totalNutrition: total,
       });
 
+      // Invalidate nutrition cache so Dashboard fetches fresh data
+      queryClient.invalidateQueries({ queryKey: ['dailyNutrition'] });
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       // Show success animation
@@ -161,7 +174,16 @@ export function ReviewMealScreen({ route, navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+        <Pressable 
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Dashboard');
+            }
+          }} 
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </Pressable>
         <Text style={styles.headerTitle}>Review your meal</Text>

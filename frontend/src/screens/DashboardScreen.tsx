@@ -64,9 +64,14 @@ const DashboardScreen = () => {
   // Load goals on focus (so it updates after generation)
   useFocusEffect(
     useCallback(() => {
+
       loadGeneratedGoals();
       refresh();
-    }, [loadGeneratedGoals, refresh])
+
+      if (stats && stats.refetch) {
+        stats.refetch();
+      }
+    }, [loadGeneratedGoals, refresh, stats])
   );
 
   const handleRefresh = async () => {
