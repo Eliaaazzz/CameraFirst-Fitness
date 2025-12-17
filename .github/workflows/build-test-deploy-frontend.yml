@@ -345,7 +345,7 @@ jobs:
     name: Performance Test
     runs-on: ubuntu-latest
     needs: deploy
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main'
     continue-on-error: true
     
     steps:
