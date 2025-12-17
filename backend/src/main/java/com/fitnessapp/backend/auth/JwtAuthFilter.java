@@ -56,8 +56,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(auth);
             log.debug("JWT authentication successful for user: {}", userId);
         } catch (JwtException e) {
-            log.debug("Invalid JWT: {}", e.getMessage());
+            log.warn("Invalid JWT token provided - continuing with existing authentication: {}", e.getMessage());
             // Don't replace auth - let request continue with existing auth (from API key)
+            // This allows graceful degradation but should be monitored for security
         }
 
         chain.doFilter(request, response);
