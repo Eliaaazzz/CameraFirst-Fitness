@@ -12,7 +12,7 @@ import type { SavedRecipe } from '@/types';
 import { spacing } from '@/utils';
 
 type TabParamList = {
-  Capture: undefined;
+  Dashboard: undefined;
   Workouts: undefined;
   Recipes: undefined;
 };
@@ -116,7 +116,7 @@ export const RecipesScreen = () => {
       <Text variant="body" style={styles.emptyBody}>
         Capture your ingredients to get recipe recommendations tailored to what you have.
       </Text>
-      <Button title="Capture Ingredients" variant="primary" onPress={() => navigation.navigate('Capture')} />
+      <Button title="Snap Your Meal" variant="primary" onPress={() => navigation.navigate('Dashboard')} />
     </Card>
   );
 
@@ -183,19 +183,26 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+    paddingVertical: spacing['3xl'],
     gap: spacing.md,
   },
   iconWrapper: {
     backgroundColor: 'rgba(78, 205, 196, 0.15)',
     padding: spacing.xl,
     borderRadius: spacing['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyTitle: {
     textAlign: 'center',
+    paddingHorizontal: spacing.md,
   },
   emptyBody: {
     textAlign: 'center',
     color: 'rgba(148, 163, 184, 0.9)',
+    paddingHorizontal: spacing.lg,
   },
   savedAt: {
     opacity: 0.68,

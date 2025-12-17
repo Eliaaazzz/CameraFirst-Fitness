@@ -93,10 +93,23 @@ const resolveUserId = (userId: string): string | undefined => {
 };
 
 const logMeal = async (userId: string, payload: LogMealPayload): Promise<MealLogResponse> => {
+  // Build request body, filtering out null/undefined values to avoid serialization issues
   const body: Record<string, any> = {
-    consumedAt: new Date().toISOString(),
-    ...payload,
+    mealType: payload.mealType,
+    consumedAt: payload.consumedAt || new Date().toISOString(),
   };
+
+  // Only include optional fields if they have values
+  if (payload.mealPlanId != null) body.mealPlanId = payload.mealPlanId;
+  if (payload.mealDay != null) body.mealDay = payload.mealDay;
+  if (payload.recipeId != null) body.recipeId = payload.recipeId;
+  if (payload.recipeName != null) body.recipeName = payload.recipeName;
+  if (payload.calories != null) body.calories = payload.calories;
+  if (payload.protein != null) body.protein = payload.protein;
+  if (payload.carbs != null) body.carbs = payload.carbs;
+  if (payload.fat != null) body.fat = payload.fat;
+  if (payload.notes != null) body.notes = payload.notes;
+  if (payload.imageUrl != null) body.imageUrl = payload.imageUrl;
 
   // Only include userId if not using 'me' (JWT-based auth)
   const resolvedUserId = resolveUserId(userId);
@@ -104,7 +117,9 @@ const logMeal = async (userId: string, payload: LogMealPayload): Promise<MealLog
     body.userId = resolvedUserId;
   }
 
-  return await api.post<MealLogResponse>('/api/v1/nutrition/meals', body);
+  console.log('[NutritionApi] logMeal body:', JSON.stringify(body, null, 2));
+
+  return await api.post<MealLogResponse>('/api/v1/meals', body);
 };
 
 const getDailySummary = async (userId: string, date?: string): Promise<NutritionSummaryResponse> => {
@@ -205,21 +220,43 @@ const analyzeFoodImage = async (imageUri: string): Promise<FoodRecognitionRespon
 
 // Save analyzed meal to today's log
 const saveMealFromImage = async (payload: SaveMealPayload): Promise<MealLogResponse> => {
-  // For now, we'll save the total nutrition as a single meal
-  const mealPayload: LogMealPayload = {
+  // Validate nutrition values - ensure they're valid numbers
+  const calories = Math.round(payload.totalNutrition.calories || 0);
+  const protein = Math.round(payload.totalNutrition.protein || 0);
+  const carbs = Math.round(payload.totalNutrition.carbs || 0);
+  const fat = Math.round(payload.totalNutrition.fat || 0);
+
+  // Validate that we have at least some nutrition data
+  if (calories === 0 && protein === 0 && carbs === 0 && fat === 0) {
+    throw new Error('No nutrition data available to save');
+  }
+
+  // Build food items in the format expected by backend (CreateMealRequest.FoodItemRequest)
+  const foodItems = payload.items.map((item, index) => ({
+    foodKey: `detected_${index}_${item.name.toLowerCase().replace(/\s+/g, '_')}`,
+    displayName: item.name,
+    grams: Math.round(item.amount),
+    calories: item.calories,
+    protein: item.protein,
+    fat: item.fat,
+    carbs: item.carbs,
+    confidence: item.confidence || 0.8,
+  }));
+
+  // Build the request payload matching CreateMealRequest structure
+  // The backend will extract userId from JWT token when using 'me' user ID
+  const mealPayload = {
+    userId: undefined as any, // Will be overridden by backend from JWT
     mealType: payload.mealType || 'other',
-    recipeName: 'AI Detected Meal',
-    calories: Math.round(payload.totalNutrition.calories),
-    protein: Math.round(payload.totalNutrition.protein),
-    carbs: Math.round(payload.totalNutrition.carbs),
-    fat: Math.round(payload.totalNutrition.fat),
-    consumedAt: new Date().toISOString(),
-    notes: payload.notes || `Detected: ${payload.items.map(f => f.name).join(', ')}`,
-    imageUrl: payload.imageUri,
+    items: foodItems,
+    note: payload.notes || `Detected: ${payload.items.map(f => f.name).join(', ')}`.slice(0, 500),
+    imageUrl: null, // Local file URIs are not accessible server-side
   };
 
-  // Use 'me' to let the backend extract user from JWT token
-  return await logMeal('me', mealPayload);
+  console.log('[NutritionApi] Saving meal with payload:', JSON.stringify(mealPayload, null, 2));
+
+  // POST to /api/v1/meals and let backend extract userId from JWT token
+  return await api.post<MealLogResponse>('/api/v1/meals', mealPayload);
 };
 
 export default {

@@ -9,6 +9,7 @@ import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
 import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService;
+import com.fitnessapp.backend.security.CurrentUser;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -44,6 +45,7 @@ public class MealController {
   private final UserProfileRepository userProfileRepository;
   private final NutritionTrackingService nutritionTrackingService;
   private final ObjectMapper objectMapper;
+  private final CurrentUser currentUser;
 
   /**
    * Create new meal log from recognized foods
@@ -51,12 +53,22 @@ public class MealController {
    */
   @PostMapping
   public ResponseEntity<MealResponse> createMeal(@Valid @RequestBody CreateMealRequest request) {
+    // Extract userId from JWT token if not provided in request
+    final UUID userId;
+    if (request.getUserId() != null) {
+      userId = request.getUserId();
+    } else {
+      userId = currentUser.get()
+          .map(com.fitnessapp.backend.security.AuthenticatedUser::userId)
+          .orElseThrow(() -> new EntityNotFoundException("User not authenticated"));
+    }
+    
     log.info("Creating meal log for user {} with {} items",
-        request.getUserId(), request.getItems().size());
+        userId, request.getItems().size());
 
     // Verify user exists
-    userProfileRepository.findByUserId(request.getUserId())
-        .orElseThrow(() -> new EntityNotFoundException("User not found: " + request.getUserId()));
+    userProfileRepository.findByUserId(userId)
+        .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
 
     // Calculate totals
     NutritionInfo totals = calculateTotals(request.getItems());
@@ -71,7 +83,7 @@ public class MealController {
 
     // Create meal log entity
     MealLog mealLog = MealLog.builder()
-        .userId(request.getUserId())
+        .userId(userId)
         .mealType(request.getMealType())
         .foodItems(foodItemsJson)
         .imageUrl(request.getImageUrl())

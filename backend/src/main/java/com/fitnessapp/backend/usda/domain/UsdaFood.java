@@ -6,8 +6,11 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Array;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -58,16 +61,12 @@ public class UsdaFood {
 
     /**
      * Vector embedding for semantic search (1536 dimensions for OpenAI compatibility).
-     *
-     * NOTE: This field is marked as @Transient because:
-     * 1. Hibernate cannot map pgvector 'vector' type to Java float[]
-     * 2. Embeddings are written via native SQL (see UsdaFoodRepository.updateEmbedding)
-     * 3. Similarity searches use database-side calculations (pgvector <=> operator)
-     * 4. We never need to read the raw embedding back into Java
-     *
-     * The column still exists in the database and is used for vector similarity search.
+     * Uses Hibernate's native pgvector support via hibernate-vector module.
+     * The driver layer handles serialization to/from PostgreSQL vector type.
      */
-    @Transient
+    @JdbcTypeCode(SqlTypes.VECTOR)
+    @Array(length = 1536)
+    @Column(name = "embedding")
     private float[] embedding;
 
     /**

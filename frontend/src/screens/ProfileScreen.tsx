@@ -1,6 +1,6 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CommonActions, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
@@ -131,13 +131,21 @@ const ProfileScreen = () => {
           onPress: async () => {
             try {
               await clearJWT();
-              // Use CommonActions.reset to properly navigate from nested navigator
-              navigation.dispatch(
-                CommonActions.reset({
+              // Get the root Stack navigator (parent of the Tab navigator)
+              // and reset it to show the Login screen
+              const rootNavigation = navigation.getParent();
+              if (rootNavigation) {
+                rootNavigation.reset({
                   index: 0,
-                  routes: [{ name: 'Login' as never }],
-                })
-              );
+                  routes: [{ name: 'Login' }],
+                });
+              } else {
+                // Fallback: try resetting current navigation
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Login' }],
+                });
+              }
             } catch (error) {
               console.error('Logout failed:', error);
               Alert.alert('Error', 'Failed to logout. Please try again.');
@@ -886,6 +894,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
+    justifyContent: 'center',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -898,6 +907,7 @@ const styles = StyleSheet.create({
   },
   stepContent: {
     gap: spacing.lg,
+    paddingVertical: spacing.xl,
   },
   stepDescription: {
     opacity: 0.7,
