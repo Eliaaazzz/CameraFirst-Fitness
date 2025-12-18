@@ -190,7 +190,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
         <View style={styles.imageContainer}>
           <Image source={{ uri: imageUri }} style={styles.image} />
           <View style={styles.photoTag}>
