@@ -118,19 +118,23 @@ export function useResponsiveValue<T>(values: {
 }): T {
   const { deviceType } = useResponsive();
 
+  // Extract individual values to avoid object reference comparison issues
+  // This prevents infinite re-renders when inline objects are passed
+  const { mobile, tablet, desktop, wide } = values;
+
   return useMemo(() => {
     switch (deviceType) {
       case 'wide':
-        return values.wide ?? values.desktop ?? values.tablet ?? values.mobile;
+        return wide ?? desktop ?? tablet ?? mobile;
       case 'desktop':
-        return values.desktop ?? values.tablet ?? values.mobile;
+        return desktop ?? tablet ?? mobile;
       case 'tablet':
-        return values.tablet ?? values.mobile;
+        return tablet ?? mobile;
       case 'mobile':
       default:
-        return values.mobile;
+        return mobile;
     }
-  }, [deviceType, values]);
+  }, [deviceType, mobile, tablet, desktop, wide]);
 }
 
 /**

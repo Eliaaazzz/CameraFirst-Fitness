@@ -1,19 +1,23 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
 import { Platform, useColorScheme, View } from 'react-native';
+
+import { navigationRef } from './navigationService';
 
 import { ErrorBoundary } from '@/components';
 import DashboardScreen from '@/screens/DashboardScreen';
 import LoginScreen from '@/screens/LoginScreen';
+import { MealHistoryScreen } from '@/screens/MealHistoryScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
 import { RecipeDetailScreen } from '@/screens/RecipeDetailScreen';
 import { RecipesScreen } from '@/screens/RecipesScreen';
 import { ResultsScreen } from '@/screens/ResultsScreen';
 import { ReviewMealScreen } from '@/screens/ReviewMealScreen';
 import SplashScreen from '@/screens/SplashScreen';
+import { WeeklyInsightsScreen } from '@/screens/WeeklyInsightsScreen';
 import { WorkoutsScreen } from '@/screens/WorkoutsScreen';
 import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive } from '@/utils';
 
@@ -35,9 +39,12 @@ const SafeProfileScreen = withErrorBoundary(ProfileScreen, 'Profile');
 const SafeRecipeDetailScreen = withErrorBoundary(RecipeDetailScreen, 'RecipeDetail');
 const SafeResultsScreen = withErrorBoundary(ResultsScreen, 'Results');
 const SafeReviewMealScreen = withErrorBoundary(ReviewMealScreen, 'ReviewMeal');
+const SafeMealHistoryScreen = withErrorBoundary(MealHistoryScreen, 'MealHistory');
+const SafeWeeklyInsightsScreen = withErrorBoundary(WeeklyInsightsScreen, 'WeeklyInsights');
 
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+// Use createStackNavigator instead of createNativeStackNavigator for Web compatibility
+const Stack = createStackNavigator();
 
 const tabBarBackground = () => (
   <View
@@ -114,7 +121,6 @@ const TAB_CONFIG = [
 const MainTabs = () => {
   const { isDesktop, isTablet, isWeb } = useResponsive();
 
-  // Calculate responsive tab bar dimensions
   const tabBarHeight = isDesktop ? 70 : isTablet ? 65 : Platform.select({ ios: 85, android: 65 });
   const tabBarPaddingBottom = isDesktop ? 16 : isTablet ? 12 : Platform.select({ ios: 28, android: 10 });
   const tabBarPaddingTop = isDesktop ? 12 : 8;
@@ -122,10 +128,8 @@ const MainTabs = () => {
   const getTabBarIcon = (routeName: string, focused: boolean, color: string) => {
     const config = TAB_CONFIG.find(t => t.name === routeName);
     if (!config) return null;
-
     const iconName = focused ? config.iconActive : config.iconInactive;
     const size = focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default;
-
     if (config.iconFamily === 'Feather') {
       return <Feather name={iconName as any} size={size} color={color} />;
     }
@@ -140,13 +144,11 @@ const MainTabs = () => {
         tabBarActiveTintColor: BRAND_COLORS.primary,
         tabBarInactiveTintColor: BRAND_COLORS.tabInactive,
         tabBarHideOnKeyboard: true,
-        // Fixed: Ensure labels don't truncate
         tabBarLabelStyle: {
           fontSize: isDesktop ? 12 : isTablet ? 11 : 10,
           fontWeight: '600',
           marginTop: 2,
         },
-        // Fixed: Even distribution of tabs - use minWidth to ensure equal sizing
         tabBarItemStyle: {
           flex: 1,
           minWidth: 60,
@@ -158,7 +160,6 @@ const MainTabs = () => {
           height: tabBarHeight,
           paddingBottom: tabBarPaddingBottom,
           paddingTop: tabBarPaddingTop,
-          // Remove horizontal padding to ensure full-width even distribution
           paddingHorizontal: 0,
           backgroundColor: BRAND_COLORS.surface,
           borderTopWidth: 0,
@@ -167,10 +168,6 @@ const MainTabs = () => {
           shadowOpacity: 0.1,
           shadowRadius: 8,
           shadowOffset: { width: 0, height: -2 },
-          // Ensure the tab bar items container uses flexbox properly
-          flexDirection: 'row',
-          justifyContent: 'space-evenly',
-          // Add max-width constraint on desktop for centered tab bar
           ...(isDesktop && isWeb && {
             alignSelf: 'center',
             width: '100%',
@@ -216,6 +213,22 @@ const MainTabs = () => {
           tabBarButton: () => null,
         }}
       />
+      <Tab.Screen
+        name="MealHistory"
+        component={SafeMealHistoryScreen}
+        options={{
+          title: 'Meal History',
+          tabBarButton: () => null,
+        }}
+      />
+      <Tab.Screen
+        name="WeeklyInsights"
+        component={SafeWeeklyInsightsScreen}
+        options={{
+          title: 'Weekly Insights',
+          tabBarButton: () => null,
+        }}
+      />
     </Tab.Navigator>
   );
 };
@@ -224,7 +237,7 @@ export const AppNavigator = () => {
   const colorScheme = useColorScheme();
 
   return (
-    <NavigationContainer theme={colorScheme === 'dark' ? DarkNavigationTheme : LightNavigationTheme}>
+    <NavigationContainer ref={navigationRef} theme={colorScheme === 'dark' ? DarkNavigationTheme : LightNavigationTheme}>
       <Stack.Navigator
         initialRouteName="Splash"
         screenOptions={{ headerShown: false }}

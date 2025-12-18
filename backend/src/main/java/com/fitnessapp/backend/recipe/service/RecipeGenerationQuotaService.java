@@ -1,15 +1,17 @@
-rootpackage com.fitnessapp.backend.recipe.service;
+package com.fitnessapp.backend.recipe.service;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
+import io.micrometer.core.instrument.MeterRegistry;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Manages free quota for AI recipe generation

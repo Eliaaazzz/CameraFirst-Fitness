@@ -109,4 +109,23 @@ public interface UsdaFoodRepository extends JpaRepository<UsdaFood, Long> {
      */
     @Query("SELECT f FROM UsdaFood f WHERE f.id IN :ids")
     List<UsdaFood> findByIdsWithoutEmbedding(@Param("ids") List<Long> ids);
+    
+    /**
+     * Update embedding for a food item using native SQL.
+     * Required because pgvector type cannot be directly mapped in JPA.
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query(value = """
+            UPDATE usda_food 
+            SET embedding = CAST(:embedding AS vector),
+                search_text = :searchText,
+                updated_at = :updatedAt
+            WHERE id = :id
+            """, nativeQuery = true)
+    void updateEmbedding(
+            @Param("id") Long id,
+            @Param("embedding") String embedding,
+            @Param("searchText") String searchText,
+            @Param("updatedAt") java.time.OffsetDateTime updatedAt);
 }
+

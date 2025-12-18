@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, StyleSheet, View } from 'react-native';
+import { Animated, Dimensions, Platform, StyleSheet, View } from 'react-native';
 
 import { spacing } from '@/utils';
 import { Card } from './Card';
@@ -35,6 +35,12 @@ const ListSkeletonRow: React.FC<{
   const sWidth = getWidth(secondaryWidth);
 
   useEffect(() => {
+    // On Web, useNativeDriver: true with Animated.loop causes thread lock/freeze
+    // Disable animation on Web to prevent browser freeze
+    if (Platform.OS === 'web') {
+      return;
+    }
+
     const animation = Animated.loop(
       Animated.timing(shimmer, {
         toValue: 1,
