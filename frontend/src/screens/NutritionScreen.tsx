@@ -122,7 +122,7 @@ export function NutritionScreen({ navigation }: any) {
         <Text style={styles.headerTitle}>Nutrition</Text>
       </View>
 
-      <ScrollView>
+      <ScrollView style={{ flex: 1 }}>
         <SummaryCard
           calories={data.calories}
           goal={data.goal}
