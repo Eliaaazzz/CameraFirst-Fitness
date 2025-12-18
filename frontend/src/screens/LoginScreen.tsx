@@ -1,5 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -49,10 +50,18 @@ export default function LoginScreen() {
     checkAppleAuth();
   }, []);
 
+  // Generate explicit redirect URI for Google OAuth
+  const redirectUri = AuthSession.makeRedirectUri({
+    scheme: 'com.fitnessapp.mvp',
+  });
+
+  console.log('[LoginScreen] Google OAuth redirectUri:', redirectUri);
+
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     iosClientId: GOOGLE_IOS_CLIENT_ID,
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     webClientId: GOOGLE_WEB_CLIENT_ID,
+    redirectUri, // Explicitly set redirect URI
     scopes: ['profile', 'email'],
   });
 

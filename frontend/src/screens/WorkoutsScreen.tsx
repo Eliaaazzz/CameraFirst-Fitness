@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
 
@@ -10,6 +10,75 @@ import useCurrentUser from '@/hooks/useCurrentUser';
 import { useSavedWorkouts } from '@/services';
 import type { SavedWorkout } from '@/types';
 import { spacing } from '@/utils';
+
+// Styles must be defined before components that use them
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingBottom: spacing.lg,
+  },
+  card: {
+    gap: spacing.sm,
+  },
+  listContent: {
+    gap: spacing.md,
+    paddingBottom: spacing.lg,
+  },
+  header: {
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  subtitle: {
+    opacity: 0.7,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+    paddingVertical: spacing['3xl'],
+    gap: spacing.md,
+  },
+  iconWrapper: {
+    backgroundColor: 'rgba(78, 205, 196, 0.15)',
+    padding: spacing.xl,
+    borderRadius: spacing['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    textAlign: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  emptyBody: {
+    textAlign: 'center',
+    color: 'rgba(148, 163, 184, 0.9)',
+    paddingHorizontal: spacing.lg,
+  },
+  savedAt: {
+    opacity: 0.68,
+    marginTop: spacing.xs,
+  },
+  fab: {
+    position: 'absolute',
+    right: spacing.lg,
+    bottom: spacing.xl,
+  },
+});
+
+// Moved outside component to prevent recreation on every render
+const ItemSeparator = () => <View style={{ height: spacing.md }} />;
+
+// Static header component - no props needed
+const ListHeader = () => (
+  <View style={styles.header}>
+    <Text variant="heading1" weight="bold">
+      Saved Workouts
+    </Text>
+    <Text variant="body" style={styles.subtitle}>
+      Keep your go-to routines within reach.
+    </Text>
+  </View>
+);
 
 type TabParamList = {
   Dashboard: undefined;
@@ -25,6 +94,22 @@ export const WorkoutsScreen = () => {
   const listRef = useRef<FlatList<SavedWorkout>>(null);
   const [showFab, setShowFab] = useState(false);
 
+  // Memoize empty component BEFORE any conditional returns
+  const listEmptyComponent = useMemo(() => (
+    <Card style={styles.emptyState}>
+      <View style={styles.iconWrapper}>
+        <MaterialCommunityIcons name="arm-flex" size={48} color="#4ECDC4" />
+      </View>
+      <Text variant="heading2" weight="bold" style={styles.emptyTitle}>
+        Your saved workouts will appear here
+      </Text>
+      <Text variant="body" style={styles.emptyBody}>
+        Capture your equipment to get workout recommendations tailored to your space and gear.
+      </Text>
+      <Button title="Browse Workouts" variant="primary" onPress={() => navigation.navigate('Dashboard')} />
+    </Card>
+  ), [navigation]);
+
   const handleRefresh = useCallback(() => {
     if (!saved.isLoading) {
       saved.refetch();
@@ -33,7 +118,13 @@ export const WorkoutsScreen = () => {
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetY = event.nativeEvent.contentOffset.y;
-    setShowFab(offsetY > 240);
+    const shouldShow = offsetY > 240;
+    setShowFab(currentValue => {
+      if (currentValue !== shouldShow) {
+        return shouldShow;
+      }
+      return currentValue;
+    });
   }, []);
 
   const renderItem = useCallback(
@@ -88,9 +179,9 @@ export const WorkoutsScreen = () => {
             <Text variant="body" style={styles.emptyBody}>
               Check your network connection and try again.
             </Text>
-            <Button 
+            <Button
               title="Retry"
-              variant="primary" 
+              variant="primary"
               onPress={() => {
                 currentUser.refetch();
                 saved.refetch();
@@ -105,21 +196,6 @@ export const WorkoutsScreen = () => {
   const workouts = saved.data ?? [];
   const isRefreshing = saved.isRefetching;
 
-  const listEmptyComponent = (
-    <Card style={styles.emptyState}>
-      <View style={styles.iconWrapper}>
-        <MaterialCommunityIcons name="arm-flex" size={48} color="#4ECDC4" />
-      </View>
-      <Text variant="heading2" weight="bold" style={styles.emptyTitle}>
-        Your saved workouts will appear here
-      </Text>
-      <Text variant="body" style={styles.emptyBody}>
-        Capture your equipment to get workout recommendations tailored to your space and gear.
-      </Text>
-      <Button title="Browse Workouts" variant="primary" onPress={() => navigation.navigate('Dashboard')} />
-    </Card>
-  );
-
   return (
     <SafeAreaWrapper>
       <Container style={styles.container}>
@@ -129,17 +205,8 @@ export const WorkoutsScreen = () => {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
-          ListHeaderComponent={
-            <View style={styles.header}>
-              <Text variant="heading1" weight="bold">
-                Saved Workouts
-              </Text>
-              <Text variant="body" style={styles.subtitle}>
-                Keep your go-to routines within reach.
-              </Text>
-            </View>
-          }
+          ItemSeparatorComponent={ItemSeparator}
+          ListHeaderComponent={ListHeader}
           ListEmptyComponent={listEmptyComponent}
           refreshControl={
             <RefreshControl
@@ -162,55 +229,3 @@ export const WorkoutsScreen = () => {
     </SafeAreaWrapper>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    paddingBottom: spacing.lg,
-  },
-  card: {
-    gap: spacing.sm,
-  },
-  listContent: {
-    gap: spacing.md,
-    paddingBottom: spacing.lg,
-  },
-  header: {
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    opacity: 0.7,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-    paddingVertical: spacing['3xl'],
-    gap: spacing.md,
-  },
-  iconWrapper: {
-    backgroundColor: 'rgba(78, 205, 196, 0.15)',
-    padding: spacing.xl,
-    borderRadius: spacing['2xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyTitle: {
-    textAlign: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  emptyBody: {
-    textAlign: 'center',
-    color: 'rgba(148, 163, 184, 0.9)',
-    paddingHorizontal: spacing.lg,
-  },
-  savedAt: {
-    opacity: 0.68,
-    marginTop: spacing.xs,
-  },
-  fab: {
-    position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.xl,
-  },
-});

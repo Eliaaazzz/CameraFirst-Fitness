@@ -1,6 +1,7 @@
-import { Card, Text } from '@/components';
-import { spacing } from '@/utils';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Card } from './Card';
+import { Text } from './Text';
+import { spacing } from '@/utils';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface Props {

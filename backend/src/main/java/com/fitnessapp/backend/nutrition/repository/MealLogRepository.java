@@ -1,14 +1,18 @@
 package com.fitnessapp.backend.nutrition.repository;
 
-import com.fitnessapp.backend.nutrition.entity.MealLog;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.fitnessapp.backend.nutrition.entity.MealLog;
 
 public interface MealLogRepository extends JpaRepository<MealLog, Long> {
 
@@ -37,9 +41,93 @@ public interface MealLogRepository extends JpaRepository<MealLog, Long> {
       """)
   List<MealLogLeaderboardRow> leaderboardSince(@Param("start") OffsetDateTime start, Pageable pageable);
 
+  // === New: History Log pagination query ===
+  
+  /**
+   * Paginated query for user's meal history with optional date range filtering
+   */
+  @Query("""
+    SELECT m FROM MealLog m 
+    WHERE m.userId = :userId
+      AND (:startDate IS NULL OR m.consumedAt >= :startDate)
+      AND (:endDate IS NULL OR m.consumedAt < :endDate)
+  """)
+  Page<MealLog> findMealHistory(
+    @Param("userId") UUID userId,
+    @Param("startDate") OffsetDateTime startDate,
+    @Param("endDate") OffsetDateTime endDate,
+    Pageable pageable
+  );
+
+  // === New: Weekly Insights aggregation queries ===
+  
+  /**
+   * Get daily nutrition summary grouped by date (for daily trend charts)
+   */
+  @Query("""
+    SELECT 
+      CAST(m.consumedAt AS LocalDate) as date,
+      COUNT(m) as mealCount,
+      SUM(COALESCE(m.calories, 0) + COALESCE(m.totalCalories, 0)) as totalCalories,
+      SUM(COALESCE(m.proteinGrams, 0) + COALESCE(m.totalProtein, 0)) as totalProtein,
+      SUM(COALESCE(m.carbsGrams, 0) + COALESCE(m.totalCarbs, 0)) as totalCarbs,
+      SUM(COALESCE(m.fatGrams, 0) + COALESCE(m.totalFat, 0)) as totalFat
+    FROM MealLog m
+    WHERE m.userId = :userId
+      AND m.consumedAt >= :start
+      AND m.consumedAt < :end
+    GROUP BY CAST(m.consumedAt AS LocalDate)
+    ORDER BY CAST(m.consumedAt AS LocalDate) ASC
+  """)
+  List<DailyNutritionSummary> getDailyNutritionSummary(
+    @Param("userId") UUID userId,
+    @Param("start") OffsetDateTime start,
+    @Param("end") OffsetDateTime end
+  );
+  
+  /**
+   * Get weekly total summary (for average calculations)
+   */
+  @Query("""
+    SELECT 
+      COUNT(m) as totalMeals,
+      SUM(COALESCE(m.calories, 0) + COALESCE(m.totalCalories, 0)) as totalCalories,
+      SUM(COALESCE(m.proteinGrams, 0) + COALESCE(m.totalProtein, 0)) as totalProtein,
+      SUM(COALESCE(m.carbsGrams, 0) + COALESCE(m.totalCarbs, 0)) as totalCarbs,
+      SUM(COALESCE(m.fatGrams, 0) + COALESCE(m.totalFat, 0)) as totalFat
+    FROM MealLog m
+    WHERE m.userId = :userId
+      AND m.consumedAt >= :start
+      AND m.consumedAt < :end
+  """)
+  WeeklySummary getWeeklySummary(
+    @Param("userId") UUID userId,
+    @Param("start") OffsetDateTime start,
+    @Param("end") OffsetDateTime end
+  );
+  
+  // === Projection Interfaces ===
+
   interface MealLogLeaderboardRow {
     UUID getUserId();
     long getEntryCount();
     OffsetDateTime getLastLog();
+  }
+  
+  interface DailyNutritionSummary {
+    LocalDate getDate();
+    Long getMealCount();
+    Long getTotalCalories();
+    BigDecimal getTotalProtein();
+    BigDecimal getTotalCarbs();
+    BigDecimal getTotalFat();
+  }
+  
+  interface WeeklySummary {
+    Long getTotalMeals();
+    Long getTotalCalories();
+    BigDecimal getTotalProtein();
+    BigDecimal getTotalCarbs();
+    BigDecimal getTotalFat();
   }
 }

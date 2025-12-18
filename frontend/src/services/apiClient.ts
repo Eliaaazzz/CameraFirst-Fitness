@@ -8,7 +8,10 @@ import { Platform } from 'react-native';
 import { getJWT } from '../utils/jwtStorage';
 
 // Ensure API Key is available (prioritize .env API_KEY, fallback to Expo environment variable)
-const APP_API_KEY = API_KEY || process.env.EXPO_PUBLIC_API_KEY || '';
+// TEMPORARY FALLBACK for debugging - should match .env file
+const APP_API_KEY = API_KEY || process.env.EXPO_PUBLIC_API_KEY || 'fitness-secret-key-123';
+
+console.log('[APIClient Init] API Key loaded:', APP_API_KEY ? `${APP_API_KEY.substring(0, 10)}...` : 'MISSING');
 
 // Use the environment variable for all platforms
 const normalizeBaseUrl = (url: string) => {

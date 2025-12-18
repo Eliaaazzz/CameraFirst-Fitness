@@ -1,30 +1,31 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CommonActions, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, SafeAreaWrapper, Text, WheelPicker } from '@/components';
 import { StateView } from '@/components/common/StateView';
 import useCurrentUser from '@/hooks/useCurrentUser';
+import { navigateToLogin } from '@/navigation/navigationService';
 import {
-  GeneratedGoals,
-  generateGoals,
-  GenerateGoalsRequest,
-  GoalType,
-  Sex,
+    GeneratedGoals,
+    generateGoals,
+    GenerateGoalsRequest,
+    GoalType,
+    Sex,
 } from '@/services/geminiApi';
 import { useGoalStatistics } from '@/services/goalsApi';
 import { BRAND_COLORS, spacing } from '@/utils';
@@ -131,14 +132,8 @@ const ProfileScreen = () => {
           onPress: async () => {
             try {
               await clearJWT();
-              // Use CommonActions.reset to reset the root navigator to Login screen
-              // This dispatches to the root navigator, bypassing the Tab navigator
-              navigation.dispatch(
-                CommonActions.reset({
-                  index: 0,
-                  routes: [{ name: 'Login' }],
-                })
-              );
+              // Use navigationRef to reset from root level
+              navigateToLogin();
             } catch (error) {
               console.error('Logout failed:', error);
               Alert.alert('Error', 'Failed to logout. Please try again.');
@@ -675,9 +670,15 @@ const ProfileScreen = () => {
           )}
           {renderMenuItem(
             'food-apple',
-            'Food Logs',
-            'View your nutrition history',
-            () => navigation.navigate('Dashboard')
+            'Meal History',
+            'View your nutrition logs',
+            () => navigation.navigate('MealHistory' as any)
+          )}
+          {renderMenuItem(
+            'chart-line',
+            'Weekly Insights',
+            'Analyze your nutrition trends',
+            () => navigation.navigate('WeeklyInsights' as any)
           )}
         </View>
 
