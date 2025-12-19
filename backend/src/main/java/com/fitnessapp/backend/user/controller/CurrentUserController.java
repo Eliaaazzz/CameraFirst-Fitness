@@ -41,10 +41,7 @@ public class CurrentUserController {
 
   @GetMapping
   public ResponseEntity<MeResponse> currentUser() {
-    UUID userId = currentUser.get()
-        .map(com.fitnessapp.backend.security.AuthenticatedUser::userId)
-        // Dev-friendly fallback: allow default-user when no API key is provided
-        .orElse(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+    UUID userId = currentUser.requireUserId();
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
     Optional<UserProfile> profile = userProfileService.getProfile(userId);

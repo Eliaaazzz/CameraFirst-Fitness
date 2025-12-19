@@ -216,5 +216,10 @@ logging:
 #   YOUTUBE_API_KEY=<from-secrets-manager>
 #   USDA_API_KEY=<from-secrets-manager>
 
-
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:your-bucket-name}
+    region: ${AWS_S3_REGION:us-east-1}
+    access-key: ${AWS_ACCESS_KEY:your-access-key}
+    secret-key: ${AWS_SECRET_KEY:your-secret-key}
 

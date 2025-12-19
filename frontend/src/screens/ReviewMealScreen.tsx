@@ -9,6 +9,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImageManipulator from 'expo-image-manipulator';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -30,6 +31,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const [phase, setPhase] = useState<1 | 2 | 3>(1);
   const [items, setItems] = useState<DetectedFood[]>([]);
   const [total, setTotal] = useState<TotalNutrition | null>(null);
+  const [processedImageUri, setProcessedImageUri] = useState<string>(imageUri);
+  const [serverImageUrl, setServerImageUrl] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successAnim] = useState(new Animated.Value(0));
@@ -41,6 +44,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
     setItems([]);
     setTotal(null);
     setSaving(false);
+    setProcessedImageUri(imageUri);
+    setServerImageUrl(undefined);
 
     setShowSuccess(false);
     successAnim.setValue(0);
@@ -50,9 +55,31 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
     const analyze = async () => {
       try {
-        const response = await nutritionApi.analyzeFoodImage(imageUri);
+        let uploadUri = imageUri;
+
+        // Compress the image before upload/analysis to reduce payload size
+        try {
+          const manipulateResult = await ImageManipulator.manipulateAsync(
+            imageUri,
+            [
+              // Limit width to 1024px while keeping aspect ratio
+              { resize: { width: 1024 } },
+            ],
+            {
+              compress: 0.7, // 70% quality
+              format: ImageManipulator.SaveFormat.JPEG,
+            },
+          );
+          uploadUri = manipulateResult.uri;
+          setProcessedImageUri(manipulateResult.uri);
+        } catch (compressionError) {
+          console.warn('Image compression failed, using original image', compressionError);
+        }
+
+        const response = await nutritionApi.analyzeFoodImage(uploadUri);
         setItems(response.items);
         setTotal(response.totalNutrition);
+        setServerImageUrl(response.imageUrl);
       } catch (error) {
         console.error('Food analysis failed:', error);
         Alert.alert('Error', 'Failed to analyze the image. Please try again.');
@@ -134,13 +161,16 @@ export function ReviewMealScreen({ route, navigation }: any) {
     setSaving(true);
     try {
       await nutritionApi.saveMealFromImage({
-        imageUri,
+        imageUri: processedImageUri,
         items: items,
         totalNutrition: total,
+        imageUrl: serverImageUrl,
       });
 
-      // Invalidate nutrition cache so Dashboard fetches fresh data
+      // Invalidate caches so dashboard, meal log, and insights refresh immediately
       queryClient.invalidateQueries({ queryKey: ['dailyNutrition'] });
+      queryClient.invalidateQueries({ queryKey: ['meal-history'] });
+      queryClient.invalidateQueries({ queryKey: ['weekly-insights'] });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -192,7 +222,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
         <View style={styles.imageContainer}>
-          <Image source={{ uri: imageUri }} style={styles.image} />
+          <Image source={{ uri: processedImageUri }} style={styles.image} />
           <View style={styles.photoTag}>
             <Text style={styles.photoTagText}>Photo</Text>
           </View>

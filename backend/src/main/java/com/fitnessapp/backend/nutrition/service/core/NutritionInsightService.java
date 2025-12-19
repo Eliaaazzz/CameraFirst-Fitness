@@ -67,43 +67,43 @@ public class NutritionInsightService {
   private String buildFallbackAdvice(NutritionSummary summary) {
     StringBuilder advice = new StringBuilder();
 
-    advice.append("营养摄入分析：\n\n");
+    advice.append("Nutrition Analysis:\n\n");
 
-    // 分析做得好的地方
-    advice.append("✓ 积极的方面：\n");
+    // Analyze positive aspects
+    advice.append("✓ Positive Aspects:\n");
     if (summary.calories().percent() >= 90 && summary.calories().percent() <= 110) {
-      advice.append("• 卡路里摄入控制良好\n");
+      advice.append("• Good calorie intake control\n");
     }
     if (summary.protein().percent() >= 90) {
-      advice.append("• 蛋白质摄入充足\n");
+      advice.append("• Adequate protein intake\n");
     }
-    if (advice.length() == advice.indexOf("✓ 积极的方面：\n") + "✓ 积极的方面：\n".length()) {
-      advice.append("• 保持记录饮食的好习惯\n");
+    if (advice.length() == advice.indexOf("✓ Positive Aspects:\n") + "✓ Positive Aspects:\n".length()) {
+      advice.append("• Keep up the good habit of tracking your meals\n");
     }
 
-    advice.append("\n⚠ 需要关注：\n");
+    advice.append("\n⚠ Areas to Watch:\n");
     if (!summary.alerts().isEmpty()) {
       for (String alert : summary.alerts()) {
         advice.append("• ").append(alert).append("\n");
       }
     } else {
-      advice.append("• 目前营养摄入基本均衡\n");
+      advice.append("• Your nutrition intake is generally balanced\n");
     }
 
-    advice.append("\n→ 改进建议：\n");
+    advice.append("\n→ Suggestions for Improvement:\n");
     if (summary.protein().percent() < 80) {
-      advice.append("• 增加优质蛋白摄入（鸡胸肉、鱼类、豆制品）\n");
+      advice.append("• Increase quality protein intake (chicken breast, fish, legumes)\n");
     }
     if (summary.calories().percent() > 110) {
-      advice.append("• 适当控制总热量，增加蔬菜比例\n");
+      advice.append("• Consider reducing total calories and increasing vegetable portions\n");
     }
     if (summary.carbs().percent() > 110) {
-      advice.append("• 选择复杂碳水化合物（全麦、糙米、燕麦）\n");
+      advice.append("• Choose complex carbohydrates (whole wheat, brown rice, oats)\n");
     }
-    if (advice.length() == advice.lastIndexOf("\n→ 改进建议：\n") + "\n→ 改进建议：\n".length()) {
-      advice.append("• 保持均衡饮食，定时定量进餐\n");
-      advice.append("• 多喝水，每天至少8杯\n");
-      advice.append("• 适当增加蔬菜水果摄入\n");
+    if (advice.length() == advice.lastIndexOf("\n→ Suggestions for Improvement:\n") + "\n→ Suggestions for Improvement:\n".length()) {
+      advice.append("• Maintain a balanced diet with regular meals\n");
+      advice.append("• Stay hydrated - drink at least 8 glasses of water daily\n");
+      advice.append("• Increase your intake of fruits and vegetables\n");
     }
 
     return advice.toString();

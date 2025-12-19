@@ -4,10 +4,12 @@
  */
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
+    Image,
     Pressable,
     RefreshControl,
     StyleSheet,
@@ -47,8 +49,21 @@ export const MealHistoryScreen = () => {
     sort: 'consumedAt,desc', // Most recent first
   });
 
+  // Refetch data when screen comes into focus (for real-time sync after meal snap)
+  useFocusEffect(
+    useCallback(() => {
+      // Reset to first page and refetch when screen is focused
+      if (page === 0) {
+        refetch();
+      } else {
+        setPage(0);
+      }
+    }, [refetch, page])
+  );
+
   const handleLoadMore = () => {
-    if (data && page < data.page.totalPages - 1 && !isFetching) {
+    // Spring Page uses flat structure: data.totalPages, not data.page.totalPages
+    if (data && page < data.totalPages - 1 && !isFetching) {
       setPage((prev) => prev + 1);
     }
   };
@@ -80,6 +95,9 @@ export const MealHistoryScreen = () => {
 
     return (
       <Card style={styles.mealCard}>
+        {item.imageUrl ? (
+          <Image source={{ uri: item.imageUrl }} style={styles.mealImage} />
+        ) : null}
         <View style={styles.mealHeader}>
           <View style={styles.mealTypeRow}>
             <MaterialCommunityIcons
@@ -232,7 +250,7 @@ export const MealHistoryScreen = () => {
           </Text>
           {data && (
             <Text variant="caption" style={styles.totalCount}>
-              {data.page.totalElements} meals logged
+              {data.totalElements} meals logged
             </Text>
           )}
         </View>
@@ -281,6 +299,13 @@ const styles = StyleSheet.create({
   mealCard: {
     marginBottom: spacing.md,
     padding: spacing.md,
+  },
+  mealImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: 12,
+    marginBottom: spacing.md,
+    backgroundColor: BRAND_COLORS.surfaceVariant,
   },
   mealHeader: {
     flexDirection: 'row',

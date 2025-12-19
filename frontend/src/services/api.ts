@@ -1,11 +1,13 @@
 // Re-export all API modules
 export { default as goalsApi } from './goalsApi';
 export { default as mealPlanApi } from './mealPlanApi';
+export { default as mealApi } from './mealApi';
 export { default as nutritionApi } from './nutritionApi';
 export { default as userApi } from './userApi';
 
 // Re-export all exports from goalsApi
 export * from './goalsApi';
+export * from './mealApi';
 export * from './notificationService';
 
 // Export image recognition API

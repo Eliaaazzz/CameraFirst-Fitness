@@ -65,7 +65,7 @@ class CurrentUserControllerTest {
   @Test
   void returnsCurrentUserWithProfile() throws Exception {
     UUID userId = UUID.randomUUID();
-    when(currentUser.get()).thenReturn(Optional.of(new com.fitnessapp.backend.security.AuthenticatedUser(1L, "test-key", userId)));
+    when(currentUser.requireUserId()).thenReturn(userId);
     when(userRepository.findById(userId)).thenReturn(Optional.of(
         User.builder().id(userId).email("user@example.com").level("INTERMEDIATE").timeBucket(2).build()));
     when(userProfileService.getProfile(userId)).thenReturn(Optional.of(UserProfile.builder()

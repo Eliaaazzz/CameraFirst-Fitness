@@ -1,17 +1,14 @@
 package com.fitnessapp.backend.nutrition.controller;
 
-
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,22 +22,25 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.nutrition.dto.CreateMealRequest;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
-import com.fitnessapp.backend.nutrition.dto.WeeklyInsightsResponse;
 import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
 import com.fitnessapp.backend.nutrition.service.MealHistoryService;
 import com.fitnessapp.backend.nutrition.service.MealInsightsService;
-import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService;
-import com.fitnessapp.backend.security.CurrentUser;
+import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
+import com.fitnessapp.backend.user.repository.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -49,7 +49,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Meal CRUD operations controller
+ * Meal CRUD operations controller.
+ *
+ * Responsibilities:
+ * - Create, read, update, delete meal logs
+ * - Get meals by date
+ *
+ * Note: Nutrition analysis and insights are handled by NutritionController (/api/v1/nutrition)
  */
 @Slf4j
 @RestController
@@ -59,13 +65,17 @@ import lombok.extern.slf4j.Slf4j;
 public class MealController {
 
   private final MealLogRepository mealLogRepository;
+  private final UserRepository userRepository;
   private final UserProfileRepository userProfileRepository;
-  private final NutritionTrackingService nutritionTrackingService;
   private final ObjectMapper objectMapper;
-  private final CurrentUser currentUser;
   private final MealHistoryService mealHistoryService;
   private final MealInsightsService mealInsightsService;
 
+  private static final int DEFAULT_DAILY_CALORIES = 2000;
+  private static final int DEFAULT_DAILY_PROTEIN = 130;
+  private static final int DEFAULT_DAILY_CARBS = 220;
+  private static final int DEFAULT_DAILY_FAT = 70;
+  
   /**
    * Create new meal log from recognized foods
    * POST /api/v1/meals
@@ -83,8 +93,8 @@ public class MealController {
     log.info("Creating meal log for user {} with {} items",
         userId, request.getItems().size());
 
-    // Verify user exists
-    userProfileRepository.findByUserId(userId)
+    // Verify user exists in the users table (not user_profiles, which is optional)
+    userRepository.findById(userId)
         .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
 
     // Calculate totals
@@ -122,18 +132,25 @@ public class MealController {
 
   /**
    * Get meals for a user on a specific date
-   * GET /api/v1/meals?userId={userId}&date={date}
+   * GET /api/v1/meals?date={date}&timezone={timezone}
    */
   @GetMapping
   public ResponseEntity<List<MealResponse>> getMeals(
-      @RequestParam @NotNull UUID userId,
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+      @AuthenticationPrincipal com.fitnessapp.backend.security.AuthenticatedUser currentUser,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+      @RequestParam(required = false) String timezone
   ) {
-    LocalDate targetDate = date != null ? date : LocalDate.now();
-    log.info("Getting meals for user {} on {}", userId, targetDate);
+    UUID userId = currentUser.userId();
+    
+    ZoneId zone = resolveZoneId(timezone);
+    
+    // Use the timezone to determine "today" if date not specified
+    LocalDate targetDate = date != null ? date : LocalDate.now(zone);
+    log.info("Getting meals for user {} on {} (timezone: {})", userId, targetDate, zone);
 
-    OffsetDateTime start = targetDate.atStartOfDay().atOffset(ZoneOffset.UTC);
-    OffsetDateTime end = start.plusDays(1);
+    // Calculate start/end of day in the user's timezone, then convert to OffsetDateTime
+    OffsetDateTime start = targetDate.atStartOfDay(zone).toOffsetDateTime();
+    OffsetDateTime end = targetDate.plusDays(1).atStartOfDay(zone).toOffsetDateTime();
 
     List<MealLog> meals = mealLogRepository
         .findByUserIdAndConsumedAtBetweenOrderByConsumedAtAsc(userId, start, end);
@@ -148,44 +165,69 @@ public class MealController {
   }
 
   /**
-   * Get today's nutrition summary
-   * GET /api/v1/nutrition/today/{userId}
+   * Get today's summary with timezone-aware date boundaries
+   * GET /api/v1/meals/today
    */
-  @GetMapping("/today/{userId}")
-  public ResponseEntity<DailySummaryResponse> getTodaySummary(@PathVariable UUID userId) {
-    log.info("Getting today's summary for user {}", userId);
+  @GetMapping("/today")
+  public ResponseEntity<TodaySummaryResponse> getTodaySummary(
+      @AuthenticationPrincipal com.fitnessapp.backend.security.AuthenticatedUser currentUser,
+      @RequestParam(required = false) String timezone
+  ) {
+    if (currentUser == null) {
+      log.warn("Today summary requested without authentication");
+      return ResponseEntity.status(401).build();
+    }
 
-    // Verify user exists
-    userProfileRepository.findByUserId(userId)
-        .orElseThrow(() -> new EntityNotFoundException("User profile not found: " + userId));
+    UUID userId = currentUser.userId();
+    ZoneId zone = resolveZoneId(timezone);
+    LocalDate targetDate = LocalDate.now(zone);
 
-    var summary = nutritionTrackingService.dailySummary(userId, LocalDate.now());
+    OffsetDateTime start = targetDate.atStartOfDay(zone).toOffsetDateTime();
+    OffsetDateTime end = targetDate.plusDays(1).atStartOfDay(zone).toOffsetDateTime();
 
-    // Get today's meals
-    LocalDate today = LocalDate.now();
-    OffsetDateTime start = today.atStartOfDay().atOffset(ZoneOffset.UTC);
-    OffsetDateTime end = start.plusDays(1);
-    List<MealLog> todayMeals = mealLogRepository
+    List<MealLog> meals = mealLogRepository
         .findByUserIdAndConsumedAtBetweenOrderByConsumedAtAsc(userId, start, end);
 
-    DailySummaryResponse response = DailySummaryResponse.builder()
-        .date(today.toString())
-        .current(NutritionSummary.builder()
-            .calories(summary.calories().actual().doubleValue())
-            .protein(summary.protein().actual().doubleValue())
-            .fat(summary.fat().actual().doubleValue())
-            .carbs(summary.carbs().actual().doubleValue())
-            .build())
-        .target(NutritionSummary.builder()
-            .calories(summary.calories().target().doubleValue())
-            .protein(summary.protein().target().doubleValue())
-            .fat(summary.fat().target().doubleValue())
-            .carbs(summary.carbs().target().doubleValue())
-            .build())
-        .meals(todayMeals.stream().map(this::toSimpleMeal).collect(Collectors.toList()))
-        .healthScore(calculateHealthScore(summary))
+    int totalCalories = meals.stream()
+        .mapToInt(m -> firstNonNull(m.getTotalCalories(), m.getCalories()))
+        .sum();
+    double totalProtein = meals.stream()
+        .mapToDouble(m -> toDoubleOrZero(m.getTotalProtein(), m.getProteinGrams()))
+        .sum();
+    double totalCarbs = meals.stream()
+        .mapToDouble(m -> toDoubleOrZero(m.getTotalCarbs(), m.getCarbsGrams()))
+        .sum();
+    double totalFat = meals.stream()
+        .mapToDouble(m -> toDoubleOrZero(m.getTotalFat(), m.getFatGrams()))
+        .sum();
+
+    UserProfile profile = userProfileRepository.findByUserId(userId).orElse(null);
+    int calorieTarget = profile != null && profile.getDailyCalorieTarget() != null
+        ? profile.getDailyCalorieTarget() : DEFAULT_DAILY_CALORIES;
+    double proteinTarget = profile != null && profile.getDailyProteinTarget() != null
+        ? profile.getDailyProteinTarget() : DEFAULT_DAILY_PROTEIN;
+    double carbsTarget = profile != null && profile.getDailyCarbsTarget() != null
+        ? profile.getDailyCarbsTarget() : DEFAULT_DAILY_CARBS;
+    double fatTarget = profile != null && profile.getDailyFatTarget() != null
+        ? profile.getDailyFatTarget() : DEFAULT_DAILY_FAT;
+
+    int healthScore = calculateHealthScore(
+        totalCalories, calorieTarget,
+        totalProtein, proteinTarget,
+        totalCarbs, carbsTarget,
+        totalFat, fatTarget
+    );
+
+    TodaySummaryResponse response = TodaySummaryResponse.builder()
+        .date(targetDate.toString())
+        .timezone(zone.getId())
+        .current(new NutritionTotals(totalCalories, totalProtein, totalCarbs, totalFat))
+        .target(new NutritionTotals(calorieTarget, proteinTarget, carbsTarget, fatTarget))
+        .meals(meals.stream().map(this::toResponse).collect(Collectors.toList()))
+        .healthScore(healthScore)
         .build();
 
+    log.info("Today summary for user {} ({} meals, timezone {}): {} kcal", userId, meals.size(), zone, totalCalories);
     return ResponseEntity.ok(response);
   }
 
@@ -208,6 +250,63 @@ public class MealController {
   }
 
   // Helper methods
+
+  private ZoneId resolveZoneId(String timezone) {
+    if (timezone == null || timezone.isEmpty()) {
+      return ZoneOffset.UTC;
+    }
+
+    try {
+      return ZoneId.of(timezone);
+    } catch (Exception e) {
+      log.warn("Invalid timezone '{}', using UTC", timezone);
+      return ZoneOffset.UTC;
+    }
+  }
+
+  private int firstNonNull(Integer primary, Integer secondary) {
+    if (primary != null) {
+      return primary;
+    }
+    if (secondary != null) {
+      return secondary;
+    }
+    return 0;
+  }
+
+  private double toDoubleOrZero(BigDecimal primary, BigDecimal secondary) {
+    if (primary != null) {
+      return primary.doubleValue();
+    }
+    if (secondary != null) {
+      return secondary.doubleValue();
+    }
+    return 0.0;
+  }
+
+  private int calculateHealthScore(
+      int calories, int calorieTarget,
+      double protein, double proteinTarget,
+      double carbs, double carbsTarget,
+      double fat, double fatTarget
+  ) {
+    double[] ratios = new double[] {
+        ratio(calories, calorieTarget),
+        ratio(protein, proteinTarget),
+        ratio(carbs, carbsTarget),
+        ratio(fat, fatTarget)
+    };
+
+    double average = java.util.Arrays.stream(ratios).average().orElse(0.0);
+    return (int)Math.round(Math.max(0.0, Math.min(average * 100.0, 100.0)));
+  }
+
+  private double ratio(double value, double target) {
+    if (target <= 0) {
+      return 0.0;
+    }
+    return Math.min(value / target, 1.0);
+  }
 
   private NutritionInfo calculateTotals(List<CreateMealRequest.FoodItemRequest> items) {
     NutritionInfo total = NutritionInfo.zero();
@@ -249,46 +348,12 @@ public class MealController {
         .build();
   }
 
-  private SimpleMeal toSimpleMeal(MealLog meal) {
-    List<String> foodNames = List.of();
-    if (meal.getFoodItems() != null) {
-      try {
-        List<FoodItemResponse> items = objectMapper.readValue(
-            meal.getFoodItems(),
-            objectMapper.getTypeFactory().constructCollectionType(
-                List.class, FoodItemResponse.class)
-        );
-        foodNames = items.stream()
-            .map(FoodItemResponse::getDisplayName)
-            .collect(Collectors.toList());
-      } catch (JsonProcessingException e) {
-        log.warn("Failed to parse food items for meal {}", meal.getId());
-      }
-    }
+  // === History Log Endpoint ===
 
-    return SimpleMeal.builder()
-        .id(meal.getId())
-        .mealType(meal.getMealType())
-        .time(meal.getConsumedAt().toLocalTime().toString())
-        .calories(meal.getTotalCalories())
-        .foods(foodNames)
-        .build();
-  }
-
-  private int calculateHealthScore(NutritionTrackingService.NutritionSummary summary) {
-    double caloriesScore = Math.min(100, summary.calories().actual().divide(summary.calories().target(), 4, java.math.RoundingMode.HALF_UP).multiply(new java.math.BigDecimal("100")).doubleValue());
-    double proteinScore = Math.min(100, summary.protein().actual().divide(summary.protein().target(), 4, java.math.RoundingMode.HALF_UP).multiply(new java.math.BigDecimal("100")).doubleValue());
-    double balanceScore = 100 - Math.abs(summary.calories().percent() - 100);
-
-    return (int) ((caloriesScore + proteinScore + balanceScore) / 3);
-  }
-
-  // === New: History Log Endpoint ===
-  
   /**
    * Get user's meal history with pagination and date filtering
    * GET /api/v1/meals/history
-   * 
+   *
    * @param page Page number (0-based), default 0
    * @param size Page size, default 20
    * @param startDate Start date (ISO format: 2025-01-01), optional
@@ -304,46 +369,58 @@ public class MealController {
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
       @RequestParam(defaultValue = "consumedAt,desc") String sort
   ) {
+    if (currentUser == null) {
+      log.warn("Meal history requested without authentication");
+      return ResponseEntity.status(401).build();
+    }
+    
     UUID userId = currentUser.userId();
     log.info("Fetching meal history for user: {}, page: {}, size: {}, startDate: {}, endDate: {}",
              userId, page, size, startDate, endDate);
-    
+
     // Parse sort parameter
     String[] sortParams = sort.split(",");
     String sortField = sortParams.length > 0 ? sortParams[0] : "consumedAt";
     Sort.Direction direction = sortParams.length > 1 && sortParams[1].equalsIgnoreCase("asc")
         ? Sort.Direction.ASC
         : Sort.Direction.DESC;
-    
+
     Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
-    
+
     // Call service
     Page<MealLog> mealPage = mealHistoryService.getMealHistory(userId, startDate, endDate, pageable);
-    
+
     // Convert to response DTOs
     Page<MealResponse> responsePage = mealPage.map(this::toResponse);
-    
+
     return ResponseEntity.ok(responsePage);
   }
-  
-  // === New: Weekly Insights Endpoint ===
-  
+
+  // === Weekly Insights Endpoint ===
+
   /**
    * Get weekly nutrition insights
    * GET /api/v1/meals/insights/weekly
-   * 
-   * @param endDate End date (defaults to today), looks back 7 days
+   *
+   * @param endDate End date (defaults to today in user's timezone), looks back 7 days
+   * @param timezone User's IANA timezone (e.g., "Australia/Sydney"), defaults to UTC
    */
   @GetMapping("/insights/weekly")
-  public ResponseEntity<WeeklyInsightsResponse> getWeeklyInsights(
+  public ResponseEntity<MealInsightsService.WeeklyInsightsResponse> getWeeklyInsights(
       @AuthenticationPrincipal com.fitnessapp.backend.security.AuthenticatedUser currentUser,
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+      @RequestParam(required = false) String timezone
   ) {
+    if (currentUser == null) {
+      log.warn("Weekly insights requested without authentication");
+      return ResponseEntity.status(401).build();
+    }
+
     UUID userId = currentUser.userId();
-    log.info("Fetching weekly insights for user: {}, endDate: {}", userId, endDate);
-    
-    WeeklyInsightsResponse insights = mealInsightsService.getWeeklyInsights(userId, endDate);
-    
+    log.info("Fetching weekly insights for user: {}, endDate: {}, timezone: {}", userId, endDate, timezone);
+
+    MealInsightsService.WeeklyInsightsResponse insights = mealInsightsService.getWeeklyInsights(userId, endDate, timezone);
+
     return ResponseEntity.ok(insights);
   }
 
@@ -386,34 +463,24 @@ public class MealController {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  public static class DailySummaryResponse {
+  public static class NutritionTotals {
+    private Number calories;
+    private Double protein;
+    private Double carbs;
+    private Double fat;
+  }
+
+  @Data
+  @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class TodaySummaryResponse {
     private String date;
-    private NutritionSummary current;
-    private NutritionSummary target;
-    private List<SimpleMeal> meals;
+    private String timezone;
+    private NutritionTotals current;
+    private NutritionTotals target;
+    private List<MealResponse> meals;
     private Integer healthScore;
   }
 
-  @Data
-  @Builder
-  @NoArgsConstructor
-  @AllArgsConstructor
-  public static class NutritionSummary {
-    private Double calories;
-    private Double protein;
-    private Double fat;
-    private Double carbs;
-  }
-
-  @Data
-  @Builder
-  @NoArgsConstructor
-  @AllArgsConstructor
-  public static class SimpleMeal {
-    private Long id;
-    private String mealType;
-    private String time;
-    private Integer calories;
-    private List<String> foods;
-  }
 }

@@ -7,19 +7,17 @@
  * - Haptic feedback on reveal/delete
  * - Smooth spring animations
  * - Accessibility support
+ *
+ * Note: Swipe gestures are disabled on Web to prevent freeze issues
  */
 
 import { spacing } from '@/utils';
 import * as Haptics from 'expo-haptics';
-import React, { useRef } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import React, { useCallback, useRef } from 'react';
+import { Alert, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { IconButton } from 'react-native-paper';
-import Animated, {
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 type Props = {
   children: React.ReactNode;
@@ -39,9 +37,8 @@ export const SwipeableCard = ({
   disabled = false,
 }: Props) => {
   const swipeableRef = useRef<Swipeable>(null);
-  const progress = useSharedValue(0);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     // Close swipeable first
     swipeableRef.current?.close();
 
@@ -70,32 +67,12 @@ export const SwipeableCard = ({
       ],
       { cancelable: true }
     );
-  };
+  }, [deleteTitle, deleteMessage, deleteLabel, onDelete]);
 
-  const renderRightActions = (progressAnimatedValue: any) => {
-    progress.value = progressAnimatedValue.value;
-
-    const animatedStyle = useAnimatedStyle(() => {
-      const translateX = interpolate(
-        progressAnimatedValue.value,
-        [0, 1],
-        [80, 0]
-      );
-
-      const opacity = interpolate(
-        progressAnimatedValue.value,
-        [0, 0.5, 1],
-        [0, 0.5, 1]
-      );
-
-      return {
-        transform: [{ translateX }],
-        opacity,
-      };
-    });
-
+  // Render delete action - uses standard Animated.View which works on Web
+  const renderRightActions = useCallback(() => {
     return (
-      <Animated.View style={[styles.deleteAction, animatedStyle]}>
+      <Animated.View style={styles.deleteAction}>
         <IconButton
           icon="delete"
           iconColor="white"
@@ -106,7 +83,7 @@ export const SwipeableCard = ({
         />
       </Animated.View>
     );
-  };
+  }, [handleDelete, deleteLabel]);
 
   const handleSwipeableOpen = (direction: 'left' | 'right') => {
     if (direction === 'right') {
@@ -115,7 +92,9 @@ export const SwipeableCard = ({
     }
   };
 
-  if (disabled) {
+  // On Web or when disabled, just render children without swipe functionality
+  // This prevents gesture handler issues that cause the UI to freeze
+  if (disabled || Platform.OS === 'web') {
     return <View>{children}</View>;
   }
 

@@ -1,6 +1,7 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
@@ -24,15 +25,44 @@ import {
     GeneratedGoals,
     generateGoals,
     GenerateGoalsRequest,
+    getActiveGoal,
     GoalType,
+    saveGoal,
     Sex,
 } from '@/services/geminiApi';
 import { useGoalStatistics } from '@/services/goalsApi';
+import userApi from '@/services/userApi';
 import { BRAND_COLORS, spacing } from '@/utils';
 import { clearJWT, getUserEmail } from '@/utils/jwtStorage';
 
 export const GENERATED_GOALS_KEY = '@generated_fitness_goals';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const mapGoalTypeToFitnessGoal = (goalType: GoalType): string => {
+  switch (goalType) {
+    case 'fat_loss':
+      return 'LOSE_WEIGHT';
+    case 'muscle_gain':
+      return 'GAIN_MUSCLE';
+    case 'diabetes_control':
+      return 'MAINTAIN';
+    default:
+      return 'MAINTAIN';
+  }
+};
+
+const mapFitnessGoalToGoalType = (fitnessGoal?: string | null): GoalType => {
+  switch ((fitnessGoal || '').toUpperCase()) {
+    case 'LOSE_WEIGHT':
+      return 'fat_loss';
+    case 'GAIN_MUSCLE':
+      return 'muscle_gain';
+    case 'MAINTAIN':
+      return 'diabetes_control';
+    default:
+      return 'fat_loss';
+  }
+};
 
 // Sex selection options with cute icons
 const SEX_OPTIONS: Array<{ value: Sex; label: string; icon: string; color: string }> = [
@@ -83,6 +113,7 @@ type Step = 'sex' | 'measurements' | 'goal' | 'generating' | 'complete';
 const ProfileScreen = () => {
   const navigation = useNavigation<any>();
   const currentUser = useCurrentUser();
+  const queryClient = useQueryClient();
   const userId = currentUser.data?.userId || '';
   const stats = useGoalStatistics(userId);
 
@@ -104,6 +135,11 @@ const ProfileScreen = () => {
     loadUserEmail();
   }, []);
 
+  // Debug: Monitor showGoalsModal state changes
+  React.useEffect(() => {
+    console.log('[ProfileScreen] showGoalsModal changed to:', showGoalsModal);
+  }, [showGoalsModal]);
+
   const loadUserEmail = async () => {
     const email = await getUserEmail();
     setUserEmail(email);
@@ -111,9 +147,61 @@ const ProfileScreen = () => {
 
   const loadSavedGoals = async () => {
     try {
+      // First try to load from database (authoritative source)
+      if (userId) {
+        try {
+          const dbGoal = await getActiveGoal(userId);
+          if (dbGoal) {
+            console.log('[ProfileScreen] Loaded goal from database');
+            setGeneratedGoals(dbGoal);
+            // Also cache in AsyncStorage for offline access
+            await AsyncStorage.setItem(GENERATED_GOALS_KEY, JSON.stringify(dbGoal));
+            return;
+          }
+        } catch (dbError) {
+          console.warn('[ProfileScreen] Failed to load goal from database:', dbError);
+        }
+      }
+
+      // Fallback to AsyncStorage (for offline/quick access)
       const saved = await AsyncStorage.getItem(GENERATED_GOALS_KEY);
       if (saved) {
+        console.log('[ProfileScreen] Loaded goal from AsyncStorage');
         setGeneratedGoals(JSON.parse(saved));
+        return;
+      }
+
+      // Last resort: check if user profile has partial goals from backend
+      const profile = currentUser.data?.profile;
+      if (profile?.dailyCalorieTarget) {
+        // Reconstruct goals from backend profile (partial data)
+        const backendGoals: GeneratedGoals = {
+          goalType: mapFitnessGoalToGoalType(profile.fitnessGoal),
+          dailyCalories: {
+            target: profile.dailyCalorieTarget,
+            min: Math.round(profile.dailyCalorieTarget * 0.9),
+            max: Math.round(profile.dailyCalorieTarget * 1.1),
+            rationale: 'Restored from your saved profile',
+          },
+          macros_grams: {
+            protein_g: profile.dailyProteinTarget || 130,
+            carbs_g: profile.dailyCarbsTarget || 220,
+            fat_g: profile.dailyFatTarget || 70,
+            notes: 'Restored from your saved profile',
+          },
+          sugarLimit_g_per_day: 25,
+          fiberTarget_g_per_day: 25,
+          weeklyActivityPlan: {
+            cardio_minutes_per_week: 150,
+            strength_sessions_per_week: 3,
+            steps_per_day_target: 8000,
+            notes: '',
+          },
+          milestonesChecklist: [],
+          safetyNote: 'Goals restored from your profile. Regenerate for updated recommendations.',
+        };
+        setGeneratedGoals(backendGoals);
+        await AsyncStorage.setItem(GENERATED_GOALS_KEY, JSON.stringify(backendGoals));
       }
     } catch (error) {
       console.error('Failed to load saved goals:', error);
@@ -131,8 +219,15 @@ const ProfileScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Clear stored data
               await clearJWT();
-              // Use navigationRef to reset from root level
+              await AsyncStorage.removeItem(GENERATED_GOALS_KEY);
+
+              // Clear react-query cache
+              queryClient.clear();
+
+              // Navigate to login using the navigation service
+              // This uses the navigationRef which is connected to the root navigator
               navigateToLogin();
             } catch (error) {
               console.error('Logout failed:', error);
@@ -145,7 +240,7 @@ const ProfileScreen = () => {
   };
 
   const handleGenerateGoals = async () => {
-    if (!selectedSex || !selectedGoalType) return;
+    if (!selectedSex || !selectedGoalType || !userId) return;
 
     setStep('generating');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -163,8 +258,43 @@ const ProfileScreen = () => {
       const goals = await generateGoals(request);
       setGeneratedGoals(goals);
 
-      // Save to AsyncStorage
+      // Save to AsyncStorage for quick offline access
       await AsyncStorage.setItem(GENERATED_GOALS_KEY, JSON.stringify(goals));
+
+      // Save complete goals to database (new API)
+      try {
+        await saveGoal(userId, goals, {
+          sex: selectedSex,
+          heightCm,
+          weightKg,
+          age: 30,
+          activityLevel: 'medium',
+        });
+        console.log('[ProfileScreen] Goals saved to database successfully');
+      } catch (saveError) {
+        console.warn('[ProfileScreen] Failed to save goals to database:', saveError);
+        // Don't fail the whole operation - goals are still in AsyncStorage
+      }
+
+      // Also update UserProfile for backwards compatibility
+      try {
+        await userApi.upsertProfile({
+          heightCm,
+          weightKg,
+          fitnessGoal: mapGoalTypeToFitnessGoal(selectedGoalType),
+          dailyCalorieTarget: goals.dailyCalories.target,
+          dailyProteinTarget: goals.macros_grams.protein_g,
+          dailyCarbsTarget: goals.macros_grams.carbs_g,
+          dailyFatTarget: goals.macros_grams.fat_g,
+        });
+      } catch (profileError) {
+        console.warn('[ProfileScreen] Failed to update profile:', profileError);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['weekly-insights'] });
+      queryClient.invalidateQueries({ queryKey: ['dailyNutrition'] });
+      queryClient.invalidateQueries({ queryKey: ['current-user'] });
+      queryClient.invalidateQueries({ queryKey: ['active-goal'] });
 
       setStep('complete');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -176,19 +306,37 @@ const ProfileScreen = () => {
   };
 
   const resetGoalsModal = () => {
+    console.log('[ProfileScreen] resetGoalsModal called');
     setStep('sex');
     setSelectedSex(null);
     setHeightCm(170);
     setWeightKg(70);
     setSelectedGoalType(null);
     setShowGoalsModal(false);
+    console.log('[ProfileScreen] Modal state reset to false');
   };
 
   const handleSaveAndClose = () => {
+    console.log('[ProfileScreen] handleSaveAndClose called');
     // Goals are already saved in handleGenerateGoals
-    // Just close the modal and stay on Profile screen
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    resetGoalsModal();
+    
+    // Close modal immediately (synchronously)
+    console.log('[ProfileScreen] Closing modal immediately');
+    setShowGoalsModal(false);
+    
+    // Reset modal state and navigate in next tick
+    setTimeout(() => {
+      console.log('[ProfileScreen] Resetting modal state');
+      setStep('sex');
+      setSelectedSex(null);
+      setHeightCm(170);
+      setWeightKg(70);
+      setSelectedGoalType(null);
+      
+      console.log('[ProfileScreen] Navigating to Dashboard');
+      navigation.navigate('Dashboard');
+    }, 0);
   };
 
   const canProceedToMeasurements = selectedSex !== null;
@@ -712,7 +860,8 @@ const ProfileScreen = () => {
         </Pressable>
       </ScrollView>
 
-      {renderGoalsModal()}
+      {/* Only render Modal when it should be visible */}
+      {showGoalsModal && renderGoalsModal()}
     </SafeAreaWrapper>
   );
 };

@@ -45,9 +45,17 @@ export interface PageInfo {
   totalPages: number;
 }
 
+// Spring Page format
 export interface MealHistoryResponse {
   content: MealHistoryItem[];
-  page: PageInfo;
+  // Spring Page uses flat structure, not nested 'page' object
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
 }
 
 // ==================== Weekly Insights Types ====================

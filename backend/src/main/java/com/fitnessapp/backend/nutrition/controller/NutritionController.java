@@ -1,11 +1,9 @@
 package com.fitnessapp.backend.nutrition.controller;
 
 import java.io.IOException;
-import java.net.Authenticator;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -15,16 +13,14 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
-import com.fitnessapp.backend.nutrition.entity.MealLog;
+import com.fitnessapp.backend.nutrition.service.S3Service;
 import com.fitnessapp.backend.nutrition.service.ai.FoodRecognitionService;
 import com.fitnessapp.backend.nutrition.service.core.NutritionEngine;
 import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService;
@@ -32,15 +28,20 @@ import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService.Nut
 import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService;
 import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService.NutritionMetric;
 import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService.NutritionSummary;
-import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.security.AuthenticatedUser;
-
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Nutrition analysis and insights controller.
+ *
+ * Responsibilities:
+ * - Food image analysis (AI recognition)
+ * - Daily/weekly nutrition summaries
+ * - Nutrition insights with AI advice
+ *
+ * Note: Meal CRUD operations are handled by MealController (/api/v1/meals)
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/nutrition")
@@ -52,6 +53,7 @@ public class NutritionController {
   private final NutritionInsightService insightService;
   private final FoodRecognitionService foodRecognitionService;
   private final NutritionEngine nutritionEngine;
+  private final S3Service s3Service;
 
   /**
    * Analyze food photo and return recognized foods with nutrition info
@@ -77,6 +79,10 @@ public class NutritionController {
       throw new IllegalArgumentException("Image file is too large (max 10MB)");
     }
 
+    // Upload to S3 first so the image is available to the client/logs
+    String s3Url = s3Service.uploadFile(image);
+    log.info("Uploaded image to S3: {}", s3Url);
+
     // Use unified FoodRecognitionService with multi-provider support
     FoodRecognitionResult recognitionResult = foodRecognitionService.recognizeFoods(image, provider);
 
@@ -88,6 +94,7 @@ public class NutritionController {
         .items(recognitionResult.getItems())
         .totalNutrition(totalNutrition)
         .suggestedMealType(recognitionResult.getMealType())
+        .imageUrl(s3Url)
         .build();
 
     log.info("Successfully analyzed food image: {} items recognized, total calories: {}",
@@ -103,34 +110,6 @@ public class NutritionController {
   @GetMapping("/providers")
   public ResponseEntity<List<FoodRecognitionService.ProviderInfo>> getAvailableProviders() {
     return ResponseEntity.ok(foodRecognitionService.getAvailableProviders());
-  }
-
-  @PostMapping("/meals")
-  public ResponseEntity<MealLogResponse> logMeal(@Valid @RequestBody LogMealRequest request,
-    @AuthenticationPrincipal AuthenticatedUser currentUser) {
-    // Always use JWT-authenticated user - ignore any userId in request body for security (prevents IDOR)
-    UUID userUuid = (currentUser != null) ? currentUser.userId()
-        : parseUserId("default-user");  // Dev-friendly fallback for unauthenticated testing
-
-    MealLog entity = MealLog.builder()
-        .userId(userUuid)
-        .mealPlanId(request.mealPlanId())
-        .mealDay(request.mealDay())
-        .mealType(request.mealType())
-        .recipeId(request.recipeId())
-        .recipeName(request.recipeName())
-        .calories(request.calories())
-        .proteinGrams(request.protein() != null ? java.math.BigDecimal.valueOf(request.protein()) : null)
-        .carbsGrams(request.carbs() != null ? java.math.BigDecimal.valueOf(request.carbs()) : null)
-        .fatGrams(request.fat() != null ? java.math.BigDecimal.valueOf(request.fat()) : null)
-        .consumedAt(request.consumedAt())
-        .notes(request.notes())
-        .imageUrl(request.imageUrl())
-        .build();
-    MealLog saved = trackingService.logMeal(entity);
-    OffsetDateTime consumedAt = Optional.ofNullable(saved.getConsumedAt()).orElse(OffsetDateTime.now());
-    insightService.invalidateIfChanged(userUuid, consumedAt.toLocalDate());
-    return ResponseEntity.ok(toResponse(saved));
   }
 
   @GetMapping("/summary/daily")
@@ -165,54 +144,19 @@ public class NutritionController {
   }
 
   /**
-   * Parse userId from string, handling the special "default-user" case.
-   * This allows the frontend to work without proper authentication by using a well-known UUID.
-   * 
-   * @param userId String representation of user ID or "default-user"
-   * @return UUID for the user
-   * @throws IllegalArgumentException if the string is not a valid UUID and not "default-user"
+   * Resolve userId from JWT token (single source of truth).
+   * The userId query parameter is ignored - only JWT authentication is used.
+   *
+   * @param userId Ignored query parameter (kept for API compatibility)
+   * @param currentUser Authenticated user from JWT token
+   * @return UUID for the authenticated user
+   * @throws IllegalStateException if user is not authenticated
    */
-  private UUID parseUserId(String userId) {
-    String cleaned = userId == null ? "" : userId.trim().replace("\"", "");
-    if ("default-user".equals(cleaned)) {
-      // Use a well-known UUID for the default user
-      // This is UUID("00000000-0000-0000-0000-000000000001")
-      return UUID.fromString("00000000-0000-0000-0000-000000000001");
-    }
-    try {
-      return UUID.fromString(cleaned);
-    } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("Invalid userId format: " + userId + ". Must be a valid UUID or 'default-user'", e);
-    }
-  }
-
   private UUID resolveUserId(String userId, AuthenticatedUser currentUser) {
-    if (userId != null && !userId.isBlank()) {
-      return parseUserId(userId);
+    if (currentUser == null || currentUser.userId() == null) {
+      throw new IllegalStateException("Authentication required. Please provide a valid JWT token.");
     }
-    if (currentUser != null && currentUser.userId() != null) {
-      return currentUser.userId();
-    }
-    // Dev-friendly fallback for unauthenticated usage
-    return parseUserId("default-user");
-  }
-
-  private MealLogResponse toResponse(MealLog log) {
-    return new MealLogResponse(
-        log.getId(),
-        log.getUserId(),
-        log.getMealPlanId(),
-        log.getMealDay(),
-        log.getMealType(),
-        log.getRecipeId(),
-        log.getRecipeName(),
-        log.getConsumedAt(),
-        log.getCalories(),
-        log.getProteinGrams() != null ? log.getProteinGrams().doubleValue() : null,
-        log.getCarbsGrams() != null ? log.getCarbsGrams().doubleValue() : null,
-        log.getFatGrams() != null ? log.getFatGrams().doubleValue() : null,
-        log.getNotes(),
-        log.getImageUrl());
+    return currentUser.userId();
   }
 
   private NutritionSummaryResponse toSummaryResponse(NutritionSummary summary) {
@@ -231,42 +175,33 @@ public class NutritionController {
     return new NutritionMetricResponse(metric.actual().doubleValue(), metric.target().doubleValue(), metric.percent());
   }
 
-  public record LogMealRequest(
-      // Note: userId is intentionally NOT accepted here for security (prevents IDOR attacks)
-      // User identity is always derived from JWT token
-      Long mealPlanId,
-      Integer mealDay,
-      @NotNull @Size(max = 32) String mealType,
-      UUID recipeId,
-      @Size(max = 255) String recipeName,
-      Integer calories,
-      Double protein,
-      Double carbs,
-      Double fat,
-      OffsetDateTime consumedAt,
-      @Size(max = 500) String notes,
-      @Size(max = 500) String imageUrl
-  ) {}
-
-  public record MealLogResponse(Long id,
-                                UUID userId,
-                                Long mealPlanId,
-                                Integer mealDay,
-                                String mealType,
-                                UUID recipeId,
-                                String recipeName,
-                                OffsetDateTime consumedAt,
-                                Integer calories,
-                                Double protein,
-                                Double carbs,
-                                Double fat,
-                                String notes,
-                                String imageUrl) {}
-
   private NutritionInsightResponse toInsightResponse(NutritionInsight insight) {
+    // Convert MealLog entities to MealLogResponse DTOs
+    List<MealLogResponse> logResponses = insight.logs().stream()
+        .map(log -> new MealLogResponse(
+            log.getId(),
+            log.getUserId().toString(),
+            log.getMealPlanId(),
+            log.getMealDay(),
+            log.getMealType(),
+            log.getRecipeId() != null ? log.getRecipeId().toString() : null,
+            log.getRecipeName(),
+            log.getConsumedAt(),
+            log.getTotalCalories() != null ? log.getTotalCalories() : log.getCalories(),
+            log.getTotalProtein() != null ? log.getTotalProtein().doubleValue() :
+                (log.getProteinGrams() != null ? log.getProteinGrams().doubleValue() : null),
+            log.getTotalCarbs() != null ? log.getTotalCarbs().doubleValue() :
+                (log.getCarbsGrams() != null ? log.getCarbsGrams().doubleValue() : null),
+            log.getTotalFat() != null ? log.getTotalFat().doubleValue() :
+                (log.getFatGrams() != null ? log.getFatGrams().doubleValue() : null),
+            log.getNotes(),
+            log.getImageUrl()
+        ))
+        .toList();
+
     return new NutritionInsightResponse(
         toSummaryResponse(insight.summary()),
-        insight.logs().stream().map(this::toResponse).toList(),
+        logResponses,
         insight.aiAdvice());
   }
 
@@ -282,8 +217,24 @@ public class NutritionController {
   public record NutritionMetricResponse(double actual, double target, double percent) {}
 
   public record NutritionInsightResponse(NutritionSummaryResponse summary,
-                                         java.util.List<MealLogResponse> logs,
+                                         List<MealLogResponse> logs,
                                          String aiAdvice) {}
+
+  public record MealLogResponse(
+      Long id,
+      String userId,
+      Long mealPlanId,
+      Integer mealDay,
+      String mealType,
+      String recipeId,
+      String recipeName,
+      OffsetDateTime consumedAt,
+      Integer calories,
+      Double protein,
+      Double carbs,
+      Double fat,
+      String notes,
+      String imageUrl) {}
 
   @lombok.Data
   @lombok.Builder
@@ -293,9 +244,9 @@ public class NutritionController {
     private java.util.List<com.fitnessapp.backend.nutrition.dto.RecognizedFood> items;
     private NutritionInfo totalNutrition;
     private String suggestedMealType;
+    private String imageUrl;
   }
 }
-
 
 
 

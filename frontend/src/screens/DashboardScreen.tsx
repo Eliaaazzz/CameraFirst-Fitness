@@ -62,16 +62,15 @@ const DashboardScreen = () => {
   }, []);
 
   // Load goals on focus (so it updates after generation)
+  // Note: We intentionally exclude stats from dependencies to prevent infinite loops
+  // stats.refetch is a stable function reference from react-query
   useFocusEffect(
     useCallback(() => {
-
       loadGeneratedGoals();
       refresh();
-
-      if (stats && stats.refetch) {
-        stats.refetch();
-      }
-    }, [loadGeneratedGoals, refresh, stats])
+      stats.refetch();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loadGeneratedGoals, refresh])
   );
 
   const handleRefresh = async () => {
@@ -177,7 +176,10 @@ const DashboardScreen = () => {
   const carbsGoal = generatedGoals?.macros_grams.carbs_g || nutritionData.carbs.goal;
   const fatGoal = generatedGoals?.macros_grams.fat_g || nutritionData.fat.goal;
   const netCarbsGoal = nutritionData.netCarbs?.goal || Math.max(0, carbsGoal - 25);
-  const sugarGoal = generatedGoals?.sugarLimit_g_per_day || nutritionData.sugar?.goal || 25;
+  const normalizedFitnessGoal = generatedGoals?.goalType || currentUser.data?.profile?.fitnessGoal?.toString().toLowerCase();
+  const isBloodSugarGoal = normalizedFitnessGoal === 'blood_sugar_control'
+    || normalizedFitnessGoal === 'diabetes_control'
+    || normalizedFitnessGoal === 'maintain';
 
   // Calculate progress percentage
   const calorieProgress = calorieGoal > 0
@@ -389,9 +391,9 @@ const DashboardScreen = () => {
           {/* Macros */}
           <View style={styles.macrosContainer}>
             {renderMacroBar('Protein', nutritionData.protein.current, proteinGoal, '#10B981')}
+            {renderMacroBar('Carbs', nutritionData.carbs.current, carbsGoal, '#F59E0B')}
             {renderMacroBar('Fat', nutritionData.fat.current, fatGoal, '#EF4444')}
-            {renderMacroBar('Net Carbs', nutritionData.netCarbs?.current || 0, netCarbsGoal, '#F59E0B')}
-            {renderMacroBar('Sugar', nutritionData.sugar?.current || 0, sugarGoal, '#EC4899')}
+            {isBloodSugarGoal && renderMacroBar('Net Carbs', nutritionData.netCarbs?.current || 0, netCarbsGoal, '#F59E0B')}
           </View>
         </Card>
 
