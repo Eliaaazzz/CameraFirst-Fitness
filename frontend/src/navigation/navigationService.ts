@@ -14,12 +14,27 @@ export function resetToScreen(screenName: string) {
         routes: [{ name: screenName }],
       })
     );
+  } else {
+    console.warn('[NavigationService] Navigation ref not ready, retrying...');
+    // Retry after a short delay
+    setTimeout(() => {
+      if (navigationRef.isReady()) {
+        navigationRef.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: screenName }],
+          })
+        );
+      }
+    }, 100);
   }
 }
 
 /**
  * Navigate to Login screen after logout
+ * Goes directly to Login instead of Splash to avoid auth check loop
  */
 export function navigateToLogin() {
-  resetToScreen('Splash');
+  console.log('[NavigationService] Navigating to Login screen');
+  resetToScreen('Login');
 }

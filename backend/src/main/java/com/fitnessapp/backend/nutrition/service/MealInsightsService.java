@@ -1,10 +1,10 @@
 package com.fitnessapp.backend.nutrition.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -12,25 +12,19 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fitnessapp.backend.nutrition.dto.WeeklyInsightsResponse;
-import com.fitnessapp.backend.nutrition.dto.WeeklyInsightsResponse.CaloriesData;
-import com.fitnessapp.backend.nutrition.dto.WeeklyInsightsResponse.DailyData;
-import com.fitnessapp.backend.nutrition.dto.WeeklyInsightsResponse.DateRange;
-import com.fitnessapp.backend.nutrition.dto.WeeklyInsightsResponse.MacroDetail;
-import com.fitnessapp.backend.nutrition.dto.WeeklyInsightsResponse.MacrosDistribution;
-import com.fitnessapp.backend.nutrition.dto.WeeklyInsightsResponse.SugarWarning;
-import com.fitnessapp.backend.nutrition.dto.WeeklyInsightsResponse.Summary;
-import com.fitnessapp.backend.nutrition.dto.WeeklyInsightsResponse.UserGoal;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
+import com.fitnessapp.backend.nutrition.repository.MealLogRepository.DailyNutritionSummary;
+import com.fitnessapp.backend.nutrition.repository.MealLogRepository.WeeklySummary;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
 
-import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Service for meal insights and analytics
+ * Service for generating weekly nutrition insights
  */
 @Service
 @Slf4j
@@ -40,212 +34,223 @@ public class MealInsightsService {
 
   private final MealLogRepository mealLogRepository;
   private final UserProfileRepository userProfileRepository;
-  
-  private static final int DAYS_IN_WEEK = 7;
-  private static final BigDecimal RECOMMENDED_DAILY_SUGAR_LIMIT = new BigDecimal("50.0");
-  
-  // Calorie conversion factors (calories per gram)
-  private static final BigDecimal CALORIES_PER_GRAM_PROTEIN = new BigDecimal("4");
-  private static final BigDecimal CALORIES_PER_GRAM_CARBS = new BigDecimal("4");
-  private static final BigDecimal CALORIES_PER_GRAM_FAT = new BigDecimal("9");
+
+  @PersistenceContext
+  private EntityManager entityManager;
+
+  // Default targets
+  private static final int DEFAULT_DAILY_CALORIES = 2000;
+  private static final int DEFAULT_DAILY_PROTEIN = 130;
+  private static final int DEFAULT_DAILY_CARBS = 220;
+  private static final int DEFAULT_DAILY_FAT = 70;
+  private static final int DEFAULT_DAILY_SUGAR = 25;
 
   /**
-   * Get weekly nutrition insights for a user
-   * 
+   * Generate weekly insights for a user
+   *
    * @param userId User ID
-   * @param endDate End date (defaults to today), will look back 7 days
-   * @return Weekly insights data
+   * @param endDate End date (defaults to today in user's timezone), looks back 7 days
+   * @param timezone User's IANA timezone (e.g., "Australia/Sydney"), defaults to UTC
+   * @return Weekly insights response
    */
-  public WeeklyInsightsResponse getWeeklyInsights(UUID userId, LocalDate endDate) {
-    log.info("Generating weekly insights for user: {}, endDate: {}", userId, endDate);
+  public WeeklyInsightsResponse getWeeklyInsights(UUID userId, LocalDate endDate, String timezone) {
+    // Parse timezone, default to UTC if not provided or invalid
+    ZoneId zone = ZoneOffset.UTC;
+    if (timezone != null && !timezone.isEmpty()) {
+      try {
+        zone = ZoneId.of(timezone);
+      } catch (Exception e) {
+        log.warn("Invalid timezone '{}', using UTC", timezone);
+      }
+    }
     
-    // Get user profile for goals
-    UserProfile profile = userProfileRepository.findByUserId(userId)
-        .orElseThrow(() -> new EntityNotFoundException("User profile not found: " + userId));
-    
-    // Calculate date range (last 7 days)
-    LocalDate end = endDate != null ? endDate : LocalDate.now();
-    LocalDate start = end.minusDays(DAYS_IN_WEEK - 1);
-    
-    OffsetDateTime startDateTime = start.atStartOfDay().atOffset(ZoneOffset.UTC);
-    OffsetDateTime endDateTime = end.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC);
-    
-    // Fetch weekly summary
-    MealLogRepository.WeeklySummary weeklySummary = 
-        mealLogRepository.getWeeklySummary(userId, startDateTime, endDateTime);
-    
-    // Fetch daily summaries
-    List<MealLogRepository.DailyNutritionSummary> dailySummaries = 
-        mealLogRepository.getDailyNutritionSummary(userId, startDateTime, endDateTime);
-    
-    // Build response
-    return buildWeeklyInsightsResponse(
-        profile, 
-        weeklySummary, 
-        dailySummaries, 
-        start, 
-        end
+    LocalDate end = endDate != null ? endDate : LocalDate.now(zone);
+    LocalDate start = end.minusDays(6); // 7 days including end date
+
+    log.info("Generating weekly insights for user: {}, from {} to {} (timezone: {})", userId, start, end, zone);
+
+    // Calculate date range in user's timezone
+    OffsetDateTime startDateTime = start.atStartOfDay(zone).toOffsetDateTime();
+    OffsetDateTime endDateTime = end.plusDays(1).atStartOfDay(zone).toOffsetDateTime();
+
+    // Get user goals
+    UserProfile profile = fetchFreshUserProfile(userId);
+    int calorieTarget = profile != null && profile.getDailyCalorieTarget() != null
+        ? profile.getDailyCalorieTarget() : DEFAULT_DAILY_CALORIES;
+    int proteinTarget = profile != null && profile.getDailyProteinTarget() != null
+        ? profile.getDailyProteinTarget() : DEFAULT_DAILY_PROTEIN;
+    int carbsTarget = profile != null && profile.getDailyCarbsTarget() != null
+        ? profile.getDailyCarbsTarget() : DEFAULT_DAILY_CARBS;
+    int fatTarget = profile != null && profile.getDailyFatTarget() != null
+        ? profile.getDailyFatTarget() : DEFAULT_DAILY_FAT;
+
+    // Get weekly summary
+    WeeklySummary weeklySummary = mealLogRepository.getWeeklySummary(userId, startDateTime, endDateTime);
+
+    long totalMeals = weeklySummary != null && weeklySummary.getTotalMeals() != null
+        ? weeklySummary.getTotalMeals() : 0;
+    long totalCalories = weeklySummary != null && weeklySummary.getTotalCalories() != null
+        ? weeklySummary.getTotalCalories() : 0;
+    double totalProtein = weeklySummary != null && weeklySummary.getTotalProtein() != null
+        ? weeklySummary.getTotalProtein().doubleValue() : 0;
+    double totalCarbs = weeklySummary != null && weeklySummary.getTotalCarbs() != null
+        ? weeklySummary.getTotalCarbs().doubleValue() : 0;
+    double totalFat = weeklySummary != null && weeklySummary.getTotalFat() != null
+        ? weeklySummary.getTotalFat().doubleValue() : 0;
+
+    double avgDailyCalories = totalCalories / 7.0;
+    double avgProtein = totalProtein / 7.0;
+    double avgCarbs = totalCarbs / 7.0;
+    double avgFat = totalFat / 7.0;
+    double avgSugar = 0; // We don't track sugar currently
+
+    // Get daily breakdown
+    List<DailyNutritionSummary> dailySummaries = mealLogRepository.getDailyNutritionSummary(
+        userId, startDateTime, endDateTime);
+
+    List<DailyData> dailyData = new ArrayList<>();
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d");
+
+    for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+      final LocalDate currentDate = date;
+      DailyNutritionSummary daySummary = dailySummaries.stream()
+          .filter(s -> s.getDate() != null && s.getDate().equals(currentDate))
+          .findFirst()
+          .orElse(null);
+
+      long dayCalories = daySummary != null && daySummary.getTotalCalories() != null
+          ? daySummary.getTotalCalories() : 0;
+      double dayProtein = daySummary != null && daySummary.getTotalProtein() != null
+          ? daySummary.getTotalProtein().doubleValue() : 0;
+      double dayCarbs = daySummary != null && daySummary.getTotalCarbs() != null
+          ? daySummary.getTotalCarbs().doubleValue() : 0;
+      double dayFat = daySummary != null && daySummary.getTotalFat() != null
+          ? daySummary.getTotalFat().doubleValue() : 0;
+      long mealCount = daySummary != null && daySummary.getMealCount() != null
+          ? daySummary.getMealCount() : 0;
+
+      double percentage = calorieTarget > 0 ? (dayCalories * 100.0 / calorieTarget) : 0;
+
+      dailyData.add(new DailyData(
+          date.format(formatter),
+          new CaloriesData(dayCalories, calorieTarget, percentage),
+          dayProtein,
+          dayCarbs,
+          dayFat,
+          0, // sugar
+          mealCount
+      ));
+    }
+
+    // Calculate macros distribution
+    double totalMacroCalories = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9);
+
+    double proteinPercentage = totalMacroCalories > 0 ? (totalProtein * 4 * 100 / totalMacroCalories) : 0;
+    double carbsPercentage = totalMacroCalories > 0 ? (totalCarbs * 4 * 100 / totalMacroCalories) : 0;
+    double fatPercentage = totalMacroCalories > 0 ? (totalFat * 9 * 100 / totalMacroCalories) : 0;
+
+    MacrosDistribution macros = new MacrosDistribution(
+        new MacroDetail(totalProtein, proteinPercentage, (long)(totalProtein * 4)),
+        new MacroDetail(totalCarbs, carbsPercentage, (long)(totalCarbs * 4)),
+        new MacroDetail(totalFat, fatPercentage, (long)(totalFat * 9))
+    );
+
+    // Sugar warning (placeholder - we don't track sugar)
+    SugarWarning sugarWarning = new SugarWarning(
+        false,
+        0,
+        DEFAULT_DAILY_SUGAR,
+        0,
+        ""
+    );
+
+    // User goals
+    UserGoal userGoal = new UserGoal(
+        calorieTarget,
+        proteinTarget,
+        carbsTarget,
+        fatTarget
+    );
+
+    return new WeeklyInsightsResponse(
+        new DateRange(start.toString(), end.toString()),
+        new Summary(totalMeals, totalCalories, avgDailyCalories, avgProtein, avgCarbs, avgFat, avgSugar),
+        dailyData,
+        macros,
+        sugarWarning,
+        userGoal
     );
   }
-  
-  private WeeklyInsightsResponse buildWeeklyInsightsResponse(
-      UserProfile profile,
-      MealLogRepository.WeeklySummary weeklySummary,
-      List<MealLogRepository.DailyNutritionSummary> dailySummaries,
-      LocalDate start,
-      LocalDate end
-  ) {
-    // Extract totals (with null safety)
-    long totalMeals = weeklySummary.getTotalMeals() != null ? weeklySummary.getTotalMeals() : 0L;
-    long totalCalories = weeklySummary.getTotalCalories() != null ? weeklySummary.getTotalCalories() : 0L;
-    BigDecimal totalProtein = weeklySummary.getTotalProtein() != null ? weeklySummary.getTotalProtein() : BigDecimal.ZERO;
-    BigDecimal totalCarbs = weeklySummary.getTotalCarbs() != null ? weeklySummary.getTotalCarbs() : BigDecimal.ZERO;
-    BigDecimal totalFat = weeklySummary.getTotalFat() != null ? weeklySummary.getTotalFat() : BigDecimal.ZERO;
-    
-    // Calculate averages
-    double avgDailyCalories = totalCalories / (double) DAYS_IN_WEEK;
-    double avgProtein = totalProtein.divide(new BigDecimal(DAYS_IN_WEEK), 2, RoundingMode.HALF_UP).doubleValue();
-    double avgCarbs = totalCarbs.divide(new BigDecimal(DAYS_IN_WEEK), 2, RoundingMode.HALF_UP).doubleValue();
-    double avgFat = totalFat.divide(new BigDecimal(DAYS_IN_WEEK), 2, RoundingMode.HALF_UP).doubleValue();
-    
-    // Build daily data
-    List<DailyData> dailyDataList = buildDailyDataList(dailySummaries, profile);
-    
-    // Build macros distribution
-    MacrosDistribution macrosDistribution = buildMacrosDistribution(totalProtein, totalCarbs, totalFat);
-    
-    // Build sugar warning (placeholder for now)
-    SugarWarning sugarWarning = buildSugarWarning();
-    
-    // Build user goals
-    UserGoal userGoal = UserGoal.builder()
-        .dailyCalorieTarget(profile.getDailyCalorieTarget())
-        .dailyProteinTarget(profile.getDailyProteinTarget())
-        .dailyCarbsTarget(profile.getDailyCarbsTarget())
-        .dailyFatTarget(profile.getDailyFatTarget())
-        .build();
-    
-    return WeeklyInsightsResponse.builder()
-        .dateRange(DateRange.builder()
-            .startDate(start.toString())
-            .endDate(end.toString())
-            .build())
-        .summary(Summary.builder()
-            .totalMeals(totalMeals)
-            .totalCalories(totalCalories)
-            .averageDailyCalories(Math.round(avgDailyCalories * 10.0) / 10.0)
-            .averageProtein(Math.round(avgProtein * 10.0) / 10.0)
-            .averageCarbs(Math.round(avgCarbs * 10.0) / 10.0)
-            .averageFat(Math.round(avgFat * 10.0) / 10.0)
-            .averageSugar(0.0) // TODO: Add sugar field
-            .build())
-        .dailyData(dailyDataList)
-        .macrosDistribution(macrosDistribution)
-        .sugarWarning(sugarWarning)
-        .userGoal(userGoal)
-        .build();
-  }
-  
-  private List<DailyData> buildDailyDataList(
-      List<MealLogRepository.DailyNutritionSummary> summaries,
-      UserProfile profile
-  ) {
-    List<DailyData> dailyDataList = new ArrayList<>();
-    Integer calorieTarget = profile.getDailyCalorieTarget() != null ? profile.getDailyCalorieTarget() : 2000;
-    
-    for (MealLogRepository.DailyNutritionSummary summary : summaries) {
-      long actualCalories = summary.getTotalCalories() != null ? summary.getTotalCalories() : 0L;
-      double percentage = calorieTarget > 0 ? (actualCalories / (double) calorieTarget) * 100.0 : 0.0;
-      
-      DailyData dailyData = DailyData.builder()
-          .date(summary.getDate().toString())
-          .calories(CaloriesData.builder()
-              .actual((int) actualCalories)
-              .target(calorieTarget)
-              .percentage(Math.round(percentage * 10.0) / 10.0)
-              .build())
-          .protein(summary.getTotalProtein() != null ? Math.round(summary.getTotalProtein().doubleValue() * 10.0) / 10.0 : 0.0)
-          .carbs(summary.getTotalCarbs() != null ? Math.round(summary.getTotalCarbs().doubleValue() * 10.0) / 10.0 : 0.0)
-          .fat(summary.getTotalFat() != null ? Math.round(summary.getTotalFat().doubleValue() * 10.0) / 10.0 : 0.0)
-          .sugar(0.0) // TODO: Add sugar field
-          .mealCount(summary.getMealCount() != null ? summary.getMealCount().intValue() : 0)
-          .build();
-      
-      dailyDataList.add(dailyData);
+
+  /**
+   * Fetch the latest user profile from the database to avoid stale goal values.
+   */
+  private UserProfile fetchFreshUserProfile(UUID userId) {
+    UserProfile profile = userProfileRepository.findByUserId(userId).orElse(null);
+    if (profile != null) {
+      try {
+        entityManager.refresh(profile);
+      } catch (IllegalArgumentException e) {
+        log.warn("Failed to refresh user profile for {}, returning loaded entity", userId);
+      }
     }
-    
-    return dailyDataList;
+    return profile;
   }
-  
-  private MacrosDistribution buildMacrosDistribution(
-      BigDecimal totalProtein, 
-      BigDecimal totalCarbs, 
-      BigDecimal totalFat
-  ) {
-    // Calculate calories from each macro
-    BigDecimal caloriesFromProtein = totalProtein.multiply(CALORIES_PER_GRAM_PROTEIN);
-    BigDecimal caloriesFromCarbs = totalCarbs.multiply(CALORIES_PER_GRAM_CARBS);
-    BigDecimal caloriesFromFat = totalFat.multiply(CALORIES_PER_GRAM_FAT);
-    
-    // Calculate total calories
-    BigDecimal totalCalories = caloriesFromProtein
-        .add(caloriesFromCarbs)
-        .add(caloriesFromFat);
-    
-    // Prevent division by zero
-    if (totalCalories.compareTo(BigDecimal.ZERO) == 0) {
-      return MacrosDistribution.builder()
-          .protein(MacroDetail.builder().grams(0.0).percentage(0.0).caloriesFromMacro(0).build())
-          .carbs(MacroDetail.builder().grams(0.0).percentage(0.0).caloriesFromMacro(0).build())
-          .fat(MacroDetail.builder().grams(0.0).percentage(0.0).caloriesFromMacro(0).build())
-          .build();
-    }
-    
-    // Calculate percentages
-    double proteinPercent = caloriesFromProtein
-        .divide(totalCalories, 4, RoundingMode.HALF_UP)
-        .multiply(new BigDecimal("100"))
-        .doubleValue();
-    
-    double carbsPercent = caloriesFromCarbs
-        .divide(totalCalories, 4, RoundingMode.HALF_UP)
-        .multiply(new BigDecimal("100"))
-        .doubleValue();
-    
-    double fatPercent = caloriesFromFat
-        .divide(totalCalories, 4, RoundingMode.HALF_UP)
-        .multiply(new BigDecimal("100"))
-        .doubleValue();
-    
-    return MacrosDistribution.builder()
-        .protein(MacroDetail.builder()
-            .grams(Math.round(totalProtein.doubleValue() * 10.0) / 10.0)
-            .percentage(Math.round(proteinPercent * 10.0) / 10.0)
-            .caloriesFromMacro(caloriesFromProtein.intValue())
-            .build())
-        .carbs(MacroDetail.builder()
-            .grams(Math.round(totalCarbs.doubleValue() * 10.0) / 10.0)
-            .percentage(Math.round(carbsPercent * 10.0) / 10.0)
-            .caloriesFromMacro(caloriesFromCarbs.intValue())
-            .build())
-        .fat(MacroDetail.builder()
-            .grams(Math.round(totalFat.doubleValue() * 10.0) / 10.0)
-            .percentage(Math.round(fatPercent * 10.0) / 10.0)
-            .caloriesFromMacro(caloriesFromFat.intValue())
-            .build())
-        .build();
-  }
-  
-  private SugarWarning buildSugarWarning() {
-    // TODO: Current meal_log table doesn't have sugar field
-    // This returns placeholder data until sugar tracking is implemented
-    
-    return SugarWarning.builder()
-        .hasWarning(false)
-        .averageDailySugar(0.0)
-        .recommendedLimit(RECOMMENDED_DAILY_SUGAR_LIMIT.doubleValue())
-        .daysExceeded(0)
-        .message("Sugar tracking not available yet. Please update your meal logs.")
-        .build();
-  }
+
+  // Response DTOs
+  public record WeeklyInsightsResponse(
+      DateRange dateRange,
+      Summary summary,
+      List<DailyData> dailyData,
+      MacrosDistribution macrosDistribution,
+      SugarWarning sugarWarning,
+      UserGoal userGoal
+  ) {}
+
+  public record DateRange(String startDate, String endDate) {}
+
+  public record Summary(
+      long totalMeals,
+      long totalCalories,
+      double averageDailyCalories,
+      double averageProtein,
+      double averageCarbs,
+      double averageFat,
+      double averageSugar
+  ) {}
+
+  public record DailyData(
+      String date,
+      CaloriesData calories,
+      double protein,
+      double carbs,
+      double fat,
+      double sugar,
+      long mealCount
+  ) {}
+
+  public record CaloriesData(long actual, long target, double percentage) {}
+
+  public record MacrosDistribution(
+      MacroDetail protein,
+      MacroDetail carbs,
+      MacroDetail fat
+  ) {}
+
+  public record MacroDetail(double grams, double percentage, long caloriesFromMacro) {}
+
+  public record SugarWarning(
+      boolean hasWarning,
+      double averageDailySugar,
+      int recommendedLimit,
+      int daysExceeded,
+      String message
+  ) {}
+
+  public record UserGoal(
+      Integer dailyCalorieTarget,
+      Integer dailyProteinTarget,
+      Integer dailyCarbsTarget,
+      Integer dailyFatTarget
+  ) {}
 }

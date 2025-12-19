@@ -46,6 +46,7 @@ export interface FoodRecognitionResponse {
   items: DetectedFood[];
   totalNutrition: TotalNutrition;
   suggestedMealType?: string;
+  imageUrl?: string;
 }
 
 // Backend API types (matching Java @JsonProperty snake_case)
@@ -73,6 +74,7 @@ interface BackendFoodRecognitionResponse {
   items: BackendRecognizedFood[];
   totalNutrition: BackendNutritionInfo;
   suggestedMealType?: string;
+  imageUrl?: string;
 }
 
 export interface SaveMealPayload {
@@ -81,6 +83,7 @@ export interface SaveMealPayload {
   totalNutrition: TotalNutrition;
   mealType?: string;
   notes?: string;
+  imageUrl?: string;
 }
 
 // When userId is 'me', the backend extracts user from JWT token
@@ -119,7 +122,7 @@ const logMeal = async (userId: string, payload: LogMealPayload): Promise<MealLog
 
   console.log('[NutritionApi] logMeal body:', JSON.stringify(body, null, 2));
 
-  return await api.post<MealLogResponse>('/api/v1/nutrition/meals', body);
+  return await api.post<MealLogResponse>('/api/v1/meals', body);
 };
 
 const getDailySummary = async (userId: string, date?: string): Promise<NutritionSummaryResponse> => {
@@ -198,6 +201,7 @@ const transformBackendResponse = (backendResponse: BackendFoodRecognitionRespons
     items,
     totalNutrition,
     suggestedMealType: backendResponse.suggestedMealType,
+    imageUrl: backendResponse.imageUrl,
   };
 };
 
@@ -249,13 +253,13 @@ const saveMealFromImage = async (payload: SaveMealPayload): Promise<MealLogRespo
     mealType: payload.mealType || 'other',
     items: foodItems,
     notes: payload.notes || `Detected: ${payload.items.map(f => f.name).join(', ')}`.slice(0, 500),
-    imageUrl: null, // Local file URIs are not accessible server-side
+    imageUrl: payload.imageUrl || null, // Use uploaded image URL when available
   };
 
   console.log('[NutritionApi] Saving meal with payload:', JSON.stringify(mealPayload, null, 2));
 
-  // POST to /api/v1/nutrition/meals - accepts items array and extracts userId from JWT
-  return await api.post<MealLogResponse>('/api/v1/nutrition/meals', mealPayload);
+  // POST to /api/v1/meals - accepts items array and extracts userId from JWT
+  return await api.post<MealLogResponse>('/api/v1/meals', mealPayload);
 };
 
 export default {

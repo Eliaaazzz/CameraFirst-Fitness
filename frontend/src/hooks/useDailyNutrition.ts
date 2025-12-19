@@ -1,11 +1,12 @@
 import { useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import nutritionApi from '@/services/nutritionApi';
+import mealApi from '@/services/mealApi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { GeneratedGoals } from '@/services/geminiApi';
 
 // Storage key for generated goals (shared with ProfileScreen)
-const GENERATED_GOALS_KEY = '@generated_goals';
+const GENERATED_GOALS_KEY = '@generated_fitness_goals';
 
 export interface DailyNutritionData {
   calories: number;
@@ -42,30 +43,31 @@ export function useDailyNutrition() {
         console.warn('Failed to load generated goals:', e);
       }
 
-      // Fetch both summary and insight to get meals
-      // Use actual user from JWT - the backend extracts user from token
-      const [summary, insight] = await Promise.all([
+      const [summary, todaySummary] = await Promise.all([
         nutritionApi.getDailySummary('me').catch(() => null),
-        nutritionApi.getWeeklyInsight('me').catch(() => null),
+        mealApi.getTodaySummary().catch(() => null),
       ]);
 
-      // Filter meals to today only
-      const today = new Date().toISOString().split('T')[0];
-      const todayMeals = (insight?.logs || [])
-        .filter((m: any) => m.consumedAt?.startsWith(today))
-        .map((m: any) => ({
-          id: m.id?.toString() || Math.random().toString(),
-          name: m.recipeName || 'Unknown',
-          calories: m.calories || 0,
-          imageUrl: m.imageUrl || undefined,
-          consumedAt: m.consumedAt,
-        }));
+      const todayMeals = (todaySummary?.meals || []).map((meal) => {
+        const foodNames = meal.foodItems?.map((item) => item.displayName).filter(Boolean) || [];
+        const displayName = foodNames.length > 0
+          ? foodNames.join(', ')
+          : meal.mealType || 'Meal';
+
+        return {
+          id: meal.id?.toString() || Math.random().toString(),
+          name: displayName,
+          calories: meal.totalCalories || 0,
+          imageUrl: meal.imageUrl || undefined,
+          consumedAt: meal.consumedAt,
+        };
+      });
 
       // Use generated goals if available, otherwise use backend targets or defaults
-      const calorieGoal = generatedGoals?.dailyCalories.target || summary?.calories?.target || 2100;
-      const proteinGoal = generatedGoals?.macros_grams.protein_g || summary?.protein?.target || 150;
-      const carbsGoal = generatedGoals?.macros_grams.carbs_g || summary?.carbs?.target || 200;
-      const fatGoal = generatedGoals?.macros_grams.fat_g || summary?.fat?.target || 65;
+      const calorieGoal = generatedGoals?.dailyCalories.target || todaySummary?.target?.calories || summary?.calories?.target || 2100;
+      const proteinGoal = generatedGoals?.macros_grams.protein_g || todaySummary?.target?.protein || summary?.protein?.target || 150;
+      const carbsGoal = generatedGoals?.macros_grams.carbs_g || todaySummary?.target?.carbs || summary?.carbs?.target || 200;
+      const fatGoal = generatedGoals?.macros_grams.fat_g || todaySummary?.target?.fat || summary?.fat?.target || 65;
       // Net carbs = total carbs - fiber (for diabetes/low-carb tracking)
       const fiberGoal = generatedGoals?.fiberTarget_g_per_day || 25;
       // Sugar limit from generated goals (default: 25g for general health)
@@ -73,17 +75,17 @@ export function useDailyNutrition() {
 
       // Transform backend response to our format
       // Backend returns NutritionMetricResponse with {actual, target, percent}
-      const currentCarbs = summary?.carbs?.actual || 0;
+      const currentCarbs = todaySummary?.current?.carbs || summary?.carbs?.actual || 0;
       // Note: Backend doesn't track fiber separately yet, estimate as ~10% of carbs
       const estimatedFiber = Math.round(currentCarbs * 0.1);
       // Sugar from backend summary or estimate from today's meals
       const currentSugar = (summary as any)?.sugar?.actual || 0;
 
       return {
-        calories: summary?.calories?.actual || 0,
+        calories: todaySummary?.current?.calories || summary?.calories?.actual || 0,
         goal: calorieGoal,
         protein: {
-          current: summary?.protein?.actual || 0,
+          current: todaySummary?.current?.protein || summary?.protein?.actual || 0,
           goal: proteinGoal,
         },
         carbs: {
@@ -91,7 +93,7 @@ export function useDailyNutrition() {
           goal: carbsGoal,
         },
         fat: {
-          current: summary?.fat?.actual || 0,
+          current: todaySummary?.current?.fat || summary?.fat?.actual || 0,
           goal: fatGoal,
         },
         netCarbs: {

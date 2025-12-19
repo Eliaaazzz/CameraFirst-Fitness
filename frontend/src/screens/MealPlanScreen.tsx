@@ -19,33 +19,7 @@ export const MealPlanScreen = () => {
   const currentUserQuery = useCurrentUser();
   const userId = currentUserQuery.data?.userId;
 
-  useEffect(() => {
-    if (currentUserQuery.isError) {
-      const message = currentUserQuery.error instanceof Error
-        ? currentUserQuery.error.message
-        : 'Failed to load user information';
-      snackbar.showSnackbar(message, { variant: 'error' });
-    }
-  }, [currentUserQuery.isError, currentUserQuery.error, snackbar]);
-
-  if (currentUserQuery.isError && !currentUserQuery.isLoading) {
-    return (
-      <SafeAreaWrapper>
-        <Container>
-          <Card style={styles.emptyCard}>
-            <Card.Title title="Unable to load user info" />
-            <Card.Content>
-              <PaperText variant="bodyMedium" style={{ marginBottom: spacing.md }}>
-                Please check your network connection or API Key settings, then try again.
-              </PaperText>
-              <Button title="Retry" onPress={() => currentUserQuery.refetch()} />
-            </Card.Content>
-          </Card>
-        </Container>
-      </SafeAreaWrapper>
-    );
-  }
-
+  // All hooks must be called before any conditional returns
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['meal-plan', 'history', userId],
     queryFn: () => mealPlanApi.getHistory(userId!, 5),
@@ -53,15 +27,15 @@ export const MealPlanScreen = () => {
   });
 
   const summaryQuery = useQuery({
-    queryKey: ['nutrition', 'summary', 'daily', userId],
-    queryFn: () => nutritionApi.getDailySummary(userId!),
-    enabled: !!userId && !currentUserQuery.isError,
+    queryKey: ['nutrition', 'summary', 'daily'],
+    queryFn: () => nutritionApi.getDailySummary('me'),
+    enabled: !currentUserQuery.isError,
   });
 
   const insightQuery = useQuery<NutritionInsightResponse>({
-    queryKey: ['nutrition', 'insight', 'weekly', userId],
-    queryFn: () => nutritionApi.getWeeklyInsight(userId!),
-    enabled: !!userId && !currentUserQuery.isError,
+    queryKey: ['nutrition', 'insight', 'weekly'],
+    queryFn: () => nutritionApi.getWeeklyInsight('me'),
+    enabled: !currentUserQuery.isError,
   });
 
   const generateMutation = useMutation<MealPlanResponse, Error, string>({
@@ -87,6 +61,34 @@ export const MealPlanScreen = () => {
     summaryQuery.refetch();
     insightQuery.refetch();
   }, [userId, insightQuery, refetch, summaryQuery]);
+
+  useEffect(() => {
+    if (currentUserQuery.isError) {
+      const message = currentUserQuery.error instanceof Error
+        ? currentUserQuery.error.message
+        : 'Failed to load user information';
+      snackbar.showSnackbar(message, { variant: 'error' });
+    }
+  }, [currentUserQuery.isError, currentUserQuery.error, snackbar]);
+
+  // Conditional return must come after all hooks
+  if (currentUserQuery.isError && !currentUserQuery.isLoading) {
+    return (
+      <SafeAreaWrapper>
+        <Container>
+          <Card style={styles.emptyCard}>
+            <Card.Title title="Unable to load user info" />
+            <Card.Content>
+              <PaperText variant="bodyMedium" style={{ marginBottom: spacing.md }}>
+                Please check your network connection or API Key settings, then try again.
+              </PaperText>
+              <Button title="Retry" onPress={() => currentUserQuery.refetch()} />
+            </Card.Content>
+          </Card>
+        </Container>
+      </SafeAreaWrapper>
+    );
+  }
 
   const refreshing = (isFetching && !isLoading)
     || summaryQuery.isFetching

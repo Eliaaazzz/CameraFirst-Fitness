@@ -47,15 +47,28 @@ export const getMealHistory = async (
 /**
  * Get weekly nutrition insights
  * GET /api/v1/meals/insights/weekly
- * 
+ *
  * @param endDate Optional end date (ISO format: "2025-01-15"), defaults to today
  * @returns Weekly insights data
  */
 export const getWeeklyInsights = async (
   endDate?: string
 ): Promise<WeeklyInsightsResponse> => {
-  const url = endDate
-    ? `/api/v1/meals/insights/weekly?endDate=${endDate}`
+  const queryParams = new URLSearchParams();
+
+  // Add user's timezone for accurate "today" calculation
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (timezone) {
+    queryParams.append('timezone', timezone);
+  }
+
+  if (endDate) {
+    queryParams.append('endDate', endDate);
+  }
+
+  const queryString = queryParams.toString();
+  const url = queryString
+    ? `/api/v1/meals/insights/weekly?${queryString}`
     : '/api/v1/meals/insights/weekly';
 
   return api.get<WeeklyInsightsResponse>(url);

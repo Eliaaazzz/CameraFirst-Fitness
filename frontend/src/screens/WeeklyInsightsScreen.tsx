@@ -4,11 +4,15 @@
  */
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
 	ActivityIndicator,
 	Pressable,
+	RefreshControl,
 	ScrollView,
 	StyleSheet,
 	View,
@@ -16,10 +20,51 @@ import {
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { useWeeklyInsights } from '@/hooks/useMealHistory';
+import { GeneratedGoals } from '@/services/geminiApi';
 import { BRAND_COLORS, spacing } from '@/utils';
 
+// Storage key for generated goals (shared with ProfileScreen)
+const GENERATED_GOALS_KEY = '@generated_fitness_goals';
+
 export const WeeklyInsightsScreen = () => {
+  const queryClient = useQueryClient();
   const { data, isLoading, error, refetch } = useWeeklyInsights();
+  const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Load generated goals from AsyncStorage
+  const loadGeneratedGoals = useCallback(async () => {
+    try {
+      const saved = await AsyncStorage.getItem(GENERATED_GOALS_KEY);
+      if (saved) {
+        setGeneratedGoals(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.warn('Failed to load generated goals:', e);
+    }
+  }, []);
+
+  // Refetch data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadGeneratedGoals();
+      refetch();
+    }, [loadGeneratedGoals, refetch])
+  );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([loadGeneratedGoals(), refetch()]);
+    setRefreshing(false);
+  };
+
+  // Use generated goals if available, otherwise fall back to API response
+  const effectiveUserGoal = {
+    dailyCalorieTarget: generatedGoals?.dailyCalories.target || data?.userGoal?.dailyCalorieTarget,
+    dailyProteinTarget: generatedGoals?.macros_grams.protein_g || data?.userGoal?.dailyProteinTarget,
+    dailyCarbsTarget: generatedGoals?.macros_grams.carbs_g || data?.userGoal?.dailyCarbsTarget,
+    dailyFatTarget: generatedGoals?.macros_grams.fat_g || data?.userGoal?.dailyFatTarget,
+  };
 
   if (isLoading) {
     return (
@@ -59,11 +104,21 @@ export const WeeklyInsightsScreen = () => {
     return null;
   }
 
-  const { dateRange, summary, dailyData, macrosDistribution, sugarWarning, userGoal } = data;
+  const { dateRange, summary, dailyData, macrosDistribution, sugarWarning } = data;
 
   return (
     <SafeAreaWrapper>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={BRAND_COLORS.primary}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text variant="heading2" weight="bold">
@@ -232,7 +287,7 @@ export const WeeklyInsightsScreen = () => {
         )}
 
         {/* Goals */}
-        {userGoal.dailyCalorieTarget && (
+        {effectiveUserGoal.dailyCalorieTarget && (
           <Card style={styles.card}>
             <View style={styles.cardHeader}>
               <MaterialCommunityIcons name="target" size={24} color={BRAND_COLORS.primary} />
@@ -247,7 +302,7 @@ export const WeeklyInsightsScreen = () => {
                   Calories
                 </Text>
                 <Text variant="body" weight="semibold" style={styles.goalValue}>
-                  {userGoal.dailyCalorieTarget} kcal
+                  {effectiveUserGoal.dailyCalorieTarget} kcal
                 </Text>
               </View>
               <View style={styles.goalItem}>
@@ -255,7 +310,7 @@ export const WeeklyInsightsScreen = () => {
                   Protein
                 </Text>
                 <Text variant="body" weight="semibold" style={styles.goalValue}>
-                  {userGoal.dailyProteinTarget || '-'}g
+                  {effectiveUserGoal.dailyProteinTarget || '-'}g
                 </Text>
               </View>
               <View style={styles.goalItem}>
@@ -263,7 +318,7 @@ export const WeeklyInsightsScreen = () => {
                   Carbs
                 </Text>
                 <Text variant="body" weight="semibold" style={styles.goalValue}>
-                  {userGoal.dailyCarbsTarget || '-'}g
+                  {effectiveUserGoal.dailyCarbsTarget || '-'}g
                 </Text>
               </View>
               <View style={styles.goalItem}>
@@ -271,7 +326,7 @@ export const WeeklyInsightsScreen = () => {
                   Fat
                 </Text>
                 <Text variant="body" weight="semibold" style={styles.goalValue}>
-                  {userGoal.dailyFatTarget || '-'}g
+                  {effectiveUserGoal.dailyFatTarget || '-'}g
                 </Text>
               </View>
             </View>

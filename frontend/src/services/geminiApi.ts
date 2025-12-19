@@ -51,6 +51,7 @@ export interface MilestoneItem {
 }
 
 export interface GeneratedGoals {
+  id?: string; // Database ID when saved
   dailyCalories: DailyCalories;
   macros_grams: MacrosGrams;
   sugarLimit_g_per_day: number;
@@ -58,9 +59,47 @@ export interface GeneratedGoals {
   weeklyActivityPlan: WeeklyActivityPlan;
   milestonesChecklist: MilestoneItem[];
   safetyNote: string;
-  // Added by frontend after save
+  // Metadata
   generatedAt?: string;
   goalType?: GoalType;
+  isActive?: boolean;
+  // Input parameters (for reference)
+  inputParameters?: {
+    sex?: Sex;
+    heightCm?: number;
+    weightKg?: number;
+    age?: number;
+    activityLevel?: ActivityLevel;
+  };
+}
+
+// ============ Save Goal Request ============
+
+export interface SaveGoalRequest {
+  userId: string;
+  goalType: GoalType;
+  dailyCalories: DailyCalories;
+  macrosGrams: {
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    notes?: string;
+  };
+  sugarLimitGPerDay?: number;
+  fiberTargetGPerDay?: number;
+  weeklyActivityPlan?: {
+    cardioMinutesPerWeek?: number;
+    strengthSessionsPerWeek?: number;
+    stepsPerDayTarget?: number;
+    notes?: string;
+  };
+  milestonesChecklist?: MilestoneItem[];
+  safetyNote?: string;
+  sex?: Sex;
+  heightCm?: number;
+  weightKg?: number;
+  age?: number;
+  activityLevel?: ActivityLevel;
 }
 
 // ============ API Functions ============
@@ -231,7 +270,102 @@ export const generateFallbackGoals = (request: GenerateGoalsRequest): GeneratedG
   };
 };
 
+// ============ Goal Persistence API Functions ============
+
+/**
+ * Save generated goals to the database
+ */
+export const saveGoal = async (
+  userId: string,
+  goals: GeneratedGoals,
+  inputParams?: { sex?: Sex; heightCm?: number; weightKg?: number; age?: number; activityLevel?: ActivityLevel }
+): Promise<GeneratedGoals> => {
+  try {
+    const request: SaveGoalRequest = {
+      userId,
+      goalType: goals.goalType || 'fat_loss',
+      dailyCalories: goals.dailyCalories,
+      macrosGrams: {
+        proteinG: goals.macros_grams.protein_g,
+        carbsG: goals.macros_grams.carbs_g,
+        fatG: goals.macros_grams.fat_g,
+        notes: goals.macros_grams.notes,
+      },
+      sugarLimitGPerDay: goals.sugarLimit_g_per_day,
+      fiberTargetGPerDay: goals.fiberTarget_g_per_day,
+      weeklyActivityPlan: goals.weeklyActivityPlan ? {
+        cardioMinutesPerWeek: goals.weeklyActivityPlan.cardio_minutes_per_week,
+        strengthSessionsPerWeek: goals.weeklyActivityPlan.strength_sessions_per_week,
+        stepsPerDayTarget: goals.weeklyActivityPlan.steps_per_day_target,
+        notes: goals.weeklyActivityPlan.notes,
+      } : undefined,
+      milestonesChecklist: goals.milestonesChecklist,
+      safetyNote: goals.safetyNote,
+      sex: inputParams?.sex,
+      heightCm: inputParams?.heightCm,
+      weightKg: inputParams?.weightKg,
+      age: inputParams?.age,
+      activityLevel: inputParams?.activityLevel,
+    };
+
+    const response = await api.post<GeneratedGoals>('/api/v1/goals/save', request);
+    console.log('[GoalsApi] Goal saved to database successfully');
+    return response;
+  } catch (error) {
+    console.error('[GoalsApi] Failed to save goal to database:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get the active goal for a user from the database
+ */
+export const getActiveGoal = async (userId: string): Promise<GeneratedGoals | null> => {
+  try {
+    const response = await api.get<GeneratedGoals>(`/api/v1/goals/active?userId=${userId}`);
+    console.log('[GoalsApi] Active goal retrieved from database');
+    return response;
+  } catch (error: any) {
+    if (error?.response?.status === 404) {
+      console.log('[GoalsApi] No active goal found for user');
+      return null;
+    }
+    console.error('[GoalsApi] Failed to get active goal:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get goal history for a user
+ */
+export const getGoalHistory = async (userId: string): Promise<GeneratedGoals[]> => {
+  try {
+    const response = await api.get<GeneratedGoals[]>(`/api/v1/goals/history?userId=${userId}`);
+    return response;
+  } catch (error) {
+    console.error('[GoalsApi] Failed to get goal history:', error);
+    return [];
+  }
+};
+
+/**
+ * Check if user has an active goal
+ */
+export const hasActiveGoal = async (userId: string): Promise<boolean> => {
+  try {
+    const response = await api.get<{ hasActiveGoal: boolean }>(`/api/v1/goals/has-active?userId=${userId}`);
+    return response.hasActiveGoal;
+  } catch (error) {
+    console.error('[GoalsApi] Failed to check active goal:', error);
+    return false;
+  }
+};
+
 export default {
   generateGoals,
   generateFallbackGoals,
+  saveGoal,
+  getActiveGoal,
+  getGoalHistory,
+  hasActiveGoal,
 };

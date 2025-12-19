@@ -2,13 +2,23 @@ package com.fitnessapp.backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan(basePackages = {
     "com.fitnessapp.backend.config"
+})
+@ComponentScan(basePackages = {
+    "com.fitnessapp.backend",
+    "com.aura"
+})
+@EntityScan(basePackages = {
+    "com.fitnessapp.backend",
+    "com.aura"
 })
 @EnableCaching
 @EnableJpaRepositories(basePackages = {
@@ -17,7 +27,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
     "com.fitnessapp.backend.nutrition.repository",
     "com.fitnessapp.backend.workout.repository",
     "com.fitnessapp.backend.usda.repository",
-    "com.fitnessapp.backend.repository"
+    "com.fitnessapp.backend.repository",
+    "com.aura.repository"
 })
 public class FitnessAppApplication {
 
@@ -25,6 +36,5 @@ public class FitnessAppApplication {
         SpringApplication.run(FitnessAppApplication.class, args);
     }
 }
-
 
 

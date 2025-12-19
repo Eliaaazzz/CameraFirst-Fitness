@@ -41,21 +41,38 @@ public interface MealLogRepository extends JpaRepository<MealLog, Long> {
       """)
   List<MealLogLeaderboardRow> leaderboardSince(@Param("start") OffsetDateTime start, Pageable pageable);
 
-  // === New: History Log pagination query ===
-  
+  // === New: History Log pagination queries ===
+
   /**
-   * Paginated query for user's meal history with optional date range filtering
+   * Paginated query for user's meal history (no date filter)
    */
-  @Query("""
-    SELECT m FROM MealLog m 
-    WHERE m.userId = :userId
-      AND (:startDate IS NULL OR m.consumedAt >= :startDate)
-      AND (:endDate IS NULL OR m.consumedAt < :endDate)
-  """)
-  Page<MealLog> findMealHistory(
-    @Param("userId") UUID userId,
-    @Param("startDate") OffsetDateTime startDate,
-    @Param("endDate") OffsetDateTime endDate,
+  Page<MealLog> findByUserId(UUID userId, Pageable pageable);
+
+  /**
+   * Paginated query for user's meal history with start date only
+   */
+  Page<MealLog> findByUserIdAndConsumedAtGreaterThanEqual(
+    UUID userId,
+    OffsetDateTime startDate,
+    Pageable pageable
+  );
+
+  /**
+   * Paginated query for user's meal history with end date only
+   */
+  Page<MealLog> findByUserIdAndConsumedAtLessThan(
+    UUID userId,
+    OffsetDateTime endDate,
+    Pageable pageable
+  );
+
+  /**
+   * Paginated query for user's meal history with date range
+   */
+  Page<MealLog> findByUserIdAndConsumedAtGreaterThanEqualAndConsumedAtLessThan(
+    UUID userId,
+    OffsetDateTime startDate,
+    OffsetDateTime endDate,
     Pageable pageable
   );
 

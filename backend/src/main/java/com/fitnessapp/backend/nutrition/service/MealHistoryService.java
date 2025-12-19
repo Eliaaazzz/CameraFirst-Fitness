@@ -37,28 +37,40 @@ public class MealHistoryService {
    * @return Page of meal logs
    */
   public Page<MealLog> getMealHistory(
-      UUID userId, 
-      LocalDate startDate, 
-      LocalDate endDate, 
+      UUID userId,
+      LocalDate startDate,
+      LocalDate endDate,
       Pageable pageable
   ) {
-    log.info("Fetching meal history for user: {}, startDate: {}, endDate: {}, page: {}", 
+    log.info("Fetching meal history for user: {}, startDate: {}, endDate: {}, page: {}",
              userId, startDate, endDate, pageable.getPageNumber());
-    
+
     // Convert LocalDate to OffsetDateTime (UTC)
-    OffsetDateTime start = startDate != null 
-        ? startDate.atStartOfDay().atOffset(ZoneOffset.UTC) 
+    OffsetDateTime start = startDate != null
+        ? startDate.atStartOfDay().atOffset(ZoneOffset.UTC)
         : null;
-    
-    OffsetDateTime end = endDate != null 
-        ? endDate.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC) 
+
+    OffsetDateTime end = endDate != null
+        ? endDate.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC)
         : null;
-    
-    Page<MealLog> result = mealLogRepository.findMealHistory(userId, start, end, pageable);
-    
-    log.info("Found {} meal records (total: {})", 
+
+    // Use different queries based on which parameters are provided
+    // This avoids PostgreSQL type inference issues with nullable parameters
+    Page<MealLog> result;
+    if (start != null && end != null) {
+      result = mealLogRepository.findByUserIdAndConsumedAtGreaterThanEqualAndConsumedAtLessThan(
+          userId, start, end, pageable);
+    } else if (start != null) {
+      result = mealLogRepository.findByUserIdAndConsumedAtGreaterThanEqual(userId, start, pageable);
+    } else if (end != null) {
+      result = mealLogRepository.findByUserIdAndConsumedAtLessThan(userId, end, pageable);
+    } else {
+      result = mealLogRepository.findByUserId(userId, pageable);
+    }
+
+    log.info("Found {} meal records (total: {})",
              result.getNumberOfElements(), result.getTotalElements());
-    
+
     return result;
   }
 }

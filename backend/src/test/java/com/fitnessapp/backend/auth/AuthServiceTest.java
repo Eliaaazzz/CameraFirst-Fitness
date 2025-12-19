@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.repository.UserProfileRepository;
 import com.fitnessapp.backend.user.repository.UserRepository;
 import java.util.List;
 import java.util.Optional;
@@ -20,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 class AuthServiceTest {
 
     @Mock private UserRepository userRepository;
+    @Mock private UserProfileRepository userProfileRepository;
     @Mock private JwtUtils jwtUtils;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private SocialTokenValidator googleValidator;
@@ -29,7 +31,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         when(googleValidator.getProvider()).thenReturn(AuthProvider.GOOGLE);
-        authService = new AuthService(userRepository, jwtUtils, passwordEncoder, List.of(googleValidator));
+        authService = new AuthService(userRepository, userProfileRepository, jwtUtils, passwordEncoder, List.of(googleValidator));
     }
 
     @Test
