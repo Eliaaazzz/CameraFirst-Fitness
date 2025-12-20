@@ -46,12 +46,11 @@ CREATE TABLE IF NOT EXISTS user_goals (
     -- Metadata
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    -- Only one active goal per user
-    CONSTRAINT unique_active_goal_per_user UNIQUE (user_id, is_active)
-        WHERE (is_active = TRUE)
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Only one active goal per user (partial unique index)
+CREATE UNIQUE INDEX unique_active_goal_per_user ON user_goals(user_id) WHERE is_active = TRUE;
 
 -- Indexes for common queries
 CREATE INDEX idx_user_goals_user_id ON user_goals(user_id);

@@ -80,8 +80,18 @@ public class NutritionController {
     }
 
     // Upload to S3 first so the image is available to the client/logs
-    String s3Url = s3Service.uploadFile(image);
-    log.info("Uploaded image to S3: {}", s3Url);
+    String s3Url = null;
+    try {
+      s3Url = s3Service.uploadFile(image);
+    } catch (Exception e) {
+      log.warn("S3 upload failed; continuing without image URL", e);
+    }
+
+    if (s3Url != null) {
+      log.info("Uploaded image to S3: {}", s3Url);
+    } else {
+      log.warn("S3 upload skipped; continuing without image URL");
+    }
 
     // Use unified FoodRecognitionService with multi-provider support
     FoodRecognitionResult recognitionResult = foodRecognitionService.recognizeFoods(image, provider);
@@ -247,8 +257,6 @@ public class NutritionController {
     private String imageUrl;
   }
 }
-
-
 
 
 

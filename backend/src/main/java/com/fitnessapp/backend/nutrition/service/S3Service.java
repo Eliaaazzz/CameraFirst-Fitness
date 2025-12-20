@@ -20,49 +20,41 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 @Slf4j
 public class S3Service {
 
-  @Value("${aws.s3.bucket:}")
+  @Value("${aws.s3.bucket}")
   private String bucketName;
 
-  @Value("${aws.s3.region:us-east-1}")
+  @Value("${aws.s3.region}")
   private String region;
 
-  @Value("${aws.s3.access-key:}")
+  @Value("${aws.s3.access-key}")
   private String accessKey;
 
-  @Value("${aws.s3.secret-key:}")
+  @Value("${aws.s3.secret-key}")
   private String secretKey;
 
   private S3Client s3Client;
-  private boolean enabled = false;
+  private boolean enabled;
 
   @PostConstruct
   public void init() {
-    if (bucketName == null || bucketName.isBlank() || accessKey == null || accessKey.isBlank()) {
-      log.warn("S3 is not configured (missing bucket or credentials). Image upload will be disabled.");
+    enabled = isConfigured();
+    if (!enabled) {
+      log.warn("S3 upload disabled: missing or placeholder AWS config");
       return;
     }
+
     this.s3Client = S3Client.builder()
         .region(Region.of(region))
         .credentialsProvider(StaticCredentialsProvider.create(
             AwsBasicCredentials.create(accessKey, secretKey)))
         .build();
-    this.enabled = true;
-    log.info("S3 configured successfully with bucket: {}", bucketName);
-  }
-
-  /**
-   * Check if S3 is enabled
-   */
-  public boolean isEnabled() {
-    return enabled;
   }
 
   /**
    * Upload an image to S3 and return its public URL.
    */
   public String uploadFile(MultipartFile file) {
-    if (!enabled) {
-      log.warn("S3 upload attempted but S3 is not configured");
+    if (!enabled || s3Client == null) {
       return null;
     }
 
@@ -82,5 +74,24 @@ public class S3Service {
       log.error("Failed to upload image to S3", e);
       throw new RuntimeException("Failed to upload image to S3", e);
     }
+  }
+
+  private boolean isConfigured() {
+    return isValidValue(bucketName)
+        && isValidValue(region)
+        && isValidValue(accessKey)
+        && isValidValue(secretKey);
+  }
+
+  private boolean isValidValue(String value) {
+    if (value == null) {
+      return false;
+    }
+    String trimmed = value.trim();
+    if (trimmed.isEmpty()) {
+      return false;
+    }
+    String lower = trimmed.toLowerCase();
+    return !lower.startsWith("your-") && !lower.contains("your-");
   }
 }

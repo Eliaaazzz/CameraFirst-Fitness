@@ -20,6 +20,9 @@ export interface DailyNutritionData {
     id: string;
     name: string;
     calories: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
     imageUrl?: string;
     consumedAt: string;
   }>;
@@ -58,6 +61,9 @@ export function useDailyNutrition() {
           id: meal.id?.toString() || Math.random().toString(),
           name: displayName,
           calories: meal.totalCalories || 0,
+          protein: meal.totalProtein || undefined,
+          carbs: meal.totalCarbs || undefined,
+          fat: meal.totalFat || undefined,
           imageUrl: meal.imageUrl || undefined,
           consumedAt: meal.consumedAt,
         };
