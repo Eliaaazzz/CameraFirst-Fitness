@@ -310,12 +310,14 @@ jobs:
           max_attempts=10
           attempt=0
           while [ $attempt -lt $max_attempts ]; do
-            if curl -sf "http://$EC2_HOST/" | grep -q "index.html\|<!DOCTYPE\|<html" > /dev/null 2>&1; then
+            attempt=$((attempt + 1))
+            echo "⏳ Attempt $attempt/$max_attempts..."
+            
+            if curl -sf "http://$EC2_HOST/" | grep -qE '<!DOCTYPE|<html'; then
               echo "✅ Frontend is accessible"
               exit 0
             fi
-            attempt=$((attempt + 1))
-            echo "⏳ Attempt $attempt/$max_attempts..."
+            
             sleep 5
           done
           
