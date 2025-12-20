@@ -68,6 +68,12 @@ services:
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
       SPOONACULAR_API_KEY: ${SPOONACULAR_API_KEY:-}
 
+      # AWS S3 / Cloudflare R2 Configuration (Optional)
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-fitness-images}
+      AWS_S3_REGION: ${AWS_S3_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-dummy-key}
+      AWS_SECRET_KEY: ${AWS_SECRET_KEY:-dummy-secret}
+
       # Application Settings
       SERVER_PORT: 8080
       APP_SEED_ENABLED: ${APP_SEED_ENABLED:-true}

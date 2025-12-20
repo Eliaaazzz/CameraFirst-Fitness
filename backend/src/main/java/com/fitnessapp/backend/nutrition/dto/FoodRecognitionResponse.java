@@ -18,4 +18,5 @@ public class FoodRecognitionResponse {
   private List<RecognizedFood> items;
   private NutritionInfo totalNutrition;
   private String suggestedMealType;
+  private String imageUrl;
 }

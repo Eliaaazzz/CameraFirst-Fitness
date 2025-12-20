@@ -4,11 +4,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.nutrition.controller.NutritionController;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
+import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
+import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.service.ai.FoodRecognitionService;
 import com.fitnessapp.backend.nutrition.service.core.NutritionEngine;
@@ -19,12 +23,14 @@ import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService.Nu
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -46,11 +52,14 @@ class NutritionControllerTest {
   @Mock
   private NutritionEngine nutritionEngine;
 
+  @Mock
+  private com.fitnessapp.backend.nutrition.service.S3Service s3Service;
+
   @BeforeEach
   void setUp() {
     objectMapper = new ObjectMapper();
     objectMapper.findAndRegisterModules();
-    NutritionController controller = new NutritionController(trackingService, insightService, foodRecognitionService, nutritionEngine);
+    NutritionController controller = new NutritionController(trackingService, insightService, foodRecognitionService, nutritionEngine, s3Service);
     mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
   }
 
@@ -107,6 +116,44 @@ class NutritionControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.summary.days").value(7))
         .andExpect(jsonPath("$.aiAdvice").value("请继续保持蛋白质摄入，适当增加复合碳水。"));
+  }
+
+  @Test
+  void analyzeReturnsImageUrl() throws Exception {
+    MockMultipartFile file = new MockMultipartFile(
+        "image",
+        "meal.jpg",
+        "image/jpeg",
+        "fake-image".getBytes());
+
+    RecognizedFood food = RecognizedFood.builder()
+        .foodKey("grilled_chicken")
+        .displayName("Grilled Chicken")
+        .estimatedGrams(150)
+        .confidence(0.9)
+        .build();
+
+    FoodRecognitionResult result = FoodRecognitionResult.builder()
+        .items(List.of(food))
+        .mealType("lunch")
+        .build();
+
+    NutritionInfo nutritionInfo = NutritionInfo.builder()
+        .calories(new BigDecimal("320"))
+        .protein(new BigDecimal("45"))
+        .fat(new BigDecimal("8"))
+        .carbs(new BigDecimal("5"))
+        .build();
+
+    when(s3Service.uploadFile(any())).thenReturn("https://bucket.s3.us-east-1.amazonaws.com/meals/test.jpg");
+    when(foodRecognitionService.recognizeFoods(any(), any())).thenReturn(result);
+    when(nutritionEngine.calculateTotal(any())).thenReturn(nutritionInfo);
+
+    mockMvc.perform(multipart("/api/v1/nutrition/analyze").file(file))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.imageUrl").value("https://bucket.s3.us-east-1.amazonaws.com/meals/test.jpg"))
+        .andExpect(jsonPath("$.suggestedMealType").value("lunch"))
+        .andExpect(jsonPath("$.items[0].display_name").value("Grilled Chicken"));
   }
 
 }

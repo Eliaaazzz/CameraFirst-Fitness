@@ -90,6 +90,12 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       USDA_API_KEY: ${USDA_API_KEY}
+
+      # AWS S3 Configuration (with defaults for local development)
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-fitness-images}
+      AWS_S3_REGION: ${AWS_S3_REGION:-us-east-1}
+      AWS_S3_ACCESS_KEY: ${AWS_ACCESS_KEY:-dummy-key}
+      AWS_S3_SECRET_KEY: ${AWS_SECRET_KEY:-dummy-secret}
       
     # Map Host Port 8080 to Container Port 8080
     # This allows you to access http://localhost:8080 on your machine
