@@ -8,17 +8,17 @@
  * - Accessible design
  */
 
+import { Button, Card, Text } from '@/components';
+import { radii, spacing } from '@/utils';
 import React, { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
-import { Button as PaperButton, Chip, Portal } from 'react-native-paper';
+import { Chip, Button as PaperButton, Portal } from 'react-native-paper';
 import Animated, {
   FadeIn,
   FadeOut,
   SlideInDown,
   SlideOutDown,
 } from 'react-native-reanimated';
-import { Button, Card, Text } from '@/components';
-import { spacing, radii } from '@/utils';
 
 export type WorkoutFilters = {
   levels?: string[];
