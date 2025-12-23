@@ -21,6 +21,7 @@ export * from './SnackbarProvider';
 export * from './SwipeableCard';
 export * from './Text';
 export * from './WorkoutCard';
+export * from './YouTubePlayerModal';
 
 // Common components
 export { StateView } from './common/StateView';

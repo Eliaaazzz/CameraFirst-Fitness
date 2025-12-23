@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { RecipeCard, RecipeSortOption, SavedRecipe, SavedWorkout, UploadRecipePayload, UploadWorkoutPayload, WorkoutCard, WorkoutSortOption } from '@/types';
 import {
+    getRecommendedRecipes,
+    getRecommendedWorkouts,
     getSavedRecipes,
     getSavedWorkouts,
     removeSavedRecipe,
@@ -36,6 +38,8 @@ const mutationKeys = {
 const queryKeys = {
   savedWorkouts: (userId?: string) => ['workouts', 'saved', userId] as const,
   savedRecipes: (userId?: string) => ['recipes', 'saved', userId] as const,
+  recommendedWorkouts: (fitnessGoal?: string | null) => ['workouts', 'recommended', fitnessGoal] as const,
+  recommendedRecipes: (fitnessGoal?: string | null) => ['recipes', 'recommended', fitnessGoal] as const,
 };
 
 export const useUploadWorkout = () =>
@@ -106,6 +110,20 @@ export const useSavedRecipes = (userId?: string) =>
     queryKey: queryKeys.savedRecipes(userId),
     enabled: !!userId,
     queryFn: () => getSavedRecipes(userId),
+  });
+
+export const useRecommendedWorkouts = (fitnessGoal?: string | null) =>
+  useQuery<WorkoutCard[], Error>({
+    queryKey: queryKeys.recommendedWorkouts(fitnessGoal),
+    queryFn: () => getRecommendedWorkouts(fitnessGoal),
+    staleTime: 1000 * 60 * 10,
+  });
+
+export const useRecommendedRecipes = (fitnessGoal?: string | null) =>
+  useQuery<RecipeCard[], Error>({
+    queryKey: queryKeys.recommendedRecipes(fitnessGoal),
+    queryFn: () => getRecommendedRecipes(fitnessGoal),
+    staleTime: 1000 * 60 * 10,
   });
 
 // Search hooks for keyword search

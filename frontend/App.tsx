@@ -1,4 +1,4 @@
-import { QueryClientProvider } from '@tanstack/react-query';
+appAppimport { QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { ActivityIndicator, Text, View, useColorScheme } from 'react-native';

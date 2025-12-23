@@ -1,13 +1,13 @@
 import { Feather } from '@expo/vector-icons';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
-import React, { useCallback, useRef, useState } from 'react';
-import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, View } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
 
 import { Button, Card, Container, ListSkeleton, RecipeCard, SafeAreaWrapper, Text } from '@/components';
 import useCurrentUser from '@/hooks/useCurrentUser';
-import { useSavedRecipes } from '@/services';
+import { useRecommendedRecipes, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
 import type { SavedRecipe } from '@/types';
 import { spacing } from '@/utils';
 
@@ -22,8 +22,14 @@ export const RecipesScreen = () => {
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const saved = useSavedRecipes(userId);
+  const recommended = useRecommendedRecipes(currentUser.data?.profile?.fitnessGoal);
+  const saveRecipe = useSaveRecipe(userId);
+  const removeRecipe = useRemoveRecipe(userId);
   const listRef = useRef<FlatList<SavedRecipe>>(null);
   const [showFab, setShowFab] = useState(false);
+  const savedRecipes = saved.data ?? [];
+  const savedRecipeIds = useMemo(() => new Set(savedRecipes.map((item) => item.id)), [savedRecipes]);
+  const recommendedItems = recommended.data ?? [];
 
   const handleRefresh = useCallback(() => {
     if (!saved.isLoading) {
@@ -64,10 +70,10 @@ export const RecipesScreen = () => {
         <Container>
           <View style={styles.header}>
             <Text variant="heading1" weight="bold">
-              Saved Recipes
+              Recipes
             </Text>
             <Text variant="body" style={styles.subtitle}>
-              Healthy eating made simple.
+              Recommended meals and your saved list.
             </Text>
           </View>
           <ListSkeleton rows={4} showAvatar primaryWidth="55%" secondaryWidth="32%" />
@@ -102,8 +108,57 @@ export const RecipesScreen = () => {
     );
   }
 
-  const recipes = saved.data ?? [];
+  const recipes = savedRecipes;
   const isRefreshing = saved.isRefetching;
+
+  const listHeaderComponent = (
+    <View style={styles.header}>
+      <Text variant="heading1" weight="bold">
+        Recipes
+      </Text>
+      <Text variant="body" style={styles.subtitle}>
+        Recommended meals and your saved list.
+      </Text>
+      <View style={styles.section}>
+        <Text variant="heading2" weight="semibold">
+          Recommended for you
+        </Text>
+        {recommended.isLoading ? (
+          <Text variant="caption" style={styles.recommendedNote}>
+            Loading recommendations...
+          </Text>
+        ) : recommended.isError ? (
+          <Text variant="caption" style={styles.recommendedNote}>
+            Unable to load recommendations.
+          </Text>
+        ) : recommendedItems.length === 0 ? (
+          <Text variant="caption" style={styles.recommendedNote}>
+            No recommendations yet.
+          </Text>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.recommendedList}
+          >
+            {recommendedItems.map((item) => (
+              <View key={item.id} style={styles.recommendedCard}>
+                <RecipeCard
+                  item={item}
+                  isSaved={savedRecipeIds.has(item.id)}
+                  onSave={(id) => saveRecipe.mutateAsync(id).then(() => true)}
+                  onRemove={(id) => removeRecipe.mutateAsync(id).then(() => true)}
+                />
+              </View>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+      <Text variant="heading2" weight="semibold" style={styles.savedHeader}>
+        Saved Recipes
+      </Text>
+    </View>
+  );
 
   const listEmptyComponent = (
     <Card style={styles.emptyState}>
@@ -131,14 +186,7 @@ export const RecipesScreen = () => {
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
           ListHeaderComponent={
-            <View style={styles.header}>
-              <Text variant="heading1" weight="bold">
-                Saved Recipes
-              </Text>
-              <Text variant="body" style={styles.subtitle}>
-                Healthy eating made simple.
-              </Text>
-            </View>
+            listHeaderComponent
           }
           ListEmptyComponent={listEmptyComponent}
           refreshControl={
@@ -180,6 +228,23 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     opacity: 0.7,
+  },
+  section: {
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  recommendedList: {
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  recommendedCard: {
+    width: 260,
+  },
+  recommendedNote: {
+    opacity: 0.7,
+  },
+  savedHeader: {
+    marginTop: spacing.lg,
   },
   emptyState: {
     alignItems: 'center',

@@ -2,12 +2,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
 
 import { Button, Card, Container, ListSkeleton, SafeAreaWrapper, Text, WorkoutCard } from '@/components';
 import useCurrentUser from '@/hooks/useCurrentUser';
-import { useSavedWorkouts } from '@/services';
+import { useRecommendedWorkouts, useRemoveWorkout, useSavedWorkouts, useSaveWorkout } from '@/services';
 import type { SavedWorkout } from '@/types';
 import { spacing } from '@/utils';
 
@@ -30,6 +30,23 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     opacity: 0.7,
+  },
+  section: {
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  recommendedList: {
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  recommendedCard: {
+    width: 260,
+  },
+  recommendedNote: {
+    opacity: 0.7,
+  },
+  savedHeader: {
+    marginTop: spacing.lg,
   },
   emptyState: {
     alignItems: 'center',
@@ -68,18 +85,6 @@ const styles = StyleSheet.create({
 // Moved outside component to prevent recreation on every render
 const ItemSeparator = () => <View style={{ height: spacing.md }} />;
 
-// Static header component - no props needed
-const ListHeader = () => (
-  <View style={styles.header}>
-    <Text variant="heading1" weight="bold">
-      Saved Workouts
-    </Text>
-    <Text variant="body" style={styles.subtitle}>
-      Keep your go-to routines within reach.
-    </Text>
-  </View>
-);
-
 type TabParamList = {
   Dashboard: undefined;
   Workouts: undefined;
@@ -90,9 +95,15 @@ export const WorkoutsScreen = () => {
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const saved = useSavedWorkouts(userId);
+  const recommended = useRecommendedWorkouts(currentUser.data?.profile?.fitnessGoal);
+  const saveWorkout = useSaveWorkout(userId);
+  const removeWorkout = useRemoveWorkout(userId);
   const navigation = useNavigation<BottomTabNavigationProp<TabParamList>>();
   const listRef = useRef<FlatList<SavedWorkout>>(null);
   const [showFab, setShowFab] = useState(false);
+  const savedWorkouts = saved.data ?? [];
+  const savedWorkoutIds = useMemo(() => new Set(savedWorkouts.map((item) => item.id)), [savedWorkouts]);
+  const recommendedItems = recommended.data ?? [];
 
   // Memoize empty component BEFORE any conditional returns
   const listEmptyComponent = useMemo(() => (
@@ -155,10 +166,10 @@ export const WorkoutsScreen = () => {
         <Container>
           <View style={styles.header}>
             <Text variant="heading1" weight="bold">
-              Saved Workouts
+              Workouts
             </Text>
             <Text variant="body" style={styles.subtitle}>
-              Keep your go-to routines within reach.
+              Recommended routines and your saved list.
             </Text>
           </View>
           <ListSkeleton rows={4} showAvatar primaryWidth="55%" secondaryWidth="32%" />
@@ -193,8 +204,56 @@ export const WorkoutsScreen = () => {
     );
   }
 
-  const workouts = saved.data ?? [];
+  const workouts = savedWorkouts;
   const isRefreshing = saved.isRefetching;
+  const listHeaderComponent = (
+    <View style={styles.header}>
+      <Text variant="heading1" weight="bold">
+        Workouts
+      </Text>
+      <Text variant="body" style={styles.subtitle}>
+        Recommended routines and your saved list.
+      </Text>
+      <View style={styles.section}>
+        <Text variant="heading2" weight="semibold">
+          Recommended for you
+        </Text>
+        {recommended.isLoading ? (
+          <Text variant="caption" style={styles.recommendedNote}>
+            Loading recommendations...
+          </Text>
+        ) : recommended.isError ? (
+          <Text variant="caption" style={styles.recommendedNote}>
+            Unable to load recommendations.
+          </Text>
+        ) : recommendedItems.length === 0 ? (
+          <Text variant="caption" style={styles.recommendedNote}>
+            No recommendations yet.
+          </Text>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.recommendedList}
+          >
+            {recommendedItems.map((item) => (
+              <View key={item.id} style={styles.recommendedCard}>
+                <WorkoutCard
+                  item={item}
+                  isSaved={savedWorkoutIds.has(item.id)}
+                  onSave={(id) => saveWorkout.mutateAsync(id).then(() => true)}
+                  onRemove={(id) => removeWorkout.mutateAsync(id).then(() => true)}
+                />
+              </View>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+      <Text variant="heading2" weight="semibold" style={styles.savedHeader}>
+        Saved Workouts
+      </Text>
+    </View>
+  );
 
   return (
     <SafeAreaWrapper>
@@ -206,7 +265,7 @@ export const WorkoutsScreen = () => {
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={ItemSeparator}
-          ListHeaderComponent={ListHeader}
+          ListHeaderComponent={listHeaderComponent}
           ListEmptyComponent={listEmptyComponent}
           refreshControl={
             <RefreshControl

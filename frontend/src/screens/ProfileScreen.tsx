@@ -843,6 +843,7 @@ const ProfileScreen = () => {
           {renderMenuItem(
             'account-cog-outline',
             'Account',
+
             'Manage your account',
             () => Alert.alert('Coming Soon', 'Account settings will be available soon.')
           )}

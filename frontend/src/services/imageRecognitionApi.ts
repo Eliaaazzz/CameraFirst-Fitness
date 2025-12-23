@@ -142,8 +142,10 @@ function normalizeRecipeData(raw: any): RecipeCard {
     timeMinutes: raw.timeMinutes || raw.readyInMinutes || 0,
     difficulty: raw.difficulty || 'medium',
     calories: raw.calories,
-    nutritionSummary: raw.nutritionSummary,
-    ingredients: raw.ingredients,
+    nutritionSummary: raw.nutritionSummary ?? raw.nutrition,
+    ingredients: Array.isArray(raw.ingredients)
+      ? raw.ingredients.map((ing: any) => (typeof ing === 'string' ? { name: ing } : ing))
+      : raw.ingredients,
     steps: raw.steps,
     tags: raw.tags,
     isAiGenerated: raw.isAiGenerated,
@@ -322,3 +324,60 @@ export async function searchRecipes(query: string): Promise<RecipeCard[]> {
   }
 }
 
+const MAX_RECOMMENDATIONS = 6;
+
+const getWorkoutQueryForGoal = (fitnessGoal?: string | null) => {
+  switch ((fitnessGoal || '').toUpperCase()) {
+    case 'LOSE_WEIGHT':
+      return 'squat lunge'; // Compound movements for fat loss
+    case 'GAIN_MUSCLE':
+      return 'chest press'; // Strength training
+    case 'MAINTAIN':
+    default:
+      return 'plank core'; // General fitness
+  }
+};
+
+const getRecipeEndpointForGoal = (fitnessGoal?: string | null) => {
+  switch ((fitnessGoal || '').toUpperCase()) {
+    case 'LOSE_WEIGHT':
+      return '/api/v1/recipes/filter/low-calorie?maxTime=45';
+    case 'GAIN_MUSCLE':
+      return '/api/v1/recipes/filter/high-protein?maxTime=45';
+    case 'MAINTAIN':
+    default:
+      return '/api/v1/recipes/filter/balanced?maxTime=45';
+  }
+};
+
+export async function getRecommendedWorkouts(fitnessGoal?: string | null): Promise<WorkoutCard[]> {
+  try {
+    const query = getWorkoutQueryForGoal(fitnessGoal);
+    // ContentController: /api/v1/workouts/search returns WorkoutSearchResponse with workouts array
+    const response = await get<any>(`/api/v1/workouts/search?query=${encodeURIComponent(query)}`);
+    const workouts = Array.isArray(response) ? response : response?.workouts;
+    if (!Array.isArray(workouts)) {
+      console.warn('getRecommendedWorkouts: no workouts array in response', response);
+      return [];
+    }
+    return workouts.slice(0, MAX_RECOMMENDATIONS);
+  } catch (error) {
+    console.error('getRecommendedWorkouts failed:', error);
+    return [];
+  }
+}
+
+export async function getRecommendedRecipes(fitnessGoal?: string | null): Promise<RecipeCard[]> {
+  try {
+    const endpoint = getRecipeEndpointForGoal(fitnessGoal);
+    const response = await get<any>(endpoint);
+    const recipes = Array.isArray(response) ? response : response?.recipes;
+    if (!Array.isArray(recipes)) {
+      return [];
+    }
+    return recipes.slice(0, MAX_RECOMMENDATIONS).map(normalizeRecipeData);
+  } catch (error) {
+    console.error('getRecommendedRecipes failed:', error);
+    return [];
+  }
+}

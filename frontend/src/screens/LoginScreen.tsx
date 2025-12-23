@@ -20,7 +20,7 @@ import { saveJWT } from '../utils/jwtStorage';
 import { api } from '../services/apiClient';
 import { BRAND_COLORS, spacing } from '@/utils';
 
-// Required for Web support and handling redirect callbacks
+// Required for Web support and handling loginrect callbacks
 WebBrowser.maybeCompleteAuthSession();
 
 const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
@@ -254,7 +254,7 @@ export default function LoginScreen() {
                   !request && styles.buttonDisabled,
                 ]}
                 disabled={!request || isLoading}
-                onPress={() => promptAsync()}
+                onPress={() => promptAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined)}
               >
                 <MaterialCommunityIcons name="google" size={24} color="#FFF" />
                 <Text variant="body" weight="bold" style={styles.googleButtonText}>

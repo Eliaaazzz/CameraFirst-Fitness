@@ -1,30 +1,17 @@
-import { BookmarkButton, Button, Text, useSnackbar } from '@/components';
+import { BookmarkButton, Button, Text, useSnackbar, YouTubePlayerModal } from '@/components';
 import type { WorkoutCard as Workout } from '@/types';
 import { colors, radii, spacing, useResponsiveValue } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { Image, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 type Props = {
   item: Workout;
   onSave?: (id: string) => Promise<boolean> | boolean | void;
   onRemove?: (id: string) => Promise<boolean> | boolean | void;
   isSaved?: boolean;
-};
-
-const openYouTube = async (youtubeId?: string) => {
-  if (!youtubeId) return;
-  const appUrl = Platform.select({ ios: `youtube://watch?v=${youtubeId}`, android: `vnd.youtube:${youtubeId}` });
-  const webUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
-  try {
-    if (appUrl && (await Linking.canOpenURL(appUrl))) {
-      await Linking.openURL(appUrl);
-      return;
-    }
-  } catch {}
-  Linking.openURL(webUrl);
 };
 
 /**
@@ -34,6 +21,7 @@ const openYouTube = async (youtubeId?: string) => {
 export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
   const [saving, setSaving] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
+  const [showPlayer, setShowPlayer] = useState(false);
   const { showSnackbar } = useSnackbar();
   
   const level = item.level?.toUpperCase?.() ?? '—';
@@ -119,7 +107,10 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
             title="Watch"
             variant="primary"
             size="small"
-            onPress={() => openYouTube(item.youtubeId)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              setShowPlayer(true);
+            }}
           />
           <BookmarkButton
             isSaved={!!isSaved}
@@ -129,6 +120,14 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
           />
         </View>
       </View>
+
+      {/* In-app YouTube Player Modal */}
+      <YouTubePlayerModal
+        visible={showPlayer}
+        youtubeId={item.youtubeId || ''}
+        title={item.title}
+        onClose={() => setShowPlayer(false)}
+      />
     </Pressable>
   );
 };

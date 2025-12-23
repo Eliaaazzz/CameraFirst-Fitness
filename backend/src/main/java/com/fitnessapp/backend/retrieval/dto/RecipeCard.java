@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.retrieval.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import lombok.Builder;
@@ -11,7 +12,8 @@ import lombok.extern.jackson.Jacksonized;
 @Builder
 @Jacksonized
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class RecipeCard {
+public class RecipeCard implements Serializable {
+    private static final long serialVersionUID = 1L;
     String id;
     String title;
     Integer timeMinutes;
