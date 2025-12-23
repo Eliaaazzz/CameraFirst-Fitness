@@ -40,4 +40,15 @@ public interface ExerciseVideoRepository extends JpaRepository<ExerciseVideo, UU
             @Param("limit") int limit);
 
     List<ExerciseVideo> findAllByOrderByExerciseNameAsc();
+
+    /**
+     * Find top exercises by target goal, returns diverse set from different categories
+     */
+    @Query(value = """
+        SELECT * FROM exercise_videos e
+        WHERE :goal = ANY(e.target_goal)
+        ORDER BY e.primary_category, e.exercise_name
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<ExerciseVideo> findTopByTargetGoal(@Param("goal") String goal, @Param("limit") int limit);
 }

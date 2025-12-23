@@ -18,12 +18,13 @@ import {
   View,
 } from 'react-native';
 
-import { Card, SafeAreaWrapper, Text } from '@/components';
+import { Card, RecommendationSection, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useDailyNutrition } from '@/hooks/useDailyNutrition';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
 import { useGoals, useGoalStatistics } from '@/services/goalsApi';
+import { useDashboardRecommendations } from '@/services/recommendationApi';
 import { BRAND_COLORS, spacing } from '@/utils';
 import { GENERATED_GOALS_KEY } from './ProfileScreen';
 
@@ -42,6 +43,8 @@ const DashboardScreen = () => {
   const { data: nutritionData, refresh } = useDailyNutrition();
   const goals = useGoals(userId);
   const stats = useGoalStatistics(userId);
+
+  // Fetch personalized recommendations based on fitness goal
 
   const [refreshing, setRefreshing] = useState(false);
   const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
@@ -80,6 +83,7 @@ const DashboardScreen = () => {
       goals.refetch(),
       stats.refetch(),
       loadGeneratedGoals(),
+      recommendations.refetch(),
     ]);
     setRefreshing(false);
   };
@@ -180,6 +184,9 @@ const DashboardScreen = () => {
   const isBloodSugarGoal = normalizedFitnessGoal === 'blood_sugar_control'
     || normalizedFitnessGoal === 'diabetes_control'
     || normalizedFitnessGoal === 'maintain';
+
+  // Fetch personalized recommendations based on the user's fitness goal
+  const recommendations = useDashboardRecommendations(normalizedFitnessGoal, !!normalizedFitnessGoal);
 
   // Calculate progress percentage
   const calorieProgress = calorieGoal > 0
@@ -358,6 +365,18 @@ const DashboardScreen = () => {
               <Text variant="caption" style={styles.statLabel}>Completed</Text>
             </Card>
           </View>
+        )}
+
+        {/* Personalized Recommendations Section */}
+        {(recommendations.data || recommendations.isLoading) && (
+          <RecommendationSection
+            goalLabel={recommendations.data?.goalLabel || goalTypeConfig?.label || 'Your Goal'}
+            workouts={recommendations.data?.workouts || []}
+            recipes={recommendations.data?.recipes || []}
+            isLoading={recommendations.isLoading}
+            onSeeAllWorkouts={() => navigation.navigate('Workouts')}
+            onSeeAllRecipes={() => navigation.navigate('Recipes')}
+          />
         )}
 
         {/* Today's Nutrition Card */}

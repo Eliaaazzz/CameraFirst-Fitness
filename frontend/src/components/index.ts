@@ -15,6 +15,7 @@ export * from './LoadingState';
 export * from './PremiumCard';
 export * from './RecipeCard';
 export * from './RecipeImage';
+export * from './RecommendationSection';
 export * from './ResponsiveGrid';
 export * from './SafeAreaWrapper';
 export * from './SnackbarProvider';

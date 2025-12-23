@@ -32,4 +32,15 @@ public interface WorkoutVideoRepository extends JpaRepository<WorkoutVideo, UUID
       LIMIT :limit
       """, nativeQuery = true)
   List<WorkoutVideo> searchByText(@Param("query") String query, @Param("limit") int limit);
+
+  /**
+   * Find top workouts by target goal, ordered by view count (most popular)
+   */
+  @Query(value = """
+      SELECT * FROM workout_video w
+      WHERE :goal = ANY(w.target_goal)
+      ORDER BY w.view_count DESC NULLS LAST
+      LIMIT :limit
+      """, nativeQuery = true)
+  List<WorkoutVideo> findTopByTargetGoal(@Param("goal") String goal, @Param("limit") int limit);
 }

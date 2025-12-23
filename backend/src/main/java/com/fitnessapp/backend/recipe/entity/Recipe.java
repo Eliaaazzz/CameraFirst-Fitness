@@ -51,4 +51,8 @@ public class Recipe {
   @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
   @Builder.Default
   private Set<RecipeIngredient> ingredients = new HashSet<>();
+
+  @Column(name = "target_goal")
+  @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.ARRAY)
+  private java.util.List<String> targetGoal;
 }

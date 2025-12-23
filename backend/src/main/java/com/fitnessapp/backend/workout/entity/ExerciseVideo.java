@@ -61,4 +61,8 @@ public class ExerciseVideo {
 
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    @Column(name = "target_goal")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.ARRAY)
+    private java.util.List<String> targetGoal;
 }

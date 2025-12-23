@@ -194,4 +194,16 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
     LIMIT :limit
     """, nativeQuery = true)
   List<Recipe> searchByText(@Param("query") String query, @Param("limit") int limit);
+
+  /**
+   * Find top recipes by target goal, ordered by protein content (for quality recommendations)
+   */
+  @Query(value = """
+    SELECT * FROM recipe r
+    WHERE :goal = ANY(r.target_goal)
+      AND r.image_url IS NOT NULL
+    ORDER BY (r.nutrition_summary->>'protein')::float DESC NULLS LAST
+    LIMIT :limit
+    """, nativeQuery = true)
+  List<Recipe> findTopByTargetGoal(@Param("goal") String goal, @Param("limit") int limit);
 }
