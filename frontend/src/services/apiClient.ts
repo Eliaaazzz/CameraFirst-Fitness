@@ -8,10 +8,17 @@ import { Platform } from 'react-native';
 import { getJWT } from '../utils/jwtStorage';
 
 // Ensure API Key is available (prioritize .env API_KEY, fallback to Expo environment variable)
-// TEMPORARY FALLBACK for debugging - should match .env file
 const APP_API_KEY = API_KEY || process.env.EXPO_PUBLIC_API_KEY || 'fitness-secret-key-123';
 
-console.log('[APIClient Init] API Key loaded:', APP_API_KEY ? `${APP_API_KEY.substring(0, 10)}...` : 'MISSING');
+// Ensure API Base URL is available (prioritize .env, fallback to Expo env var, then localhost)
+const RAW_API_BASE_URL = API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+
+// Log configuration at init for debugging
+console.log('[APIClient Init]', {
+  platform: Platform.OS,
+  apiKey: APP_API_KEY ? `${APP_API_KEY.substring(0, 10)}...` : 'MISSING',
+  rawBaseUrl: RAW_API_BASE_URL,
+});
 
 // Use the environment variable for all platforms
 const normalizeBaseUrl = (url: string) => {
@@ -23,8 +30,10 @@ const normalizeBaseUrl = (url: string) => {
   return normalized || 'http://localhost:8080';
 };
 
-const BASE_URL = normalizeBaseUrl(API_BASE_URL);
+const BASE_URL = normalizeBaseUrl(RAW_API_BASE_URL);
 const TIMEOUT = 30000; // 30 seconds
+
+console.log('[APIClient Init] Final BASE_URL:', BASE_URL);
 
 interface RequestConfig {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';

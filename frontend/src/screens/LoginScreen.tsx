@@ -18,6 +18,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaWrapper, Text } from '@/components';
 import { saveJWT } from '../utils/jwtStorage';
 import { api } from '../services/apiClient';
+import { queryClient } from '../services/queryClient';
 import { BRAND_COLORS, spacing } from '@/utils';
 
 // Required for Web support and handling loginrect callbacks
@@ -77,6 +78,9 @@ export default function LoginScreen() {
 
       console.log('Login successful! JWT:', data.token);
 
+      // Clear any cached data from previous user before saving new JWT
+      queryClient.clear();
+
       await saveJWT(data.token, data.refreshToken, data.email);
 
       setIsLoading(false);
@@ -115,6 +119,9 @@ export default function LoginScreen() {
       const mockEmail = 'test@aurafitness.com';
 
       console.log('Mock login successful! Token:', mockToken);
+
+      // Clear any cached data from previous user before saving new JWT
+      queryClient.clear();
 
       await saveJWT(mockToken, mockRefreshToken, mockEmail);
 
@@ -158,6 +165,9 @@ export default function LoginScreen() {
       });
 
       console.log('Apple login successful! JWT:', data.token);
+
+      // Clear any cached data from previous user before saving new JWT
+      queryClient.clear();
 
       await saveJWT(data.token, data.refreshToken, data.email);
 

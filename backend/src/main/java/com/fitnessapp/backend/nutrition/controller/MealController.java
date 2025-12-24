@@ -86,7 +86,13 @@ public class MealController {
   public ResponseEntity<MealResponse> createMeal(
       @Valid @RequestBody CreateMealRequest request,
       @AuthenticationPrincipal com.fitnessapp.backend.security.AuthenticatedUser currentUser) {
-    
+
+    // Require valid JWT authentication - reject if no authenticated user
+    if (currentUser == null || currentUser.userId() == null) {
+      log.warn("Meal creation rejected: No authenticated user (JWT may be missing or invalid)");
+      return ResponseEntity.status(401).build();
+    }
+
     // Extract userId from JWT token (always from authenticated user)
     final UUID userId = currentUser.userId();
     
