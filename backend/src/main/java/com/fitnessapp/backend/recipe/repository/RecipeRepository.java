@@ -14,6 +14,102 @@ import com.fitnessapp.backend.recipe.entity.Recipe;
 
 public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
 
+  // ============================================================================
+  // Vector Similarity Search (using pgvector)
+  // ============================================================================
+
+  /**
+   * Projection interface for vector similarity search results.
+   */
+  interface RecipeSimilarityResult {
+    UUID getId();
+    Double getSimilarity();
+  }
+
+  /**
+   * Vector similarity search using cosine distance.
+   * Returns recipe IDs with similarity scores.
+   */
+  @Query(value = """
+      SELECT r.id AS id, 1 - (r.embedding <=> CAST(:embedding AS vector)) AS similarity
+      FROM recipe r
+      WHERE r.embedding IS NOT NULL
+      ORDER BY r.embedding <=> CAST(:embedding AS vector)
+      LIMIT :limit
+      """, nativeQuery = true)
+  java.util.List<RecipeSimilarityResult> findBySimilarityWithScore(
+          @Param("embedding") String embedding,
+          @Param("limit") int limit);
+
+  /**
+   * Hybrid search: Vector similarity + target goal filter.
+   */
+  @Query(value = """
+      SELECT r.id AS id, 1 - (r.embedding <=> CAST(:embedding AS vector)) AS similarity
+      FROM recipe r
+      WHERE r.embedding IS NOT NULL
+        AND :goal = ANY(r.target_goal)
+        AND r.image_url IS NOT NULL
+      ORDER BY r.embedding <=> CAST(:embedding AS vector)
+      LIMIT :limit
+      """, nativeQuery = true)
+  java.util.List<RecipeSimilarityResult> findBySimilarityAndGoalWithScore(
+          @Param("embedding") String embedding,
+          @Param("goal") String goal,
+          @Param("limit") int limit);
+
+  /**
+   * Hybrid search: Vector similarity + nutrition constraints.
+   */
+  @Query(value = """
+      SELECT r.id AS id, 1 - (r.embedding <=> CAST(:embedding AS vector)) AS similarity
+      FROM recipe r
+      WHERE r.embedding IS NOT NULL
+        AND r.image_url IS NOT NULL
+        AND (:minProtein IS NULL OR (r.nutrition_summary->>'protein')::float >= :minProtein)
+        AND (:maxCalories IS NULL OR (r.nutrition_summary->>'calories')::int <= :maxCalories)
+      ORDER BY r.embedding <=> CAST(:embedding AS vector)
+      LIMIT :limit
+      """, nativeQuery = true)
+  java.util.List<RecipeSimilarityResult> findBySimilarityWithNutritionFilter(
+          @Param("embedding") String embedding,
+          @Param("minProtein") Integer minProtein,
+          @Param("maxCalories") Integer maxCalories,
+          @Param("limit") int limit);
+
+  /**
+   * Find recipes without embeddings for batch seeding.
+   */
+  @Query(value = "SELECT * FROM recipe WHERE embedding IS NULL", nativeQuery = true)
+  java.util.List<Recipe> findRecipesWithoutEmbeddings();
+
+  /**
+   * Count recipes with embeddings.
+   */
+  @Query(value = "SELECT COUNT(*) FROM recipe WHERE embedding IS NOT NULL", nativeQuery = true)
+  long countByEmbeddingIsNotNull();
+
+  /**
+   * Update embedding for a recipe using native SQL.
+   */
+  @org.springframework.data.jpa.repository.Modifying
+  @Query(value = """
+      UPDATE recipe
+      SET embedding = CAST(:embedding AS vector),
+          search_text = :searchText,
+          embedding_generated_at = :updatedAt
+      WHERE id = :id
+      """, nativeQuery = true)
+  void updateEmbedding(
+          @Param("id") UUID id,
+          @Param("embedding") String embedding,
+          @Param("searchText") String searchText,
+          @Param("updatedAt") java.time.OffsetDateTime updatedAt);
+
+  // ============================================================================
+  // Original Methods
+  // ============================================================================
+
   // JPQL: find recipes that contain at least all given ingredient names
   @Query("select r from Recipe r join r.ingredients ri join ri.ingredient i " +
          "where i.name in :names group by r having count(distinct i.name) >= :minCount")

@@ -23,4 +23,10 @@ public class WorkoutCard implements Serializable {
     String thumbnailUrl;
     Long viewCount;
     String youtubeUrl;
+
+    /**
+     * Similarity score from vector search (0.0 - 1.0).
+     * Only populated when using semantic recommendations.
+     */
+    Double similarityScore;
 }

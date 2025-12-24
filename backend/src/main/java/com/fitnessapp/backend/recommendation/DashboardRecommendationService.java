@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,12 @@ import org.springframework.util.StringUtils;
 
 /**
  * Service for fetching personalized dashboard recommendations based on user's fitness goal.
+ *
+ * Supports two modes:
+ * - Vector Search (semantic): Uses pgvector embeddings for intelligent matching
+ * - Tag-based (fallback): Uses simple array matching on target_goal field
+ *
+ * Vector search is used when embeddings are available, otherwise falls back to tag-based.
  */
 @Service
 @RequiredArgsConstructor
@@ -45,10 +52,16 @@ public class DashboardRecommendationService {
     private final ExerciseVideoRepository exerciseVideoRepository;
     private final RecipeRepository recipeRepository;
     private final RecipeRetrievalService recipeRetrievalService;
+    private final VectorRecommendationService vectorRecommendationService;
+
+    @Value("${app.recommendation.use-vector-search:true}")
+    private boolean useVectorSearch;
 
     /**
      * Get dashboard recommendations for a specific fitness goal.
      * Returns top 5 workouts and top 5 recipes matching the goal.
+     *
+     * Uses vector search when available, falls back to tag-based matching.
      *
      * @param fitnessGoal The user's fitness goal (LOSE_WEIGHT, GAIN_MUSCLE, MAINTAIN, STRENGTH)
      * @return DashboardRecommendationResponse with workouts and recipes
@@ -61,13 +74,41 @@ public class DashboardRecommendationService {
         String normalizedGoal = normalizeGoal(fitnessGoal);
         log.info("Fetching dashboard recommendations for goal: {}", normalizedGoal);
 
-        // Fetch workouts and recipes in parallel (conceptually - they're cached independently)
-        List<WorkoutCard> workouts = fetchTopWorkouts(normalizedGoal);
-        List<RecipeCard> recipes = fetchTopRecipes(normalizedGoal);
+        // Determine if we should use vector search
+        boolean useVector = useVectorSearch && vectorRecommendationService.hasEmbeddings();
+
+        List<WorkoutCard> workouts;
+        List<RecipeCard> recipes;
+        String searchMode;
+
+        if (useVector) {
+            // Vector-based semantic search
+            searchMode = "vector";
+            String semanticQuery = vectorRecommendationService.buildSemanticQuery(normalizedGoal);
+            log.debug("Using vector search with query: '{}'", semanticQuery);
+
+            workouts = vectorRecommendationService.getWorkoutRecommendations(semanticQuery, normalizedGoal);
+            recipes = vectorRecommendationService.getRecipeRecommendations(semanticQuery, normalizedGoal);
+
+            // Fallback to tag-based if vector search returns empty
+            if (workouts.isEmpty()) {
+                log.info("Vector search returned no workouts, falling back to tag-based");
+                workouts = fetchTopWorkouts(normalizedGoal);
+            }
+            if (recipes.isEmpty()) {
+                log.info("Vector search returned no recipes, falling back to tag-based");
+                recipes = fetchTopRecipes(normalizedGoal);
+            }
+        } else {
+            // Tag-based matching (original logic)
+            searchMode = "tag-based";
+            workouts = fetchTopWorkouts(normalizedGoal);
+            recipes = fetchTopRecipes(normalizedGoal);
+        }
 
         Duration elapsed = Duration.between(start, Instant.now());
-        log.info("Dashboard recommendations fetched in {}ms: {} workouts, {} recipes",
-                elapsed.toMillis(), workouts.size(), recipes.size());
+        log.info("Dashboard recommendations fetched in {}ms ({} mode): {} workouts, {} recipes",
+                elapsed.toMillis(), searchMode, workouts.size(), recipes.size());
 
         return DashboardRecommendationResponse.builder()
                 .fitnessGoal(normalizedGoal)
@@ -75,6 +116,7 @@ public class DashboardRecommendationService {
                 .workouts(workouts)
                 .recipes(recipes)
                 .latencyMs((int) elapsed.toMillis())
+                .searchMode(searchMode)
                 .build();
     }
 

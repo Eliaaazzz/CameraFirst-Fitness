@@ -31,4 +31,10 @@ public class RecipeCard implements Serializable {
      * List of ingredient names (for display)
      */
     List<String> ingredients;
+
+    /**
+     * Similarity score from vector search (0.0 - 1.0).
+     * Only populated when using semantic recommendations.
+     */
+    Double similarityScore;
 }

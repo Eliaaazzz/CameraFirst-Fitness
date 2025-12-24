@@ -67,11 +67,18 @@ public class VectorMatchStrategy implements FoodMatchStrategy {
         log.debug("[VectorMatch] Searching for: '{}'", queryText);
 
         // Generate embedding for the query
-        float[] queryEmbedding = embeddingService.generateEmbedding(queryText);
+        float[] queryEmbedding;
+        try {
+            queryEmbedding = embeddingService.generateEmbedding(queryText);
+        } catch (com.fitnessapp.backend.embedding.EmbeddingGenerationException e) {
+            log.warn("[VectorMatch] Embedding generation failed ({}), falling back: {}",
+                    e.getErrorType(), e.getMessage());
+            return results;
+        }
 
         // Check if embedding is valid (non-zero)
         if (isZeroVector(queryEmbedding)) {
-            log.warn("[VectorMatch] Failed to generate embedding, falling back");
+            log.warn("[VectorMatch] Got zero embedding, falling back");
             return results;
         }
 

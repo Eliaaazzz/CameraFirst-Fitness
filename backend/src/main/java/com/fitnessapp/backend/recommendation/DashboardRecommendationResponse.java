@@ -44,4 +44,9 @@ public class DashboardRecommendationResponse implements Serializable {
      * Response latency in milliseconds
      */
     int latencyMs;
+
+    /**
+     * Search mode used: "vector" for semantic search, "tag-based" for simple matching
+     */
+    String searchMode;
 }
