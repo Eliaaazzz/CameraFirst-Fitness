@@ -251,4 +251,50 @@ public class DashboardRecommendationService {
                 .map(recipeRetrievalService::toCard)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Get workout recommendations for a specific goal.
+     * Public method for the /workouts endpoint.
+     */
+    @Cacheable(value = "workoutRecommendations", key = "#fitnessGoal + '_' + #limit", unless = "#result.isEmpty()")
+    @Transactional(readOnly = true)
+    public List<WorkoutCard> getWorkoutRecommendations(String fitnessGoal, int limit) {
+        String normalizedGoal = normalizeGoal(fitnessGoal);
+        log.info("Fetching workout recommendations for goal: {}, limit: {}", normalizedGoal, limit);
+
+        // Try vector search first
+        if (useVectorSearch && vectorRecommendationService.hasEmbeddings()) {
+            String semanticQuery = vectorRecommendationService.buildSemanticQuery(normalizedGoal);
+            List<WorkoutCard> workouts = vectorRecommendationService.getWorkoutRecommendations(semanticQuery, normalizedGoal);
+            if (!workouts.isEmpty()) {
+                return workouts.stream().limit(limit).collect(Collectors.toList());
+            }
+        }
+
+        // Fallback to tag-based
+        return fetchTopWorkouts(normalizedGoal).stream().limit(limit).collect(Collectors.toList());
+    }
+
+    /**
+     * Get recipe recommendations for a specific goal.
+     * Public method for the /recipes endpoint.
+     */
+    @Cacheable(value = "recipeRecommendations", key = "#fitnessGoal + '_' + #limit", unless = "#result.isEmpty()")
+    @Transactional(readOnly = true)
+    public List<RecipeCard> getRecipeRecommendations(String fitnessGoal, int limit) {
+        String normalizedGoal = normalizeGoal(fitnessGoal);
+        log.info("Fetching recipe recommendations for goal: {}, limit: {}", normalizedGoal, limit);
+
+        // Try vector search first
+        if (useVectorSearch && vectorRecommendationService.hasEmbeddings()) {
+            String semanticQuery = vectorRecommendationService.buildSemanticQuery(normalizedGoal);
+            List<RecipeCard> recipes = vectorRecommendationService.getRecipeRecommendations(semanticQuery, normalizedGoal);
+            if (!recipes.isEmpty()) {
+                return recipes.stream().limit(limit).collect(Collectors.toList());
+            }
+        }
+
+        // Fallback to tag-based
+        return fetchTopRecipes(normalizedGoal).stream().limit(limit).collect(Collectors.toList());
+    }
 }

@@ -326,56 +326,143 @@ export async function searchRecipes(query: string): Promise<RecipeCard[]> {
 
 const MAX_RECOMMENDATIONS = 6;
 
-const getWorkoutQueryForGoal = (fitnessGoal?: string | null) => {
-  switch ((fitnessGoal || '').toUpperCase()) {
-    case 'LOSE_WEIGHT':
-      return 'squat lunge'; // Compound movements for fat loss
-    case 'GAIN_MUSCLE':
-      return 'chest press'; // Strength training
-    case 'MAINTAIN':
-    default:
-      return 'plank core'; // General fitness
-  }
+/**
+ * Normalize goal for API (match backend normalization)
+ */
+const normalizeGoalForApi = (fitnessGoal?: string | null): string[] => {
+  if (!fitnessGoal) return ['MAINTAIN'];
+  const upper = fitnessGoal.toUpperCase().trim();
+  if (upper.includes('FAT') || upper.includes('LOSS') || upper.includes('LOSE')) return ['FAT_LOSS'];
+  if (upper.includes('MUSCLE') || upper.includes('GAIN') || upper.includes('BUILD')) return ['BUILD_MUSCLE'];
+  if (upper.includes('STRENGTH') || upper.includes('POWER')) return ['STRENGTH'];
+  if (upper.includes('BLOOD') || upper.includes('SUGAR') || upper.includes('DIABETES')) return ['BLOOD_SUGAR_CONTROL'];
+  if (upper.includes('MAINTAIN') || upper.includes('HEALTH') || upper.includes('BALANCE')) return ['MAINTAIN'];
+  return [upper];
 };
 
-const getRecipeEndpointForGoal = (fitnessGoal?: string | null) => {
-  switch ((fitnessGoal || '').toUpperCase()) {
-    case 'LOSE_WEIGHT':
-      return '/api/v1/recipes/filter/low-calorie?maxTime=45';
-    case 'GAIN_MUSCLE':
-      return '/api/v1/recipes/filter/high-protein?maxTime=45';
-    case 'MAINTAIN':
-    default:
-      return '/api/v1/recipes/filter/balanced?maxTime=45';
-  }
-};
+/**
+ * API response wrapper from backend
+ */
+interface ApiResponse<T> {
+  code: number;
+  message: string;
+  data: T;
+  timestamp: number;
+}
 
+/**
+ * Recommendation response from POST /api/v1/recommendations/generate
+ */
+interface RecommendationApiResponse {
+  recommendationId: string;
+  aiAdvice: string;
+  recipes: Array<{
+    id: string;
+    title: string;
+    imageUrl?: string;
+    nutrition?: {
+      calories?: number;
+      protein?: number;
+      sugar?: number;
+      carbs?: number;
+      fat?: number;
+    };
+    tags?: string[];
+    matchScore?: number;
+  }>;
+  workouts: Array<{
+    id: string;
+    title: string;
+    type?: string;
+    durationMin?: number;
+    difficulty?: string;
+    thumbnailUrl?: string;
+    videoUrl?: string;
+    matchScore?: number;
+  }>;
+}
+
+/**
+ * Generate personalized recommendations using POST /api/v1/recommendations/generate
+ */
+async function generateRecommendations(goals: string[], limit: number = MAX_RECOMMENDATIONS): Promise<RecommendationApiResponse | null> {
+  try {
+    const response = await api.post<ApiResponse<RecommendationApiResponse>>(
+      '/api/v1/recommendations/generate',
+      {
+        userProfile: {
+          goals,
+          metrics: {},
+          preferences: {}
+        },
+        limit
+      }
+    );
+    if (response.code === 200 && response.data) {
+      return response.data;
+    }
+    console.warn('generateRecommendations: unexpected response', response);
+    return null;
+  } catch (error) {
+    console.error('generateRecommendations failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Get recommended workouts based on fitness goal.
+ * Uses POST /api/v1/recommendations/generate endpoint.
+ */
 export async function getRecommendedWorkouts(fitnessGoal?: string | null): Promise<WorkoutCard[]> {
   try {
-    const query = getWorkoutQueryForGoal(fitnessGoal);
-    // ContentController: /api/v1/workouts/search returns WorkoutSearchResponse with workouts array
-    const response = await get<any>(`/api/v1/workouts/search?query=${encodeURIComponent(query)}`);
-    const workouts = Array.isArray(response) ? response : response?.workouts;
-    if (!Array.isArray(workouts)) {
-      console.warn('getRecommendedWorkouts: no workouts array in response', response);
+    const goals = normalizeGoalForApi(fitnessGoal);
+    const response = await generateRecommendations(goals, MAX_RECOMMENDATIONS);
+
+    if (!response || !Array.isArray(response.workouts)) {
       return [];
     }
-    return workouts.slice(0, MAX_RECOMMENDATIONS);
+
+    // Map API response to WorkoutCard format
+    return response.workouts.map(w => ({
+      id: w.id,
+      title: w.title,
+      youtubeId: w.videoUrl?.includes('youtube.com') ? w.videoUrl.split('/').pop() : undefined,
+      durationMinutes: w.durationMin ?? 5,
+      level: (w.difficulty?.toLowerCase() ?? 'intermediate') as any,
+      equipment: [],
+      bodyPart: w.type ? [w.type] : [],
+      thumbnailUrl: w.thumbnailUrl,
+    }));
   } catch (error) {
     console.error('getRecommendedWorkouts failed:', error);
     return [];
   }
 }
 
+/**
+ * Get recommended recipes based on fitness goal.
+ * Uses POST /api/v1/recommendations/generate endpoint.
+ */
 export async function getRecommendedRecipes(fitnessGoal?: string | null): Promise<RecipeCard[]> {
   try {
-    const endpoint = getRecipeEndpointForGoal(fitnessGoal);
-    const response = await get<any>(endpoint);
-    const recipes = Array.isArray(response) ? response : response?.recipes;
-    if (!Array.isArray(recipes)) {
+    const goals = normalizeGoalForApi(fitnessGoal);
+    const response = await generateRecommendations(goals, MAX_RECOMMENDATIONS);
+
+    if (!response || !Array.isArray(response.recipes)) {
       return [];
     }
-    return recipes.slice(0, MAX_RECOMMENDATIONS).map(normalizeRecipeData);
+
+    // Map API response to RecipeCard format
+    return response.recipes.map(r => normalizeRecipeData({
+      id: r.id,
+      title: r.title,
+      imageUrl: r.imageUrl,
+      timeMinutes: 30, // Default if not provided
+      difficulty: 'medium',
+      nutrition: r.nutrition,
+      ingredients: [],
+      steps: [],
+    }));
   } catch (error) {
     console.error('getRecommendedRecipes failed:', error);
     return [];
