@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.retrieval;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.Cacheable;
@@ -155,6 +156,66 @@ public class RecipeSearchService {
         return recipes.stream()
                 .map(retrievalService::toCard)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Find recipes by fitness goal (LOSE_WEIGHT, GAIN_MUSCLE, BLOOD_SUGAR_CONTROL, etc.)
+     * Returns more results for browsing (up to 50)
+     */
+    @Cacheable(value = "recipeSearch", key = "'goal_' + #goal + '_' + #limit")
+    @Transactional(readOnly = true)
+    public List<RecipeCard> findByGoal(String goal, int limit) {
+        log.info("Finding recipes for goal: {}, limit: {}", goal, limit);
+
+        String normalizedGoal = normalizeGoal(goal);
+        int effectiveLimit = Math.min(limit, 50);
+
+        List<Recipe> recipes = repository.findTopByTargetGoal(normalizedGoal, effectiveLimit);
+
+        if (recipes.isEmpty()) {
+            log.warn("No recipes found for goal {}, returning recent recipes", normalizedGoal);
+            recipes = repository.findTop12ByOrderByCreatedAtDesc();
+        }
+
+        // Batch fetch with ingredients to avoid N+1 and ensure ingredients are loaded
+        List<UUID> recipeIds = recipes.stream()
+                .map(Recipe::getId)
+                .collect(Collectors.toList());
+        List<Recipe> recipesWithIngredients = repository.findByIdInWithIngredients(recipeIds);
+
+        return recipesWithIngredients.stream()
+                .map(retrievalService::toCard)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Normalize goal input to standard enum values
+     */
+    private String normalizeGoal(String goal) {
+        if (goal == null || goal.trim().isEmpty()) {
+            return "MAINTAIN";
+        }
+
+        String upper = goal.toUpperCase().trim().replace(" ", "_").replace("-", "_");
+
+        // Map common variations
+        if (upper.contains("MUSCLE") || upper.contains("GAIN") || upper.contains("BUILD")) {
+            return "GAIN_MUSCLE";
+        }
+        if (upper.contains("WEIGHT") || upper.contains("FAT") || upper.contains("LOSS") || upper.contains("LOSE")) {
+            return "LOSE_WEIGHT";
+        }
+        if (upper.contains("BLOOD") || upper.contains("SUGAR") || upper.contains("DIABETES") || upper.contains("GLYCEMIC")) {
+            return "MAINTAIN"; // Blood sugar control maps to maintain with low-carb focus
+        }
+        if (upper.contains("STRENGTH") || upper.contains("POWER")) {
+            return "STRENGTH";
+        }
+        if (upper.contains("MAINTAIN") || upper.contains("HEALTH")) {
+            return "MAINTAIN";
+        }
+
+        return upper;
     }
 
     /**

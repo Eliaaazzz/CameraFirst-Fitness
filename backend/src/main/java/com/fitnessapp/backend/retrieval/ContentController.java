@@ -209,6 +209,35 @@ public class ContentController {
         return recipeSearchService.findByCaloriesRange(min, max);
     }
 
+    /**
+     * Find recipes by fitness goal
+     * GET /api/v1/recipes/by-goal?goal=GAIN_MUSCLE&limit=20
+     *
+     * Supported goals:
+     * - GAIN_MUSCLE / BUILD_MUSCLE - High protein for muscle building
+     * - LOSE_WEIGHT / FAT_LOSS - Low calorie for weight loss
+     * - BLOOD_SUGAR_CONTROL - Low carb for blood sugar management
+     * - MAINTAIN - Balanced nutrition
+     * - STRENGTH - High protein for strength training
+     */
+    @GetMapping("/recipes/by-goal")
+    public RecipeSearchResponse getRecipesByGoal(
+            @RequestParam String goal,
+            @RequestParam(defaultValue = "20") int limit) {
+        Instant start = Instant.now();
+
+        List<RecipeCard> results = recipeSearchService.findByGoal(goal, limit);
+        Duration elapsed = Duration.between(start, Instant.now());
+
+        return RecipeSearchResponse.builder()
+                .recipes(results)
+                .totalResults(results.size())
+                .filters(RecipeSearchRequest.builder().build())
+                .latencyMs((int) elapsed.toMillis())
+                .fromCache(false)
+                .build();
+    }
+
     // ============================================================================
     // Recipe Scaling Endpoint (Day 3)
     // ============================================================================

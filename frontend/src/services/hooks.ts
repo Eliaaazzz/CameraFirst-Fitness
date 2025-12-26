@@ -14,6 +14,7 @@ import {
     uploadWorkoutImage,
 } from './api';
 import { searchRecipes, searchWorkouts } from './imageRecognitionApi';
+import { getRecipesByGoal } from './goalRecipesApi';
 
 // Default pagination and sort values (for backwards compatibility)
 export const DEFAULT_SAVED_PAGE_SIZE = 20;
@@ -180,3 +181,13 @@ export const useRemoveRecipe = (userId?: string) => {
     },
   });
 };
+
+// Goal-based recipes hook for browsing recipes by fitness goal
+export const useRecipesByGoal = (goal: string, limit: number = 20) =>
+  useQuery<RecipeCard[], Error>({
+    queryKey: ['recipes', 'by-goal', goal, limit],
+    queryFn: () => getRecipesByGoal(goal, limit),
+    enabled: !!goal,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+  });

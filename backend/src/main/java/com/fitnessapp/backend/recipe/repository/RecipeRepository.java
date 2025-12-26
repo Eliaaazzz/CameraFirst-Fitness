@@ -60,14 +60,15 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
 
   /**
    * Hybrid search: Vector similarity + nutrition constraints.
+   * Supports both flat and nested (macros.*.amount) nutrition formats
    */
   @Query(value = """
       SELECT r.id AS id, 1 - (r.embedding <=> CAST(:embedding AS vector)) AS similarity
       FROM recipe r
       WHERE r.embedding IS NOT NULL
         AND r.image_url IS NOT NULL
-        AND (:minProtein IS NULL OR (r.nutrition_summary->>'protein')::float >= :minProtein)
-        AND (:maxCalories IS NULL OR (r.nutrition_summary->>'calories')::int <= :maxCalories)
+        AND (:minProtein IS NULL OR COALESCE((r.nutrition_summary->>'protein')::float, (r.nutrition_summary->'macros'->'protein'->>'amount')::float) >= :minProtein)
+        AND (:maxCalories IS NULL OR COALESCE((r.nutrition_summary->>'calories')::float, (r.nutrition_summary->'macros'->'calories'->>'amount')::float) <= :maxCalories)
       ORDER BY r.embedding <=> CAST(:embedding AS vector)
       LIMIT :limit
       """, nativeQuery = true)
@@ -160,10 +161,16 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
 
   /**
    * Find recipes by calorie range (uses idx_recipe_calories index)
+   * Supports both flat (calories) and nested (macros.calories.amount) nutrition formats
    */
   @Query(value = """
     SELECT * FROM recipe r
-    WHERE (r.nutrition_summary->>'calories')::int BETWEEN :minCalories AND :maxCalories
+    WHERE (
+      COALESCE(
+        (r.nutrition_summary->>'calories')::float,
+        (r.nutrition_summary->'macros'->'calories'->>'amount')::float
+      ) BETWEEN :minCalories AND :maxCalories
+    )
       AND r.image_url IS NOT NULL
     ORDER BY r.time_minutes ASC
     LIMIT :limit
@@ -176,24 +183,25 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
 
   /**
    * Advanced nutrition-based search (uses GIN and specific JSONB indexes)
+   * Supports both flat and nested (macros.*.amount) nutrition formats
    */
   @Query(value = """
     SELECT * FROM recipe r
-    WHERE (:minCalories IS NULL OR (r.nutrition_summary->>'calories')::int >= :minCalories)
-      AND (:maxCalories IS NULL OR (r.nutrition_summary->>'calories')::int <= :maxCalories)
-      AND (:minProtein IS NULL OR (r.nutrition_summary->>'protein')::float >= :minProtein)
-      AND (:maxProtein IS NULL OR (r.nutrition_summary->>'protein')::float <= :maxProtein)
-      AND (:minCarbs IS NULL OR (r.nutrition_summary->>'carbs')::float >= :minCarbs)
-      AND (:maxCarbs IS NULL OR (r.nutrition_summary->>'carbs')::float <= :maxCarbs)
-      AND (:minFat IS NULL OR (r.nutrition_summary->>'fat')::float >= :minFat)
-      AND (:maxFat IS NULL OR (r.nutrition_summary->>'fat')::float <= :maxFat)
+    WHERE (:minCalories IS NULL OR COALESCE((r.nutrition_summary->>'calories')::float, (r.nutrition_summary->'macros'->'calories'->>'amount')::float) >= :minCalories)
+      AND (:maxCalories IS NULL OR COALESCE((r.nutrition_summary->>'calories')::float, (r.nutrition_summary->'macros'->'calories'->>'amount')::float) <= :maxCalories)
+      AND (:minProtein IS NULL OR COALESCE((r.nutrition_summary->>'protein')::float, (r.nutrition_summary->'macros'->'protein'->>'amount')::float) >= :minProtein)
+      AND (:maxProtein IS NULL OR COALESCE((r.nutrition_summary->>'protein')::float, (r.nutrition_summary->'macros'->'protein'->>'amount')::float) <= :maxProtein)
+      AND (:minCarbs IS NULL OR COALESCE((r.nutrition_summary->>'carbs')::float, (r.nutrition_summary->'macros'->'carbs'->>'amount')::float) >= :minCarbs)
+      AND (:maxCarbs IS NULL OR COALESCE((r.nutrition_summary->>'carbs')::float, (r.nutrition_summary->'macros'->'carbs'->>'amount')::float) <= :maxCarbs)
+      AND (:minFat IS NULL OR COALESCE((r.nutrition_summary->>'fat')::float, (r.nutrition_summary->'macros'->'fat'->>'amount')::float) >= :minFat)
+      AND (:maxFat IS NULL OR COALESCE((r.nutrition_summary->>'fat')::float, (r.nutrition_summary->'macros'->'fat'->>'amount')::float) <= :maxFat)
       AND (:maxTime IS NULL OR r.time_minutes <= :maxTime)
       AND (:difficulty IS NULL OR LOWER(r.difficulty) = LOWER(:difficulty))
       AND r.image_url IS NOT NULL
     ORDER BY
       CASE WHEN :sortBy = 'time' THEN r.time_minutes END ASC,
-      CASE WHEN :sortBy = 'calories' THEN (r.nutrition_summary->>'calories')::int END ASC,
-      CASE WHEN :sortBy = 'protein' THEN (r.nutrition_summary->>'protein')::float END DESC,
+      CASE WHEN :sortBy = 'calories' THEN COALESCE((r.nutrition_summary->>'calories')::float, (r.nutrition_summary->'macros'->'calories'->>'amount')::float) END ASC,
+      CASE WHEN :sortBy = 'protein' THEN COALESCE((r.nutrition_summary->>'protein')::float, (r.nutrition_summary->'macros'->'protein'->>'amount')::float) END DESC,
       r.created_at DESC
     LIMIT :limit
     """, nativeQuery = true)
@@ -214,13 +222,14 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
 
   /**
    * Find high-protein recipes (uses idx_recipe_protein index)
+   * Supports both flat and nested (macros.protein.amount) nutrition formats
    */
   @Query(value = """
     SELECT * FROM recipe r
-    WHERE (r.nutrition_summary->>'protein')::float >= :minProtein
+    WHERE COALESCE((r.nutrition_summary->>'protein')::float, (r.nutrition_summary->'macros'->'protein'->>'amount')::float) >= :minProtein
       AND (:maxTime IS NULL OR r.time_minutes <= :maxTime)
       AND r.image_url IS NOT NULL
-    ORDER BY (r.nutrition_summary->>'protein')::float DESC
+    ORDER BY COALESCE((r.nutrition_summary->>'protein')::float, (r.nutrition_summary->'macros'->'protein'->>'amount')::float) DESC
     LIMIT :limit
     """, nativeQuery = true)
   List<Recipe> findHighProteinRecipes(
@@ -231,13 +240,14 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
 
   /**
    * Find low-carb recipes (uses idx_recipe_carbs index)
+   * Supports both flat and nested (macros.carbs.amount) nutrition formats
    */
   @Query(value = """
     SELECT * FROM recipe r
-    WHERE (r.nutrition_summary->>'carbs')::float <= :maxCarbs
+    WHERE COALESCE((r.nutrition_summary->>'carbs')::float, (r.nutrition_summary->'macros'->'carbs'->>'amount')::float) <= :maxCarbs
       AND (:maxTime IS NULL OR r.time_minutes <= :maxTime)
       AND r.image_url IS NOT NULL
-    ORDER BY (r.nutrition_summary->>'carbs')::float ASC
+    ORDER BY COALESCE((r.nutrition_summary->>'carbs')::float, (r.nutrition_summary->'macros'->'carbs'->>'amount')::float) ASC
     LIMIT :limit
     """, nativeQuery = true)
   List<Recipe> findLowCarbRecipes(
@@ -248,13 +258,14 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
 
   /**
    * Find low-calorie recipes (uses idx_recipe_calories index)
+   * Supports both flat and nested (macros.calories.amount) nutrition formats
    */
   @Query(value = """
     SELECT * FROM recipe r
-    WHERE (r.nutrition_summary->>'calories')::int <= :maxCalories
+    WHERE COALESCE((r.nutrition_summary->>'calories')::float, (r.nutrition_summary->'macros'->'calories'->>'amount')::float) <= :maxCalories
       AND (:maxTime IS NULL OR r.time_minutes <= :maxTime)
       AND r.image_url IS NOT NULL
-    ORDER BY (r.nutrition_summary->>'calories')::int ASC
+    ORDER BY COALESCE((r.nutrition_summary->>'calories')::float, (r.nutrition_summary->'macros'->'calories'->>'amount')::float) ASC
     LIMIT :limit
     """, nativeQuery = true)
   List<Recipe> findLowCalorieRecipes(
@@ -293,12 +304,13 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
 
   /**
    * Find top recipes by target goal, ordered by protein content (for quality recommendations)
+   * Supports both flat and nested (macros.protein.amount) nutrition formats
    */
   @Query(value = """
     SELECT * FROM recipe r
     WHERE :goal = ANY(r.target_goal)
       AND r.image_url IS NOT NULL
-    ORDER BY (r.nutrition_summary->>'protein')::float DESC NULLS LAST
+    ORDER BY COALESCE((r.nutrition_summary->>'protein')::float, (r.nutrition_summary->'macros'->'protein'->>'amount')::float) DESC NULLS LAST
     LIMIT :limit
     """, nativeQuery = true)
   List<Recipe> findTopByTargetGoal(@Param("goal") String goal, @Param("limit") int limit);

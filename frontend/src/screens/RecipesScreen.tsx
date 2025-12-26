@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
@@ -7,9 +7,10 @@ import { FAB } from 'react-native-paper';
 
 import { Button, Card, Container, ListSkeleton, RecipeCard, SafeAreaWrapper, Text } from '@/components';
 import useCurrentUser from '@/hooks/useCurrentUser';
-import { useRecommendedRecipes, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
+import { useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
+import { useDashboardRecommendations, normalizeGoalForApi } from '@/services/recommendationApi';
 import type { SavedRecipe } from '@/types';
-import { spacing } from '@/utils';
+import { colors, radii, spacing } from '@/utils';
 
 type TabParamList = {
   Dashboard: undefined;
@@ -21,15 +22,21 @@ export const RecipesScreen = () => {
   const navigation = useNavigation<BottomTabNavigationProp<TabParamList>>();
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
+  const userGoal = currentUser.data?.profile?.fitnessGoal;
+
+  // Normalize user goal for API
+  const normalizedGoal = useMemo(() => normalizeGoalForApi(userGoal), [userGoal]);
+
   const saved = useSavedRecipes(userId);
-  const recommended = useRecommendedRecipes(currentUser.data?.profile?.fitnessGoal);
+  // Use dashboard recommendations API for healthy recipes
+  const recommendations = useDashboardRecommendations(normalizedGoal, !!normalizedGoal);
   const saveRecipe = useSaveRecipe(userId);
   const removeRecipe = useRemoveRecipe(userId);
   const listRef = useRef<FlatList<SavedRecipe>>(null);
   const [showFab, setShowFab] = useState(false);
   const savedRecipes = saved.data ?? [];
   const savedRecipeIds = useMemo(() => new Set(savedRecipes.map((item) => item.id)), [savedRecipes]);
-  const recommendedItems = recommended.data ?? [];
+  const healthyRecipes = recommendations.data?.recipes ?? [];
 
   const handleRefresh = useCallback(() => {
     if (!saved.isLoading) {
@@ -117,21 +124,28 @@ export const RecipesScreen = () => {
         Recipes
       </Text>
       <Text variant="body" style={styles.subtitle}>
-        Recommended meals and your saved list.
+        Healthy meals and your saved list.
       </Text>
+
+      {/* Healthy Recipes Section */}
       <View style={styles.section}>
-        <Text variant="heading2" weight="semibold">
-          Recommended for you
-        </Text>
-        {recommended.isLoading ? (
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleRow}>
+            <MaterialCommunityIcons name="food-apple" size={20} color={colors.dark.secondary} />
+            <Text variant="heading2" weight="semibold" style={styles.sectionTitle}>
+              Healthy Recipes
+            </Text>
+          </View>
+        </View>
+        {recommendations.isLoading ? (
           <Text variant="caption" style={styles.recommendedNote}>
             Loading recommendations...
           </Text>
-        ) : recommended.isError ? (
+        ) : recommendations.isError ? (
           <Text variant="caption" style={styles.recommendedNote}>
             Unable to load recommendations.
           </Text>
-        ) : recommendedItems.length === 0 ? (
+        ) : healthyRecipes.length === 0 ? (
           <Text variant="caption" style={styles.recommendedNote}>
             No recommendations yet.
           </Text>
@@ -141,7 +155,7 @@ export const RecipesScreen = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.recommendedList}
           >
-            {recommendedItems.map((item) => (
+            {healthyRecipes.map((item) => (
               <View key={item.id} style={styles.recommendedCard}>
                 <RecipeCard
                   item={item}
@@ -232,6 +246,19 @@ const styles = StyleSheet.create({
   section: {
     marginTop: spacing.lg,
     gap: spacing.sm,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  sectionTitle: {
+    color: colors.dark.textPrimary,
   },
   recommendedList: {
     gap: spacing.md,

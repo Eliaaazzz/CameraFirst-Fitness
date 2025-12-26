@@ -273,6 +273,14 @@ public class VectorRecommendationService {
     }
 
     private WorkoutCard toWorkoutCard(ExerciseVideo video, Double similarity) {
+        List<String> bodyParts = new ArrayList<>();
+        if (video.getPrimaryCategory() != null) {
+            bodyParts.add(video.getPrimaryCategory());
+        }
+        if (video.getSecondaryCategory() != null) {
+            bodyParts.add(video.getSecondaryCategory());
+        }
+
         return WorkoutCard.builder()
                 .id(video.getId().toString())
                 .youtubeId(video.getYoutubeId())
@@ -280,8 +288,8 @@ public class VectorRecommendationService {
                 .durationMinutes(video.getIsShort() ? 1 : 5)
                 .level("all")
                 .equipment(List.of())
-                .bodyParts(List.of(video.getPrimaryCategory()))
-                .thumbnailUrl("https://img.camera-first.dev/video/" + video.getR2Key() + "/thumb.jpg")
+                .bodyParts(bodyParts)
+                .thumbnailUrl(video.getThumbnailUrl())
                 .viewCount(0L)
                 .youtubeUrl("https://www.youtube.com/watch?v=" + video.getYoutubeId())
                 .similarityScore(similarity)

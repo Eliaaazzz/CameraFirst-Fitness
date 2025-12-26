@@ -29,7 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/admin/import")
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'API_CLIENT')")
 public class ImportController {
 
   private final DataImportService dataImportService;
