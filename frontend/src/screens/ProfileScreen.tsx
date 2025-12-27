@@ -6,37 +6,37 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, SafeAreaWrapper, Text, WheelPicker } from '@/components';
 import { StateView } from '@/components/common/StateView';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { navigateToLogin } from '@/navigation/navigationService';
 import {
-    GeneratedGoals,
-    generateGoals,
-    GenerateGoalsRequest,
-    getActiveGoal,
-    GoalType,
-    saveGoal,
-    Sex,
+  GeneratedGoals,
+  generateGoals,
+  GenerateGoalsRequest,
+  getActiveGoal,
+  GoalType,
+  saveGoal,
+  Sex,
 } from '@/services/geminiApi';
 import { useGoalStatistics } from '@/services/goalsApi';
 import userApi from '@/services/userApi';
-import { BRAND_COLORS, spacing } from '@/utils';
+import { BRAND_COLORS, spacing, useContentBottomPadding } from '@/utils';
 import { clearJWT, getUserEmail } from '@/utils/jwtStorage';
 
 export const GENERATED_GOALS_KEY = '@generated_fitness_goals';
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const mapGoalTypeToFitnessGoal = (goalType: GoalType): string => {
   switch (goalType) {
@@ -208,7 +208,28 @@ const ProfileScreen = () => {
     }
   };
 
+  const performLogout = async () => {
+    try {
+      await clearJWT();
+      await AsyncStorage.removeItem(GENERATED_GOALS_KEY);
+      queryClient.clear();
+      navigateToLogin();
+    } catch (error) {
+      console.error('Logout failed:', error);
+      Alert.alert('Error', 'Failed to logout. Please try again.');
+    }
+  };
+
   const handleLogout = () => {
+    // On web, fall back to native confirm since Alert can be ignored by browsers
+    if (Platform.OS === 'web') {
+      const confirmed = typeof window !== 'undefined' ? window.confirm('Logout of Aura Fitness?') : true;
+      if (confirmed) {
+        performLogout();
+      }
+      return;
+    }
+
     Alert.alert(
       'Logout',
       'Are you sure you want to logout?',
@@ -217,23 +238,7 @@ const ProfileScreen = () => {
         {
           text: 'Logout',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              // Clear stored data
-              await clearJWT();
-              await AsyncStorage.removeItem(GENERATED_GOALS_KEY);
-
-              // Clear react-query cache
-              queryClient.clear();
-
-              // Navigate to login using the navigation service
-              // This uses the navigationRef which is connected to the root navigator
-              navigateToLogin();
-            } catch (error) {
-              console.error('Logout failed:', error);
-              Alert.alert('Error', 'Failed to logout. Please try again.');
-            }
-          },
+          onPress: performLogout,
         },
       ]
     );
@@ -353,6 +358,9 @@ const ProfileScreen = () => {
     <Pressable
       style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={subtitle}
     >
       <View style={styles.menuIcon}>
         <MaterialCommunityIcons name={icon as any} size={24} color={BRAND_COLORS.primary} />
@@ -370,28 +378,50 @@ const ProfileScreen = () => {
     </Pressable>
   );
 
+  // Get safe area insets for full-screen modal
+  const insets = useSafeAreaInsets();
+
   const renderGoalsModal = () => (
     <Modal
       visible={showGoalsModal}
       animationType="slide"
-      transparent={false}
+      presentationStyle="fullScreen"
       onRequestClose={resetGoalsModal}
     >
-      <SafeAreaView style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text variant="heading2" weight="bold">
-              {step === 'sex' && 'About You'}
-              {step === 'measurements' && 'Your Stats'}
-              {step === 'goal' && 'Your Goal'}
-              {step === 'generating' && 'Creating Goals'}
-              {step === 'complete' && 'Your Goals'}
-            </Text>
-            <Pressable onPress={resetGoalsModal} style={styles.closeButton}>
-              <Feather name="x" size={24} color="#9CA3AF" />
-            </Pressable>
-          </View>
+      <KeyboardAvoidingView
+        style={[styles.modalContainer, { backgroundColor: BRAND_COLORS.background }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {/* Fixed App Bar */}
+        <View style={[styles.modalAppBar, { paddingTop: insets.top + 8 }]}>
+          <Text variant="heading2" weight="bold" style={styles.modalTitle}>
+            {step === 'sex' && 'About You'}
+            {step === 'measurements' && 'Your Stats'}
+            {step === 'goal' && 'Your Goal'}
+            {step === 'generating' && 'Creating Goals'}
+            {step === 'complete' && 'Your Goals'}
+          </Text>
+          <Pressable
+            onPress={resetGoalsModal}
+            style={styles.closeButton}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+          >
+            <Feather name="x" size={24} color="#9CA3AF" />
+          </Pressable>
+        </View>
 
+        {/* Scrollable Content Area */}
+        <ScrollView
+          style={styles.modalScrollView}
+          contentContainerStyle={[
+            styles.modalScrollContent,
+            { paddingBottom: step === 'complete' ? 100 : 120 },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Step 1: Sex Selection */}
           {step === 'sex' && (
             <View style={styles.stepContent}>
@@ -407,18 +437,22 @@ const ProfileScreen = () => {
                 {SEX_OPTIONS.map((option) => (
                   <Pressable
                     key={option.value}
-                    style={[
+                    style={({ pressed }) => [
                       styles.sexOption,
                       selectedSex === option.value && { backgroundColor: option.color },
+                      pressed && styles.optionPressed,
                     ]}
                     onPress={() => {
                       setSelectedSex(option.value);
                       Haptics.selectionAsync().catch(() => {});
                     }}
+                    accessibilityRole="button"
+                    accessibilityLabel={option.label}
+                    accessibilityState={{ selected: selectedSex === option.value }}
                   >
                     <MaterialCommunityIcons
                       name={option.icon as any}
-                      size={44}
+                      size={40}
                       color={selectedSex === option.value ? '#FFF' : option.color}
                     />
                     <Text
@@ -431,13 +465,6 @@ const ProfileScreen = () => {
                   </Pressable>
                 ))}
               </View>
-
-              <Button
-                title="Continue"
-                variant="primary"
-                disabled={!canProceedToMeasurements}
-                onPress={() => setStep('measurements')}
-              />
             </View>
           )}
 
@@ -465,20 +492,6 @@ const ProfileScreen = () => {
                   unit="kg"
                 />
               </View>
-
-              <View style={styles.buttonRow}>
-                <Button
-                  title="Back"
-                  variant="secondary"
-                  onPress={() => setStep('sex')}
-                />
-                <Button
-                  title="Continue"
-                  variant="primary"
-                  disabled={!canProceedToGoal}
-                  onPress={() => setStep('goal')}
-                />
-              </View>
             </View>
           )}
 
@@ -493,22 +506,26 @@ const ProfileScreen = () => {
                 {GOAL_OPTIONS.map((option) => (
                   <Pressable
                     key={option.value}
-                    style={[
+                    style={({ pressed }) => [
                       styles.goalOption,
                       selectedGoalType === option.value && {
                         borderColor: option.color,
                         backgroundColor: `${option.color}20`,
                       },
+                      pressed && styles.optionPressed,
                     ]}
                     onPress={() => {
                       setSelectedGoalType(option.value);
                       Haptics.selectionAsync().catch(() => {});
                     }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${option.label}: ${option.description}`}
+                    accessibilityState={{ selected: selectedGoalType === option.value }}
                   >
                     <View style={[styles.goalIconContainer, { backgroundColor: `${option.color}20` }]}>
                       <MaterialCommunityIcons
                         name={option.icon as any}
-                        size={32}
+                        size={28}
                         color={option.color}
                       />
                     </View>
@@ -523,34 +540,6 @@ const ProfileScreen = () => {
                     )}
                   </Pressable>
                 ))}
-              </View>
-
-              <View style={styles.buttonRow}>
-                <Button
-                  title="Back"
-                  variant="secondary"
-                  onPress={() => setStep('measurements')}
-                />
-                <Pressable
-                  style={[
-                    styles.generateButton,
-                    !canGenerate && styles.generateButtonDisabled,
-                  ]}
-                  disabled={!canGenerate}
-                  onPress={handleGenerateGoals}
-                >
-                  <LinearGradient
-                    colors={canGenerate ? [BRAND_COLORS.primary, BRAND_COLORS.secondary] : ['#6B7280', '#6B7280']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.generateButtonGradient}
-                  >
-                    <MaterialCommunityIcons name="auto-fix" size={20} color="#FFF" />
-                    <Text variant="body" weight="bold" style={styles.generateButtonText}>
-                      Generate Goals
-                    </Text>
-                  </LinearGradient>
-                </Pressable>
               </View>
             </View>
           )}
@@ -577,9 +566,9 @@ const ProfileScreen = () => {
 
           {/* Step 5: Complete - Show Generated Goals */}
           {step === 'complete' && generatedGoals && (
-            <ScrollView style={styles.completeContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.completeContent}>
               <View style={styles.successIcon}>
-                <MaterialCommunityIcons name="check-circle" size={60} color="#10B981" />
+                <MaterialCommunityIcons name="check-circle" size={56} color="#10B981" />
               </View>
               <Text variant="heading3" weight="bold" style={styles.successTitle}>
                 Goals Generated!
@@ -679,18 +668,126 @@ const ProfileScreen = () => {
                   {generatedGoals.safetyNote}
                 </Text>
               </Card>
-
-              <Button
-                title="Save & View Dashboard"
-                variant="primary"
-                onPress={handleSaveAndClose}
-              />
-
-              <View style={{ height: spacing.xl }} />
-            </ScrollView>
+            </View>
           )}
-        </View>
-      </SafeAreaView>
+        </ScrollView>
+
+        {/* Fixed Bottom CTA */}
+        {step !== 'generating' && (
+          <View style={[styles.modalBottomCta, { paddingBottom: insets.bottom + 12 }]}>
+            {step === 'sex' && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.ctaButton,
+                  !canProceedToMeasurements && styles.ctaButtonDisabled,
+                  pressed && canProceedToMeasurements && styles.ctaButtonPressed,
+                ]}
+                disabled={!canProceedToMeasurements}
+                onPress={() => setStep('measurements')}
+                accessibilityRole="button"
+                accessibilityLabel="Continue to measurements"
+                accessibilityState={{ disabled: !canProceedToMeasurements }}
+              >
+                <Text variant="body" weight="bold" style={styles.ctaButtonText}>
+                  Continue
+                </Text>
+              </Pressable>
+            )}
+
+            {step === 'measurements' && (
+              <View style={styles.buttonRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.secondaryButton,
+                    pressed && styles.secondaryButtonPressed,
+                  ]}
+                  onPress={() => setStep('sex')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back to sex selection"
+                >
+                  <Text variant="body" weight="semibold" style={styles.secondaryButtonText}>
+                    Back
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.ctaButton,
+                    styles.ctaButtonFlex,
+                    !canProceedToGoal && styles.ctaButtonDisabled,
+                    pressed && canProceedToGoal && styles.ctaButtonPressed,
+                  ]}
+                  disabled={!canProceedToGoal}
+                  onPress={() => setStep('goal')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Continue to goal selection"
+                  accessibilityState={{ disabled: !canProceedToGoal }}
+                >
+                  <Text variant="body" weight="bold" style={styles.ctaButtonText}>
+                    Continue
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+
+            {step === 'goal' && (
+              <View style={styles.buttonRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.secondaryButton,
+                    pressed && styles.secondaryButtonPressed,
+                  ]}
+                  onPress={() => setStep('measurements')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back to measurements"
+                >
+                  <Text variant="body" weight="semibold" style={styles.secondaryButtonText}>
+                    Back
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.generateButton,
+                    !canGenerate && styles.generateButtonDisabled,
+                  ]}
+                  disabled={!canGenerate}
+                  onPress={handleGenerateGoals}
+                  accessibilityRole="button"
+                  accessibilityLabel="Generate personalized fitness goals"
+                  accessibilityState={{ disabled: !canGenerate }}
+                >
+                  <LinearGradient
+                    colors={canGenerate ? [BRAND_COLORS.primary, BRAND_COLORS.secondary] : ['#6B7280', '#6B7280']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.generateButtonGradient}
+                  >
+                    <MaterialCommunityIcons name="auto-fix" size={20} color="#FFF" />
+                    <Text variant="body" weight="bold" style={styles.generateButtonText}>
+                      Generate Goals
+                    </Text>
+                  </LinearGradient>
+                </Pressable>
+              </View>
+            )}
+
+            {step === 'complete' && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.ctaButton,
+                  pressed && styles.ctaButtonPressed,
+                ]}
+                onPress={handleSaveAndClose}
+                accessibilityRole="button"
+                accessibilityLabel="Save goals and go to dashboard"
+              >
+                <Text variant="body" weight="bold" style={styles.ctaButtonText}>
+                  Save & View Dashboard
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+      </KeyboardAvoidingView>
     </Modal>
   );
 
@@ -719,9 +816,15 @@ const ProfileScreen = () => {
     ? GOAL_OPTIONS.find(g => g.value === generatedGoals.goalType)?.label
     : null;
 
+  // Calculate bottom padding to account for tab bar
+  const contentBottomPadding = useContentBottomPadding(spacing.xl);
+
   return (
     <SafeAreaWrapper>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
+      >
         {/* Profile Header */}
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
@@ -777,6 +880,8 @@ const ProfileScreen = () => {
               pressed && { opacity: 0.9 },
             ]}
             onPress={() => setShowGoalsModal(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Set your fitness goals with AI-powered personalization"
           >
             <LinearGradient
               colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
@@ -843,6 +948,7 @@ const ProfileScreen = () => {
           {renderMenuItem(
             'account-cog-outline',
             'Account',
+
             'Manage your account',
             () => Alert.alert('Coming Soon', 'Account settings will be available soon.')
           )}
@@ -852,6 +958,8 @@ const ProfileScreen = () => {
         <Pressable
           style={({ pressed }) => [styles.logoutButton, pressed && styles.logoutButtonPressed]}
           onPress={handleLogout}
+          accessibilityRole="button"
+          accessibilityLabel="Logout from your account"
         >
           <Feather name="log-out" size={20} color="#EF4444" />
           <Text variant="body" weight="semibold" style={styles.logoutText}>
@@ -872,7 +980,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    paddingBottom: spacing['3xl'],
+    // paddingBottom is set dynamically via useContentBottomPadding
   },
   header: {
     alignItems: 'center',
@@ -1028,29 +1136,93 @@ const styles = StyleSheet.create({
   logoutText: {
     color: '#EF4444',
   },
-  // Modal styles
-  modalOverlay: {
+  // Full-screen modal styles
+  modalContainer: {
     flex: 1,
-    backgroundColor: BRAND_COLORS.surface,
   },
-  modalContent: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    justifyContent: 'center',
-  },
-  modalHeader: {
+  modalAppBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: BRAND_COLORS.background,
+  },
+  modalTitle: {
+    flex: 1,
   },
   closeButton: {
-    padding: spacing.xs,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  modalScrollView: {
+    flex: 1,
+  },
+  modalScrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    flexGrow: 1,
+  },
+  modalBottomCta: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: BRAND_COLORS.background,
+  },
+  ctaButton: {
+    backgroundColor: BRAND_COLORS.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 52,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer',
+    }),
+  },
+  ctaButtonFlex: {
+    flex: 1,
+  },
+  ctaButtonDisabled: {
+    opacity: 0.5,
+  },
+  ctaButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+  ctaButtonText: {
+    color: '#1A1F2E',
+  },
+  secondaryButton: {
+    paddingVertical: 16,
+    paddingHorizontal: spacing.xl,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(167, 139, 250, 0.15)',
+    minHeight: 52,
+  },
+  secondaryButtonPressed: {
+    opacity: 0.7,
+  },
+  secondaryButtonText: {
+    color: BRAND_COLORS.primary,
   },
   stepContent: {
-    gap: spacing.lg,
-    paddingVertical: spacing.xl,
+    flex: 1,
+    gap: spacing.xl,
+    justifyContent: 'center',
+  },
+  optionPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
   },
   stepDescription: {
     opacity: 0.7,
@@ -1129,7 +1301,8 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   generatingContent: {
-    height: 300,
+    flex: 1,
+    justifyContent: 'center',
   },
   generatingOverlay: {
     flex: 1,

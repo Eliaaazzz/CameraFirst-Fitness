@@ -183,6 +183,7 @@ public class RecipeCuratorService {
                 .queryParam("instructionsRequired", true)
                 .queryParam("maxReadyTime", MAX_READY_TIME_MINUTES)
                 .queryParam("addRecipeInformation", true)
+                .queryParam("addRecipeNutrition", true)
                 .queryParam("fillIngredients", true)
                 .queryParam("apiKey", spoonacularApiKey)
                 .build()

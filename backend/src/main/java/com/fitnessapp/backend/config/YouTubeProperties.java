@@ -1,13 +1,15 @@
 package com.fitnessapp.backend.config;
 
+import java.time.Duration;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import java.time.Duration;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.validation.annotation.Validated;
 
 @Getter
 @Setter
@@ -19,6 +21,12 @@ public class YouTubeProperties {
     private String apiKey = "";
 
     private Duration cacheTtl = Duration.ofHours(24);
+
+    /**
+     * Feature flag: enable new ingestion pipeline targeting exercise_videos.
+     * Disabled by default to prevent accidental writes.
+     */
+    private boolean ingestionEnabled = false;
 
     private final Quota quota = new Quota();
 

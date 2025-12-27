@@ -1,0 +1,3 @@
+-- Fix constraint issues by changing columns to infinite TEXT type
+ALTER TABLE meal_log ALTER COLUMN food_items TYPE TEXT;
+ALTER TABLE meal_log ALTER COLUMN notes TYPE TEXT;

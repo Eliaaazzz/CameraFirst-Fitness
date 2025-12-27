@@ -1,7 +1,9 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -12,20 +14,24 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { SafeAreaWrapper, Text } from '@/components';
-import { saveJWT } from '../utils/jwtStorage';
-import { api } from '../services/apiClient';
 import { BRAND_COLORS, spacing } from '@/utils';
+import {
+  EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+  EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+  EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+} from '@env';
+import { api } from '../services/apiClient';
+import { queryClient } from '../services/queryClient';
+import { saveJWT } from '../utils/jwtStorage';
 
-// Required for Web support and handling redirect callbacks
+// Required for Web support and handling loginrect callbacks
 WebBrowser.maybeCompleteAuthSession();
 
-const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
-const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+const GOOGLE_IOS_CLIENT_ID = EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+const GOOGLE_ANDROID_CLIENT_ID = EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+const GOOGLE_WEB_CLIENT_ID = EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
 export default function LoginScreen() {
   const navigation = useNavigation();
@@ -50,12 +56,22 @@ export default function LoginScreen() {
     checkAppleAuth();
   }, []);
 
-  // Generate explicit redirect URI for Google OAuth
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: 'com.fitnessapp.mvp',
-  });
+  if (!GOOGLE_WEB_CLIENT_ID) {
+    console.error('[LoginScreen] Missing EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID; update frontend/.env and restart Expo');
+  }
+
+  // Generate redirect URI for Google OAuth
+  // For web: use current origin; for native: use app scheme
+  const redirectUri = Platform.OS === 'web'
+    ? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081')
+    : AuthSession.makeRedirectUri({ scheme: 'com.fitnessapp.mvp' });
 
   console.log('[LoginScreen] Google OAuth redirectUri:', redirectUri);
+  console.log('[LoginScreen] Google Client IDs', {
+    ios: GOOGLE_IOS_CLIENT_ID,
+    android: GOOGLE_ANDROID_CLIENT_ID,
+    web: GOOGLE_WEB_CLIENT_ID,
+  });
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     iosClientId: GOOGLE_IOS_CLIENT_ID,
@@ -76,6 +92,9 @@ export default function LoginScreen() {
       });
 
       console.log('Login successful! JWT:', data.token);
+
+      // Clear any cached data from previous user before saving new JWT
+      queryClient.clear();
 
       await saveJWT(data.token, data.refreshToken, data.email);
 
@@ -115,6 +134,9 @@ export default function LoginScreen() {
       const mockEmail = 'test@aurafitness.com';
 
       console.log('Mock login successful! Token:', mockToken);
+
+      // Clear any cached data from previous user before saving new JWT
+      queryClient.clear();
 
       await saveJWT(mockToken, mockRefreshToken, mockEmail);
 
@@ -158,6 +180,9 @@ export default function LoginScreen() {
       });
 
       console.log('Apple login successful! JWT:', data.token);
+
+      // Clear any cached data from previous user before saving new JWT
+      queryClient.clear();
 
       await saveJWT(data.token, data.refreshToken, data.email);
 
@@ -254,7 +279,7 @@ export default function LoginScreen() {
                   !request && styles.buttonDisabled,
                 ]}
                 disabled={!request || isLoading}
-                onPress={() => promptAsync()}
+                onPress={() => promptAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined)}
               >
                 <MaterialCommunityIcons name="google" size={24} color="#FFF" />
                 <Text variant="body" weight="bold" style={styles.googleButtonText}>

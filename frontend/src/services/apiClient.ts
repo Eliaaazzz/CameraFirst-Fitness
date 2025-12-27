@@ -8,10 +8,17 @@ import { Platform } from 'react-native';
 import { getJWT } from '../utils/jwtStorage';
 
 // Ensure API Key is available (prioritize .env API_KEY, fallback to Expo environment variable)
-// TEMPORARY FALLBACK for debugging - should match .env file
 const APP_API_KEY = API_KEY || process.env.EXPO_PUBLIC_API_KEY || 'fitness-secret-key-123';
 
-console.log('[APIClient Init] API Key loaded:', APP_API_KEY ? `${APP_API_KEY.substring(0, 10)}...` : 'MISSING');
+// Ensure API Base URL is available (prioritize .env, fallback to Expo env var, then localhost)
+const RAW_API_BASE_URL = API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+
+// Log configuration at init for debugging
+console.log('[APIClient Init]', {
+  platform: Platform.OS,
+  apiKey: APP_API_KEY ? `${APP_API_KEY.substring(0, 10)}...` : 'MISSING',
+  rawBaseUrl: RAW_API_BASE_URL,
+});
 
 // Use the environment variable for all platforms
 const normalizeBaseUrl = (url: string) => {
@@ -23,8 +30,10 @@ const normalizeBaseUrl = (url: string) => {
   return normalized || 'http://localhost:8080';
 };
 
-const BASE_URL = normalizeBaseUrl(API_BASE_URL);
+const BASE_URL = normalizeBaseUrl(RAW_API_BASE_URL);
 const TIMEOUT = 30000; // 30 seconds
+
+console.log('[APIClient Init] Final BASE_URL:', BASE_URL);
 
 interface RequestConfig {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -32,6 +41,20 @@ interface RequestConfig {
   body?: any;
   timeout?: number;
 }
+
+type ApiEnvelope<T> = {
+  success: boolean;
+  code?: number;
+  message?: string;
+  data?: T;
+  errors?: any;
+  path?: string;
+  timestamp?: number;
+};
+
+const isApiEnvelope = <T>(value: any): value is ApiEnvelope<T> => {
+  return value && typeof value === 'object' && 'success' in value;
+};
 
 class APIError extends Error {
   constructor(
@@ -104,8 +127,11 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: response.statusText }));
-      
+      const rawError = await response.json().catch(() => ({ message: response.statusText }));
+      const errorEnvelope = isApiEnvelope<any>(rawError) ? rawError : null;
+      const message = errorEnvelope?.message || rawError?.message || `HTTP ${response.status}: ${response.statusText}`;
+      const errors = errorEnvelope?.errors ?? rawError?.errors;
+
       // Handle authentication failures (401/403)
       if ((response.status === 401 || response.status === 403) && headers['Authorization']) {
         console.warn('[APIClient Auth Error]', {
@@ -113,34 +139,34 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
           url,
           message: 'Authentication failed - JWT may be expired or invalid'
         });
-        
-        // Clear expired/invalid JWT and notify user
-        // We'll import and call clearJWT here, but avoid circular navigation
-        // Navigation will be handled by the root-level auth context or error boundary
         const { clearJWT } = await import('@/utils/jwtStorage');
         await clearJWT();
-        
-        // Throw a specific error that can be caught by error boundaries
         throw new APIError(
           'Your session has expired. Please sign in again.',
           response.status,
-          { ...errorData, authError: true }
+          { ...rawError, message, errors, authError: true }
         );
       }
-      
-      // Handle other errors
-      console.log('[APIClient Error]', { status: response.status, data: errorData });
-      throw new APIError(
-        errorData.message || `HTTP ${response.status}: ${response.statusText}`,
-        response.status,
-        errorData
-      );
+
+      console.log('[APIClient Error]', { status: response.status, data: rawError });
+      throw new APIError(message, response.status, { ...rawError, errors });
     }
 
     // Handle empty responses
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
-      return await response.json();
+      const parsed = await response.json();
+
+      // Unwrap ApiEnvelope when present; otherwise return raw
+      if (isApiEnvelope<T>(parsed)) {
+        if (parsed.success) {
+          return (parsed.data as T) ?? (parsed as unknown as T);
+        }
+        // success=false but HTTP 200: surface as APIError to callers
+        throw new APIError(parsed.message || 'Request failed', parsed.code, parsed);
+      }
+
+      return parsed as T;
     }
 
     return null as T;

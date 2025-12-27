@@ -61,4 +61,8 @@ public class WorkoutVideo {
 
   @Column(name = "created_at", insertable = false, updatable = false)
   private OffsetDateTime createdAt;
+
+  @Column(name = "target_goal")
+  @JdbcTypeCode(SqlTypes.ARRAY)
+  private List<String> targetGoal;
 }

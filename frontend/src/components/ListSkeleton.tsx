@@ -20,17 +20,18 @@ const ListSkeletonRow: React.FC<{
   secondaryWidth: number | string;
 }> = ({ showAvatar, primaryWidth, secondaryWidth }) => {
   const shimmer = useRef(new Animated.Value(0)).current;
-  
+  const screenWidth = Dimensions.get('window').width;
+
   // Convert percentage strings to pixel values
   const getWidth = (width: number | string): number => {
     if (typeof width === 'number') return width;
     if (typeof width === 'string' && width.includes('%')) {
       const percent = parseInt(width) / 100;
-      return (Dimensions.get('window').width - 40) * percent; // Account for margins
+      return (screenWidth - 40) * percent; // Account for margins
     }
     return 200; // Default width
   };
-  
+
   const pWidth = getWidth(primaryWidth);
   const sWidth = getWidth(secondaryWidth);
 
@@ -56,7 +57,7 @@ const ListSkeletonRow: React.FC<{
 
   const translateX = shimmer.interpolate({
     inputRange: [0, 1],
-    outputRange: [-160, 160],
+    outputRange: [-screenWidth, screenWidth],
   });
 
   return (

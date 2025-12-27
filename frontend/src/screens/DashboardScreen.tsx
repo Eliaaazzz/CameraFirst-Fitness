@@ -43,6 +43,8 @@ const DashboardScreen = () => {
   const goals = useGoals(userId);
   const stats = useGoalStatistics(userId);
 
+  // Fetch personalized recommendations based on fitness goal
+
   const [refreshing, setRefreshing] = useState(false);
   const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
   const lastLoadedGoalsRef = useRef<string | null>(null);
@@ -180,6 +182,7 @@ const DashboardScreen = () => {
   const isBloodSugarGoal = normalizedFitnessGoal === 'blood_sugar_control'
     || normalizedFitnessGoal === 'diabetes_control'
     || normalizedFitnessGoal === 'maintain';
+
 
   // Calculate progress percentage
   const calorieProgress = calorieGoal > 0
@@ -359,6 +362,8 @@ const DashboardScreen = () => {
             </Card>
           </View>
         )}
+
+        {/* Recommendations are now shown on their respective tabs (Workouts/Recipes) */}
 
         {/* Today's Nutrition Card */}
         <Card style={styles.calorieCard}>

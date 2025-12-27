@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { RecipeCard, RecipeSortOption, SavedRecipe, SavedWorkout, UploadRecipePayload, UploadWorkoutPayload, WorkoutCard, WorkoutSortOption } from '@/types';
 import {
+    getRecommendedRecipes,
+    getRecommendedWorkouts,
     getSavedRecipes,
     getSavedWorkouts,
     removeSavedRecipe,
@@ -12,6 +14,7 @@ import {
     uploadWorkoutImage,
 } from './api';
 import { searchRecipes, searchWorkouts } from './imageRecognitionApi';
+import { getRecipesByGoal } from './goalRecipesApi';
 
 // Default pagination and sort values (for backwards compatibility)
 export const DEFAULT_SAVED_PAGE_SIZE = 20;
@@ -36,6 +39,8 @@ const mutationKeys = {
 const queryKeys = {
   savedWorkouts: (userId?: string) => ['workouts', 'saved', userId] as const,
   savedRecipes: (userId?: string) => ['recipes', 'saved', userId] as const,
+  recommendedWorkouts: (fitnessGoal?: string | null) => ['workouts', 'recommended', fitnessGoal] as const,
+  recommendedRecipes: (fitnessGoal?: string | null) => ['recipes', 'recommended', fitnessGoal] as const,
 };
 
 export const useUploadWorkout = () =>
@@ -108,6 +113,20 @@ export const useSavedRecipes = (userId?: string) =>
     queryFn: () => getSavedRecipes(userId),
   });
 
+export const useRecommendedWorkouts = (fitnessGoal?: string | null) =>
+  useQuery<WorkoutCard[], Error>({
+    queryKey: queryKeys.recommendedWorkouts(fitnessGoal),
+    queryFn: () => getRecommendedWorkouts(fitnessGoal),
+    staleTime: 1000 * 60 * 10,
+  });
+
+export const useRecommendedRecipes = (fitnessGoal?: string | null) =>
+  useQuery<RecipeCard[], Error>({
+    queryKey: queryKeys.recommendedRecipes(fitnessGoal),
+    queryFn: () => getRecommendedRecipes(fitnessGoal),
+    staleTime: 1000 * 60 * 10,
+  });
+
 // Search hooks for keyword search
 export const useSearchWorkouts = (query: string, level?: string) =>
   useQuery<WorkoutCard[], Error>({
@@ -162,3 +181,13 @@ export const useRemoveRecipe = (userId?: string) => {
     },
   });
 };
+
+// Goal-based recipes hook for browsing recipes by fitness goal
+export const useRecipesByGoal = (goal: string, limit: number = 20) =>
+  useQuery<RecipeCard[], Error>({
+    queryKey: ['recipes', 'by-goal', goal, limit],
+    queryFn: () => getRecipesByGoal(goal, limit),
+    enabled: !!goal,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+  });

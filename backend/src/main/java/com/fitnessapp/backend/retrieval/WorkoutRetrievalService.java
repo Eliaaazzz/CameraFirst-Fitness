@@ -164,10 +164,6 @@ public class WorkoutRetrievalService {
         String youtubeUrl = StringUtils.hasText(video.getYoutubeId())
                 ? "https://www.youtube.com/watch?v=" + video.getYoutubeId()
                 : null;
-        
-        String thumbnailUrl = video.getR2Key() != null 
-                ? "https://img.camera-first.dev/" + video.getR2Key().replace(".mp4", ".jpg")
-                : null;
 
         List<String> bodyParts = new ArrayList<>();
         if (video.getPrimaryCategory() != null) {
@@ -185,7 +181,7 @@ public class WorkoutRetrievalService {
                 .level("all")
                 .equipment(List.of())
                 .bodyParts(bodyParts)
-                .thumbnailUrl(thumbnailUrl)
+                .thumbnailUrl(video.getThumbnailUrl())
                 .viewCount(0L)
                 .youtubeUrl(youtubeUrl)
                 .build();

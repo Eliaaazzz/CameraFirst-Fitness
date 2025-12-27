@@ -3,6 +3,10 @@ package com.fitnessapp.backend.workout.entity;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+import org.hibernate.annotations.Array;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -61,4 +65,34 @@ public class ExerciseVideo {
 
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    @Column(name = "target_goal")
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    private java.util.List<String> targetGoal;
+
+    /**
+     * Vector embedding for semantic search (1536 dimensions for OpenAI).
+     */
+    @JdbcTypeCode(SqlTypes.VECTOR)
+    @Array(length = 1536)
+    @Column(name = "embedding")
+    private float[] embedding;
+
+    /**
+     * Combined searchable text used for embedding generation.
+     */
+    @Column(name = "search_text", columnDefinition = "TEXT")
+    private String searchText;
+
+    /**
+     * Timestamp when embedding was last generated.
+     */
+    @Column(name = "embedding_generated_at")
+    private OffsetDateTime embeddingGeneratedAt;
+
+    /**
+     * Direct S3/CDN URL for the video thumbnail image.
+     */
+    @Column(name = "thumbnail_url")
+    private String thumbnailUrl;
 }

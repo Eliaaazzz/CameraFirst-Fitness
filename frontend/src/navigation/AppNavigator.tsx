@@ -3,7 +3,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
-import { Platform, useColorScheme, View } from 'react-native';
+import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { navigationRef } from './navigationService';
 
@@ -46,15 +47,30 @@ const Tab = createBottomTabNavigator();
 // Use createStackNavigator instead of createNativeStackNavigator for Web compatibility
 const Stack = createStackNavigator();
 
-const tabBarBackground = () => (
-  <View
-    style={{
-      backgroundColor: BRAND_COLORS.surface,
-      flex: 1,
-      borderTopWidth: 0,
-    }}
-  />
+/**
+ * Tab bar background with subtle top border
+ * Creates layered appearance without "floating" effect
+ */
+const TabBarBackground = () => (
+  <View style={tabBarStyles.background}>
+    <View style={tabBarStyles.topBorder} />
+  </View>
 );
+
+const tabBarStyles = StyleSheet.create({
+  background: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: BRAND_COLORS.surface,
+  },
+  topBorder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+});
 
 const LightNavigationTheme = {
   ...DefaultTheme,
@@ -120,16 +136,25 @@ const TAB_CONFIG = [
 
 const MainTabs = () => {
   const { isDesktop, isTablet, isWeb } = useResponsive();
+  const insets = useSafeAreaInsets();
 
-  const tabBarHeight = isDesktop ? 70 : isTablet ? 65 : Platform.select({ ios: 85, android: 65 });
-  const tabBarPaddingBottom = isDesktop ? 16 : isTablet ? 12 : Platform.select({ ios: 28, android: 10 });
-  const tabBarPaddingTop = isDesktop ? 12 : 8;
+  // Calculate safe tab bar height with proper bottom inset
+  const baseTabBarHeight = isDesktop ? 60 : isTablet ? 56 : 52;
+  const tabBarPaddingBottom = Platform.select({
+    ios: Math.max(insets.bottom, 8) + 4,
+    android: Math.max(insets.bottom, 8) + 4,
+    default: 12, // web
+  });
+  const tabBarHeight = baseTabBarHeight + tabBarPaddingBottom;
+  const tabBarPaddingTop = 8;
 
   const getTabBarIcon = (routeName: string, focused: boolean, color: string) => {
     const config = TAB_CONFIG.find(t => t.name === routeName);
     if (!config) return null;
     const iconName = focused ? config.iconActive : config.iconInactive;
     const size = focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default;
+
+    // Render icon without indicator bar (clean design)
     if (config.iconFamily === 'Feather') {
       return <Feather name={iconName as any} size={size} color={color} />;
     }
@@ -145,29 +170,35 @@ const MainTabs = () => {
         tabBarInactiveTintColor: BRAND_COLORS.tabInactive,
         tabBarHideOnKeyboard: true,
         tabBarLabelStyle: {
-          fontSize: isDesktop ? 12 : isTablet ? 11 : 10,
+          fontSize: isDesktop ? 11 : 10,
           fontWeight: '600',
           marginTop: 2,
         },
         tabBarItemStyle: {
           flex: 1,
-          minWidth: 60,
-          paddingTop: 4,
+          minHeight: 44,
+          paddingTop: 0,
           justifyContent: 'center',
           alignItems: 'center',
         },
         tabBarStyle: {
+          // CRITICAL: Full width - no left/right constraints
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
           height: tabBarHeight,
           paddingBottom: tabBarPaddingBottom,
           paddingTop: tabBarPaddingTop,
-          paddingHorizontal: 0,
           backgroundColor: BRAND_COLORS.surface,
           borderTopWidth: 0,
-          elevation: 10,
+          // Subtle shadow for elevation
           shadowColor: '#000',
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: -4 },
+          elevation: 8,
+          // Web-specific constraints for desktop
           ...(isDesktop && isWeb && {
             alignSelf: 'center',
             width: '100%',
@@ -175,7 +206,7 @@ const MainTabs = () => {
             paddingHorizontal: 32,
           }),
         },
-        tabBarBackground,
+        tabBarBackground: TabBarBackground,
         tabBarIcon: ({ focused, color }) => getTabBarIcon(route.name, focused, color),
       })}
     >

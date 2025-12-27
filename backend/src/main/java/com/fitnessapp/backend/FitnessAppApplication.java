@@ -29,6 +29,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
     "com.fitnessapp.backend.usda.repository",
     "com.fitnessapp.backend.goals.repository",
     "com.fitnessapp.backend.repository",
+    "com.fitnessapp.backend.goals.repository",
     "com.aura.repository"
 })
 public class FitnessAppApplication {

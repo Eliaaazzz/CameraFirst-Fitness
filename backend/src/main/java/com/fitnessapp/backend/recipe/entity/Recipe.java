@@ -7,6 +7,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import lombok.*;
+import org.hibernate.annotations.Array;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "recipe")
@@ -51,4 +54,28 @@ public class Recipe {
   @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
   @Builder.Default
   private Set<RecipeIngredient> ingredients = new HashSet<>();
+
+  @Column(name = "target_goal")
+  @JdbcTypeCode(SqlTypes.ARRAY)
+  private java.util.List<String> targetGoal;
+
+  /**
+   * Vector embedding for semantic search (1536 dimensions for OpenAI).
+   */
+  @JdbcTypeCode(SqlTypes.VECTOR)
+  @Array(length = 1536)
+  @Column(name = "embedding")
+  private float[] embedding;
+
+  /**
+   * Combined searchable text used for embedding generation.
+   */
+  @Column(name = "search_text", columnDefinition = "TEXT")
+  private String searchText;
+
+  /**
+   * Timestamp when embedding was last generated.
+   */
+  @Column(name = "embedding_generated_at")
+  private OffsetDateTime embeddingGeneratedAt;
 }
