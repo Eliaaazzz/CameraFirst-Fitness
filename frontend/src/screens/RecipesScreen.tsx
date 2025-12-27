@@ -1,42 +1,33 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
 
-import { Button, Card, Container, ListSkeleton, RecipeCard, SafeAreaWrapper, Text } from '@/components';
+import { Container, EmptyStateCard, ListSkeleton, RecipeCard, SafeAreaWrapper, Text } from '@/components';
 import useCurrentUser from '@/hooks/useCurrentUser';
-import { useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
-import { useDashboardRecommendations, normalizeGoalForApi } from '@/services/recommendationApi';
+import { useRecommendedRecipes, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
 import type { SavedRecipe } from '@/types';
-import { colors, radii, spacing } from '@/utils';
-
-type TabParamList = {
-  Dashboard: undefined;
-  Workouts: undefined;
-  Recipes: undefined;
-};
+import { spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
 
 export const RecipesScreen = () => {
-  const navigation = useNavigation<BottomTabNavigationProp<TabParamList>>();
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const userGoal = currentUser.data?.profile?.fitnessGoal;
 
-  // Normalize user goal for API
-  const normalizedGoal = useMemo(() => normalizeGoalForApi(userGoal), [userGoal]);
+  // Calculate bottom padding for content using shared utility
+  const listBottomPadding = useContentBottomPadding(spacing.lg);
+  const fabBottomPosition = useFABBottomPosition(spacing.md);
 
   const saved = useSavedRecipes(userId);
-  // Use dashboard recommendations API for healthy recipes
-  const recommendations = useDashboardRecommendations(normalizedGoal, !!normalizedGoal);
+  // Use dedicated recipe recommendations API
+  const recommended = useRecommendedRecipes(userGoal);
   const saveRecipe = useSaveRecipe(userId);
   const removeRecipe = useRemoveRecipe(userId);
   const listRef = useRef<FlatList<SavedRecipe>>(null);
   const [showFab, setShowFab] = useState(false);
   const savedRecipes = saved.data ?? [];
   const savedRecipeIds = useMemo(() => new Set(savedRecipes.map((item) => item.id)), [savedRecipes]);
-  const healthyRecipes = recommendations.data?.recipes ?? [];
+  const recommendedRecipes = recommended.data ?? [];
 
   const handleRefresh = useCallback(() => {
     if (!saved.isLoading) {
@@ -94,22 +85,16 @@ export const RecipesScreen = () => {
     return (
       <SafeAreaWrapper>
         <Container>
-          <Card style={styles.emptyState}>
-            <Text variant="heading2" weight="bold" style={styles.emptyTitle}>
-              Unable to load recipes
-            </Text>
-            <Text variant="body" style={styles.emptyBody}>
-              Check your network connection and try again.
-            </Text>
-            <Button 
-              title="Retry"
-              variant="primary" 
-              onPress={() => {
-                currentUser.refetch();
-                saved.refetch();
-              }}
-            />
-          </Card>
+          <EmptyStateCard
+            icon={<MaterialCommunityIcons name="alert-circle-outline" size={32} color="#EF4444" />}
+            title="Unable to load recipes"
+            subtitle="Check your network connection and try again."
+            ctaLabel="Retry"
+            onCtaPress={() => {
+              currentUser.refetch();
+              saved.refetch();
+            }}
+          />
         </Container>
       </SafeAreaWrapper>
     );
@@ -127,25 +112,20 @@ export const RecipesScreen = () => {
         Healthy meals and your saved list.
       </Text>
 
-      {/* Healthy Recipes Section */}
+      {/* Recommended Recipes Section */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionTitleRow}>
-            <MaterialCommunityIcons name="food-apple" size={20} color={colors.dark.secondary} />
-            <Text variant="heading2" weight="semibold" style={styles.sectionTitle}>
-              Healthy Recipes
-            </Text>
-          </View>
-        </View>
-        {recommendations.isLoading ? (
+        <Text variant="heading2" weight="semibold">
+          Recommended for you
+        </Text>
+        {recommended.isLoading ? (
           <Text variant="caption" style={styles.recommendedNote}>
             Loading recommendations...
           </Text>
-        ) : recommendations.isError ? (
+        ) : recommended.isError ? (
           <Text variant="caption" style={styles.recommendedNote}>
             Unable to load recommendations.
           </Text>
-        ) : healthyRecipes.length === 0 ? (
+        ) : recommendedRecipes.length === 0 ? (
           <Text variant="caption" style={styles.recommendedNote}>
             No recommendations yet.
           </Text>
@@ -155,7 +135,7 @@ export const RecipesScreen = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.recommendedList}
           >
-            {healthyRecipes.map((item) => (
+            {recommendedRecipes.map((item) => (
               <View key={item.id} style={styles.recommendedCard}>
                 <RecipeCard
                   item={item}
@@ -174,20 +154,13 @@ export const RecipesScreen = () => {
     </View>
   );
 
-  const listEmptyComponent = (
-    <Card style={styles.emptyState}>
-      <View style={styles.iconWrapper}>
-        <Feather name="coffee" size={48} color="#4ECDC4" />
-      </View>
-      <Text variant="heading2" weight="bold" style={styles.emptyTitle}>
-        Your saved recipes will appear here
-      </Text>
-      <Text variant="body" style={styles.emptyBody}>
-        Capture your ingredients to get recipe recommendations tailored to what you have.
-      </Text>
-      <Button title="Snap Your Meal" variant="primary" onPress={() => navigation.navigate('Dashboard')} />
-    </Card>
-  );
+  const listEmptyComponent = useMemo(() => (
+    <EmptyStateCard
+      icon={<Feather name="coffee" size={32} color="#4ECDC4" />}
+      title="Your saved recipes will appear here"
+      variant="single"
+    />
+  ), []);
 
   return (
     <SafeAreaWrapper>
@@ -197,11 +170,9 @@ export const RecipesScreen = () => {
           data={recipes}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
           ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
-          ListHeaderComponent={
-            listHeaderComponent
-          }
+          ListHeaderComponent={listHeaderComponent}
           ListEmptyComponent={listEmptyComponent}
           refreshControl={
             <RefreshControl
@@ -216,7 +187,7 @@ export const RecipesScreen = () => {
       </Container>
       <FAB
         icon="arrow-up"
-        style={styles.fab}
+        style={[styles.fab, { bottom: fabBottomPosition }]}
         mode="elevated"
         onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
         visible={showFab}
@@ -227,14 +198,13 @@ export const RecipesScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: spacing.lg,
+    flex: 1,
   },
   card: {
     gap: spacing.sm,
   },
   listContent: {
     gap: spacing.md,
-    paddingBottom: spacing.lg,
   },
   header: {
     gap: spacing.xs,
@@ -246,19 +216,6 @@ const styles = StyleSheet.create({
   section: {
     marginTop: spacing.lg,
     gap: spacing.sm,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  sectionTitle: {
-    color: colors.dark.textPrimary,
   },
   recommendedList: {
     gap: spacing.md,
@@ -273,29 +230,6 @@ const styles = StyleSheet.create({
   savedHeader: {
     marginTop: spacing.lg,
   },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-    paddingVertical: spacing['3xl'],
-    gap: spacing.md,
-  },
-  iconWrapper: {
-    backgroundColor: 'rgba(78, 205, 196, 0.15)',
-    padding: spacing.xl,
-    borderRadius: spacing['2xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyTitle: {
-    textAlign: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  emptyBody: {
-    textAlign: 'center',
-    color: 'rgba(148, 163, 184, 0.9)',
-    paddingHorizontal: spacing.lg,
-  },
   savedAt: {
     opacity: 0.68,
     marginTop: spacing.xs,
@@ -303,6 +237,5 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: spacing.lg,
-    bottom: spacing.xl,
   },
 });

@@ -1,28 +1,31 @@
 package com.fitnessapp.backend.workout.service;
 
-import com.fitnessapp.backend.recipe.entity.Recipe;
-import com.fitnessapp.backend.recipe.entity.UserSavedRecipe;
-import com.fitnessapp.backend.workout.entity.UserSavedWorkout;
-import com.fitnessapp.backend.workout.entity.WorkoutVideo;
-import com.fitnessapp.backend.recipe.repository.RecipeRepository;
-import com.fitnessapp.backend.user.repository.UserRepository;
-import com.fitnessapp.backend.recipe.repository.UserSavedRecipeRepository;
-import com.fitnessapp.backend.workout.repository.UserSavedWorkoutRepository;
-import com.fitnessapp.backend.workout.repository.WorkoutVideoRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.persistence.EntityNotFoundException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fitnessapp.backend.recipe.entity.Recipe;
+import com.fitnessapp.backend.recipe.entity.UserSavedRecipe;
+import com.fitnessapp.backend.recipe.repository.RecipeRepository;
+import com.fitnessapp.backend.recipe.repository.UserSavedRecipeRepository;
+import com.fitnessapp.backend.user.repository.UserRepository;
+import com.fitnessapp.backend.workout.entity.ExerciseVideo;
+import com.fitnessapp.backend.workout.entity.UserSavedWorkout;
+import com.fitnessapp.backend.workout.repository.ExerciseVideoRepository;
+import com.fitnessapp.backend.workout.repository.UserSavedWorkoutRepository;
+
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +36,7 @@ public class UserLibraryService {
   private static final int MAX_PAGE_SIZE = 100;
 
   private final UserRepository userRepository;
-  private final WorkoutVideoRepository workoutVideoRepository;
+  private final ExerciseVideoRepository exerciseVideoRepository;
   private final RecipeRepository recipeRepository;
   private final UserSavedWorkoutRepository savedWorkoutRepository;
   private final UserSavedRecipeRepository savedRecipeRepository;
@@ -46,7 +49,7 @@ public class UserLibraryService {
     
     userRepository.findById(userId)
         .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
-    WorkoutVideo workout = workoutVideoRepository.findById(workoutId)
+    ExerciseVideo workout = exerciseVideoRepository.findById(workoutId)
         .orElseThrow(() -> new EntityNotFoundException("Workout not found: " + workoutId));
 
     UserSavedWorkout.Id id = new UserSavedWorkout.Id(userId, workoutId);
@@ -113,8 +116,8 @@ public class UserLibraryService {
     Pageable pageable = pageRequest(page, size, sort);
     var pageResult = savedWorkoutRepository.findByUser_Id(userId, pageable);
     var workouts = pageResult.getContent().stream()
-        .map(entry -> toSavedWorkout(entry.getWorkout(), entry.getSavedAt(), true))
-        .collect(Collectors.toList());
+      .map(entry -> toSavedWorkout(entry.getWorkout(), entry.getSavedAt(), true))
+      .collect(Collectors.toList());
     
     long duration = System.nanoTime() - startTime;
     log.debug("Fetched {} saved workouts for user {} (page={}, size={}, sort={}, totalElements={}, durationMs={})",
@@ -223,20 +226,31 @@ public class UserLibraryService {
         pageResult.hasNext());
   }
 
-  private SavedWorkout toSavedWorkout(WorkoutVideo workout, OffsetDateTime savedAt, boolean alreadySaved) {
+  private SavedWorkout toSavedWorkout(ExerciseVideo workout, OffsetDateTime savedAt, boolean alreadySaved) {
     return new SavedWorkout(
         workout.getId(),
         workout.getYoutubeId(),
-        workout.getTitle(),
-        workout.getDurationMinutes(),
-        workout.getLevel(),
-        workout.getEquipment() == null ? List.of() : List.copyOf(workout.getEquipment()),
-        workout.getBodyPart() == null ? List.of() : List.copyOf(workout.getBodyPart()),
+        workout.getExerciseName(),
+        workout.getIsShort() != null && workout.getIsShort() ? 5 : 10,
+        "all",
+        List.of(),
+        buildBodyParts(workout),
         workout.getThumbnailUrl(),
-        workout.getViewCount(),
+        0L,
         savedAt,
         alreadySaved
     );
+  }
+
+  private List<String> buildBodyParts(ExerciseVideo workout) {
+    List<String> parts = new java.util.ArrayList<>();
+    if (workout.getPrimaryCategory() != null) {
+      parts.add(workout.getPrimaryCategory());
+    }
+    if (workout.getSecondaryCategory() != null) {
+      parts.add(workout.getSecondaryCategory());
+    }
+    return parts.isEmpty() ? List.of() : List.copyOf(parts);
   }
 
   private Pageable pageRequest(int page, int size, Sort sort) {

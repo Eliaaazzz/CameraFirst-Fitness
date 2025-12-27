@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { useWindowDimensions, Platform, ScaledSize } from 'react-native';
+import { useWindowDimensions, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
  * Responsive breakpoints for different device sizes
@@ -319,4 +320,39 @@ export function ResponsiveRender({
     default:
       return mobile ?? null;
   }
+}
+
+// Tab bar height constant (approximate)
+const TAB_BAR_HEIGHT = 80;
+
+/**
+ * Hook to calculate bottom padding for content that needs to avoid the tab bar
+ * Accounts for safe area insets and tab bar height
+ *
+ * @param extraPadding - Additional padding to add (e.g., spacing.lg)
+ * @returns The total bottom padding needed
+ *
+ * @example
+ * const bottomPadding = useContentBottomPadding(spacing.lg);
+ * <FlatList contentContainerStyle={{ paddingBottom: bottomPadding }} />
+ */
+export function useContentBottomPadding(extraPadding: number = 0): number {
+  const insets = useSafeAreaInsets();
+  return TAB_BAR_HEIGHT + insets.bottom + extraPadding;
+}
+
+/**
+ * Hook to calculate FAB bottom position to avoid the tab bar
+ * Accounts for safe area insets and tab bar height
+ *
+ * @param extraMargin - Additional margin from the tab bar (e.g., spacing.md)
+ * @returns The bottom position for the FAB
+ *
+ * @example
+ * const fabBottom = useFABBottomPosition(spacing.md);
+ * <FAB style={{ bottom: fabBottom }} />
+ */
+export function useFABBottomPosition(extraMargin: number = 0): number {
+  const insets = useSafeAreaInsets();
+  return insets.bottom + TAB_BAR_HEIGHT + extraMargin;
 }

@@ -1,28 +1,23 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
 
-import { Button, Card, Container, ListSkeleton, SafeAreaWrapper, Text, WorkoutCard } from '@/components';
+import { Container, EmptyStateCard, ListSkeleton, SafeAreaWrapper, Text, WorkoutCard } from '@/components';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedWorkouts, useRemoveWorkout, useSavedWorkouts, useSaveWorkout } from '@/services';
 import type { SavedWorkout } from '@/types';
-import { spacing } from '@/utils';
+import { colors, spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
 
-// Styles must be defined before components that use them
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingBottom: spacing.lg,
   },
   card: {
     gap: spacing.sm,
   },
   listContent: {
     gap: spacing.md,
-    paddingBottom: spacing.lg,
   },
   header: {
     gap: spacing.xs,
@@ -48,28 +43,21 @@ const styles = StyleSheet.create({
   savedHeader: {
     marginTop: spacing.lg,
   },
-  emptyState: {
+  // Error state card styling
+  errorState: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,
     paddingVertical: spacing['3xl'],
     gap: spacing.md,
   },
-  iconWrapper: {
-    backgroundColor: 'rgba(78, 205, 196, 0.15)',
-    padding: spacing.xl,
-    borderRadius: spacing['2xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyTitle: {
+  errorTitle: {
     textAlign: 'center',
-    paddingHorizontal: spacing.md,
   },
-  emptyBody: {
+  errorBody: {
     textAlign: 'center',
-    color: 'rgba(148, 163, 184, 0.9)',
-    paddingHorizontal: spacing.lg,
+    color: colors.dark.textSecondary,
+    opacity: 0.7,
   },
   savedAt: {
     opacity: 0.68,
@@ -78,18 +66,11 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: spacing.lg,
-    bottom: spacing.xl,
   },
 });
 
 // Moved outside component to prevent recreation on every render
 const ItemSeparator = () => <View style={{ height: spacing.md }} />;
-
-type TabParamList = {
-  Dashboard: undefined;
-  Workouts: undefined;
-  Recipes: undefined;
-};
 
 export const WorkoutsScreen = () => {
   const currentUser = useCurrentUser();
@@ -98,28 +79,24 @@ export const WorkoutsScreen = () => {
   const recommended = useRecommendedWorkouts(currentUser.data?.profile?.fitnessGoal);
   const saveWorkout = useSaveWorkout(userId);
   const removeWorkout = useRemoveWorkout(userId);
-  const navigation = useNavigation<BottomTabNavigationProp<TabParamList>>();
   const listRef = useRef<FlatList<SavedWorkout>>(null);
   const [showFab, setShowFab] = useState(false);
   const savedWorkouts = saved.data ?? [];
   const savedWorkoutIds = useMemo(() => new Set(savedWorkouts.map((item) => item.id)), [savedWorkouts]);
   const recommendedItems = recommended.data ?? [];
 
+  // Calculate bottom padding using shared utility
+  const listBottomPadding = useContentBottomPadding(spacing.lg);
+  const fabBottomPosition = useFABBottomPosition(spacing.md);
+
   // Memoize empty component BEFORE any conditional returns
   const listEmptyComponent = useMemo(() => (
-    <Card style={styles.emptyState}>
-      <View style={styles.iconWrapper}>
-        <MaterialCommunityIcons name="arm-flex" size={48} color="#4ECDC4" />
-      </View>
-      <Text variant="heading2" weight="bold" style={styles.emptyTitle}>
-        Your saved workouts will appear here
-      </Text>
-      <Text variant="body" style={styles.emptyBody}>
-        Capture your equipment to get workout recommendations tailored to your space and gear.
-      </Text>
-      <Button title="Browse Workouts" variant="primary" onPress={() => navigation.navigate('Dashboard')} />
-    </Card>
-  ), [navigation]);
+    <EmptyStateCard
+      icon={<MaterialCommunityIcons name="arm-flex" size={32} color="#4ECDC4" />}
+      title="Your saved workouts will appear here"
+      variant="single"
+    />
+  ), []);
 
   const handleRefresh = useCallback(() => {
     if (!saved.isLoading) {
@@ -183,22 +160,16 @@ export const WorkoutsScreen = () => {
     return (
       <SafeAreaWrapper>
         <Container>
-          <Card style={styles.emptyState}>
-            <Text variant="heading2" weight="bold" style={styles.emptyTitle}>
-              Unable to load workouts
-            </Text>
-            <Text variant="body" style={styles.emptyBody}>
-              Check your network connection and try again.
-            </Text>
-            <Button
-              title="Retry"
-              variant="primary"
-              onPress={() => {
-                currentUser.refetch();
-                saved.refetch();
-              }}
-            />
-          </Card>
+          <EmptyStateCard
+            icon={<MaterialCommunityIcons name="alert-circle-outline" size={32} color="#EF4444" />}
+            title="Unable to load workouts"
+            subtitle="Check your network connection and try again."
+            ctaLabel="Retry"
+            onCtaPress={() => {
+              currentUser.refetch();
+              saved.refetch();
+            }}
+          />
         </Container>
       </SafeAreaWrapper>
     );
@@ -263,7 +234,7 @@ export const WorkoutsScreen = () => {
           data={workouts}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
           ItemSeparatorComponent={ItemSeparator}
           ListHeaderComponent={listHeaderComponent}
           ListEmptyComponent={listEmptyComponent}
@@ -280,7 +251,7 @@ export const WorkoutsScreen = () => {
       </Container>
       <FAB
         icon="arrow-up"
-        style={styles.fab}
+        style={[styles.fab, { bottom: fabBottomPosition }]}
         mode="elevated"
         onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
         visible={showFab}

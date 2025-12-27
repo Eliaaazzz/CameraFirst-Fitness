@@ -1,11 +1,24 @@
 package com.fitnessapp.backend.workout.entity;
 
-import com.fitnessapp.backend.user.entity.User;
-import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.Objects;
-import lombok.*;
+
+import com.fitnessapp.backend.user.entity.User;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "user_saved_workout")
@@ -25,7 +38,7 @@ public class UserSavedWorkout {
   @ManyToOne(fetch = FetchType.LAZY)
   @MapsId("workoutId")
   @JoinColumn(name = "workout_id")
-  private WorkoutVideo workout;
+  private ExerciseVideo workout;
 
   @Column(name = "saved_at", insertable = false, updatable = false)
   private OffsetDateTime savedAt;

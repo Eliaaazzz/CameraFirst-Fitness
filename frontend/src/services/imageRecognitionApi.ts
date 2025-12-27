@@ -341,16 +341,6 @@ const normalizeGoalForApi = (fitnessGoal?: string | null): string[] => {
 };
 
 /**
- * API response wrapper from backend
- */
-interface ApiResponse<T> {
-  code: number;
-  message: string;
-  data: T;
-  timestamp: number;
-}
-
-/**
  * Recommendation response from POST /api/v1/recommendations/generate
  */
 interface RecommendationApiResponse {
@@ -385,9 +375,22 @@ interface RecommendationApiResponse {
 /**
  * Generate personalized recommendations using POST /api/v1/recommendations/generate
  */
+const unwrapRecommendationResponse = (raw: any): RecommendationApiResponse | null => {
+  if (!raw) return null;
+  // New apiClient behavior unwraps ApiEnvelope automatically → raw is the RecommendationApiResponse
+  if (raw.recommendationId && raw.workouts && raw.recipes) {
+    return raw as RecommendationApiResponse;
+  }
+  // Legacy shape: ApiEnvelope<ApiResponse<T>> or ApiResponse<T>
+  if (raw.data && raw.data.recommendationId) {
+    return raw.data as RecommendationApiResponse;
+  }
+  return null;
+};
+
 async function generateRecommendations(goals: string[], limit: number = MAX_RECOMMENDATIONS): Promise<RecommendationApiResponse | null> {
   try {
-    const response = await api.post<ApiResponse<RecommendationApiResponse>>(
+    const response = await api.post<RecommendationApiResponse>(
       '/api/v1/recommendations/generate',
       {
         userProfile: {
@@ -398,11 +401,7 @@ async function generateRecommendations(goals: string[], limit: number = MAX_RECO
         limit
       }
     );
-    if (response.code === 200 && response.data) {
-      return response.data;
-    }
-    console.warn('generateRecommendations: unexpected response', response);
-    return null;
+    return unwrapRecommendationResponse(response);
   } catch (error) {
     console.error('generateRecommendations failed:', error);
     return null;
@@ -448,21 +447,28 @@ export async function getRecommendedRecipes(fitnessGoal?: string | null): Promis
     const goals = normalizeGoalForApi(fitnessGoal);
     const response = await generateRecommendations(goals, MAX_RECOMMENDATIONS);
 
-    if (!response || !Array.isArray(response.recipes)) {
-      return [];
+    if (response && Array.isArray(response.recipes) && response.recipes.length > 0) {
+      return response.recipes.map(r => normalizeRecipeData({
+        id: r.id,
+        title: r.title,
+        imageUrl: r.imageUrl,
+        timeMinutes: 30, // Default if not provided
+        difficulty: 'medium',
+        nutrition: r.nutrition,
+        ingredients: [],
+        steps: [],
+      }));
     }
 
-    // Map API response to RecipeCard format
-    return response.recipes.map(r => normalizeRecipeData({
-      id: r.id,
-      title: r.title,
-      imageUrl: r.imageUrl,
-      timeMinutes: 30, // Default if not provided
-      difficulty: 'medium',
-      nutrition: r.nutrition,
-      ingredients: [],
-      steps: [],
-    }));
+    const fallbackGoal = goals[0] ?? 'MAINTAIN';
+    const fallback = await get<any>(
+      `/api/v1/recipes/by-goal?goal=${encodeURIComponent(fallbackGoal)}&limit=${MAX_RECOMMENDATIONS}`
+    );
+    const fallbackRecipes = Array.isArray(fallback) ? fallback : fallback?.recipes;
+    if (!Array.isArray(fallbackRecipes)) {
+      return [];
+    }
+    return fallbackRecipes.map(normalizeRecipeData);
   } catch (error) {
     console.error('getRecommendedRecipes failed:', error);
     return [];

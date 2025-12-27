@@ -7,17 +7,29 @@ import type { SavedRecipe, SavedWorkout } from '@/types';
 import { api } from './apiClient';
 
 /**
- * Paginated response structure from the API
+ * Page result shape returned by the backend (after ApiEnvelope unwrap).
+ * Keep legacy `data.items` access for older responses.
  */
-interface PaginatedResponse<T> {
-  data: {
-    items: T[];
-    page: number;
-    size: number;
-    total: number;
-    hasNext: boolean;
-  };
+interface PageResult<T> {
+  items: T[];
+  page: number;
+  size: number;
+  total: number;
+  hasNext: boolean;
 }
+
+const extractItems = <T>(response: any): PageResult<T> | null => {
+  if (!response) return null;
+  // New shape: { items, page, size, total, hasNext }
+  if (Array.isArray(response.items)) {
+    return response as PageResult<T>;
+  }
+  // Legacy shape: { data: { items, ... } }
+  if (response.data && Array.isArray(response.data.items)) {
+    return response.data as PageResult<T>;
+  }
+  return null;
+};
 
 /**
  * Save a workout to user's library
@@ -48,9 +60,9 @@ export async function getSavedWorkouts(userId?: string): Promise<SavedWorkout[]>
   if (!userId) {
     return [];
   }
-  const response = await api.get<PaginatedResponse<SavedWorkout>>(`/api/v1/workouts/saved?userId=${userId}`);
-  // API returns paginated response, extract items array
-  return response?.data?.items ?? [];
+  const response = await api.get<PageResult<SavedWorkout>>(`/api/v1/workouts/saved?userId=${userId}`);
+  const page = extractItems<SavedWorkout>(response);
+  return page?.items ?? [];
 }
 
 /**
@@ -60,9 +72,9 @@ export async function getSavedRecipes(userId?: string): Promise<SavedRecipe[]> {
   if (!userId) {
     return [];
   }
-  const response = await api.get<PaginatedResponse<SavedRecipe>>(`/api/v1/recipes/saved?userId=${userId}`);
-  // API returns paginated response, extract items array
-  return response?.data?.items ?? [];
+  const response = await api.get<PageResult<SavedRecipe>>(`/api/v1/recipes/saved?userId=${userId}`);
+  const page = extractItems<SavedRecipe>(response);
+  return page?.items ?? [];
 }
 
 /**

@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fitnessapp.backend.recipe.entity.Recipe;
-import com.fitnessapp.backend.workout.entity.WorkoutVideo;
 import com.fitnessapp.backend.recipe.repository.RecipeRepository;
-import com.fitnessapp.backend.workout.repository.WorkoutVideoRepository;
+import com.fitnessapp.backend.workout.entity.ExerciseVideo;
+import com.fitnessapp.backend.workout.repository.ExerciseVideoRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
-  private final WorkoutVideoRepository workoutRepo;
+  private final ExerciseVideoRepository workoutRepo;
   private final RecipeRepository recipeRepo;
 
   @GetMapping("/workouts")
@@ -45,11 +45,21 @@ public class AdminController {
         .orElseThrow(() -> new RuntimeException("Recipe not found: " + id));
   }
 
-  public record WorkoutVideoDto(String youtubeId, String title, Integer durationMinutes, String level,
-                                List<String> equipment, List<String> bodyPart) {
-    static WorkoutVideoDto from(WorkoutVideo w) {
-      return new WorkoutVideoDto(w.getYoutubeId(), w.getTitle(), w.getDurationMinutes(), w.getLevel(),
-          w.getEquipment(), w.getBodyPart());
+  public record WorkoutVideoDto(String youtubeId,
+                                String exerciseName,
+                                String primaryCategory,
+                                String secondaryCategory,
+                                Boolean isShort,
+                                String thumbnailUrl) {
+    static WorkoutVideoDto from(ExerciseVideo w) {
+      return new WorkoutVideoDto(
+          w.getYoutubeId(),
+          w.getExerciseName(),
+          w.getPrimaryCategory(),
+          w.getSecondaryCategory(),
+          w.getIsShort(),
+          w.getThumbnailUrl()
+      );
     }
   }
 

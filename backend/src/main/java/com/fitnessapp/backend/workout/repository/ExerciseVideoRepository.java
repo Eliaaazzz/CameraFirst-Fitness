@@ -14,6 +14,20 @@ import com.fitnessapp.backend.workout.entity.ExerciseVideo;
 public interface ExerciseVideoRepository extends JpaRepository<ExerciseVideo, UUID> {
 
     // ============================================================================
+    // Ingestion Support
+    // ============================================================================
+
+    /**
+     * Find video by YouTube video ID for upsert during ingestion.
+     */
+    java.util.Optional<ExerciseVideo> findByYoutubeId(String youtubeId);
+
+    /**
+     * Check if a video with the given YouTube ID already exists.
+     */
+    boolean existsByYoutubeId(String youtubeId);
+
+    // ============================================================================
     // Vector Similarity Search (using pgvector)
     // ============================================================================
 

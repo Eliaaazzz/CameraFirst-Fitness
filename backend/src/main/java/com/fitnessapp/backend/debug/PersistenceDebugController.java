@@ -1,16 +1,5 @@
 package com.fitnessapp.backend.debug;
 
-import com.fitnessapp.backend.recipe.repository.RecipeRepository;
-import com.fitnessapp.backend.workout.repository.WorkoutVideoRepository;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -18,6 +7,20 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.sql.DataSource;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.fitnessapp.backend.recipe.repository.RecipeRepository;
+import com.fitnessapp.backend.workout.repository.ExerciseVideoRepository;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Debug endpoint to compare Hibernate persistence context counts vs actual database counts.
@@ -30,7 +33,7 @@ import java.util.Map;
 public class PersistenceDebugController {
 
     private final RecipeRepository recipeRepository;
-    private final WorkoutVideoRepository workoutVideoRepository;
+    private final ExerciseVideoRepository exerciseVideoRepository;
     private final DataSource dataSource;
     
     @PersistenceContext
@@ -96,7 +99,7 @@ public class PersistenceDebugController {
             result.put("recipes", recipeData);
             
             // Workout counts
-            long workoutJpaCount = workoutVideoRepository.count();
+            long workoutJpaCount = exerciseVideoRepository.count();
             
             Map<String, Object> workoutData = new HashMap<>();
             workoutData.put("jpa_count", workoutJpaCount);
@@ -245,7 +248,7 @@ public class PersistenceDebugController {
             }
             
             // Try to count workouts directly
-            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM workout_video")) {
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM exercise_videos")) {
                 if (rs.next()) {
                     result.put("workout_count_via_jdbc", rs.getLong(1));
                 }

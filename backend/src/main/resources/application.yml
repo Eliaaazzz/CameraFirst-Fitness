@@ -19,6 +19,7 @@ app:
   api-key: ${API_KEY:${APP_API_KEY:fitness-secret-key-123}}  # API Key for request authentication (X-API-Key header)
   youtube:
     api-key: ${YOUTUBE_API_KEY:}
+    ingestion-enabled: ${YOUTUBE_INGESTION_ENABLED:true}
     quota:
       warnings-enabled: true
   spoonacular:
