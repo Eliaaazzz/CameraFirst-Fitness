@@ -1,91 +1,48 @@
 package com.fitnessapp.backend.recommendation.dto;
 
-import java.util.List;
-
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Value;
+import lombok.extern.jackson.Jacksonized;
 
 /**
- * Request DTO for generating personalized recommendations.
- *
- * Example:
- * {
- *   "userProfile": {
- *     "userId": 10086,
- *     "goals": ["BLOOD_SUGAR_CONTROL", "BUILD_MUSCLE"],
- *     "metrics": { "weightKg": 75.5, "heightCm": 180, "activityLevel": "MODERATE" },
- *     "preferences": { "excludedIngredients": ["peanuts"], "dietaryTag": "VEGETARIAN" }
- *   },
- *   "limit": 5
- * }
+ * Request DTO for getting personalized recommendations.
  */
-@Data
+@Value
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Jacksonized
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class RecommendationRequest {
 
-    @NotNull(message = "userProfile is required")
-    @Valid
-    private UserProfile userProfile;
-
-    @Min(value = 1, message = "limit must be at least 1")
-    @Max(value = 20, message = "limit cannot exceed 20")
+    /**
+     * Maximum number of recommendations to return
+     */
     @Builder.Default
-    private int limit = 5;
+    Integer limit = 10;
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class UserProfile {
-        private Long userId;
+    /**
+     * Maximum preparation/cooking time in minutes (for recipes)
+     */
+    Integer maxTime;
 
-        @NotNull(message = "goals is required")
-        private List<String> goals;
+    /**
+     * Difficulty filter (easy, medium, hard)
+     */
+    String difficulty;
 
-        @Valid
-        private Metrics metrics;
+    /**
+     * Category filter (e.g., "breakfast", "lunch", "dinner" for recipes,
+     * "Chest", "Back", "Legs" for workouts)
+     */
+    String category;
 
-        @Valid
-        private Preferences preferences;
-    }
+    /**
+     * Goal type override (if user wants recommendations for a specific goal
+     * instead of their active goal)
+     */
+    String goalType;
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Metrics {
-        @Min(value = 20, message = "weightKg must be at least 20")
-        @Max(value = 300, message = "weightKg cannot exceed 300")
-        private Double weightKg;
-
-        @Min(value = 100, message = "heightCm must be at least 100")
-        @Max(value = 250, message = "heightCm cannot exceed 250")
-        private Integer heightCm;
-
-        /**
-         * Activity level: SEDENTARY, LIGHT, MODERATE, ACTIVE, VERY_ACTIVE
-         */
-        private String activityLevel;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Preferences {
-        private List<String> excludedIngredients;
-
-        /**
-         * Dietary tag: VEGETARIAN, VEGAN, KETO, PALEO, etc.
-         */
-        private String dietaryTag;
+    public int getLimit() {
+        return limit != null ? limit : 10;
     }
 }

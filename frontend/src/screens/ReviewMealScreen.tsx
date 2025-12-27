@@ -62,8 +62,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
           const manipulateResult = await ImageManipulator.manipulateAsync(
             imageUri,
             [
-              // Limit width to 1024px while keeping aspect ratio
-              { resize: { width: 1024 } },
+              // Limit width to 800px while keeping aspect ratio for faster upload/render
+              { resize: { width: 800 } },
             ],
             {
               compress: 0.7, // 70% quality
@@ -164,7 +164,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
         imageUri: processedImageUri,
         items: items,
         totalNutrition: total,
-        imageUrl: serverImageUrl,
+        // Prefer server URL if upload succeeded; otherwise fall back to local processed image
+        imageUrl: serverImageUrl || processedImageUri,
       });
 
       // Invalidate caches so dashboard, meal log, and insights refresh immediately

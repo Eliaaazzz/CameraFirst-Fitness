@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { MealImage } from './MealImage';
 
 interface Meal {
   id: string;
@@ -25,13 +26,14 @@ export function MealListItem({ meal, onPress }: MealListItemProps) {
       onPress={onPress}
       style={({ pressed }) => [styles.container, pressed && styles.pressed]}
     >
-      {meal.imageUrl ? (
-        <Image source={{ uri: meal.imageUrl }} style={styles.image} />
-      ) : (
-        <View style={[styles.image, styles.placeholder]}>
-          <Text style={styles.placeholderText}>🍽️</Text>
-        </View>
-      )}
+      <MealImage
+        imageUrl={meal.imageUrl}
+        size={56}
+        borderRadius={12}
+        fallbackIcon="silverware-fork-knife"
+        fallbackIconSize={24}
+        style={{ marginRight: 12 }}
+      />
 
       <View style={styles.content}>
         <Text style={styles.name} numberOfLines={1}>
@@ -63,20 +65,6 @@ const styles = StyleSheet.create({
   pressed: {
     backgroundColor: '#F5F5F5',
     transform: [{ scale: 0.98 }],
-  },
-  image: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    marginRight: 12,
-  },
-  placeholder: {
-    backgroundColor: '#F0F0F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  placeholderText: {
-    fontSize: 24,
   },
   content: {
     flex: 1,

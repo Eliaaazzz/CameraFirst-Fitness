@@ -46,13 +46,10 @@ CREATE TABLE IF NOT EXISTS user_goals (
     -- Metadata
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    -- Metadata fields - no inline partial constraints in PostgreSQL
-    CONSTRAINT user_goals_check_active CHECK (is_active IN (TRUE, FALSE))
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Partial unique constraint: Only one active goal per user (must be separate from CREATE TABLE)
+-- Only one active goal per user (partial unique index)
 CREATE UNIQUE INDEX unique_active_goal_per_user ON user_goals(user_id) WHERE is_active = TRUE;
 
 -- Indexes for common queries

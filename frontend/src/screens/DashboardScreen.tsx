@@ -9,7 +9,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   ActionSheetIOS,
   Alert,
-  Image,
   Platform,
   Pressable,
   RefreshControl,
@@ -20,6 +19,7 @@ import {
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
+import { MealImage } from '@/components/nutrition/MealImage';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useDailyNutrition } from '@/hooks/useDailyNutrition';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
@@ -448,22 +448,35 @@ const DashboardScreen = () => {
           ) : (
             nutritionData.meals.map((meal) => (
               <Card key={meal.id} style={styles.mealItem}>
-                {meal.imageUrl ? (
-                  <Image source={{ uri: meal.imageUrl }} style={styles.mealImage} />
-                ) : (
-                  <View style={styles.mealIcon}>
-                    <MaterialCommunityIcons name="food" size={24} color={BRAND_COLORS.primary} />
+                <MealImage
+                  imageUrl={meal.imageUrl}
+                  size={80}
+                  borderRadius={12}
+                />
+                <View style={styles.mealDetails}>
+                  <View style={styles.mealHeader}>
+                    <Text variant="body" weight="semibold" numberOfLines={1} style={styles.mealName}>
+                      {meal.name}
+                    </Text>
+                    <Text variant="body" weight="bold" style={styles.mealCalories}>
+                      {meal.calories} kcal
+                    </Text>
                   </View>
-                )}
-                <View style={styles.mealInfo}>
-                  <Text variant="body" weight="semibold">{meal.name}</Text>
                   <Text variant="caption" style={styles.mealTime}>
                     {new Date(meal.consumedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
+                  <View style={styles.mealMacros}>
+                    <Text variant="caption" style={styles.mealMacroText}>
+                      P: {Math.round(meal.protein || 0)}g
+                    </Text>
+                    <Text variant="caption" style={styles.mealMacroText}>
+                      C: {Math.round(meal.carbs || 0)}g
+                    </Text>
+                    <Text variant="caption" style={styles.mealMacroText}>
+                      F: {Math.round(meal.fat || 0)}g
+                    </Text>
+                  </View>
                 </View>
-                <Text variant="body" weight="bold" style={styles.mealCalories}>
-                  {meal.calories} kcal
-                </Text>
               </Card>
             ))
           )}
@@ -703,31 +716,36 @@ const styles = StyleSheet.create({
   },
   mealItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     padding: spacing.md,
     gap: spacing.md,
   },
-  mealIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(167, 139, 250, 0.1)',
-    justifyContent: 'center',
+  mealDetails: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  mealHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  mealImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-  },
-  mealInfo: {
+  mealName: {
     flex: 1,
+    marginRight: spacing.sm,
   },
   mealTime: {
     opacity: 0.6,
   },
   mealCalories: {
     color: BRAND_COLORS.primary,
+  },
+  mealMacros: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.xs,
+  },
+  mealMacroText: {
+    opacity: 0.7,
   },
 });
 

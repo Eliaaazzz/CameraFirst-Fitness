@@ -4,10 +4,10 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  Image,
   Dimensions,
   Platform,
 } from 'react-native';
+import { MealImage } from './MealImage';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -115,16 +115,13 @@ export function TodaysMealCard({
         <View style={styles.content}>
           {/* Image section */}
           <View style={styles.imageSection}>
-            {imageUrl ? (
-              <Image
-                source={{ uri: imageUrl }}
-                style={styles.foodImage}
-              />
-            ) : (
-              <View style={styles.imagePlaceholder}>
-                <Text style={styles.placeholderEmoji}>🍽️</Text>
-              </View>
-            )}
+            <MealImage
+              imageUrl={imageUrl}
+              size={110}
+              borderRadius={16}
+              fallbackIcon="silverware-fork-knife"
+              fallbackIconSize={48}
+            />
           </View>
 
           {/* Info section */}
@@ -218,25 +215,6 @@ const styles = StyleSheet.create({
   },
   imageSection: {
     marginRight: 16,
-  },
-  foodImage: {
-    width: 110,
-    height: 110,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  imagePlaceholder: {
-    width: 110,
-    height: 110,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  placeholderEmoji: {
-    fontSize: 48,
   },
   infoSection: {
     flex: 1,

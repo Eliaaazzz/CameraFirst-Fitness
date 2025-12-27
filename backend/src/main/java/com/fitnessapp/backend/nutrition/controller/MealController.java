@@ -147,14 +147,10 @@ public class MealController {
       @RequestParam(required = false) String timezone
   ) {
     UUID userId = currentUser.userId();
-    
     ZoneId zone = resolveZoneId(timezone);
-    
-    // Use the timezone to determine "today" if date not specified
     LocalDate targetDate = date != null ? date : LocalDate.now(zone);
     log.info("Getting meals for user {} on {} (timezone: {})", userId, targetDate, zone);
 
-    // Calculate start/end of day in the user's timezone, then convert to OffsetDateTime
     OffsetDateTime start = targetDate.atStartOfDay(zone).toOffsetDateTime();
     OffsetDateTime end = targetDate.plusDays(1).atStartOfDay(zone).toOffsetDateTime();
 
