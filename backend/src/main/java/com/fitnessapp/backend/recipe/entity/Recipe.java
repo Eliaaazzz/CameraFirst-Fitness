@@ -40,6 +40,49 @@ public class Recipe {
   @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
   private JsonNode nutritionSummary;
 
+  // ============================================================================
+  // Generated Nutrition Columns (PostgreSQL GENERATED ALWAYS AS ... STORED)
+  // These are computed from nutrition_summary and are read-only in JPA.
+  // ============================================================================
+
+  /**
+   * Calories per serving - generated from nutrition_summary.
+   */
+  @Column(name = "calories", insertable = false, updatable = false)
+  private Integer calories;
+
+  /**
+   * Protein in grams - generated from nutrition_summary.
+   */
+  @Column(name = "protein", insertable = false, updatable = false)
+  private Double protein;
+
+  /**
+   * Carbohydrates in grams - generated from nutrition_summary.
+   */
+  @Column(name = "carbs", insertable = false, updatable = false)
+  private Double carbs;
+
+  /**
+   * Fat in grams - generated from nutrition_summary.
+   */
+  @Column(name = "fat", insertable = false, updatable = false)
+  private Double fat;
+
+  /**
+   * Sugar in grams - generated from nutrition_summary.
+   * Important for blood sugar control goals.
+   */
+  @Column(name = "sugar", insertable = false, updatable = false)
+  private Double sugar;
+
+  /**
+   * Fiber in grams - generated from nutrition_summary.
+   * Important for blood sugar control and digestive health.
+   */
+  @Column(name = "fiber", insertable = false, updatable = false)
+  private Double fiber;
+
   @Column(name = "steps", columnDefinition = "jsonb")
   @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
   private JsonNode steps;

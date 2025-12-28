@@ -1,7 +1,6 @@
 package com.fitnessapp.backend.recommendation;
 
 import com.fitnessapp.backend.api.common.ApiEnvelope;
-import com.fitnessapp.backend.api.common.ErrorCode;
 import com.fitnessapp.backend.recommendation.dto.RecommendationRequest;
 import com.fitnessapp.backend.recommendation.dto.RecommendationResponse;
 import com.fitnessapp.backend.recommendation.exception.RecommendationException;
@@ -13,8 +12,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -41,7 +38,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class RecommendationController {
 
     private final ContentRecommendationService recommendationService;
-    private final DashboardRecommendationService dashboardRecommendationService;
 
     /**
      * Generate personalized recommendations based on user profile and goals.
@@ -183,17 +179,6 @@ public class RecommendationController {
                 response.getRecipes() != null ? response.getRecipes().size() : 0,
                 response.getWorkouts() != null ? response.getWorkouts().size() : 0);
 
-        return ApiEnvelope.success(response);
-    }
-
-    /**
-     * Fetch dashboard recommendations for a fitness goal.
-     * GET /api/v1/recommendations/dashboard?goal=GAIN_MUSCLE
-     */
-    @GetMapping("/dashboard")
-    public ApiEnvelope<DashboardRecommendationResponse> getDashboardRecommendations(
-            @RequestParam String goal) {
-        DashboardRecommendationResponse response = dashboardRecommendationService.getRecommendations(goal);
         return ApiEnvelope.success(response);
     }
 }

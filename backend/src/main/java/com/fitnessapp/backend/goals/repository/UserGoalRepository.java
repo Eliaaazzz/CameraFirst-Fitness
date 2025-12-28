@@ -52,3 +52,7 @@ public interface UserGoalRepository extends JpaRepository<UserGoal, UUID> {
     @Query("DELETE FROM UserGoal g WHERE g.user.id = :userId")
     void deleteAllByUserId(@Param("userId") UUID userId);
 }
+
+
+
+
