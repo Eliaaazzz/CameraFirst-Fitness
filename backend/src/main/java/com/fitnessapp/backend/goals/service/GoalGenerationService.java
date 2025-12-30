@@ -118,7 +118,6 @@ public class GoalGenerationService {
             case prefer_not_to_say -> "adult (sex not specified)";
         };
 
-        int age = request.getAge() != null ? request.getAge() : 30;
         String activityDesc = request.getActivityLevel() != null ?
                 request.getActivityLevel().name() : "medium";
 
@@ -132,7 +131,6 @@ public class GoalGenerationService {
 
             User Profile:
             - Sex: %s
-            - Age: %d years
             - Height: %d cm
             - Weight: %d kg
             - Activity Level: %s
@@ -171,11 +169,11 @@ public class GoalGenerationService {
                 "safetyNote": "<important health disclaimer>"
             }
 
-            Use Mifflin-St Jeor equation for BMR. Apply appropriate activity multiplier and goal adjustment.
+            Use Mifflin-St Jeor equation for BMR (assume adult age ~30 for calculation). Apply appropriate activity multiplier and goal adjustment.
             For fat_loss: 15-20%% calorie deficit. For muscle_gain: 10-15%% surplus. For diabetes_control: focus on low GI, controlled carbs.
 
             Return ONLY the JSON object, nothing else.
-            """, sexDescription, age, request.getHeightCm(), request.getWeightKg(),
+            """, sexDescription, request.getHeightCm(), request.getWeightKg(),
                 activityDesc, goalDescription, diabetesWarning);
     }
 
@@ -268,7 +266,7 @@ public class GoalGenerationService {
      * Used when Gemini AI is unavailable.
      */
     public GenerateGoalsResponse generateFallbackGoals(GenerateGoalsRequest request) {
-        int age = request.getAge() != null ? request.getAge() : 30;
+        int age = 30; // Default age for BMR calculation
         Sex sex = request.getSex();
         int heightCm = request.getHeightCm();
         int weightKg = request.getWeightKg();

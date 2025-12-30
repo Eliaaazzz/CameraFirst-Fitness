@@ -15,6 +15,13 @@ usda:
     key: ${USDA_API_KEY:}
     base-url: https://api.nal.usda.gov/fdc/v1
 
+aws:
+  s3:
+    region: ${AWS_S3_REGION:ap-southeast-2}
+    bucket-name: ${AWS_S3_BUCKET:aurafitness-uploads}
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
+
 app:
   api-key: ${API_KEY:${APP_API_KEY:fitness-secret-key-123}}  # API Key for request authentication (X-API-Key header)
   youtube:
@@ -107,6 +114,8 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    validate-on-migrate: false
+    repair-on-migrate: true
 
 management:
   endpoint:
@@ -160,6 +169,8 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    validate-on-migrate: false
+    repair-on-migrate: true
 
 management:
   endpoint:

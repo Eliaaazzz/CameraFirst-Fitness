@@ -55,6 +55,7 @@ public class RecommendationResponse {
         private NutritionInfo nutrition;
         private List<String> tags;
         private Double matchScore;
+        private List<String> matchReasons;
     }
 
     @Data
@@ -83,5 +84,6 @@ public class RecommendationResponse {
         private String thumbnailUrl;
         private String videoUrl;
         private Double matchScore;
+        private List<String> matchReasons;
     }
 }

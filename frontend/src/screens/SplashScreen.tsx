@@ -13,17 +13,21 @@ export default function SplashScreen() {
 
   useEffect(() => {
     const checkAuth = async () => {
+      console.log('[SplashScreen] 🔍 Starting authentication check...');
       try {
         const authenticated = await isAuthenticated();
+        console.log('[SplashScreen] Authentication result:', authenticated);
         setIsChecking(false);
 
         if (authenticated) {
+          console.log('[SplashScreen] ✅ User is authenticated, navigating to Main');
           // User is logged in, go to main app
           navigation.reset({
             index: 0,
             routes: [{ name: 'Main' } as any],
           });
         } else {
+          console.log('[SplashScreen] ❌ User is NOT authenticated, navigating to Login');
           // User is not logged in, go to login
           navigation.reset({
             index: 0,
@@ -31,9 +35,10 @@ export default function SplashScreen() {
           });
         }
       } catch (error) {
-        console.error('Error checking authentication:', error);
+        console.error('[SplashScreen] ❌ Error checking authentication:', error);
         setIsChecking(false);
         // Fallback to login screen on error
+        console.log('[SplashScreen] Falling back to Login screen due to error');
         navigation.reset({
           index: 0,
           routes: [{ name: 'Login' } as any],
@@ -41,8 +46,9 @@ export default function SplashScreen() {
       }
     };
 	
-
-    checkAuth();
+    // Add a small delay to prevent flickering and ensure storage is ready
+    console.log('[SplashScreen] Delaying auth check by 1000ms...');
+    setTimeout(checkAuth, 1000);
   }, [navigation]);
 
   return (

@@ -388,12 +388,13 @@ const unwrapRecommendationResponse = (raw: any): RecommendationApiResponse | nul
   return null;
 };
 
-async function generateRecommendations(goals: string[], limit: number = MAX_RECOMMENDATIONS): Promise<RecommendationApiResponse | null> {
+async function generateRecommendations(goals: string[], userId?: string, limit: number = MAX_RECOMMENDATIONS): Promise<RecommendationApiResponse | null> {
   try {
     const response = await api.post<RecommendationApiResponse>(
       '/api/v1/recommendations/generate',
       {
         userProfile: {
+          userId,
           goals,
           metrics: {},
           preferences: {}
@@ -412,10 +413,10 @@ async function generateRecommendations(goals: string[], limit: number = MAX_RECO
  * Get recommended workouts based on fitness goal.
  * Uses POST /api/v1/recommendations/generate endpoint.
  */
-export async function getRecommendedWorkouts(fitnessGoal?: string | null): Promise<WorkoutCard[]> {
+export async function getRecommendedWorkouts(fitnessGoal?: string | null, userId?: string): Promise<WorkoutCard[]> {
   try {
     const goals = normalizeGoalForApi(fitnessGoal);
-    const response = await generateRecommendations(goals, MAX_RECOMMENDATIONS);
+    const response = await generateRecommendations(goals, userId, MAX_RECOMMENDATIONS);
 
     if (!response || !Array.isArray(response.workouts)) {
       return [];
@@ -442,10 +443,10 @@ export async function getRecommendedWorkouts(fitnessGoal?: string | null): Promi
  * Get recommended recipes based on fitness goal.
  * Uses POST /api/v1/recommendations/generate endpoint.
  */
-export async function getRecommendedRecipes(fitnessGoal?: string | null): Promise<RecipeCard[]> {
+export async function getRecommendedRecipes(fitnessGoal?: string | null, userId?: string): Promise<RecipeCard[]> {
   try {
     const goals = normalizeGoalForApi(fitnessGoal);
-    const response = await generateRecommendations(goals, MAX_RECOMMENDATIONS);
+    const response = await generateRecommendations(goals, userId, MAX_RECOMMENDATIONS);
 
     if (response && Array.isArray(response.recipes) && response.recipes.length > 0) {
       return response.recipes.map(r => normalizeRecipeData({

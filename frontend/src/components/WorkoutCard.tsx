@@ -74,7 +74,7 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
       {/* Image */}
       <View style={[styles.imageContainer, { height: imageHeight }]}>
         {item.thumbnailUrl ? (
-          <Image source={{ uri: item.thumbnailUrl }} style={styles.image} resizeMode="cover" />
+          <Image source={{ uri: item.thumbnailUrl }} style={styles.image} resizeMode="contain" />
         ) : (
           <View style={[styles.image, { backgroundColor: dark.surfaceVariant }]} />
         )}

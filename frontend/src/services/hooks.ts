@@ -4,6 +4,7 @@ import { RecipeCard, RecipeSortOption, SavedRecipe, SavedWorkout, UploadRecipePa
 import {
     getRecommendedRecipes,
     getRecommendedWorkouts,
+    getRecipeById,
     getSavedRecipes,
     getSavedWorkouts,
     removeSavedRecipe,
@@ -113,18 +114,20 @@ export const useSavedRecipes = (userId?: string) =>
     queryFn: () => getSavedRecipes(userId),
   });
 
-export const useRecommendedWorkouts = (fitnessGoal?: string | null) =>
+export const useRecommendedWorkouts = (fitnessGoal?: string | null, userId?: string) =>
   useQuery<WorkoutCard[], Error>({
     queryKey: queryKeys.recommendedWorkouts(fitnessGoal),
-    queryFn: () => getRecommendedWorkouts(fitnessGoal),
+    queryFn: () => getRecommendedWorkouts(fitnessGoal, userId),
     staleTime: 1000 * 60 * 10,
+    enabled: !!userId,
   });
 
-export const useRecommendedRecipes = (fitnessGoal?: string | null) =>
+export const useRecommendedRecipes = (fitnessGoal?: string | null, userId?: string) =>
   useQuery<RecipeCard[], Error>({
     queryKey: queryKeys.recommendedRecipes(fitnessGoal),
-    queryFn: () => getRecommendedRecipes(fitnessGoal),
+    queryFn: () => getRecommendedRecipes(fitnessGoal, userId),
     staleTime: 1000 * 60 * 10,
+    enabled: !!userId,
   });
 
 // Search hooks for keyword search
@@ -190,4 +193,13 @@ export const useRecipesByGoal = (goal: string, limit: number = 20) =>
     enabled: !!goal,
     staleTime: 1000 * 60 * 10, // 10 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes
+  });
+
+// Hook to fetch full recipe details by ID (includes ingredients and steps)
+export const useRecipeById = (recipeId?: string) =>
+  useQuery<RecipeCard | null, Error>({
+    queryKey: ['recipe', recipeId],
+    queryFn: () => (recipeId ? getRecipeById(recipeId) : Promise.resolve(null)),
+    enabled: !!recipeId,
+    staleTime: 1000 * 60 * 10, // 10 minutes
   });

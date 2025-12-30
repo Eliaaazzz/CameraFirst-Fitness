@@ -38,6 +38,7 @@ async function deleteItem(key: string): Promise<void> {
  */
 export async function saveJWT(jwtToken: string, refreshToken?: string, userEmail?: string) {
   try {
+    console.log('[saveJWT] Saving JWT token, length:', jwtToken?.length);
     await setItem(JWT_KEY, jwtToken);
     if (refreshToken) {
       await setItem(REFRESH_TOKEN_KEY, refreshToken);
@@ -46,6 +47,10 @@ export async function saveJWT(jwtToken: string, refreshToken?: string, userEmail
       await setItem(USER_EMAIL_KEY, userEmail);
     }
     console.log('✅ JWT saved to secure storage');
+
+    // Verify it was saved correctly
+    const savedToken = await getItem(JWT_KEY);
+    console.log('[saveJWT] Verification - token saved correctly:', savedToken === jwtToken);
   } catch (error) {
     console.error('❌ Failed to save JWT to secure storage:', error);
     throw new Error('Failed to save authentication token');
@@ -54,21 +59,20 @@ export async function saveJWT(jwtToken: string, refreshToken?: string, userEmail
 
 /**
  * Retrieve JWT from secure storage
- * Automatically clears token if expired
+ * IMPORTANT: Does NOT check expiration to avoid race conditions during login
+ * Let the backend validate and return 401 if truly expired
  */
 export async function getJWT(): Promise<string | null> {
   try {
     const token = await getItem(JWT_KEY);
+    console.log('[getJWT] Token retrieved, exists:', !!token, 'length:', token?.length);
     if (!token) {
       return null;
     }
     
-    // Check if token is expired
-    if (isJWTExpired(token)) {
-      console.warn('⚠️ JWT token expired, clearing from storage');
-      await clearJWT();
-      return null;
-    }
+    // DO NOT check expiration here - this causes race conditions during login
+    // The backend will validate the token and return 401 if expired
+    // Frontend should only clear JWT on explicit 401 response from backend
     
     return token;
   } catch (error) {
@@ -134,12 +138,14 @@ function base64UrlDecode(input: string): string {
   }
 
   // Use platform-appropriate decoding
-  if (Platform.OS === 'web' && typeof atob === 'function') {
-    // Web: use atob
+  // Hermes and modern React Native support atob globally
+  if (typeof atob === 'function') {
     return atob(base64);
+  } else if (Platform.OS === 'web' && typeof window !== 'undefined' && window.atob) {
+    return window.atob(base64);
   } else {
-    // Native (iOS/Android): use Buffer-like manual decoding
-    // This avoids atob which may not exist or work correctly on Hermes
+    // Native (iOS/Android) fallback: use Buffer-like manual decoding
+    // This avoids atob which may not exist or work correctly on older runtimes
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
     let output = '';
 
@@ -217,8 +223,10 @@ export function isJWTExpired(token: string): boolean {
   }
 
   const currentTime = Math.floor(Date.now() / 1000);
-  // Add 60 second buffer to refresh before actual expiration
-  const isExpired = payload.exp < (currentTime + 60);
+  console.log('[JWT] Checking expiration. Current:', currentTime, 'Exp:', payload.exp);
+  // Add 5 second buffer to allow for clock skew
+  // (reduced from 60s to avoid false positives on fresh tokens)
+  const isExpired = payload.exp < (currentTime + 5);
 
   if (isExpired) {
     console.log('[JWT] Token expired at', new Date(payload.exp * 1000).toISOString());
@@ -229,19 +237,27 @@ export function isJWTExpired(token: string): boolean {
 
 /**
  * Check if user is authenticated (has valid JWT)
+ * Note: Only checks if token exists and is not obviously expired
+ * Backend will do the final validation
  */
 export async function isAuthenticated(): Promise<boolean> {
-  const token = await getJWT();
-  if (!token) {
+  console.log('[isAuthenticated] Checking authentication...');
+  try {
+    const token = await getJWT();
+    console.log('[isAuthenticated] Token exists:', !!token, 'length:', token?.length);
+    if (!token) {
+      console.log('[isAuthenticated] No token found, returning false');
+      return false;
+    }
+
+    // OPTIMIZATION: Trust the token if it exists.
+    // Do not check expiration client-side to avoid clock skew issues.
+    // The backend will return 401 if the token is invalid/expired,
+    // and apiClient will handle the cleanup.
+    console.log('[isAuthenticated] Token exists, assuming valid (backend will validate)');
+    return true;
+  } catch (error) {
+    console.error('[isAuthenticated] Error during auth check:', error);
     return false;
   }
-  
-  // Check if token is expired
-  if (isJWTExpired(token)) {
-    console.warn('⚠️ JWT token is expired, clearing storage');
-    await clearJWT();
-    return false;
-  }
-  
-  return true;
 }

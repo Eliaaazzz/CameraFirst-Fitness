@@ -1,12 +1,26 @@
 package com.fitnessapp.backend.user.entity;
 
-import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -80,6 +94,12 @@ public class UserProfile {
   @Column(name = "daily_fat_target")
   private Integer dailyFatTarget;
 
+  @Column(name = "avatar_url", length = 500)
+  private String avatarUrl;
+
+  @Column(name = "avatar_file_key", length = 500)
+  private String avatarFileKey;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
 
@@ -111,6 +131,8 @@ public class UserProfile {
     this.dailyProteinTarget = source.getDailyProteinTarget();
     this.dailyCarbsTarget = source.getDailyCarbsTarget();
     this.dailyFatTarget = source.getDailyFatTarget();
+    this.avatarUrl = source.getAvatarUrl();
+    this.avatarFileKey = source.getAvatarFileKey();
 
     this.allergens.clear();
     if (source.getAllergens() != null) {

@@ -7,6 +7,7 @@ import com.fitnessapp.backend.recipe.entity.Ingredient;
 import com.fitnessapp.backend.recipe.entity.Recipe;
 import com.fitnessapp.backend.recipe.entity.RecipeIngredient;
 import com.fitnessapp.backend.retrieval.dto.RecipeCard;
+import com.fitnessapp.backend.retrieval.dto.RecipeIngredientDto;
 import com.fitnessapp.backend.retrieval.dto.RecipeStep;
 import com.fitnessapp.backend.recipe.repository.RecipeRepository;
 import java.util.ArrayList;
@@ -141,7 +142,7 @@ public class RecipeRetrievalService {
     public RecipeCard toCard(Recipe recipe) {
         List<RecipeStep> steps = parseSteps(recipe);
         Map<String, Object> nutrition = parseNutrition(recipe);
-        List<String> ingredients = extractIngredientNames(recipe);
+        List<RecipeIngredientDto> ingredients = extractIngredients(recipe);
 
         // ALWAYS provide nutrition - use defaults if missing
         if (nutrition.isEmpty()) {
@@ -206,17 +207,19 @@ public class RecipeRetrievalService {
     }
 
     /**
-     * Extract ingredient names from recipe for display
+     * Extract ingredients with full details (name, quantity, unit) from recipe
      */
-    private List<String> extractIngredientNames(Recipe recipe) {
+    private List<RecipeIngredientDto> extractIngredients(Recipe recipe) {
         if (CollectionUtils.isEmpty(recipe.getIngredients())) {
             return List.of();
         }
         return recipe.getIngredients().stream()
-                .map(RecipeIngredient::getIngredient)
-                .filter(Objects::nonNull)
-                .map(Ingredient::getName)
-                .filter(StringUtils::hasText)
+                .filter(ri -> ri.getIngredient() != null && StringUtils.hasText(ri.getIngredient().getName()))
+                .map(ri -> RecipeIngredientDto.builder()
+                        .name(ri.getIngredient().getName())
+                        .quantity(ri.getQuantity())
+                        .unit(ri.getUnit())
+                        .build())
                 .collect(Collectors.toList());
     }
 

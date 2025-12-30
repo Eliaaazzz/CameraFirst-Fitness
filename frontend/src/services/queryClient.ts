@@ -4,13 +4,12 @@ import { QueryClient } from '@tanstack/react-query';
 // Global auth error handler
 const handleAuthError = async (error: any) => {
   if (error?.status === 401 || error?.status === 403 || error?.authError) {
-    console.warn('[QueryClient] Authentication error detected, clearing JWT');
+    console.warn('[QueryClient] ⚠️ Authentication error detected');
+    console.warn('[QueryClient] Error details:', { status: error?.status, authError: error?.authError });
+    console.warn('[QueryClient] Clearing JWT and letting navigation handle redirect...');
     await clearJWT();
-    // The SplashScreen will handle redirect on next app check
-    // For immediate effect, we'll reload the app
-    if (typeof window !== 'undefined') {
-      window.location.reload();
-    }
+    // Let navigation naturally redirect to login instead of forcing reload
+    // This prevents jarring user experience and allows proper cleanup
   }
 };
 
@@ -25,8 +24,10 @@ export const queryClient = new QueryClient({
           handleAuthError(error);
           return false;
         }
-        return failureCount < 1;
+        // Retry up to 2 times for network errors
+        return failureCount < 2;
       },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
       refetchOnWindowFocus: false,
     },
     mutations: {
@@ -36,7 +37,7 @@ export const queryClient = new QueryClient({
           handleAuthError(error);
           return false;
         }
-        return failureCount < 1;
+        return failureCount < 2;
       },
     },
   },

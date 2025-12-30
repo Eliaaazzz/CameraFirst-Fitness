@@ -1,9 +1,14 @@
 package com.fitnessapp.backend.recommendation.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
+
+import java.util.List;
+import java.util.UUID;
 
 /**
  * Request DTO for getting personalized recommendations.
@@ -13,6 +18,13 @@ import lombok.extern.jackson.Jacksonized;
 @Jacksonized
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class RecommendationRequest {
+
+    /**
+     * User profile information for personalized recommendations
+     */
+    @Valid
+    @NotNull(message = "userProfile is required")
+    UserProfileInput userProfile;
 
     /**
      * Maximum number of recommendations to return
@@ -44,5 +56,28 @@ public class RecommendationRequest {
 
     public int getLimit() {
         return limit != null ? limit : 10;
+    }
+
+    /**
+     * Nested user profile input for recommendation requests.
+     */
+    @Value
+    @Builder
+    @Jacksonized
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class UserProfileInput {
+
+        @NotNull(message = "userId is required")
+        UUID userId;
+
+        /**
+         * User's fitness goals (e.g., BLOOD_SUGAR_CONTROL, BUILD_MUSCLE, FAT_LOSS)
+         */
+        List<String> goals;
+
+        /**
+         * Ingredients to exclude from recipe recommendations
+         */
+        List<String> excludedIngredients;
     }
 }

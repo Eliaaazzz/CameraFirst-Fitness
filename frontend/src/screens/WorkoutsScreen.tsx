@@ -3,9 +3,10 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
 
-import { Container, EmptyStateCard, ListSkeleton, SafeAreaWrapper, Text, WorkoutCard } from '@/components';
+import { Container, EmptyStateCard, ListSkeleton, SafeAreaWrapper, SearchBar, Text, WorkoutCard } from '@/components';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedWorkouts, useRemoveWorkout, useSavedWorkouts, useSaveWorkout } from '@/services';
+import { searchWorkouts, WorkoutSearchResult } from '@/services/searchApi';
 import type { SavedWorkout } from '@/types';
 import { colors, spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
 
@@ -26,6 +27,9 @@ const styles = StyleSheet.create({
   subtitle: {
     opacity: 0.7,
   },
+  searchContainer: {
+    marginTop: spacing.md,
+  },
   section: {
     marginTop: spacing.lg,
     gap: spacing.sm,
@@ -39,6 +43,12 @@ const styles = StyleSheet.create({
   },
   recommendedNote: {
     opacity: 0.7,
+  },
+  searchResults: {
+    gap: spacing.md,
+  },
+  searchResultCard: {
+    marginBottom: spacing.sm,
   },
   savedHeader: {
     marginTop: spacing.lg,
@@ -76,7 +86,7 @@ export const WorkoutsScreen = () => {
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const saved = useSavedWorkouts(userId);
-  const recommended = useRecommendedWorkouts(currentUser.data?.profile?.fitnessGoal);
+  const recommended = useRecommendedWorkouts(currentUser.data?.profile?.fitnessGoal, userId);
   const saveWorkout = useSaveWorkout(userId);
   const removeWorkout = useRemoveWorkout(userId);
   const listRef = useRef<FlatList<SavedWorkout>>(null);
@@ -84,6 +94,45 @@ export const WorkoutsScreen = () => {
   const savedWorkouts = saved.data ?? [];
   const savedWorkoutIds = useMemo(() => new Set(savedWorkouts.map((item) => item.id)), [savedWorkouts]);
   const recommendedItems = recommended.data ?? [];
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<WorkoutSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSearch = useCallback(async (query: string) => {
+    setSearchQuery(query);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!query.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await searchWorkouts(query, 20);
+        setSearchResults(results);
+      } catch (error) {
+        console.error('[WorkoutsScreen] Search failed:', error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setIsSearching(false);
+  }, []);
 
   // Calculate bottom padding using shared utility
   const listBottomPadding = useContentBottomPadding(spacing.lg);
@@ -126,6 +175,7 @@ export const WorkoutsScreen = () => {
           <WorkoutCard
             item={item}
             isSaved
+            onRemove={(id) => removeWorkout.mutateAsync(id).then(() => true)}
           />
           <Text variant="caption" style={styles.savedAt}>
             {meta}
@@ -133,7 +183,7 @@ export const WorkoutsScreen = () => {
         </View>
       );
     },
-    [],
+    [removeWorkout],
   );
 
   // Loading state
@@ -177,6 +227,8 @@ export const WorkoutsScreen = () => {
 
   const workouts = savedWorkouts;
   const isRefreshing = saved.isRefetching;
+  const isSearchMode = searchQuery.trim().length > 0;
+
   const listHeaderComponent = (
     <View style={styles.header}>
       <Text variant="heading1" weight="bold">
@@ -185,41 +237,90 @@ export const WorkoutsScreen = () => {
       <Text variant="body" style={styles.subtitle}>
         Recommended routines and your saved list.
       </Text>
-      <View style={styles.section}>
-        <Text variant="heading2" weight="semibold">
-          Recommended for you
-        </Text>
-        {recommended.isLoading ? (
-          <Text variant="caption" style={styles.recommendedNote}>
-            Loading recommendations...
-          </Text>
-        ) : recommended.isError ? (
-          <Text variant="caption" style={styles.recommendedNote}>
-            Unable to load recommendations.
-          </Text>
-        ) : recommendedItems.length === 0 ? (
-          <Text variant="caption" style={styles.recommendedNote}>
-            No recommendations yet.
-          </Text>
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.recommendedList}
-          >
-            {recommendedItems.map((item) => (
-              <View key={item.id} style={styles.recommendedCard}>
-                <WorkoutCard
-                  item={item}
-                  isSaved={savedWorkoutIds.has(item.id)}
-                  onSave={(id) => saveWorkout.mutateAsync(id).then(() => true)}
-                  onRemove={(id) => removeWorkout.mutateAsync(id).then(() => true)}
-                />
-              </View>
-            ))}
-          </ScrollView>
-        )}
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <SearchBar
+          placeholder="Search workouts..."
+          value={searchQuery}
+          onChangeText={handleSearch}
+          onClear={clearSearch}
+          isLoading={isSearching}
+        />
       </View>
+
+      {/* Search Results or Recommended */}
+      {isSearchMode ? (
+        <View style={styles.section}>
+          <Text variant="heading2" weight="semibold">
+            Search Results
+          </Text>
+          {isSearching ? (
+            <Text variant="caption" style={styles.recommendedNote}>
+              Searching...
+            </Text>
+          ) : searchResults.length === 0 ? (
+            <Text variant="caption" style={styles.recommendedNote}>
+              No workouts found for "{searchQuery}"
+            </Text>
+          ) : (
+            <View style={styles.searchResults}>
+              {searchResults.map((item) => (
+                <View key={item.id} style={styles.searchResultCard}>
+                  <WorkoutCard
+                    item={{
+                      id: item.id,
+                      title: item.exerciseName,
+                      thumbnailUrl: item.thumbnailUrl,
+                      youtubeId: item.youtubeId,
+                      primaryCategory: item.primaryCategory,
+                    }}
+                    isSaved={savedWorkoutIds.has(item.id)}
+                    onSave={(id) => saveWorkout.mutateAsync(id).then(() => true)}
+                    onRemove={(id) => removeWorkout.mutateAsync(id).then(() => true)}
+                  />
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      ) : (
+        <View style={styles.section}>
+          <Text variant="heading2" weight="semibold">
+            Recommended for you
+          </Text>
+          {recommended.isLoading ? (
+            <Text variant="caption" style={styles.recommendedNote}>
+              Loading recommendations...
+            </Text>
+          ) : recommended.isError ? (
+            <Text variant="caption" style={styles.recommendedNote}>
+              Unable to load recommendations.
+            </Text>
+          ) : recommendedItems.length === 0 ? (
+            <Text variant="caption" style={styles.recommendedNote}>
+              No recommendations yet.
+            </Text>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recommendedList}
+            >
+              {recommendedItems.map((item) => (
+                <View key={item.id} style={styles.recommendedCard}>
+                  <WorkoutCard
+                    item={item}
+                    isSaved={savedWorkoutIds.has(item.id)}
+                    onSave={(id) => saveWorkout.mutateAsync(id).then(() => true)}
+                    onRemove={(id) => removeWorkout.mutateAsync(id).then(() => true)}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      )}
       <Text variant="heading2" weight="semibold" style={styles.savedHeader}>
         Saved Workouts
       </Text>

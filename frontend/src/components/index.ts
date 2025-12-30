@@ -26,6 +26,7 @@ export * from './WorkoutCard';
 export * from './YouTubePlayerModal';
 
 // Common components
+export { SearchBar } from './common/SearchBar';
 export { StateView } from './common/StateView';
 export { WheelPicker } from './common/WheelPicker';
 

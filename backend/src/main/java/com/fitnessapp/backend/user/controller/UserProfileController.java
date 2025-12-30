@@ -56,6 +56,8 @@ public class UserProfileController {
     return ResponseEntity.ok(UserProfileMapper.toResponse(saved));
   }
 
+  
+
   @DeleteMapping
   public ResponseEntity<Void> deleteProfile(@PathVariable UUID userId) {
     userProfileService.deleteProfile(userId);

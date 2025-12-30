@@ -93,7 +93,6 @@ public class UserGoalResponse {
         private String sex;
         private Integer heightCm;
         private Integer weightKg;
-        private Integer age;
         private String activityLevel;
     }
 
@@ -148,7 +147,6 @@ public class UserGoalResponse {
                         .sex(entity.getInputSex())
                         .heightCm(entity.getInputHeightCm())
                         .weightKg(entity.getInputWeightKg())
-                        .age(entity.getInputAge())
                         .activityLevel(entity.getInputActivityLevel())
                         .build())
                 .build();

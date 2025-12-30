@@ -1,4 +1,22 @@
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: fitness-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fitness_mvp
+      POSTGRES_USER: fitnessuser
+      POSTGRES_PASSWORD: dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitnessuser -d fitness_mvp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7-alpine
     container_name: fitness-redis
@@ -9,12 +27,15 @@ services:
       - redis_data:/data
 
   backend:
-    # ⚠️ 注意：请把 eliaaazzz 换成你自己的 Docker Hub 用户名
-    image: docker.io/eliaaazzz/fitness-backend:latest
+    # Use local image for development
+    image: fitness-backend:local
     container_name: fitness-backend
     restart: unless-stopped
     depends_on:
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     # 读取服务器上的 .env 文件
     env_file:
       - .env
@@ -22,4 +43,5 @@ services:
       - "8080:8080"
 
 volumes:
+  postgres_data:
   redis_data:

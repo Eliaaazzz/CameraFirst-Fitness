@@ -5,6 +5,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,22 +56,23 @@ public class RecipeSearchService {
             );
         }
 
-        // Use advanced nutrition-based search
+        // Use advanced nutrition-based search with generated columns
         NutritionFilter nutrition = request.getNutrition();
+        Pageable pageable = PageRequest.of(0, DEFAULT_LIMIT);
 
         List<Recipe> results = repository.findByNutritionCriteria(
                 nutrition != null ? nutrition.getMinCalories() : null,
                 nutrition != null ? nutrition.getMaxCalories() : null,
-                nutrition != null ? nutrition.getMinProtein() : null,
-                nutrition != null ? nutrition.getMaxProtein() : null,
-                nutrition != null ? nutrition.getMinCarbs() : null,
-                nutrition != null ? nutrition.getMaxCarbs() : null,
-                nutrition != null ? nutrition.getMinFat() : null,
-                nutrition != null ? nutrition.getMaxFat() : null,
+                nutrition != null ? toDouble(nutrition.getMinProtein()) : null,
+                nutrition != null ? toDouble(nutrition.getMaxProtein()) : null,
+                nutrition != null ? toDouble(nutrition.getMinCarbs()) : null,
+                nutrition != null ? toDouble(nutrition.getMaxCarbs()) : null,
+                nutrition != null ? toDouble(nutrition.getMinFat()) : null,
+                nutrition != null ? toDouble(nutrition.getMaxFat()) : null,
+                null, // maxSugar
+                null, // minFiber
                 request.getMaxTimeMinutes(),
-                request.getDifficulty(),
-                request.getEffectiveSortBy(),
-                DEFAULT_LIMIT
+                pageable
         );
 
         log.debug("Found {} recipes matching nutrition criteria", results.size());
@@ -88,7 +91,15 @@ public class RecipeSearchService {
     public List<RecipeCard> findHighProteinRecipes(Integer maxTime) {
         log.info("Finding high-protein recipes, maxTime={}", maxTime);
 
-        List<Recipe> recipes = repository.findHighProteinRecipes(30, maxTime, DEFAULT_LIMIT);
+        Pageable pageable = PageRequest.of(0, DEFAULT_LIMIT);
+        List<Recipe> recipes = repository.findHighProteinRecipes(30.0, pageable);
+
+        // Apply time filter if specified
+        if (maxTime != null && maxTime > 0) {
+            recipes = recipes.stream()
+                    .filter(r -> r.getTimeMinutes() != null && r.getTimeMinutes() <= maxTime)
+                    .collect(Collectors.toList());
+        }
 
         return recipes.stream()
                 .map(retrievalService::toCard)
@@ -104,7 +115,15 @@ public class RecipeSearchService {
     public List<RecipeCard> findLowCarbRecipes(Integer maxTime) {
         log.info("Finding low-carb recipes, maxTime={}", maxTime);
 
-        List<Recipe> recipes = repository.findLowCarbRecipes(20, maxTime, DEFAULT_LIMIT);
+        Pageable pageable = PageRequest.of(0, DEFAULT_LIMIT);
+        List<Recipe> recipes = repository.findLowCarbRecipes(20.0, pageable);
+
+        // Apply time filter if specified
+        if (maxTime != null && maxTime > 0) {
+            recipes = recipes.stream()
+                    .filter(r -> r.getTimeMinutes() != null && r.getTimeMinutes() <= maxTime)
+                    .collect(Collectors.toList());
+        }
 
         return recipes.stream()
                 .map(retrievalService::toCard)
@@ -120,7 +139,15 @@ public class RecipeSearchService {
     public List<RecipeCard> findLowCalorieRecipes(Integer maxTime) {
         log.info("Finding low-calorie recipes, maxTime={}", maxTime);
 
-        List<Recipe> recipes = repository.findLowCalorieRecipes(400, maxTime, DEFAULT_LIMIT);
+        Pageable pageable = PageRequest.of(0, DEFAULT_LIMIT);
+        List<Recipe> recipes = repository.findLowCalorieRecipes(400, pageable);
+
+        // Apply time filter if specified
+        if (maxTime != null && maxTime > 0) {
+            recipes = recipes.stream()
+                    .filter(r -> r.getTimeMinutes() != null && r.getTimeMinutes() <= maxTime)
+                    .collect(Collectors.toList());
+        }
 
         return recipes.stream()
                 .map(retrievalService::toCard)
@@ -151,11 +178,19 @@ public class RecipeSearchService {
     public List<RecipeCard> findByCaloriesRange(int minCalories, int maxCalories) {
         log.info("Finding recipes with {}-{} calories", minCalories, maxCalories);
 
-        List<Recipe> recipes = repository.findByCaloriesRange(minCalories, maxCalories, DEFAULT_LIMIT);
+        Pageable pageable = PageRequest.of(0, DEFAULT_LIMIT);
+        List<Recipe> recipes = repository.findByCaloriesRange(minCalories, maxCalories, pageable);
 
         return recipes.stream()
                 .map(retrievalService::toCard)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Helper to convert Integer to Double (for nutrition values)
+     */
+    private Double toDouble(Integer value) {
+        return value != null ? value.doubleValue() : null;
     }
 
     /**
