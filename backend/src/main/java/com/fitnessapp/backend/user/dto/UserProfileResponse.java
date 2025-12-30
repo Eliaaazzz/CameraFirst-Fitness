@@ -26,6 +26,7 @@ public record UserProfileResponse(
     Integer dailyProteinTarget,
     Integer dailyCarbsTarget,
     Integer dailyFatTarget,
+    String avatarUrl,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {

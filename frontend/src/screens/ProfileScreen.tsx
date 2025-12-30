@@ -952,9 +952,15 @@ const ProfileScreen = () => {
         {/* Profile Header */}
         <View style={styles.header}>
           <Pressable
-            style={styles.avatarContainer}
+            style={({ pressed }) => [
+              styles.avatarContainer,
+              pressed && { opacity: 0.7 },
+            ]}
             onPress={handleAvatarPress}
             disabled={isUploadingAvatar}
+            accessibilityRole="button"
+            accessibilityLabel="Change profile photo"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <View style={styles.avatar}>
               {isUploadingAvatar ? (
@@ -968,7 +974,7 @@ const ProfileScreen = () => {
                 <Feather name="user" size={40} color={BRAND_COLORS.primary} />
               )}
             </View>
-            <View style={styles.editAvatarBtn}>
+            <View style={styles.editAvatarBtn} pointerEvents="none">
               <Feather name="camera" size={14} color="#FFF" />
             </View>
           </Pressable>

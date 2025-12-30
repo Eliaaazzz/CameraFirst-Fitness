@@ -46,6 +46,7 @@ public final class UserProfileMapper {
         profile.getDailyProteinTarget(),
         profile.getDailyCarbsTarget(),
         profile.getDailyFatTarget(),
+        profile.getAvatarUrl(),
         profile.getCreatedAt(),
         profile.getUpdatedAt());
   }
