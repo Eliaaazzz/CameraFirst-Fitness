@@ -1,13 +1,13 @@
-import { Button, Card, Container, SafeAreaWrapper, Text } from '@/components';
+import { Button, Card, Container, ListSkeleton, SafeAreaWrapper, Text } from '@/components';
 import { SmartRecipeImage } from '@/components/RecipeImage';
 import useCurrentUser from '@/hooks/useCurrentUser';
-import { useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
+import { useRecipeById, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
 import type { RecipeImageUrls } from '@/types';
 import { colors, radii, spacing } from '@/utils';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 // Default food images for recipes without images
 const DEFAULT_FOOD_IMAGES = [
@@ -31,13 +31,28 @@ function getPlaceholderImageUrls(id: string, title: string): RecipeImageUrls {
 export const RecipeDetailScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation();
-  const recipe = route.params?.recipe;
-  
+  const routeRecipe = route.params?.recipe;
+
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const savedRecipes = useSavedRecipes(userId);
   const saveRecipe = useSaveRecipe(userId);
   const removeRecipe = useRemoveRecipe(userId);
+
+  // Check if we need to fetch full recipe (missing ingredients or steps)
+  const needsFullRecipe = routeRecipe && (
+    !routeRecipe.ingredients ||
+    routeRecipe.ingredients.length === 0 ||
+    !routeRecipe.steps ||
+    (Array.isArray(routeRecipe.steps) && routeRecipe.steps.length === 0) ||
+    (typeof routeRecipe.steps === 'object' && Object.keys(routeRecipe.steps).length === 0)
+  );
+
+  // Fetch full recipe details if needed
+  const fullRecipeQuery = useRecipeById(needsFullRecipe ? routeRecipe?.id : undefined);
+
+  // Use full recipe if available, otherwise use route recipe
+  const recipe = fullRecipeQuery.data || routeRecipe;
 
   const isSaved = savedRecipes.data?.some((r) => r.id === recipe?.id) ?? false;
 
@@ -57,7 +72,7 @@ export const RecipeDetailScreen = () => {
     return getPlaceholderImageUrls(recipe?.id || '', recipe?.title || '');
   }, [recipe]);
 
-  if (!recipe) {
+  if (!routeRecipe) {
     return (
       <SafeAreaWrapper>
         <Container>
@@ -71,6 +86,7 @@ export const RecipeDetailScreen = () => {
   }
 
   const dark = colors.dark;
+  const isLoadingFullRecipe = needsFullRecipe && fullRecipeQuery.isLoading;
 
   const handleSaveToggle = async () => {
     if (isSaved) {
@@ -191,7 +207,7 @@ export const RecipeDetailScreen = () => {
           </View>
 
           {/* Ingredients Section */}
-          {recipe.ingredients && recipe.ingredients.length > 0 ? (
+          {isLoadingFullRecipe ? (
             <Card style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
                 <Feather name="list" size={20} color={dark.primary} />
@@ -199,17 +215,40 @@ export const RecipeDetailScreen = () => {
                   Ingredients
                 </Text>
               </View>
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={dark.primary} />
+                <Text variant="caption" style={{ color: dark.textSecondary, marginLeft: spacing.sm }}>
+                  Loading ingredients...
+                </Text>
+              </View>
+            </Card>
+          ) : recipe.ingredients && recipe.ingredients.length > 0 ? (
+            <Card style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Feather name="list" size={20} color={dark.primary} />
+                <Text variant="heading3" weight="semibold" style={{ marginLeft: spacing.sm }}>
+                  Ingredients ({recipe.ingredients.length})
+                </Text>
+              </View>
               <View style={styles.ingredientsList}>
-                {recipe.ingredients.map((ing: any, index: number) => (
-                  <View key={index} style={styles.ingredientItem}>
-                    <View style={[styles.ingredientBullet, { backgroundColor: dark.primary }]} />
-                    <Text variant="body" style={{ flex: 1 }}>
-                      {ing.quantity ? `${ing.quantity} ` : ''}
-                      {ing.unit ? `${ing.unit} ` : ''}
-                      {ing.name}
-                    </Text>
-                  </View>
-                ))}
+                {recipe.ingredients.map((ing: any, index: number) => {
+                  // Handle both object format {name, quantity, unit} and string format
+                  const isString = typeof ing === 'string';
+                  const name = isString ? ing : ing.name;
+                  const quantity = isString ? null : ing.quantity;
+                  const unit = isString ? null : ing.unit;
+
+                  return (
+                    <View key={index} style={styles.ingredientItem}>
+                      <View style={[styles.ingredientBullet, { backgroundColor: dark.primary }]} />
+                      <Text variant="body" style={{ flex: 1 }}>
+                        {quantity ? `${quantity} ` : ''}
+                        {unit ? `${unit} ` : ''}
+                        {name}
+                      </Text>
+                    </View>
+                  );
+                })}
               </View>
             </Card>
           ) : (
@@ -222,7 +261,7 @@ export const RecipeDetailScreen = () => {
           )}
 
           {/* Steps Section */}
-          {recipe.steps && (Array.isArray(recipe.steps) ? recipe.steps.length > 0 : Object.keys(recipe.steps).length > 0) ? (
+          {isLoadingFullRecipe ? (
             <Card style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
                 <Feather name="check-circle" size={20} color={dark.primary} />
@@ -230,17 +269,51 @@ export const RecipeDetailScreen = () => {
                   Instructions
                 </Text>
               </View>
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={dark.primary} />
+                <Text variant="caption" style={{ color: dark.textSecondary, marginLeft: spacing.sm }}>
+                  Loading instructions...
+                </Text>
+              </View>
+            </Card>
+          ) : recipe.steps && (Array.isArray(recipe.steps) ? recipe.steps.length > 0 : Object.keys(recipe.steps).length > 0) ? (
+            <Card style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Feather name="check-circle" size={20} color={dark.primary} />
+                <Text variant="heading3" weight="semibold" style={{ marginLeft: spacing.sm }}>
+                  Instructions ({Array.isArray(recipe.steps) ? recipe.steps.length : Object.keys(recipe.steps).length} steps)
+                </Text>
+              </View>
               <View style={styles.stepsList}>
-                {(Array.isArray(recipe.steps) ? recipe.steps : Object.values(recipe.steps)).map((step: any, index: number) => (
-                  <View key={index} style={styles.stepItem}>
-                    <View style={[styles.stepNumber, { backgroundColor: dark.primary }]}>
-                      <Text variant="label" style={{ color: '#FFF' }}>{index + 1}</Text>
+                {(Array.isArray(recipe.steps) ? recipe.steps : Object.values(recipe.steps)).map((step: any, index: number) => {
+                  // Handle multiple formats: string, {instruction}, {description}, {step, instruction}
+                  let stepText = '';
+                  if (typeof step === 'string') {
+                    stepText = step;
+                  } else if (step.instruction) {
+                    stepText = step.instruction;
+                  } else if (step.description) {
+                    stepText = step.description;
+                  } else if (step.text) {
+                    stepText = step.text;
+                  } else {
+                    stepText = JSON.stringify(step);
+                  }
+
+                  // Use step number from object if available, otherwise use index
+                  const stepNumber = step.step || index + 1;
+
+                  return (
+                    <View key={index} style={styles.stepItem}>
+                      <View style={[styles.stepNumber, { backgroundColor: dark.primary }]}>
+                        <Text variant="label" style={{ color: '#FFF' }}>{stepNumber}</Text>
+                      </View>
+                      <Text variant="body" style={{ flex: 1, lineHeight: 24 }}>
+                        {stepText}
+                      </Text>
                     </View>
-                    <Text variant="body" style={{ flex: 1, lineHeight: 22 }}>
-                      {typeof step === 'string' ? step : step.description || step.instruction || JSON.stringify(step)}
-                    </Text>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             </Card>
           ) : (
@@ -329,6 +402,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.lg,
     marginBottom: spacing.md,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
   },
   sectionCard: {
     marginBottom: spacing.md,

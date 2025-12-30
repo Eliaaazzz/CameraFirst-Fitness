@@ -252,5 +252,20 @@ public class ContentController {
             @RequestParam int servings) {
         return recipeScalingService.scaleRecipe(recipeId, servings);
     }
+
+    // ============================================================================
+    // Single Recipe Endpoint
+    // ============================================================================
+
+    /**
+     * Get full recipe details by ID
+     * GET /api/v1/recipes/{recipeId}
+     *
+     * Returns complete recipe with ingredients and steps
+     */
+    @GetMapping("/recipes/{recipeId}")
+    public RecipeCard getRecipeById(@PathVariable java.util.UUID recipeId) {
+        return recipeService.getRecipeById(recipeId);
+    }
 }
 

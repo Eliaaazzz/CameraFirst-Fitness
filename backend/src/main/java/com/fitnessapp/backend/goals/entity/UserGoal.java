@@ -100,9 +100,6 @@ public class UserGoal {
     @Column(name = "input_weight_kg")
     private Integer inputWeightKg;
 
-    @Column(name = "input_age")
-    private Integer inputAge;
-
     @Column(name = "input_activity_level", length = 20)
     private String inputActivityLevel;
 

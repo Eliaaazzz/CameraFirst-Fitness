@@ -381,13 +381,18 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
 
   /**
    * Find top recipes by target goal, ordered by protein content.
-   * Uses generated protein column for sorting.
+   * Uses native query for PostgreSQL array containment.
    */
-  @Query("SELECT r FROM Recipe r WHERE :goal MEMBER OF r.targetGoal AND r.imageUrl IS NOT NULL ORDER BY r.protein DESC NULLS LAST")
+  @Query(value = """
+    SELECT * FROM recipe r
+    WHERE :goal = ANY(r.target_goal)
+      AND r.image_url IS NOT NULL
+    ORDER BY r.protein DESC NULLS LAST
+    """, nativeQuery = true)
   List<Recipe> findByTargetGoalOrderByProteinDesc(@Param("goal") String goal, org.springframework.data.domain.Pageable pageable);
 
   /**
-   * Native query version for target goal (for array containment).
+   * Native query version for target goal (for array containment) with explicit limit.
    */
   @Query(value = """
     SELECT * FROM recipe r

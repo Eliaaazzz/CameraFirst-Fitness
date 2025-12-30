@@ -82,7 +82,6 @@ public class UserGoalService {
                 .inputSex(request.getSex())
                 .inputHeightCm(request.getHeightCm())
                 .inputWeightKg(request.getWeightKg())
-                .inputAge(request.getAge())
                 .inputActivityLevel(request.getActivityLevel())
                 .isActive(true)
                 .build();

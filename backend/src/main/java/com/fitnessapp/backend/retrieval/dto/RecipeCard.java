@@ -28,9 +28,9 @@ public class RecipeCard implements Serializable {
     Map<String, Object> nutrition;
 
     /**
-     * List of ingredient names (for display)
+     * List of ingredients with name, quantity and unit
      */
-    List<String> ingredients;
+    List<RecipeIngredientDto> ingredients;
 
     /**
      * Similarity score from vector search (0.0 - 1.0).

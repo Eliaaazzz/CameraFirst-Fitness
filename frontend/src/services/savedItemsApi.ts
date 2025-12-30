@@ -96,3 +96,16 @@ export async function removeSavedRecipe(recipeId: string, userId?: string): Prom
     : `/api/v1/recipes/saved/${recipeId}`;
   await api.delete(url);
 }
+
+/**
+ * Get full recipe details by ID (includes ingredients and steps)
+ */
+export async function getRecipeById(recipeId: string): Promise<SavedRecipe | null> {
+  try {
+    const response = await api.get<SavedRecipe>(`/api/v1/recipes/${recipeId}`);
+    return response;
+  } catch (error) {
+    console.error('Failed to fetch recipe by ID:', error);
+    return null;
+  }
+}

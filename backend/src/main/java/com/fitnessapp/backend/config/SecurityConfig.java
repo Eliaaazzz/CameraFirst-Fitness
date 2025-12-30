@@ -3,6 +3,7 @@ package com.fitnessapp.backend.config;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,7 +19,10 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import com.fitnessapp.backend.auth.JwtAuthFilter;
 import com.fitnessapp.backend.auth.JwtUtils;
 
+import lombok.RequiredArgsConstructor;
+
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
@@ -29,17 +33,32 @@ public class SecurityConfig {
         "/api/v1/auth/**"
     };
 
+    /**
+     * Injected by Spring Container (ApiKeyAuthFilter is a @Component)
+     */
+    private final ApiKeyAuthFilter apiKeyAuthFilter;
+
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * CRITICAL: Disable automatic servlet filter registration for ApiKeyAuthFilter.
+     *
+     * Since ApiKeyAuthFilter is a @Component extending OncePerRequestFilter,
+     * Spring Boot will automatically register it as a global servlet filter.
+     * This would cause the filter to run TWICE:
+     *   1. Once in the global servlet filter chain
+     *   2. Once in the Spring Security filter chain
+     *
+     * By setting enabled=false, we ensure it ONLY runs within Spring Security.
+     */
     @Bean
-    ApiKeyAuthFilter apiKeyAuthFilter() {
-        List<RequestMatcher> matchers = java.util.Arrays.stream(PUBLIC_ENDPOINTS)
-            .map(AntPathRequestMatcher::new)
-            .collect(Collectors.toList());
-        return new ApiKeyAuthFilter(matchers);
+    FilterRegistrationBean<ApiKeyAuthFilter> apiKeyAuthFilterRegistration(ApiKeyAuthFilter filter) {
+        FilterRegistrationBean<ApiKeyAuthFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false); // Disable auto-registration as servlet filter
+        return registration;
     }
 
     @Bean
@@ -53,17 +72,16 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            ApiKeyAuthFilter apiKeyAuthFilter,
             JwtAuthFilter jwtAuthFilter,
             CorsConfigurationSource corsConfigurationSource) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // Layer 1: API Key validation (Access Card / 门禁卡)
+            // Layer 1: API Key validation (Access Card)
             // Checks X-API-Key header first - this is the first line of defense
             .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            // Layer 2: JWT validation (ID Card / 身份证)
+            // Layer 2: JWT validation (ID Card)
             // After API Key passes, validates Bearer token - second line of defense
             .addFilterAfter(jwtAuthFilter, ApiKeyAuthFilter.class)
             .authorizeHttpRequests(auth -> auth

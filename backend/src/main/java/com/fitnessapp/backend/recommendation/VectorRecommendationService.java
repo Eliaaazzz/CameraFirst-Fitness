@@ -17,6 +17,7 @@ import com.fitnessapp.backend.recipe.entity.Recipe;
 import com.fitnessapp.backend.recipe.repository.RecipeRepository;
 import com.fitnessapp.backend.recipe.repository.RecipeRepository.RecipeSimilarityResult;
 import com.fitnessapp.backend.retrieval.dto.RecipeCard;
+import com.fitnessapp.backend.retrieval.dto.RecipeIngredientDto;
 import com.fitnessapp.backend.retrieval.dto.RecipeStep;
 import com.fitnessapp.backend.retrieval.dto.WorkoutCard;
 import com.fitnessapp.backend.workout.entity.ExerciseVideo;
@@ -297,8 +298,13 @@ public class VectorRecommendationService {
     }
 
     private RecipeCard toRecipeCard(Recipe recipe, Double similarity) {
-        List<String> ingredients = recipe.getIngredients().stream()
-                .map(ri -> ri.getIngredient().getName())
+        List<RecipeIngredientDto> ingredients = recipe.getIngredients().stream()
+                .filter(ri -> ri.getIngredient() != null)
+                .map(ri -> RecipeIngredientDto.builder()
+                        .name(ri.getIngredient().getName())
+                        .quantity(ri.getQuantity())
+                        .unit(ri.getUnit())
+                        .build())
                 .toList();
 
         Map<String, Object> nutrition = null;

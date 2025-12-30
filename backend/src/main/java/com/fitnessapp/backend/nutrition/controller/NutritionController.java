@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fitnessapp.backend.common.service.S3Service;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
-import com.fitnessapp.backend.nutrition.service.S3Service;
 import com.fitnessapp.backend.nutrition.service.ai.FoodRecognitionService;
 import com.fitnessapp.backend.nutrition.service.core.NutritionEngine;
 import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService;
@@ -29,19 +29,10 @@ import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService;
 import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService.NutritionMetric;
 import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService.NutritionSummary;
 import com.fitnessapp.backend.security.AuthenticatedUser;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Nutrition analysis and insights controller.
- *
- * Responsibilities:
- * - Food image analysis (AI recognition)
- * - Daily/weekly nutrition summaries
- * - Nutrition insights with AI advice
- *
- * Note: Meal CRUD operations are handled by MealController (/api/v1/meals)
- */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/nutrition")
@@ -49,57 +40,40 @@ import lombok.extern.slf4j.Slf4j;
 @Validated
 public class NutritionController {
 
+  private static final String PATH_PREFIX = "meals";
+
   private final NutritionTrackingService trackingService;
   private final NutritionInsightService insightService;
   private final FoodRecognitionService foodRecognitionService;
   private final NutritionEngine nutritionEngine;
   private final S3Service s3Service;
 
-  /**
-   * Analyze food photo and return recognized foods with nutrition info
-   * POST /api/v1/nutrition/analyze
-   * 
-   * @param image The food image to analyze
-   * @param provider Optional: preferred AI provider (e.g., "gemini", "claude", "openai")
-   */
   @PostMapping(value = "/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<FoodRecognitionResponse> analyzeFoodImage(
       @RequestParam("image") MultipartFile image,
       @RequestParam(value = "provider", required = false) String provider
   ) throws IOException {
-    log.info("Analyzing food image: {}, size: {} bytes, provider: {}",
-        image.getOriginalFilename(), image.getSize(), provider != null ? provider : "auto");
+    log.info("Analyzing food image: {}, size: {} bytes", image.getOriginalFilename(), image.getSize());
 
-    // Validate image
     if (image.isEmpty()) {
       throw new IllegalArgumentException("Image file is required");
     }
 
-    if (image.getSize() > 10 * 1024 * 1024) { // 10MB limit
+    if (image.getSize() > 10 * 1024 * 1024) {
       throw new IllegalArgumentException("Image file is too large (max 10MB)");
     }
 
-    // Upload to S3 first so the image is available to the client/logs
+    // Upload to S3
     String s3Url = null;
     try {
-      s3Url = s3Service.uploadFile(image);
+      s3Url = s3Service.uploadFile(image, PATH_PREFIX);
     } catch (Exception e) {
       log.warn("S3 upload failed; continuing without image URL", e);
     }
 
-    if (s3Url != null) {
-      log.info("Uploaded image to S3: {}", s3Url);
-    } else {
-      log.warn("S3 upload skipped; continuing without image URL");
-    }
-
-    // Use unified FoodRecognitionService with multi-provider support
     FoodRecognitionResult recognitionResult = foodRecognitionService.recognizeFoods(image, provider);
-
-    // Calculate total nutrition (already enriched by FoodRecognitionService)
     NutritionInfo totalNutrition = nutritionEngine.calculateTotal(recognitionResult.getItems());
 
-    // Build response
     FoodRecognitionResponse response = FoodRecognitionResponse.builder()
         .items(recognitionResult.getItems())
         .totalNutrition(totalNutrition)
@@ -107,16 +81,9 @@ public class NutritionController {
         .imageUrl(s3Url)
         .build();
 
-    log.info("Successfully analyzed food image: {} items recognized, total calories: {}",
-        response.getItems().size(), totalNutrition.getCalories());
-
     return ResponseEntity.ok(response);
   }
 
-  /**
-   * Get list of available AI providers for food recognition
-   * GET /api/v1/nutrition/providers
-   */
   @GetMapping("/providers")
   public ResponseEntity<List<FoodRecognitionService.ProviderInfo>> getAvailableProviders() {
     return ResponseEntity.ok(foodRecognitionService.getAvailableProviders());
@@ -126,8 +93,7 @@ public class NutritionController {
   public ResponseEntity<NutritionSummaryResponse> dailySummary(
       @RequestParam(required = false) String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-      @AuthenticationPrincipal AuthenticatedUser currentUser
-    ) {
+      @AuthenticationPrincipal AuthenticatedUser currentUser) {
     LocalDate targetDate = date != null ? date : LocalDate.now();
     NutritionSummary summary = trackingService.dailySummary(resolveUserId(userId, currentUser), targetDate);
     return ResponseEntity.ok(toSummaryResponse(summary));
@@ -137,8 +103,7 @@ public class NutritionController {
   public ResponseEntity<NutritionSummaryResponse> weeklySummary(
       @RequestParam(required = false) String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart,
-      @AuthenticationPrincipal AuthenticatedUser currentUser
-    ) {
+      @AuthenticationPrincipal AuthenticatedUser currentUser) {
     LocalDate start = weekStart != null ? weekStart : LocalDate.now().with(java.time.DayOfWeek.MONDAY);
     NutritionSummary summary = trackingService.weeklySummary(resolveUserId(userId, currentUser), start);
     return ResponseEntity.ok(toSummaryResponse(summary));
@@ -153,32 +118,18 @@ public class NutritionController {
     return ResponseEntity.ok(toInsightResponse(insight));
   }
 
-  /**
-   * Resolve userId from JWT token (single source of truth).
-   * The userId query parameter is ignored - only JWT authentication is used.
-   *
-   * @param userId Ignored query parameter (kept for API compatibility)
-   * @param currentUser Authenticated user from JWT token
-   * @return UUID for the authenticated user
-   * @throws IllegalStateException if user is not authenticated
-   */
   private UUID resolveUserId(String userId, AuthenticatedUser currentUser) {
     if (currentUser == null || currentUser.userId() == null) {
-      throw new IllegalStateException("Authentication required. Please provide a valid JWT token.");
+      throw new IllegalStateException("Authentication required");
     }
     return currentUser.userId();
   }
 
   private NutritionSummaryResponse toSummaryResponse(NutritionSummary summary) {
     return new NutritionSummaryResponse(
-        summary.rangeStart(),
-        summary.rangeEnd(),
-        summary.days(),
-        toMetric(summary.calories()),
-        toMetric(summary.protein()),
-        toMetric(summary.carbs()),
-        toMetric(summary.fat()),
-        summary.alerts());
+        summary.rangeStart(), summary.rangeEnd(), summary.days(),
+        toMetric(summary.calories()), toMetric(summary.protein()),
+        toMetric(summary.carbs()), toMetric(summary.fat()), summary.alerts());
   }
 
   private NutritionMetricResponse toMetric(NutritionMetric metric) {
@@ -186,17 +137,11 @@ public class NutritionController {
   }
 
   private NutritionInsightResponse toInsightResponse(NutritionInsight insight) {
-    // Convert MealLog entities to MealLogResponse DTOs
     List<MealLogResponse> logResponses = insight.logs().stream()
         .map(log -> new MealLogResponse(
-            log.getId(),
-            log.getUserId().toString(),
-            log.getMealPlanId(),
-            log.getMealDay(),
-            log.getMealType(),
-            log.getRecipeId() != null ? log.getRecipeId().toString() : null,
-            log.getRecipeName(),
-            log.getConsumedAt(),
+            log.getId(), log.getUserId().toString(), log.getMealPlanId(), log.getMealDay(),
+            log.getMealType(), log.getRecipeId() != null ? log.getRecipeId().toString() : null,
+            log.getRecipeName(), log.getConsumedAt(),
             log.getTotalCalories() != null ? log.getTotalCalories() : log.getCalories(),
             log.getTotalProtein() != null ? log.getTotalProtein().doubleValue() :
                 (log.getProteinGrams() != null ? log.getProteinGrams().doubleValue() : null),
@@ -204,59 +149,31 @@ public class NutritionController {
                 (log.getCarbsGrams() != null ? log.getCarbsGrams().doubleValue() : null),
             log.getTotalFat() != null ? log.getTotalFat().doubleValue() :
                 (log.getFatGrams() != null ? log.getFatGrams().doubleValue() : null),
-            log.getNotes(),
-            log.getImageUrl()
-        ))
+            log.getNotes(), log.getImageUrl()))
         .toList();
-
-    return new NutritionInsightResponse(
-        toSummaryResponse(insight.summary()),
-        logResponses,
-        insight.aiAdvice());
+    return new NutritionInsightResponse(toSummaryResponse(insight.summary()), logResponses, insight.aiAdvice());
   }
 
-  public record NutritionSummaryResponse(OffsetDateTime rangeStart,
-                                         OffsetDateTime rangeEnd,
-                                         int days,
-                                         NutritionMetricResponse calories,
-                                         NutritionMetricResponse protein,
-                                         NutritionMetricResponse carbs,
-                                         NutritionMetricResponse fat,
-                                         java.util.List<String> alerts) {}
+  public record NutritionSummaryResponse(OffsetDateTime rangeStart, OffsetDateTime rangeEnd, int days,
+      NutritionMetricResponse calories, NutritionMetricResponse protein,
+      NutritionMetricResponse carbs, NutritionMetricResponse fat, List<String> alerts) {}
 
   public record NutritionMetricResponse(double actual, double target, double percent) {}
 
-  public record NutritionInsightResponse(NutritionSummaryResponse summary,
-                                         List<MealLogResponse> logs,
-                                         String aiAdvice) {}
+  public record NutritionInsightResponse(NutritionSummaryResponse summary, List<MealLogResponse> logs, String aiAdvice) {}
 
-  public record MealLogResponse(
-      Long id,
-      String userId,
-      Long mealPlanId,
-      Integer mealDay,
-      String mealType,
-      String recipeId,
-      String recipeName,
-      OffsetDateTime consumedAt,
-      Integer calories,
-      Double protein,
-      Double carbs,
-      Double fat,
-      String notes,
-      String imageUrl) {}
+  public record MealLogResponse(Long id, String userId, Long mealPlanId, Integer mealDay, String mealType,
+      String recipeId, String recipeName, OffsetDateTime consumedAt, Integer calories,
+      Double protein, Double carbs, Double fat, String notes, String imageUrl) {}
 
   @lombok.Data
   @lombok.Builder
   @lombok.NoArgsConstructor
   @lombok.AllArgsConstructor
   public static class FoodRecognitionResponse {
-    private java.util.List<com.fitnessapp.backend.nutrition.dto.RecognizedFood> items;
+    private List<com.fitnessapp.backend.nutrition.dto.RecognizedFood> items;
     private NutritionInfo totalNutrition;
     private String suggestedMealType;
     private String imageUrl;
   }
 }
-
-
-

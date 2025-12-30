@@ -3,11 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -17,6 +19,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { api } from '@/services/apiClient';
 
 import { Button, Card, SafeAreaWrapper, Text, WheelPicker } from '@/components';
 import { StateView } from '@/components/common/StateView';
@@ -122,6 +125,10 @@ const ProfileScreen = () => {
   const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
+  // Avatar upload state
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarUrl = currentUser.data?.profile?.avatarUrl;
+
   // Profile input state
   const [selectedSex, setSelectedSex] = useState<Sex | null>(null);
   const [heightCm, setHeightCm] = useState(170);
@@ -143,6 +150,123 @@ const ProfileScreen = () => {
   const loadUserEmail = async () => {
     const email = await getUserEmail();
     setUserEmail(email);
+  };
+
+  const handleAvatarPress = async () => {
+    // Show action sheet for camera vs library
+    Alert.alert(
+      'Change Profile Photo',
+      'Choose a source',
+      [
+        {
+          text: 'Take Photo',
+          onPress: () => pickImage('camera'),
+        },
+        {
+          text: 'Choose from Library',
+          onPress: () => pickImage('library'),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const pickImage = async (source: 'camera' | 'library') => {
+    try {
+      // Request permissions
+      if (source === 'camera') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Required', 'Camera permission is needed to take photos.');
+          return;
+        }
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Required', 'Photo library permission is needed to select photos.');
+          return;
+        }
+      }
+
+      // Launch picker
+      const result = source === 'camera'
+        ? await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadAvatar(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('[ProfileScreen] Image picker error:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  const uploadAvatar = async (imageUri: string) => {
+    setIsUploadingAvatar(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+
+    try {
+      // Step 1: Get presigned URL from backend
+      const presignResponse = await api.post<{
+        uploadUrl: string;
+        publicUrl: string;
+        fileKey: string;
+      }>('/api/v1/user/avatar/presign', {
+        fileType: 'image/jpeg',
+      });
+
+      console.log('[ProfileScreen] Got presigned URL:', presignResponse.uploadUrl.substring(0, 50) + '...');
+
+      // Step 2: Upload image to S3 using presigned URL
+      const imageResponse = await fetch(imageUri);
+      const blob = await imageResponse.blob();
+
+      const uploadResponse = await fetch(presignResponse.uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'image/jpeg',
+        },
+        body: blob,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`S3 upload failed: ${uploadResponse.status}`);
+      }
+
+      console.log('[ProfileScreen] Image uploaded to S3');
+
+      // Step 3: Confirm upload with backend
+      await api.post('/api/v1/user/avatar/confirm', {
+        publicUrl: presignResponse.publicUrl,
+        fileKey: presignResponse.fileKey,
+      });
+
+      console.log('[ProfileScreen] Avatar confirmed');
+
+      // Refresh user data
+      queryClient.invalidateQueries({ queryKey: ['current-user'] });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+
+    } catch (error) {
+      console.error('[ProfileScreen] Avatar upload error:', error);
+      Alert.alert('Upload Failed', 'Failed to upload avatar. Please try again.');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   const loadSavedGoals = async () => {
@@ -827,14 +951,27 @@ const ProfileScreen = () => {
       >
         {/* Profile Header */}
         <View style={styles.header}>
-          <View style={styles.avatarContainer}>
+          <Pressable
+            style={styles.avatarContainer}
+            onPress={handleAvatarPress}
+            disabled={isUploadingAvatar}
+          >
             <View style={styles.avatar}>
-              <Feather name="user" size={40} color={BRAND_COLORS.primary} />
+              {isUploadingAvatar ? (
+                <ActivityIndicator size="small" color={BRAND_COLORS.primary} />
+              ) : avatarUrl ? (
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Feather name="user" size={40} color={BRAND_COLORS.primary} />
+              )}
             </View>
-            <Pressable style={styles.editAvatarBtn}>
+            <View style={styles.editAvatarBtn}>
               <Feather name="camera" size={14} color="#FFF" />
-            </Pressable>
-          </View>
+            </View>
+          </Pressable>
           <Text variant="heading2" weight="bold">Hi, {displayName}</Text>
           <Text variant="caption" style={styles.email}>{userEmail}</Text>
         </View>
@@ -997,6 +1134,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(167, 139, 250, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   editAvatarBtn: {
     position: 'absolute',

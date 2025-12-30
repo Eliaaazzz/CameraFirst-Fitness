@@ -1,23 +1,26 @@
 package com.fitnessapp.backend.auth;
 
-import com.fitnessapp.backend.security.AuthenticatedUser;
-import io.jsonwebtoken.JwtException;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.fitnessapp.backend.security.AuthenticatedUser;
+
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -56,9 +59,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(auth);
             log.debug("JWT authentication successful for user: {}", userId);
         } catch (JwtException e) {
-            log.warn("Invalid JWT token provided - continuing with existing authentication: {}", e.getMessage());
-            // Don't replace auth - let request continue with existing auth (from API key)
-            // This allows graceful degradation but should be monitored for security
+            // JWT token provided but invalid - immediately return 401 and clear authentication
+            // This ensures users are logged out when JWT has any problems (format, signature, expiration)
+            log.warn("Invalid JWT token provided - returning 401. Error: {}, Token prefix: {}",
+                    e.getMessage(), token.length() > 10 ? token.substring(0, 10) + "..." : token);
+            
+            // Clear any existing authentication to log out the user
+            SecurityContextHolder.clearContext();
+            
+            // Return 401 Unauthorized
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"message\":\"Invalid or expired JWT token\"}");
+            return;
         }
 
         chain.doFilter(request, response);

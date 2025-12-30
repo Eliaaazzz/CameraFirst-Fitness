@@ -1,8 +1,21 @@
 import { api } from './apiClient';
 import { CurrentUserResponse, UserProfilePayload, UserProfileResponse } from '@/types';
+import { clearJWT } from '@/utils/jwtStorage';
+import { navigateToLogin } from '@/navigation/navigationService';
 
 const getCurrentUser = async (): Promise<CurrentUserResponse> => {
-  return await api.get<CurrentUserResponse>('/api/v1/me');
+  try {
+    return await api.get<CurrentUserResponse>('/api/v1/me');
+  } catch (error: any) {
+    // If user is not found (404), it means the token is valid but user is gone (e.g. DB reset).
+    // Treat this as a session expiry.
+    if (error.status === 404) {
+      console.warn('[userApi] User not found (404). Clearing session.');
+      await clearJWT();
+      navigateToLogin();
+    }
+    throw error;
+  }
 };
 
 const getProfile = async (): Promise<UserProfileResponse> => {

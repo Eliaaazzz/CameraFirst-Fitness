@@ -9,9 +9,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -24,24 +27,36 @@ import {
 } from '@env';
 import { api } from '../services/apiClient';
 import { queryClient } from '../services/queryClient';
-import { saveJWT } from '../utils/jwtStorage';
+import { saveJWT, getJWT } from '../utils/jwtStorage';
 
-// Required for Web support and handling loginrect callbacks
+// Required for Web support and handling login redirect callbacks
 WebBrowser.maybeCompleteAuthSession();
 
 const GOOGLE_IOS_CLIENT_ID = EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 const GOOGLE_ANDROID_CLIENT_ID = EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 const GOOGLE_WEB_CLIENT_ID = EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
+type AuthMode = 'login' | 'register';
+
 export default function LoginScreen() {
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
 
+  // Email/Password auth state
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
   // Check if Apple auth is available on this device
   useEffect(() => {
     const checkAppleAuth = async () => {
-      if (Platform.OS === 'ios') {
+      if (Platform.OS === 'web') {
+        // Always show Apple button on web (Sign in with Apple JS will handle it)
+        setAppleAuthAvailable(true);
+      } else if (Platform.OS === 'ios') {
         try {
           const isAvailable = await AppleAuthentication.isAvailableAsync();
           console.log('[LoginScreen] Apple Sign In available:', isAvailable);
@@ -61,57 +76,63 @@ export default function LoginScreen() {
   }
 
   // Generate redirect URI for Google OAuth
-  // For web: use current origin; for native: use app scheme
   const redirectUri = Platform.OS === 'web'
     ? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081')
     : AuthSession.makeRedirectUri({ scheme: 'com.fitnessapp.mvp' });
-
-  console.log('[LoginScreen] Google OAuth redirectUri:', redirectUri);
-  console.log('[LoginScreen] Google Client IDs', {
-    ios: GOOGLE_IOS_CLIENT_ID,
-    android: GOOGLE_ANDROID_CLIENT_ID,
-    web: GOOGLE_WEB_CLIENT_ID,
-  });
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     iosClientId: GOOGLE_IOS_CLIENT_ID,
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     webClientId: GOOGLE_WEB_CLIENT_ID,
-    redirectUri, // Explicitly set redirect URI
+    redirectUri,
     scopes: ['profile', 'email'],
   });
+
+  const handleLoginSuccess = useCallback(async (data: { token: string; email: string; isNewUser?: boolean }) => {
+    console.log('[LoginScreen] Login successful!');
+    console.log('[LoginScreen] JWT received, length:', data.token?.length);
+
+    // Clear any cached data from previous user before saving new JWT
+    queryClient.clear();
+
+    await saveJWT(data.token, undefined, data.email);
+
+    // Verify the JWT was saved correctly
+    const savedToken = await getJWT();
+    if (!savedToken) {
+      throw new Error('JWT was not saved correctly to storage');
+    }
+
+    // Small delay to ensure JWT is fully persisted before navigation
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    setIsLoading(false);
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Main' } as any],
+    });
+  }, [navigation]);
 
   const sendTokenToBackend = useCallback(async (idToken: string) => {
     setIsLoading(true);
     try {
-      console.log('Sending token to backend...');
+      console.log('[LoginScreen] Sending Google token to backend...');
 
-      const data = await api.post<{ token: string; refreshToken?: string; email: string }>('/api/v1/auth/login', {
+      const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
         loginType: 'GOOGLE',
         idToken: idToken,
       });
 
-      console.log('Login successful! JWT:', data.token);
-
-      // Clear any cached data from previous user before saving new JWT
-      queryClient.clear();
-
-      await saveJWT(data.token, data.refreshToken, data.email);
-
-      setIsLoading(false);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main' } as any],
-      });
+      await handleLoginSuccess(data);
     } catch (error) {
       setIsLoading(false);
-      console.error('Backend validation failed:', error);
+      console.error('[LoginScreen] Backend validation failed:', error);
       Alert.alert(
         'Login Failed',
         error instanceof Error ? error.message : 'Unable to connect to Aura Fitness server. Please check your internet connection and try again.'
       );
     }
-  }, [navigation]);
+  }, [handleLoginSuccess]);
 
   useEffect(() => {
     if (response?.type === 'success') {
@@ -124,36 +145,16 @@ export default function LoginScreen() {
     }
   }, [response, sendTokenToBackend]);
 
-  const handleMockLogin = async () => {
-    setIsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const mockToken = `mock_jwt_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      const mockRefreshToken = `mock_refresh_${Date.now()}`;
-      const mockEmail = 'test@aurafitness.com';
-
-      console.log('Mock login successful! Token:', mockToken);
-
-      // Clear any cached data from previous user before saving new JWT
-      queryClient.clear();
-
-      await saveJWT(mockToken, mockRefreshToken, mockEmail);
-
-      setIsLoading(false);
-
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main' } as any],
-      });
-    } catch (error) {
-      setIsLoading(false);
-      console.error('Mock login failed:', error);
-      Alert.alert('Login Failed', 'Mock login failed. Please try again.');
-    }
-  };
-
   const handleAppleLogin = async () => {
+    // Web platform - Apple Sign In not yet implemented
+    if (Platform.OS === 'web') {
+      Alert.alert(
+        'Coming Soon',
+        'Apple Sign In on web is coming soon. Please use email/password or Google sign-in for now.'
+      );
+      return;
+    }
+
     setIsLoading(true);
     try {
       const credential = await AppleAuthentication.signInAsync({
@@ -163,15 +164,14 @@ export default function LoginScreen() {
         ],
       });
 
-      // Get the identity token from Apple
       const identityToken = credential.identityToken;
       if (!identityToken) {
         throw new Error('No identity token received from Apple');
       }
 
-      console.log('Sending Apple token to backend...');
+      console.log('[LoginScreen] Sending Apple token to backend...');
 
-      const data = await api.post<{ token: string; refreshToken?: string; email: string }>('/api/v1/auth/login', {
+      const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
         loginType: 'APPLE',
         idToken: identityToken,
         fullName: credential.fullName
@@ -179,22 +179,10 @@ export default function LoginScreen() {
           : undefined,
       });
 
-      console.log('Apple login successful! JWT:', data.token);
-
-      // Clear any cached data from previous user before saving new JWT
-      queryClient.clear();
-
-      await saveJWT(data.token, data.refreshToken, data.email);
-
-      setIsLoading(false);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main' } as any],
-      });
+      await handleLoginSuccess(data);
     } catch (error: any) {
       setIsLoading(false);
       if (error.code === 'ERR_REQUEST_CANCELED') {
-        // User canceled the sign-in
         return;
       }
       console.error('Apple login failed:', error);
@@ -205,194 +193,281 @@ export default function LoginScreen() {
     }
   };
 
+  const handleEmailAuth = async () => {
+    // Validate inputs
+    if (!email.trim() || !password) {
+      Alert.alert('Missing Information', 'Please enter both email and password.');
+      return;
+    }
+
+    if (authMode === 'register') {
+      if (password !== confirmPassword) {
+        Alert.alert('Password Mismatch', 'Passwords do not match.');
+        return;
+      }
+      if (password.length < 6) {
+        Alert.alert('Weak Password', 'Password must be at least 6 characters.');
+        return;
+      }
+    }
+
+    setIsLoading(true);
+    try {
+      const endpoint = authMode === 'register' ? '/api/v1/auth/register' : '/api/v1/auth/login';
+      const body = authMode === 'register'
+        ? { email: email.trim().toLowerCase(), password }
+        : { loginType: 'EMAIL', email: email.trim().toLowerCase(), password };
+
+      console.log(`[LoginScreen] ${authMode === 'register' ? 'Registering' : 'Logging in'} with email...`);
+
+      const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>(endpoint, body);
+
+      if (authMode === 'register') {
+        // Registration successful - show success and switch to login mode
+        setIsLoading(false);
+        Alert.alert(
+          'Account Created',
+          'Your account has been created successfully. Please sign in.',
+          [{ text: 'OK', onPress: () => {
+            setAuthMode('login');
+            setPassword('');
+            setConfirmPassword('');
+          }}]
+        );
+      } else {
+        // Login successful - proceed with login
+        await handleLoginSuccess(data);
+      }
+    } catch (error: any) {
+      setIsLoading(false);
+      console.error(`[LoginScreen] ${authMode} failed:`, error);
+
+      let message = 'An error occurred. Please try again.';
+      if (error?.message) {
+        message = error.message;
+      } else if (authMode === 'register') {
+        message = 'Registration failed. Email may already be in use.';
+      } else {
+        message = 'Invalid email or password.';
+      }
+
+      Alert.alert(authMode === 'register' ? 'Registration Failed' : 'Login Failed', message);
+    }
+  };
+
+  const toggleAuthMode = () => {
+    setAuthMode(authMode === 'login' ? 'register' : 'login');
+    setPassword('');
+    setConfirmPassword('');
+  };
+
   return (
     <SafeAreaWrapper>
-      <LinearGradient
-        colors={[BRAND_COLORS.background, '#1A1025', BRAND_COLORS.background]}
-        style={styles.container}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Logo and Title */}
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <MaterialCommunityIcons name="dumbbell" size={48} color={BRAND_COLORS.primary} />
-          </View>
-          <Text variant="heading1" weight="bold" style={styles.title}>
-            Aura Fitness
-          </Text>
-          <Text variant="body" style={styles.subtitle}>
-            Track your nutrition and fitness goals with AI-powered insights
-          </Text>
-        </View>
-
-        {/* Features */}
-        <View style={styles.features}>
-          <FeatureItem
-            icon="camera"
-            title="Snap & Track"
-            description="Take a photo of your meal for instant nutrition analysis"
-          />
-          <FeatureItem
-            icon="target"
-            title="Personalized Goals"
-            description="Get AI-generated fitness and nutrition targets"
-          />
-          <FeatureItem
-            icon="chart-line"
-            title="Track Progress"
-            description="Monitor your daily intake and workout achievements"
-          />
-        </View>
-
-        {/* Login Buttons */}
-        <View style={styles.buttonContainer}>
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
-              <Text variant="body" style={styles.loadingText}>
-                Signing you in...
+        <LinearGradient
+          colors={[BRAND_COLORS.background, '#1A1025', BRAND_COLORS.background]}
+          style={styles.container}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Logo and Title */}
+            <View style={styles.header}>
+              <View style={styles.logoContainer}>
+                <MaterialCommunityIcons name="dumbbell" size={48} color={BRAND_COLORS.primary} />
+              </View>
+              <Text variant="heading1" weight="bold" style={styles.title}>
+                Aura Fitness
+              </Text>
+              <Text variant="body" style={styles.subtitle}>
+                {authMode === 'login'
+                  ? 'Welcome back! Sign in to continue.'
+                  : 'Create your account to get started.'}
               </Text>
             </View>
-          ) : (
-            <>
-              {/* Apple Login Button (iOS only) */}
-              {appleAuthAvailable && (
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.appleButton,
-                    pressed && styles.buttonPressed,
-                  ]}
-                  onPress={handleAppleLogin}
-                  disabled={isLoading}
-                >
-                  <MaterialCommunityIcons name="apple" size={24} color="#FFF" />
-                  <Text variant="body" weight="bold" style={styles.appleButtonText}>
-                    Continue with Apple
-                  </Text>
-                </Pressable>
-              )}
 
-              {/* Google Login Button */}
-              <Pressable
-                style={({ pressed }) => [
-                  styles.googleButton,
-                  pressed && styles.buttonPressed,
-                  !request && styles.buttonDisabled,
-                ]}
-                disabled={!request || isLoading}
-                onPress={() => promptAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined)}
-              >
-                <MaterialCommunityIcons name="google" size={24} color="#FFF" />
-                <Text variant="body" weight="bold" style={styles.googleButtonText}>
-                  Continue with Google
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
+                <Text variant="body" style={styles.loadingText}>
+                  {authMode === 'register' ? 'Creating your account...' : 'Signing you in...'}
                 </Text>
-              </Pressable>
-
-              {/* Divider */}
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text variant="caption" style={styles.dividerText}>or</Text>
-                <View style={styles.dividerLine} />
               </View>
+            ) : (
+              <>
+                {/* Email/Password Form */}
+                <View style={styles.formContainer}>
+                  <View style={styles.inputContainer}>
+                    <MaterialCommunityIcons name="email-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Email"
+                      placeholderTextColor="#6B7280"
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="email-address"
+                      textContentType="emailAddress"
+                    />
+                  </View>
 
-              {/* Mock Login (Dev Only) */}
-              {__DEV__ && (
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.mockButton,
-                    pressed && styles.buttonPressed,
-                  ]}
-                  onPress={handleMockLogin}
-                >
-                  <MaterialCommunityIcons name="test-tube" size={20} color="#9CA3AF" />
-                  <Text variant="body" style={styles.mockButtonText}>
-                    Dev Login (Test Mode)
-                  </Text>
-                </Pressable>
-              )}
-            </>
-          )}
-        </View>
+                  <View style={styles.inputContainer}>
+                    <MaterialCommunityIcons name="lock-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Password"
+                      placeholderTextColor="#6B7280"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                      textContentType={authMode === 'register' ? 'newPassword' : 'password'}
+                    />
+                    <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                      <MaterialCommunityIcons
+                        name={showPassword ? 'eye-off' : 'eye'}
+                        size={20}
+                        color="#9CA3AF"
+                      />
+                    </Pressable>
+                  </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text variant="caption" style={styles.footerText}>
-            By continuing, you agree to our Terms of Service and Privacy Policy
-          </Text>
-        </View>
-      </LinearGradient>
+                  {authMode === 'register' && (
+                    <View style={styles.inputContainer}>
+                      <MaterialCommunityIcons name="lock-check-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Confirm Password"
+                        placeholderTextColor="#6B7280"
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        secureTextEntry={!showPassword}
+                        textContentType="newPassword"
+                      />
+                    </View>
+                  )}
+
+                  {/* Email Auth Button */}
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.emailButton,
+                      pressed && styles.buttonPressed,
+                    ]}
+                    onPress={handleEmailAuth}
+                  >
+                    <Text variant="body" weight="bold" style={styles.emailButtonText}>
+                      {authMode === 'login' ? 'Sign In' : 'Create Account'}
+                    </Text>
+                  </Pressable>
+
+                  {/* Toggle Auth Mode */}
+                  <Pressable onPress={toggleAuthMode} style={styles.toggleButton}>
+                    <Text variant="body" style={styles.toggleText}>
+                      {authMode === 'login'
+                        ? "Don't have an account? "
+                        : 'Already have an account? '}
+                      <Text weight="bold" style={styles.toggleTextBold}>
+                        {authMode === 'login' ? 'Register' : 'Sign In'}
+                      </Text>
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {/* Divider */}
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text variant="caption" style={styles.dividerText}>or continue with</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                {/* Social Login Buttons */}
+                <View style={styles.socialButtonContainer}>
+                  {/* Google Login Button */}
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.socialButton,
+                      styles.googleButton,
+                      pressed && styles.buttonPressed,
+                      !request && styles.buttonDisabled,
+                    ]}
+                    disabled={!request}
+                    onPress={() => promptAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined)}
+                  >
+                    <MaterialCommunityIcons name="google" size={24} color="#FFF" />
+                    <Text variant="body" weight="bold" style={styles.socialButtonText}>
+                      Continue with Google
+                    </Text>
+                  </Pressable>
+
+                  {/* Apple Login Button */}
+                  {appleAuthAvailable && (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.socialButton,
+                        styles.appleButton,
+                        pressed && styles.buttonPressed,
+                      ]}
+                      onPress={handleAppleLogin}
+                    >
+                      <MaterialCommunityIcons name="apple" size={24} color="#FFF" />
+                      <Text variant="body" weight="bold" style={styles.socialButtonText}>
+                        Continue with Apple
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+              </>
+            )}
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text variant="caption" style={styles.footerText}>
+                By continuing, you agree to our Terms of Service and Privacy Policy
+              </Text>
+            </View>
+          </ScrollView>
+        </LinearGradient>
+      </KeyboardAvoidingView>
     </SafeAreaWrapper>
   );
 }
 
-const FeatureItem = ({ icon, title, description }: { icon: string; title: string; description: string }) => (
-  <View style={styles.featureItem}>
-    <View style={styles.featureIcon}>
-      <MaterialCommunityIcons name={icon as any} size={24} color={BRAND_COLORS.primary} />
-    </View>
-    <View style={styles.featureContent}>
-      <Text variant="body" weight="semibold">{title}</Text>
-      <Text variant="caption" style={styles.featureDescription}>{description}</Text>
-    </View>
-  </View>
-);
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: spacing.lg,
-    justifyContent: 'space-between',
+    paddingVertical: spacing.xl,
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
-    marginTop: spacing['3xl'],
+    marginBottom: spacing.xl,
   },
   logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: 'rgba(167, 139, 250, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   title: {
-    fontSize: 32,
-    marginBottom: spacing.sm,
+    fontSize: 28,
+    marginBottom: spacing.xs,
   },
   subtitle: {
     textAlign: 'center',
     opacity: 0.7,
     paddingHorizontal: spacing.lg,
-  },
-  features: {
-    gap: spacing.md,
-    marginVertical: spacing.xl,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: BRAND_COLORS.surface,
-    padding: spacing.md,
-    borderRadius: 16,
-    gap: spacing.md,
-  },
-  featureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: 'rgba(167, 139, 250, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  featureContent: {
-    flex: 1,
-  },
-  featureDescription: {
-    opacity: 0.6,
-    marginTop: 2,
-  },
-  buttonContainer: {
-    gap: spacing.md,
   },
   loadingContainer: {
     alignItems: 'center',
@@ -402,30 +477,84 @@ const styles = StyleSheet.create({
   loadingText: {
     opacity: 0.7,
   },
-  appleButton: {
+  formContainer: {
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#000',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 16,
-    gap: spacing.sm,
+    backgroundColor: BRAND_COLORS.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  appleButtonText: {
+  inputIcon: {
+    marginLeft: spacing.md,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    fontSize: 16,
     color: '#FFF',
   },
-  googleButton: {
+  eyeIcon: {
+    padding: spacing.md,
+  },
+  emailButton: {
+    backgroundColor: BRAND_COLORS.primary,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  emailButtonText: {
+    color: '#1A1F2E',
+  },
+  toggleButton: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  toggleText: {
+    opacity: 0.7,
+  },
+  toggleTextBold: {
+    color: BRAND_COLORS.primary,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  dividerText: {
+    marginHorizontal: spacing.md,
+    opacity: 0.5,
+  },
+  socialButtonContainer: {
+    flexDirection: 'column',
+    gap: spacing.md,
+  },
+  socialButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#4285F4',
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 16,
+    borderRadius: 12,
     gap: spacing.sm,
   },
-  googleButtonText: {
+  appleButton: {
+    backgroundColor: BRAND_COLORS.primaryDark,
+  },
+  googleButton: {
+    backgroundColor: BRAND_COLORS.primary,
+  },
+  socialButtonText: {
     color: '#FFF',
   },
   buttonPressed: {
@@ -435,37 +564,9 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.5,
   },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  dividerText: {
-    opacity: 0.5,
-  },
-  mockButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(156, 163, 175, 0.3)',
-    gap: spacing.sm,
-  },
-  mockButtonText: {
-    color: '#9CA3AF',
-  },
   footer: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginTop: spacing.xl,
   },
   footerText: {
     opacity: 0.4,

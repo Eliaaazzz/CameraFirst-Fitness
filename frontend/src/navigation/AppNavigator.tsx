@@ -182,11 +182,6 @@ const MainTabs = () => {
           alignItems: 'center',
         },
         tabBarStyle: {
-          // CRITICAL: Full width - no left/right constraints
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
           height: tabBarHeight,
           paddingBottom: tabBarPaddingBottom,
           paddingTop: tabBarPaddingTop,
@@ -198,13 +193,27 @@ const MainTabs = () => {
           shadowRadius: 12,
           shadowOffset: { width: 0, height: -4 },
           elevation: 8,
-          // Web-specific constraints for desktop
-          ...(isDesktop && isWeb && {
-            alignSelf: 'center',
-            width: '100%',
-            maxWidth: 1200,
-            paddingHorizontal: 32,
-          }),
+          // Platform-specific positioning and layout
+          ...(isWeb
+            ? {
+                // Web: use flexbox for even distribution
+                display: 'flex' as const,
+                flexDirection: 'row' as const,
+                justifyContent: 'space-around' as const,
+                alignItems: 'center' as const,
+                width: '100%',
+                position: 'absolute' as const,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }
+            : {
+                // Native: absolute positioning
+                position: 'absolute' as const,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }),
         },
         tabBarBackground: TabBarBackground,
         tabBarIcon: ({ focused, color }) => getTabBarIcon(route.name, focused, color),

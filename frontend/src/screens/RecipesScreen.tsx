@@ -3,9 +3,10 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
 
-import { Container, EmptyStateCard, ListSkeleton, RecipeCard, SafeAreaWrapper, Text } from '@/components';
+import { Container, EmptyStateCard, ListSkeleton, RecipeCard, SafeAreaWrapper, SearchBar, Text } from '@/components';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedRecipes, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
+import { searchRecipes, RecipeSearchResult } from '@/services/searchApi';
 import type { SavedRecipe } from '@/types';
 import { spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
 
@@ -20,7 +21,7 @@ export const RecipesScreen = () => {
 
   const saved = useSavedRecipes(userId);
   // Use dedicated recipe recommendations API
-  const recommended = useRecommendedRecipes(userGoal);
+  const recommended = useRecommendedRecipes(userGoal, userId);
   const saveRecipe = useSaveRecipe(userId);
   const removeRecipe = useRemoveRecipe(userId);
   const listRef = useRef<FlatList<SavedRecipe>>(null);
@@ -28,6 +29,47 @@ export const RecipesScreen = () => {
   const savedRecipes = saved.data ?? [];
   const savedRecipeIds = useMemo(() => new Set(savedRecipes.map((item) => item.id)), [savedRecipes]);
   const recommendedRecipes = recommended.data ?? [];
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<RecipeSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSearch = useCallback(async (query: string) => {
+    setSearchQuery(query);
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!query.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    // Debounce search
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await searchRecipes(query, 20);
+        setSearchResults(results);
+      } catch (error) {
+        console.error('[RecipesScreen] Search failed:', error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setIsSearching(false);
+  }, []);
 
   const handleRefresh = useCallback(() => {
     if (!saved.isLoading) {
@@ -51,6 +93,7 @@ export const RecipesScreen = () => {
           <RecipeCard
             item={item}
             isSaved
+            onRemove={(id) => removeRecipe.mutateAsync(id).then(() => true)}
           />
           <Text variant="caption" style={styles.savedAt}>
             {meta}
@@ -58,7 +101,7 @@ export const RecipesScreen = () => {
         </View>
       );
     },
-    [],
+    [removeRecipe],
   );
 
   // Loading state
@@ -103,6 +146,8 @@ export const RecipesScreen = () => {
   const recipes = savedRecipes;
   const isRefreshing = saved.isRefetching;
 
+  const isSearchMode = searchQuery.trim().length > 0;
+
   const listHeaderComponent = (
     <View style={styles.header}>
       <Text variant="heading1" weight="bold">
@@ -112,7 +157,56 @@ export const RecipesScreen = () => {
         Healthy meals and your saved list.
       </Text>
 
-      {/* Recommended Recipes Section */}
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <SearchBar
+          placeholder="Search recipes..."
+          value={searchQuery}
+          onChangeText={handleSearch}
+          onClear={clearSearch}
+          isLoading={isSearching}
+        />
+      </View>
+
+      {/* Search Results or Recommended Recipes */}
+      {isSearchMode ? (
+        <View style={styles.section}>
+          <Text variant="heading2" weight="semibold">
+            Search Results
+          </Text>
+          {isSearching ? (
+            <Text variant="caption" style={styles.recommendedNote}>
+              Searching...
+            </Text>
+          ) : searchResults.length === 0 ? (
+            <Text variant="caption" style={styles.recommendedNote}>
+              No recipes found for "{searchQuery}"
+            </Text>
+          ) : (
+            <View style={styles.searchResults}>
+              {searchResults.map((item) => (
+                <View key={item.id} style={styles.searchResultCard}>
+                  <RecipeCard
+                    item={{
+                      id: item.id,
+                      title: item.title,
+                      imageUrl: item.imageUrl,
+                      timeMinutes: item.timeMinutes,
+                      difficulty: item.difficulty,
+                      calories: item.calories,
+                      protein: item.protein,
+                    }}
+                    isSaved={savedRecipeIds.has(item.id)}
+                    onSave={(id) => saveRecipe.mutateAsync(id).then(() => true)}
+                    onRemove={(id) => removeRecipe.mutateAsync(id).then(() => true)}
+                  />
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      ) : (
+        /* Recommended Recipes Section */
       <View style={styles.section}>
         <Text variant="heading2" weight="semibold">
           Recommended for you
@@ -148,6 +242,7 @@ export const RecipesScreen = () => {
           </ScrollView>
         )}
       </View>
+      )}
       <Text variant="heading2" weight="semibold" style={styles.savedHeader}>
         Saved Recipes
       </Text>
@@ -213,6 +308,9 @@ const styles = StyleSheet.create({
   subtitle: {
     opacity: 0.7,
   },
+  searchContainer: {
+    marginTop: spacing.md,
+  },
   section: {
     marginTop: spacing.lg,
     gap: spacing.sm,
@@ -226,6 +324,12 @@ const styles = StyleSheet.create({
   },
   recommendedNote: {
     opacity: 0.7,
+  },
+  searchResults: {
+    gap: spacing.md,
+  },
+  searchResultCard: {
+    marginBottom: spacing.sm,
   },
   savedHeader: {
     marginTop: spacing.lg,

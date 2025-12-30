@@ -1,0 +1,16 @@
+ALTER TABLE USERS ADD COLUMN avter_url VARCHAR(255);
+
+CREATE TABLE user_avatar_histiry (
+	id SERIAL PRIMARY KEY,
+	user_id INTEGER NOT NULL REFERENCES users(id),
+	avatar_url VARCHAR(255) NOT NULL,
+	uploaded_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+	file_size INTEGER,
+	mime_type VARCHAR(50)
+);
+
+CREATE INDEX idx_user_avatar_history_user_id ON user_avatar_histiry (user_id, uploaded_at);
+
+
+
+

@@ -6,6 +6,7 @@
 import { API_BASE_URL, API_KEY } from '@env';
 import { Platform } from 'react-native';
 import { getJWT } from '../utils/jwtStorage';
+import { navigateToLogin } from '../navigation/navigationService';
 
 // Ensure API Key is available (prioritize .env API_KEY, fallback to Expo environment variable)
 const APP_API_KEY = API_KEY || process.env.EXPO_PUBLIC_API_KEY || 'fitness-secret-key-123';
@@ -88,8 +89,12 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
     // If JWT token exists locally, include it (dual authentication)
     // This is the "ID Card"  - used for user session validation
     const jwtToken = await getJWT();
+    console.log('[APIClient Request] JWT check - exists:', !!jwtToken, 'length:', jwtToken?.length);
     if (jwtToken) {
       headers['Authorization'] = `Bearer ${jwtToken}`;
+      console.log('[APIClient Request] Authorization header added');
+    } else {
+      console.log('[APIClient Request] No JWT token found, proceeding with API key only');
     }
 
     // Add Content-Type for JSON requests
@@ -134,13 +139,18 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
 
       // Handle authentication failures (401/403)
       if ((response.status === 401 || response.status === 403) && headers['Authorization']) {
-        console.warn('[APIClient Auth Error]', {
-          status: response.status,
-          url,
-          message: 'Authentication failed - JWT may be expired or invalid'
-        });
+        console.warn('[APIClient Auth Error] ⚠️ Authentication failed');
+        console.warn('[APIClient Auth Error] Status:', response.status);
+        console.warn('[APIClient Auth Error] URL:', url);
+        console.warn('[APIClient Auth Error] Response:', rawError);
+        console.warn('[APIClient Auth Error] This likely means JWT is invalid or expired');
         const { clearJWT } = await import('@/utils/jwtStorage');
+        console.warn('[APIClient Auth Error] Clearing JWT from storage...');
         await clearJWT();
+        
+        // Navigate to login to prevent "Unable to load" screens
+        navigateToLogin();
+
         throw new APIError(
           'Your session has expired. Please sign in again.',
           response.status,

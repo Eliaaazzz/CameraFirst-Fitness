@@ -1,17 +1,20 @@
 package com.fitnessapp.backend.user.service;
 
-import com.fitnessapp.backend.user.entity.User;
-import com.fitnessapp.backend.user.entity.UserProfile;
-import com.fitnessapp.backend.user.repository.UserProfileRepository;
-import com.fitnessapp.backend.user.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.user.entity.UserProfile;
+import com.fitnessapp.backend.user.repository.UserProfileRepository;
+import com.fitnessapp.backend.user.repository.UserRepository;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +49,12 @@ public class UserProfileService {
   @Transactional
   public void deleteProfile(UUID userId) {
     userProfileRepository.deleteById(userId);
+  }
+
+  @Transactional
+  public UserProfile save(UserProfile profile) {
+    computeDerivedMetrics(profile);
+    return userProfileRepository.save(profile);
   }
 
   private void computeDerivedMetrics(UserProfile profile) {
