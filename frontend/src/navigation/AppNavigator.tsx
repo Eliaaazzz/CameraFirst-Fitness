@@ -235,6 +235,7 @@ const MainTabs = () => {
         options={{
           title: 'Results',
           tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
         }}
       />
       <Tab.Screen
@@ -243,6 +244,7 @@ const MainTabs = () => {
         options={{
           title: 'Recipe',
           tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
         }}
       />
       <Tab.Screen
@@ -251,6 +253,7 @@ const MainTabs = () => {
         options={{
           title: 'Review Meal',
           tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
         }}
       />
       <Tab.Screen
@@ -259,6 +262,7 @@ const MainTabs = () => {
         options={{
           title: 'Meal History',
           tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
         }}
       />
       <Tab.Screen
@@ -267,6 +271,7 @@ const MainTabs = () => {
         options={{
           title: 'Weekly Insights',
           tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
         }}
       />
     </Tab.Navigator>

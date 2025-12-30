@@ -51,10 +51,15 @@ public class AvatarController {
         }
 
         UUID userId = currentUser.userId();
-        String contentType = request.fileType();
+        String rawContentType = request.fileType();
+        if (rawContentType == null || rawContentType.isBlank()) {
+            log.warn("Missing content type (user: {})", userId);
+            return ResponseEntity.badRequest().build();
+        }
 
-        if (!ALLOWED_MIME_TYPES.contains(contentType.toLowerCase())) {
-            log.warn("Invalid content type: {} (user: {})", contentType, userId);
+        String contentType = rawContentType.trim().toLowerCase();
+        if (!ALLOWED_MIME_TYPES.contains(contentType)) {
+            log.warn("Invalid content type: {} (user: {})", rawContentType, userId);
             return ResponseEntity.badRequest().build();
         }
 

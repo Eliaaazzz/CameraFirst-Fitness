@@ -53,7 +53,7 @@ class NutritionControllerTest {
   private NutritionEngine nutritionEngine;
 
   @Mock
-  private com.fitnessapp.backend.nutrition.service.S3Service s3Service;
+  private com.fitnessapp.backend.common.service.S3Service s3Service;
 
   @BeforeEach
   void setUp() {
@@ -145,7 +145,7 @@ class NutritionControllerTest {
         .carbs(new BigDecimal("5"))
         .build();
 
-    when(s3Service.uploadFile(any())).thenReturn("https://bucket.s3.us-east-1.amazonaws.com/meals/test.jpg");
+    when(s3Service.uploadFile(any(), any())).thenReturn("https://bucket.s3.us-east-1.amazonaws.com/meals/test.jpg");
     when(foodRecognitionService.recognizeFoods(any(), any())).thenReturn(result);
     when(nutritionEngine.calculateTotal(any())).thenReturn(nutritionInfo);
 
