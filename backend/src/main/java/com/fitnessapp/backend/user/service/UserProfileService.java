@@ -75,6 +75,10 @@ public class UserProfileService {
    * This ensures the entity remains managed throughout the operation, preventing
    * detached entity issues.
    * 
+   * Note: This method does not call computeDerivedMetrics() because avatar updates
+   * only modify avatarUrl and avatarFileKey fields, which are independent of derived
+   * metrics like BMI (calculated from height and weight).
+   * 
    * @return the updated profile along with the old file key (if any) for cleanup
    */
   @Transactional
@@ -88,8 +92,6 @@ public class UserProfileService {
     profile.setAvatarUrl(avatarUrl);
     profile.setAvatarFileKey(avatarFileKey);
     
-    // No need to call computeDerivedMetrics since we're only updating avatar fields
-    // and the profile is already managed within this transaction
     UserProfile saved = userProfileRepository.save(profile);
     
     log.info("UserProfileService.updateAvatar completed, saved avatarUrl: {}, avatarFileKey: {}, oldFileKey: {}", 
