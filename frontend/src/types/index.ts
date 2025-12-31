@@ -70,6 +70,7 @@ export interface UserProfilePayload {
 
 export interface UserProfileResponse {
   userId: string;
+  avatarUrl?: string | null;
   heightCm?: number | null;
   weightKg?: number | null;
   bmi?: number | null;
