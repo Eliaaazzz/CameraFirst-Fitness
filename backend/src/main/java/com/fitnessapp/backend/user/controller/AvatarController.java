@@ -84,12 +84,16 @@ public class AvatarController {
         log.info("Confirming avatar upload for user: {}, publicUrl: {}, fileKey: {}", 
             userId, request.publicUrl(), request.fileKey());
 
-        UserProfile profile = userProfileService.getOrCreateProfile(userId);
-        log.info("Retrieved profile for user: {}, existing avatarUrl: {}, avatarFileKey: {}", 
-            userId, profile.getAvatarUrl(), profile.getAvatarFileKey());
+        // Update avatar in a single transaction to avoid detached entity issues
+        // This also retrieves the old file key for cleanup
+        UserProfileService.AvatarUpdateResult result = userProfileService.updateAvatar(
+            userId, request.publicUrl(), request.fileKey());
+        
+        log.info("Saved profile for user: {}, new avatarUrl: {}, avatarFileKey: {}, oldFileKey: {}", 
+            userId, result.profile().getAvatarUrl(), result.profile().getAvatarFileKey(), result.oldFileKey());
 
         // Delete old avatar if exists
-        String oldFileKey = profile.getAvatarFileKey();
+        String oldFileKey = result.oldFileKey();
         if (oldFileKey != null && !oldFileKey.isEmpty()) {
             try {
                 log.info("Deleting old avatar file: {}", oldFileKey);
@@ -99,20 +103,8 @@ public class AvatarController {
             }
         }
 
-        profile.setAvatarUrl(request.publicUrl());
-        profile.setAvatarFileKey(request.fileKey());
-        
-        log.info("Setting new avatar - URL: {}, FileKey: {}", request.publicUrl(), request.fileKey());
-        log.info("Before save - profile avatarUrl: {}, avatarFileKey: {}", 
-            profile.getAvatarUrl(), profile.getAvatarFileKey());
-
-        UserProfile saved = userProfileService.save(profile);
-        log.info("Saved profile for user: {}, new avatarUrl: {}, avatarFileKey: {}", 
-            userId, saved.getAvatarUrl(), saved.getAvatarFileKey());
-
-        UserProfileResponse response = UserProfileMapper.toResponse(saved);
+        UserProfileResponse response = UserProfileMapper.toResponse(result.profile());
         log.info("Returning response with avatarUrl: {}", response.avatarUrl());
-        log.info("Full response: {}", response);
         
         return ResponseEntity.ok(response);
     }

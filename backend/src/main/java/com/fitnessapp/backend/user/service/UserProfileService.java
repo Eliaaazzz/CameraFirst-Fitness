@@ -70,6 +70,38 @@ public class UserProfileService {
     return saved;
   }
 
+  /**
+   * Updates the avatar URL and file key for a user profile in a single transaction.
+   * This ensures the entity remains managed throughout the operation, preventing
+   * detached entity issues.
+   * 
+   * @return the updated profile along with the old file key (if any) for cleanup
+   */
+  @Transactional
+  public AvatarUpdateResult updateAvatar(UUID userId, String avatarUrl, String avatarFileKey) {
+    log.info("UserProfileService.updateAvatar called for user: {}, avatarUrl: {}, avatarFileKey: {}", 
+        userId, avatarUrl, avatarFileKey);
+    
+    UserProfile profile = getOrCreateProfile(userId);
+    String oldFileKey = profile.getAvatarFileKey();
+    
+    profile.setAvatarUrl(avatarUrl);
+    profile.setAvatarFileKey(avatarFileKey);
+    
+    // No need to call computeDerivedMetrics since we're only updating avatar fields
+    // and the profile is already managed within this transaction
+    UserProfile saved = userProfileRepository.save(profile);
+    
+    log.info("UserProfileService.updateAvatar completed, saved avatarUrl: {}, avatarFileKey: {}, oldFileKey: {}", 
+        saved.getAvatarUrl(), saved.getAvatarFileKey(), oldFileKey);
+    return new AvatarUpdateResult(saved, oldFileKey);
+  }
+
+  /**
+   * Result of avatar update operation, including the old file key for cleanup.
+   */
+  public record AvatarUpdateResult(UserProfile profile, String oldFileKey) {}
+
   private void computeDerivedMetrics(UserProfile profile) {
     Integer heightCm = profile.getHeightCm();
     BigDecimal weightKg = profile.getWeightKg();
