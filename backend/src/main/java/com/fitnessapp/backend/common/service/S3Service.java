@@ -51,6 +51,7 @@ public class S3Service {
                 .bucket(bucketName)
                 .key(fileKey)
                 .contentType(contentType)
+                .acl("public-read")  // Make uploaded files publicly readable
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
@@ -62,7 +63,7 @@ public class S3Service {
         String uploadUrl = presignedRequest.url().toString();
         String publicUrl = buildPublicUrl(fileKey);
 
-        log.info("Generated presigned URL for {}/{}", pathPrefix, userId);
+        log.info("Generated presigned URL for {}/{} with public-read ACL", pathPrefix, userId);
         return new PresignedUploadResult(uploadUrl, publicUrl, fileKey);
     }
 

@@ -10,7 +10,6 @@ import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public record UserProfileResponse(
     UUID userId,
     Integer heightCm,
@@ -26,9 +25,9 @@ public record UserProfileResponse(
     Integer dailyProteinTarget,
     Integer dailyCarbsTarget,
     Integer dailyFatTarget,
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     String avatarUrl,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {
 }
-

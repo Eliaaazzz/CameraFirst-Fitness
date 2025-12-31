@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Collections;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -196,15 +195,24 @@ class AvatarControllerTest {
         }
 
         @Test
-        @DisplayName("should reject webp format images")
-        void presignRejectsWebpImage() throws Exception {
+        @DisplayName("should accept webp format images")
+        void presignAcceptsWebpImage() throws Exception {
             UploadAvatarRequest request = new UploadAvatarRequest(null, "image/webp");
+            PresignedUploadResult mockResult = new PresignedUploadResult(
+                "https://s3.amazonaws.com/bucket/presigned-url",
+                "https://bucket.s3.us-west-2.amazonaws.com/avatars/" + testUserId + "/uuid",
+                "avatars/" + testUserId + "/uuid"
+            );
+
+            when(s3Service.generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/webp")))
+                .thenReturn(mockResult);
 
             mockMvc.perform(post("/api/v1/user/avatar/presign")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request))
                     .with(authentication(authentication)))
-                .andExpect(status().isOk());  // WebP is actually allowed based on controller
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.uploadUrl").value(mockResult.uploadUrl()));
 
             verify(s3Service).generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/webp"));
         }
@@ -269,7 +277,10 @@ class AvatarControllerTest {
             String fileKey = "avatars/" + testUserId + "/new-avatar.jpg";
             ConfirmAvatarRequest request = new ConfirmAvatarRequest(publicUrl, fileKey);
 
-            when(userProfileService.getProfile(testUserId)).thenReturn(Optional.empty());
+            // Mock getOrCreateProfile to return a new profile
+            UserProfile newProfile = new UserProfile();
+            newProfile.setUserId(testUserId);
+            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(newProfile);
 
             UserProfile savedProfile = new UserProfile();
             savedProfile.setUserId(testUserId);
@@ -304,7 +315,7 @@ class AvatarControllerTest {
             existingProfile.setUserId(testUserId);
             existingProfile.setAvatarUrl("https://old-url.com/avatar.jpg");
             existingProfile.setAvatarFileKey(oldFileKey);
-            when(userProfileService.getProfile(testUserId)).thenReturn(Optional.of(existingProfile));
+            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(existingProfile);
 
             UserProfile savedProfile = new UserProfile();
             savedProfile.setUserId(testUserId);
@@ -340,7 +351,7 @@ class AvatarControllerTest {
             existingProfile.setUserId(testUserId);
             existingProfile.setAvatarUrl(null);
             existingProfile.setAvatarFileKey(null);
-            when(userProfileService.getProfile(testUserId)).thenReturn(Optional.of(existingProfile));
+            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(existingProfile);
 
             UserProfile savedProfile = new UserProfile();
             savedProfile.setUserId(testUserId);
@@ -368,7 +379,7 @@ class AvatarControllerTest {
             existingProfile.setUserId(testUserId);
             existingProfile.setAvatarUrl("https://old-url.com/avatar.jpg");
             existingProfile.setAvatarFileKey("");
-            when(userProfileService.getProfile(testUserId)).thenReturn(Optional.of(existingProfile));
+            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(existingProfile);
 
             UserProfile savedProfile = new UserProfile();
             savedProfile.setUserId(testUserId);
@@ -410,7 +421,7 @@ class AvatarControllerTest {
             existingProfile.setUserId(testUserId);
             existingProfile.setAvatarUrl("old-url");
             existingProfile.setAvatarFileKey("");  // Empty string
-            when(userProfileService.getProfile(testUserId)).thenReturn(Optional.of(existingProfile));
+            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(existingProfile);
 
             UserProfile savedProfile = new UserProfile();
             savedProfile.setUserId(testUserId);
@@ -440,7 +451,7 @@ class AvatarControllerTest {
             existingProfile.setUserId(testUserId);
             existingProfile.setAvatarUrl("https://old-url.com/avatar.jpg");
             existingProfile.setAvatarFileKey(oldFileKey);
-            when(userProfileService.getProfile(testUserId)).thenReturn(Optional.of(existingProfile));
+            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(existingProfile);
 
             // Simulate S3 deletion failure using doThrow for void method
             doThrow(new RuntimeException("S3 deletion failed"))
@@ -499,7 +510,10 @@ class AvatarControllerTest {
             // Step 3: Confirm upload and save to profile
             ConfirmAvatarRequest confirmRequest = new ConfirmAvatarRequest(publicUrl, fileKey);
 
-            when(userProfileService.getProfile(testUserId)).thenReturn(Optional.empty());
+            // Mock getOrCreateProfile to return a new profile
+            UserProfile newProfile = new UserProfile();
+            newProfile.setUserId(testUserId);
+            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(newProfile);
 
             UserProfile savedProfile = new UserProfile();
             savedProfile.setUserId(testUserId);

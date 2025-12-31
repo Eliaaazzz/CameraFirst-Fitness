@@ -11,13 +11,10 @@ import type { SavedRecipe } from '@/types';
 import { spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
 
 export const RecipesScreen = () => {
+  // All hooks must be called before any early returns
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const userGoal = currentUser.data?.profile?.fitnessGoal;
-
-  // Calculate bottom padding for content using shared utility
-  const listBottomPadding = useContentBottomPadding(spacing.lg);
-  const fabBottomPosition = useFABBottomPosition(spacing.md);
 
   const saved = useSavedRecipes(userId);
   // Use dedicated recipe recommendations API
@@ -35,6 +32,11 @@ export const RecipesScreen = () => {
   const [searchResults, setSearchResults] = useState<RecipeSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Calculate bottom padding for content using shared utility
+  // These hooks MUST be called before any conditional returns
+  const listBottomPadding = useContentBottomPadding(spacing.lg);
+  const fabBottomPosition = useFABBottomPosition(spacing.md);
 
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
@@ -103,6 +105,14 @@ export const RecipesScreen = () => {
     },
     [removeRecipe],
   );
+
+  const listEmptyComponent = useMemo(() => (
+    <EmptyStateCard
+      icon={<Feather name="coffee" size={32} color="#4ECDC4" />}
+      title="Your saved recipes will appear here"
+      variant="single"
+    />
+  ), []);
 
   // Loading state
   if (currentUser.isLoading || saved.isLoading) {
@@ -248,14 +258,6 @@ export const RecipesScreen = () => {
       </Text>
     </View>
   );
-
-  const listEmptyComponent = useMemo(() => (
-    <EmptyStateCard
-      icon={<Feather name="coffee" size={32} color="#4ECDC4" />}
-      title="Your saved recipes will appear here"
-      variant="single"
-    />
-  ), []);
 
   return (
     <SafeAreaWrapper>

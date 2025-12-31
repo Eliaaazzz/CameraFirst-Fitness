@@ -76,22 +76,23 @@ public class AvatarController {
             @AuthenticationPrincipal AuthenticatedUser currentUser) {
 
         if (currentUser == null || currentUser.userId() == null) {
+            log.warn("Unauthorized avatar confirm attempt");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         UUID userId = currentUser.userId();
+        log.info("Confirming avatar upload for user: {}, publicUrl: {}, fileKey: {}", 
+            userId, request.publicUrl(), request.fileKey());
 
-        UserProfile profile = userProfileService.getProfile(userId)
-                .orElseGet(() -> {
-                    UserProfile newProfile = new UserProfile();
-                    newProfile.setUserId(userId);
-                    return newProfile;
-                });
+        UserProfile profile = userProfileService.getOrCreateProfile(userId);
+        log.info("Retrieved profile for user: {}, existing avatarUrl: {}, avatarFileKey: {}", 
+            userId, profile.getAvatarUrl(), profile.getAvatarFileKey());
 
         // Delete old avatar if exists
         String oldFileKey = profile.getAvatarFileKey();
         if (oldFileKey != null && !oldFileKey.isEmpty()) {
             try {
+                log.info("Deleting old avatar file: {}", oldFileKey);
                 s3Service.deleteFile(oldFileKey);
             } catch (Exception e) {
                 log.warn("Failed to delete old avatar: {}", e.getMessage());
@@ -100,9 +101,19 @@ public class AvatarController {
 
         profile.setAvatarUrl(request.publicUrl());
         profile.setAvatarFileKey(request.fileKey());
+        
+        log.info("Setting new avatar - URL: {}, FileKey: {}", request.publicUrl(), request.fileKey());
+        log.info("Before save - profile avatarUrl: {}, avatarFileKey: {}", 
+            profile.getAvatarUrl(), profile.getAvatarFileKey());
 
         UserProfile saved = userProfileService.save(profile);
+        log.info("Saved profile for user: {}, new avatarUrl: {}, avatarFileKey: {}", 
+            userId, saved.getAvatarUrl(), saved.getAvatarFileKey());
 
-        return ResponseEntity.ok(UserProfileMapper.toResponse(saved));
+        UserProfileResponse response = UserProfileMapper.toResponse(saved);
+        log.info("Returning response with avatarUrl: {}", response.avatarUrl());
+        log.info("Full response: {}", response);
+        
+        return ResponseEntity.ok(response);
     }
 }

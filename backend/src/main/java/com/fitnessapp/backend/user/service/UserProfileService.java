@@ -15,9 +15,11 @@ import com.fitnessapp.backend.user.repository.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserProfileService {
 
   private final UserProfileRepository userProfileRepository;
@@ -25,17 +27,7 @@ public class UserProfileService {
 
   @Transactional
   public UserProfile upsertProfile(UUID userId, UserProfile payload) {
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
-
-    UserProfile profile = userProfileRepository.findById(userId)
-        .orElseGet(() -> {
-          UserProfile created = new UserProfile();
-          created.setUser(user);
-          return created;
-        });
-
-    profile.setUser(user);
+    UserProfile profile = getOrCreateProfile(userId);
     profile.apply(payload);
     computeDerivedMetrics(profile);
     return userProfileRepository.save(profile);
@@ -46,6 +38,22 @@ public class UserProfileService {
     return userProfileRepository.findByUserId(userId);
   }
 
+  /**
+   * Gets the existing profile or creates a new one if it doesn't exist.
+   * This is the single source of truth for UserProfile creation.
+   */
+  @Transactional
+  public UserProfile getOrCreateProfile(UUID userId) {
+    return userProfileRepository.findById(userId)
+        .orElseGet(() -> {
+          User user = userRepository.findById(userId)
+              .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+          UserProfile created = new UserProfile();
+          created.setUser(user);
+          return userProfileRepository.save(created);
+        });
+  }
+
   @Transactional
   public void deleteProfile(UUID userId) {
     userProfileRepository.deleteById(userId);
@@ -53,8 +61,13 @@ public class UserProfileService {
 
   @Transactional
   public UserProfile save(UserProfile profile) {
+    log.info("UserProfileService.save called for user: {}, avatarUrl: {}, avatarFileKey: {}", 
+        profile.getUserId(), profile.getAvatarUrl(), profile.getAvatarFileKey());
     computeDerivedMetrics(profile);
-    return userProfileRepository.save(profile);
+    UserProfile saved = userProfileRepository.save(profile);
+    log.info("UserProfileService.save completed, saved avatarUrl: {}, avatarFileKey: {}", 
+        saved.getAvatarUrl(), saved.getAvatarFileKey());
+    return saved;
   }
 
   private void computeDerivedMetrics(UserProfile profile) {
@@ -77,4 +90,3 @@ public class UserProfileService {
     profile.setBmi(bmiValue);
   }
 }
-

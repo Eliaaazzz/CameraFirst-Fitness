@@ -38,8 +38,10 @@ import { useGoalStatistics } from '@/services/goalsApi';
 import userApi from '@/services/userApi';
 import { BRAND_COLORS, spacing, useContentBottomPadding } from '@/utils';
 import { clearJWT, getUserEmail } from '@/utils/jwtStorage';
+import type { CurrentUserResponse, UserProfileResponse } from '@/types';
 
 export const GENERATED_GOALS_KEY = '@generated_fitness_goals';
+const AVATAR_UPLOAD_CONTENT_TYPE = 'image/jpeg';
 
 const mapGoalTypeToFitnessGoal = (goalType: GoalType): string => {
   switch (goalType) {
@@ -127,7 +129,13 @@ const ProfileScreen = () => {
 
   // Avatar upload state
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarCacheKey, setAvatarCacheKey] = useState(Date.now());
   const avatarUrl = currentUser.data?.profile?.avatarUrl;
+
+  const getAvatarUri = (url: string) => {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${avatarCacheKey}`;
+  };
 
   // Profile input state
   const [selectedSex, setSelectedSex] = useState<Sex | null>(null);
@@ -153,25 +161,8 @@ const ProfileScreen = () => {
   };
 
   const handleAvatarPress = async () => {
-    // Show action sheet for camera vs library
-    Alert.alert(
-      'Change Profile Photo',
-      'Choose a source',
-      [
-        {
-          text: 'Take Photo',
-          onPress: () => pickImage('camera'),
-        },
-        {
-          text: 'Choose from Library',
-          onPress: () => pickImage('library'),
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ]
-    );
+    // Directly open the gallery (camera icon UX expectation)
+    await pickImage('library');
   };
 
   const pickImage = async (source: 'camera' | 'library') => {
@@ -220,45 +211,97 @@ const ProfileScreen = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
     try {
-      // Step 1: Get presigned URL from backend
+      // Step 1: Convert image URI to blob first to get the actual MIME type
+      const imageResponse = await fetch(imageUri);
+      const blob = await imageResponse.blob();
+
+      // Keep presign and upload Content-Type aligned to avoid signature mismatch.
+      const detectedContentType = blob.type;
+      const contentType = AVATAR_UPLOAD_CONTENT_TYPE;
+
+      console.log('[ProfileScreen] Image blob type:', detectedContentType, 'Using contentType:', contentType);
+
+      // Step 2: Get presigned URL from backend with the correct content type
       const presignResponse = await api.post<{
         uploadUrl: string;
         publicUrl: string;
         fileKey: string;
       }>('/api/v1/user/avatar/presign', {
-        fileType: 'image/jpeg',
+        fileType: contentType,
       });
 
       console.log('[ProfileScreen] Got presigned URL:', presignResponse.uploadUrl.substring(0, 50) + '...');
 
-      // Step 2: Upload image to S3 using presigned URL
-      const imageResponse = await fetch(imageUri);
-      const blob = await imageResponse.blob();
-
+      // Step 3: Upload image to S3 using presigned URL
+      // IMPORTANT: Use native fetch (not axios) to avoid Authorization header conflicts
       const uploadResponse = await fetch(presignResponse.uploadUrl, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'image/jpeg',
+          'Content-Type': contentType,
         },
         body: blob,
       });
 
       if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text().catch(() => '');
+        console.error('[ProfileScreen] S3 upload failed:', uploadResponse.status, errorText);
         throw new Error(`S3 upload failed: ${uploadResponse.status}`);
       }
 
       console.log('[ProfileScreen] Image uploaded to S3');
 
       // Step 3: Confirm upload with backend
-      await api.post('/api/v1/user/avatar/confirm', {
+      const updatedProfile = await api.post<UserProfileResponse>('/api/v1/user/avatar/confirm', {
         publicUrl: presignResponse.publicUrl,
         fileKey: presignResponse.fileKey,
       });
 
-      console.log('[ProfileScreen] Avatar confirmed');
+      console.log('[ProfileScreen] Avatar confirmed, updated profile:', updatedProfile);
+      console.log('[ProfileScreen] Updated profile avatarUrl:', updatedProfile?.avatarUrl);
+      console.log('[ProfileScreen] Presigned publicUrl:', presignResponse.publicUrl);
 
-      // Refresh user data
+      // Refresh user data and bust image cache
+      const newCacheKey = Date.now();
+      console.log('[ProfileScreen] Setting new avatar cache key:', newCacheKey);
+      setAvatarCacheKey(newCacheKey);
+
+      // Force clear React Native Image cache for this URL
+      if (Platform.OS !== 'web' && avatarUrl) {
+        try {
+          const Image = require('react-native').Image;
+          Image.prefetch(avatarUrl).then(() => {
+            console.log('[ProfileScreen] Prefetched old avatar URL to clear cache');
+          });
+        } catch (e) {
+          console.warn('[ProfileScreen] Failed to clear Image cache:', e);
+        }
+      }
+
+      // Optimistically update the cached current user so the UI switches immediately
+      // even if refetch is delayed or the screen is not re-rendered yet.
+      const newAvatarUrl = updatedProfile?.avatarUrl ?? presignResponse.publicUrl;
+      console.log('[ProfileScreen] Setting new avatar URL:', newAvatarUrl);
+      
+      queryClient.setQueryData<CurrentUserResponse>(['current-user'], (old) => {
+        if (!old) return old as any;
+        const newData = {
+          ...old,
+          profile: {
+            ...(old.profile ?? {}),
+            avatarUrl: newAvatarUrl,
+          },
+        };
+        console.log('[ProfileScreen] Updated cache data:', newData);
+        return newData;
+      });
+
+      // Force refetch and clear all related caches
       queryClient.invalidateQueries({ queryKey: ['current-user'] });
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      
+      // Force immediate refetch
+      await queryClient.refetchQueries({ queryKey: ['current-user'] });
+      console.log('[ProfileScreen] Cache invalidated and refetched');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
 
     } catch (error) {
@@ -942,6 +985,7 @@ const ProfileScreen = () => {
 
   // Calculate bottom padding to account for tab bar
   const contentBottomPadding = useContentBottomPadding(spacing.xl);
+  const avatarUri = avatarUrl ? getAvatarUri(avatarUrl) : undefined;
 
   return (
     <SafeAreaWrapper>
@@ -951,33 +995,46 @@ const ProfileScreen = () => {
       >
         {/* Profile Header */}
         <View style={styles.header}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.avatarContainer,
-              pressed && { opacity: 0.7 },
-            ]}
-            onPress={handleAvatarPress}
-            disabled={isUploadingAvatar}
-            accessibilityRole="button"
-            accessibilityLabel="Change profile photo"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <View style={styles.avatar}>
+          <View style={styles.avatarContainer}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.avatar,
+                pressed && { opacity: 0.7 },
+              ]}
+              onPress={handleAvatarPress}
+              disabled={isUploadingAvatar}
+              accessibilityRole="button"
+              accessibilityLabel="Change profile photo"
+            >
               {isUploadingAvatar ? (
                 <ActivityIndicator size="small" color={BRAND_COLORS.primary} />
               ) : avatarUrl ? (
                 <Image
-                  source={{ uri: avatarUrl }}
-                  style={styles.avatarImage}
+                  key={avatarCacheKey}
+                  source={{ uri: avatarUri }}
+                  style={[styles.avatarImage, { backgroundColor: 'red' }]}
+                  onLoadStart={() => console.log('[ProfileScreen] Avatar load start:', avatarUri)}
+                  onLoadEnd={() => console.log('[ProfileScreen] Avatar load end')}
+                  onError={(event) => console.log('[ProfileScreen] Avatar load error:', event.nativeEvent.error)}
                 />
               ) : (
                 <Feather name="user" size={40} color={BRAND_COLORS.primary} />
               )}
-            </View>
-            <View style={styles.editAvatarBtn} pointerEvents="none">
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                styles.editAvatarBtn,
+                pressed && { opacity: 0.85 },
+              ]}
+              onPress={handleAvatarPress}
+              disabled={isUploadingAvatar}
+              accessibilityRole="button"
+              accessibilityLabel="Change profile photo"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
               <Feather name="camera" size={14} color="#FFF" />
-            </View>
-          </Pressable>
+            </Pressable>
+          </View>
           <Text variant="heading2" weight="bold">Hi, {displayName}</Text>
           <Text variant="caption" style={styles.email}>{userEmail}</Text>
         </View>
