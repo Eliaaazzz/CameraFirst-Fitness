@@ -277,16 +277,14 @@ class AvatarControllerTest {
             String fileKey = "avatars/" + testUserId + "/new-avatar.jpg";
             ConfirmAvatarRequest request = new ConfirmAvatarRequest(publicUrl, fileKey);
 
-            // Mock getOrCreateProfile to return a new profile
-            UserProfile newProfile = new UserProfile();
-            newProfile.setUserId(testUserId);
-            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(newProfile);
-
+            // Mock updateAvatar to return a saved profile with no old file key
             UserProfile savedProfile = new UserProfile();
             savedProfile.setUserId(testUserId);
             savedProfile.setAvatarUrl(publicUrl);
             savedProfile.setAvatarFileKey(fileKey);
-            when(userProfileService.save(any(UserProfile.class))).thenReturn(savedProfile);
+            
+            when(userProfileService.updateAvatar(eq(testUserId), eq(publicUrl), eq(fileKey)))
+                .thenReturn(new com.fitnessapp.backend.user.service.UserProfileService.AvatarUpdateResult(savedProfile, null));
 
             mockMvc.perform(post("/api/v1/user/avatar/confirm")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -295,12 +293,8 @@ class AvatarControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.avatarUrl").value(publicUrl));
 
-            ArgumentCaptor<UserProfile> profileCaptor = ArgumentCaptor.forClass(UserProfile.class);
-            verify(userProfileService).save(profileCaptor.capture());
-
-            UserProfile capturedProfile = profileCaptor.getValue();
-            assertThat(capturedProfile.getAvatarUrl()).isEqualTo(publicUrl);
-            assertThat(capturedProfile.getAvatarFileKey()).isEqualTo(fileKey);
+            verify(userProfileService).updateAvatar(testUserId, publicUrl, fileKey);
+            verify(s3Service, never()).deleteFile(any());
         }
 
         @Test
@@ -311,17 +305,13 @@ class AvatarControllerTest {
             String newFileKey = "avatars/" + testUserId + "/new-avatar.jpg";
             ConfirmAvatarRequest request = new ConfirmAvatarRequest(newPublicUrl, newFileKey);
 
-            UserProfile existingProfile = new UserProfile();
-            existingProfile.setUserId(testUserId);
-            existingProfile.setAvatarUrl("https://old-url.com/avatar.jpg");
-            existingProfile.setAvatarFileKey(oldFileKey);
-            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(existingProfile);
-
             UserProfile savedProfile = new UserProfile();
             savedProfile.setUserId(testUserId);
             savedProfile.setAvatarUrl(newPublicUrl);
             savedProfile.setAvatarFileKey(newFileKey);
-            when(userProfileService.save(any(UserProfile.class))).thenReturn(savedProfile);
+            
+            when(userProfileService.updateAvatar(eq(testUserId), eq(newPublicUrl), eq(newFileKey)))
+                .thenReturn(new com.fitnessapp.backend.user.service.UserProfileService.AvatarUpdateResult(savedProfile, oldFileKey));
 
             mockMvc.perform(post("/api/v1/user/avatar/confirm")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -331,13 +321,7 @@ class AvatarControllerTest {
                 .andExpect(jsonPath("$.avatarUrl").value(newPublicUrl));
 
             verify(s3Service).deleteFile(oldFileKey);
-
-            ArgumentCaptor<UserProfile> profileCaptor = ArgumentCaptor.forClass(UserProfile.class);
-            verify(userProfileService).save(profileCaptor.capture());
-
-            UserProfile capturedProfile = profileCaptor.getValue();
-            assertThat(capturedProfile.getAvatarUrl()).isEqualTo(newPublicUrl);
-            assertThat(capturedProfile.getAvatarFileKey()).isEqualTo(newFileKey);
+            verify(userProfileService).updateAvatar(testUserId, newPublicUrl, newFileKey);
         }
 
         @Test
@@ -347,17 +331,13 @@ class AvatarControllerTest {
             String fileKey = "avatars/" + testUserId + "/avatar.jpg";
             ConfirmAvatarRequest request = new ConfirmAvatarRequest(publicUrl, fileKey);
 
-            UserProfile existingProfile = new UserProfile();
-            existingProfile.setUserId(testUserId);
-            existingProfile.setAvatarUrl(null);
-            existingProfile.setAvatarFileKey(null);
-            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(existingProfile);
-
             UserProfile savedProfile = new UserProfile();
             savedProfile.setUserId(testUserId);
             savedProfile.setAvatarUrl(publicUrl);
             savedProfile.setAvatarFileKey(fileKey);
-            when(userProfileService.save(any(UserProfile.class))).thenReturn(savedProfile);
+            
+            when(userProfileService.updateAvatar(eq(testUserId), eq(publicUrl), eq(fileKey)))
+                .thenReturn(new com.fitnessapp.backend.user.service.UserProfileService.AvatarUpdateResult(savedProfile, null));
 
             mockMvc.perform(post("/api/v1/user/avatar/confirm")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -375,17 +355,13 @@ class AvatarControllerTest {
             String fileKey = "avatars/" + testUserId + "/avatar.jpg";
             ConfirmAvatarRequest request = new ConfirmAvatarRequest(publicUrl, fileKey);
 
-            UserProfile existingProfile = new UserProfile();
-            existingProfile.setUserId(testUserId);
-            existingProfile.setAvatarUrl("https://old-url.com/avatar.jpg");
-            existingProfile.setAvatarFileKey("");
-            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(existingProfile);
-
             UserProfile savedProfile = new UserProfile();
             savedProfile.setUserId(testUserId);
             savedProfile.setAvatarUrl(publicUrl);
             savedProfile.setAvatarFileKey(fileKey);
-            when(userProfileService.save(any(UserProfile.class))).thenReturn(savedProfile);
+            
+            when(userProfileService.updateAvatar(eq(testUserId), eq(publicUrl), eq(fileKey)))
+                .thenReturn(new com.fitnessapp.backend.user.service.UserProfileService.AvatarUpdateResult(savedProfile, ""));
 
             mockMvc.perform(post("/api/v1/user/avatar/confirm")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -407,7 +383,7 @@ class AvatarControllerTest {
                     .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
 
-            verify(userProfileService, never()).save(any(UserProfile.class));
+            verify(userProfileService, never()).updateAvatar(any(), any(), any());
         }
 
         @Test
@@ -417,17 +393,13 @@ class AvatarControllerTest {
             String fileKey = "avatars/" + testUserId + "/avatar.jpg";
             ConfirmAvatarRequest request = new ConfirmAvatarRequest(publicUrl, fileKey);
 
-            UserProfile existingProfile = new UserProfile();
-            existingProfile.setUserId(testUserId);
-            existingProfile.setAvatarUrl("old-url");
-            existingProfile.setAvatarFileKey("");  // Empty string
-            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(existingProfile);
-
             UserProfile savedProfile = new UserProfile();
             savedProfile.setUserId(testUserId);
             savedProfile.setAvatarUrl(publicUrl);
             savedProfile.setAvatarFileKey(fileKey);
-            when(userProfileService.save(any(UserProfile.class))).thenReturn(savedProfile);
+            
+            when(userProfileService.updateAvatar(eq(testUserId), eq(publicUrl), eq(fileKey)))
+                .thenReturn(new com.fitnessapp.backend.user.service.UserProfileService.AvatarUpdateResult(savedProfile, ""));
 
             mockMvc.perform(post("/api/v1/user/avatar/confirm")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -447,12 +419,6 @@ class AvatarControllerTest {
             String newFileKey = "avatars/" + testUserId + "/new-avatar.jpg";
             ConfirmAvatarRequest request = new ConfirmAvatarRequest(newPublicUrl, newFileKey);
 
-            UserProfile existingProfile = new UserProfile();
-            existingProfile.setUserId(testUserId);
-            existingProfile.setAvatarUrl("https://old-url.com/avatar.jpg");
-            existingProfile.setAvatarFileKey(oldFileKey);
-            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(existingProfile);
-
             // Simulate S3 deletion failure using doThrow for void method
             doThrow(new RuntimeException("S3 deletion failed"))
                 .when(s3Service).deleteFile(oldFileKey);
@@ -461,7 +427,9 @@ class AvatarControllerTest {
             savedProfile.setUserId(testUserId);
             savedProfile.setAvatarUrl(newPublicUrl);
             savedProfile.setAvatarFileKey(newFileKey);
-            when(userProfileService.save(any(UserProfile.class))).thenReturn(savedProfile);
+            
+            when(userProfileService.updateAvatar(eq(testUserId), eq(newPublicUrl), eq(newFileKey)))
+                .thenReturn(new com.fitnessapp.backend.user.service.UserProfileService.AvatarUpdateResult(savedProfile, oldFileKey));
 
             // Should still succeed despite deletion failure
             mockMvc.perform(post("/api/v1/user/avatar/confirm")
@@ -472,7 +440,7 @@ class AvatarControllerTest {
                 .andExpect(jsonPath("$.avatarUrl").value(newPublicUrl));
 
             verify(s3Service).deleteFile(oldFileKey);
-            verify(userProfileService).save(any(UserProfile.class));
+            verify(userProfileService).updateAvatar(testUserId, newPublicUrl, newFileKey);
         }
     }
 
@@ -510,16 +478,13 @@ class AvatarControllerTest {
             // Step 3: Confirm upload and save to profile
             ConfirmAvatarRequest confirmRequest = new ConfirmAvatarRequest(publicUrl, fileKey);
 
-            // Mock getOrCreateProfile to return a new profile
-            UserProfile newProfile = new UserProfile();
-            newProfile.setUserId(testUserId);
-            when(userProfileService.getOrCreateProfile(testUserId)).thenReturn(newProfile);
-
             UserProfile savedProfile = new UserProfile();
             savedProfile.setUserId(testUserId);
             savedProfile.setAvatarUrl(publicUrl);
             savedProfile.setAvatarFileKey(fileKey);
-            when(userProfileService.save(any(UserProfile.class))).thenReturn(savedProfile);
+            
+            when(userProfileService.updateAvatar(eq(testUserId), eq(publicUrl), eq(fileKey)))
+                .thenReturn(new com.fitnessapp.backend.user.service.UserProfileService.AvatarUpdateResult(savedProfile, null));
 
             mockMvc.perform(post("/api/v1/user/avatar/confirm")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -528,7 +493,7 @@ class AvatarControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.avatarUrl").value(publicUrl));
 
-            verify(userProfileService).save(any(UserProfile.class));
+            verify(userProfileService).updateAvatar(testUserId, publicUrl, fileKey);
         }
     }
 }
