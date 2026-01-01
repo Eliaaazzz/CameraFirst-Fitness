@@ -18,7 +18,7 @@ import Animated, {
   withTiming,
   withSequence,
 } from 'react-native-reanimated';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator } from 'react-native-paper';
 import * as Haptics from 'expo-haptics';
 import {
@@ -118,7 +118,8 @@ export const BookmarkButton = ({
     opacity: opacity.value,
   }));
 
-  const iconColor = isSaved ? color : 'rgba(0, 0, 0, 0.54)';
+  // Always use purple color - filled when saved, outline when not
+  const iconColor = color;
   const styles = getStyles();
 
   return (
@@ -138,8 +139,8 @@ export const BookmarkButton = ({
       {isLoading ? (
         <ActivityIndicator size="small" color={color} />
       ) : (
-        <Feather
-          name={isSaved ? 'bookmark' : 'bookmark'}
+        <Ionicons
+          name={isSaved ? 'bookmark' : 'bookmark-outline'}
           size={size}
           color={iconColor}
         />
@@ -153,7 +154,7 @@ const getStyles = () => StyleSheet.create({
   container: {
     padding: spacing.xs,
     borderRadius: radii.md,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: 40,

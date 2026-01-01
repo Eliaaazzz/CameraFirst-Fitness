@@ -1,13 +1,11 @@
 package com.fitnessapp.backend.user.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fitnessapp.backend.user.entity.Allergen;
 import com.fitnessapp.backend.user.entity.DietaryPreference;
 import com.fitnessapp.backend.user.entity.FitnessGoal;
 import com.fitnessapp.backend.user.entity.HealthMode;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.Set;
 import java.util.UUID;
 
 public record UserProfileResponse(
@@ -20,7 +18,6 @@ public record UserProfileResponse(
     FitnessGoal fitnessGoal,
     DietaryPreference dietaryPreference,
     HealthMode healthMode,
-    Set<Allergen> allergens,
     Integer dailyCalorieTarget,
     Integer dailyProteinTarget,
     Integer dailyCarbsTarget,

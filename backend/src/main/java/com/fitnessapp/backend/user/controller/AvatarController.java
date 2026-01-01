@@ -17,9 +17,7 @@ import com.fitnessapp.backend.security.AuthenticatedUser;
 import com.fitnessapp.backend.user.dto.ConfirmAvatarRequest;
 import com.fitnessapp.backend.user.dto.UploadAvatarRequest;
 import com.fitnessapp.backend.user.dto.UploadAvatarResponse;
-import com.fitnessapp.backend.user.dto.UserProfileMapper;
 import com.fitnessapp.backend.user.dto.UserProfileResponse;
-import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.service.UserProfileService;
 
 import jakarta.validation.Valid;
@@ -81,15 +79,16 @@ public class AvatarController {
         }
 
         UUID userId = currentUser.userId();
-        log.info("Confirming avatar upload for user: {}, publicUrl: {}, fileKey: {}", 
+        log.info("Confirming avatar upload for user: {}, publicUrl: {}, fileKey: {}",
             userId, request.publicUrl(), request.fileKey());
 
-        UserProfile profile = userProfileService.getOrCreateProfile(userId);
-        log.info("Retrieved profile for user: {}, existing avatarUrl: {}, avatarFileKey: {}", 
-            userId, profile.getAvatarUrl(), profile.getAvatarFileKey());
+        // updateAvatarAndGetResponse handles the transaction and returns the DTO
+        // to avoid LazyInitializationException when accessing allergens
+        var result = userProfileService.updateAvatarAndGetResponse(userId, request.publicUrl(), request.fileKey());
+        UserProfileResponse response = result.response();
+        String oldFileKey = result.oldFileKey();
 
-        // Delete old avatar if exists
-        String oldFileKey = profile.getAvatarFileKey();
+        // Delete old avatar if exists (outside transaction to not block DB)
         if (oldFileKey != null && !oldFileKey.isEmpty()) {
             try {
                 log.info("Deleting old avatar file: {}", oldFileKey);
@@ -99,21 +98,8 @@ public class AvatarController {
             }
         }
 
-        profile.setAvatarUrl(request.publicUrl());
-        profile.setAvatarFileKey(request.fileKey());
-        
-        log.info("Setting new avatar - URL: {}, FileKey: {}", request.publicUrl(), request.fileKey());
-        log.info("Before save - profile avatarUrl: {}, avatarFileKey: {}", 
-            profile.getAvatarUrl(), profile.getAvatarFileKey());
-
-        UserProfile saved = userProfileService.save(profile);
-        log.info("Saved profile for user: {}, new avatarUrl: {}, avatarFileKey: {}", 
-            userId, saved.getAvatarUrl(), saved.getAvatarFileKey());
-
-        UserProfileResponse response = UserProfileMapper.toResponse(saved);
         log.info("Returning response with avatarUrl: {}", response.avatarUrl());
-        log.info("Full response: {}", response);
-        
+
         return ResponseEntity.ok(response);
     }
 }

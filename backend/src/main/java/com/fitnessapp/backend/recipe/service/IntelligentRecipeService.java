@@ -181,9 +181,6 @@ public class IntelligentRecipeService {
   private String buildPrompt(UserProfile profile, String mealType, List<String> equipment) {
     String goal = profile.getFitnessGoal() != null ? profile.getFitnessGoal().name() : "MAINTAIN";
     String dietary = profile.getDietaryPreference() != null ? profile.getDietaryPreference().name() : "NONE";
-    String allergens = profile.getAllergens() != null && !profile.getAllergens().isEmpty()
-        ? profile.getAllergens().stream().map(Enum::name).collect(Collectors.joining(", "))
-        : "NONE";
 
     int targetCalories = Optional.ofNullable(profile.getDailyCalorieTarget())
         .orElseGet(() -> Optional.ofNullable(profile.getBasalMetabolicRate()).orElse(2000));
@@ -209,7 +206,6 @@ public class IntelligentRecipeService {
         "User Profile:\n" +
         "- Fitness Goal: " + goal + "\n" +
         "- Dietary Preference: " + dietary + "\n" +
-        "- Allergens to Avoid: " + allergens + "\n" +
         "- Height: " + Optional.ofNullable(profile.getHeightCm()).orElse(170) + " cm\n" +
         "- Weight: " + Optional.ofNullable(profile.getWeightKg()).orElse(new BigDecimal("65.0")) + " kg\n\n" +
         "Recipe Requirements:\n" +
@@ -240,11 +236,10 @@ public class IntelligentRecipeService {
         "  \"tips\": \"Optional cooking tips or substitutions\"\n" +
         "}\n\n" +
         "Requirements:\n" +
-        "1. The recipe must avoid all listed allergens\n" +
-        "2. Match the dietary preference (e.g., vegetarian, vegan, etc.)\n" +
-        "3. Target the specified nutrition values (±10% is acceptable)\n" +
-        "4. Be practical and achievable with the available equipment\n" +
-        "5. Support the user's fitness goal (e.g., high protein for muscle gain)";
+        "1. Match the dietary preference (e.g., vegetarian, vegan, etc.)\n" +
+        "2. Target the specified nutrition values (±10% is acceptable)\n" +
+        "3. Be practical and achievable with the available equipment\n" +
+        "4. Support the user's fitness goal (e.g., high protein for muscle gain)";
   }
 
   /**

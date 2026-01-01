@@ -1,3 +1,4 @@
+import { api } from '@/services/apiClient';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -19,7 +20,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { api } from '@/services/apiClient';
 
 import { Button, Card, SafeAreaWrapper, Text, WheelPicker } from '@/components';
 import { StateView } from '@/components/common/StateView';
@@ -36,12 +36,12 @@ import {
 } from '@/services/geminiApi';
 import { useGoalStatistics } from '@/services/goalsApi';
 import userApi from '@/services/userApi';
+import type { CurrentUserResponse, UserProfileResponse } from '@/types';
 import { BRAND_COLORS, spacing, useContentBottomPadding } from '@/utils';
 import { clearJWT, getUserEmail } from '@/utils/jwtStorage';
-import type { CurrentUserResponse, UserProfileResponse } from '@/types';
 
 export const GENERATED_GOALS_KEY = '@generated_fitness_goals';
-const AVATAR_UPLOAD_CONTENT_TYPE = 'image/jpeg';
+const DEFAULT_AVATAR_CONTENT_TYPE = 'image/jpeg';
 
 const mapGoalTypeToFitnessGoal = (goalType: GoalType): string => {
   switch (goalType) {
@@ -215,11 +215,18 @@ const ProfileScreen = () => {
       const imageResponse = await fetch(imageUri);
       const blob = await imageResponse.blob();
 
-      // Keep presign and upload Content-Type aligned to avoid signature mismatch.
-      const detectedContentType = blob.type;
-      const contentType = AVATAR_UPLOAD_CONTENT_TYPE;
+      // Determine content type dynamically
+      let contentType = blob.type;
+      
+      // Fallback if blob type is missing or generic (common on some Android versions)
+      if (!contentType || contentType === 'application/octet-stream') {
+        const ext = imageUri.split('.').pop()?.toLowerCase();
+        if (ext === 'png') contentType = 'image/png';
+        else if (ext === 'webp') contentType = 'image/webp';
+        else contentType = DEFAULT_AVATAR_CONTENT_TYPE;
+      }
 
-      console.log('[ProfileScreen] Image blob type:', detectedContentType, 'Using contentType:', contentType);
+      console.log('[ProfileScreen] Image blob type:', blob.type, 'Detected content type:', contentType);
 
       // Step 2: Get presigned URL from backend with the correct content type
       const presignResponse = await api.post<{

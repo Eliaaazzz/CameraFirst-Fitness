@@ -1,7 +1,6 @@
 package com.fitnessapp.backend.recipe.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fitnessapp.backend.user.entity.Allergen;
 import com.fitnessapp.backend.user.entity.DietaryPreference;
 import com.fitnessapp.backend.recipe.entity.Recipe;
 import com.fitnessapp.backend.recipe.entity.RecipeIngredient;
@@ -12,9 +11,7 @@ import jakarta.persistence.EntityNotFoundException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -38,7 +35,6 @@ public class RecipeSwapService {
   private static final double MACRO_WEIGHT = 0.7;
   private static final double TIME_WEIGHT = 0.2;
   private static final double DIFFICULTY_WEIGHT = 0.1;
-  private static final Map<Allergen, List<String>> ALLERGEN_KEYWORDS = buildAllergenKeywords();
   private static final List<String> MEAT_KEYWORDS = List.of(
       "chicken", "beef", "pork", "lamb", "turkey", "duck", "ham", "bacon", "sausage",
       "fish", "salmon", "tuna", "shrimp", "prawn", "crab", "lobster", "clam", "oyster"
@@ -70,9 +66,6 @@ public class RecipeSwapService {
         continue;
       }
       if (!matchesDietaryPreference(candidate, profile.getDietaryPreference())) {
-        continue;
-      }
-      if (violatesAllergens(candidate, profile.getAllergens())) {
         continue;
       }
 
@@ -109,15 +102,6 @@ public class RecipeSwapService {
         .sorted(Comparator.comparingDouble(AlternativeRecipe::score).reversed())
         .limit(3)
         .collect(Collectors.toList());
-  }
-
-  private static Map<Allergen, List<String>> buildAllergenKeywords() {
-    Map<Allergen, List<String>> map = new EnumMap<>(Allergen.class);
-    map.put(Allergen.LACTOSE, List.of("milk", "cheese", "butter", "cream", "yogurt", "lactose"));
-    map.put(Allergen.GLUTEN, List.of("wheat", "barley", "rye", "flour", "bread", "pasta", "noodle", "gluten"));
-    map.put(Allergen.NUTS, List.of("almond", "cashew", "walnut", "pecan", "peanut", "hazelnut", "pistachio", "nut", "nuts"));
-    map.put(Allergen.SEAFOOD, List.of("shrimp", "prawn", "crab", "lobster", "clam", "oyster", "mussel", "fish", "salmon", "tuna", "seafood"));
-    return Collections.unmodifiableMap(map);
   }
 
   private Nutrition extractNutrition(Recipe recipe) {
@@ -180,24 +164,6 @@ public class RecipeSwapService {
         return true;
       }
     }
-  }
-
-  private boolean violatesAllergens(Recipe recipe, Set<Allergen> allergens) {
-    if (CollectionUtils.isEmpty(allergens)) {
-      return false;
-    }
-    Set<String> ingredients = ingredientNameSet(recipe);
-    if (ingredients.isEmpty()) {
-      return false;
-    }
-    for (Allergen allergen : allergens) {
-      List<String> keywords = ALLERGEN_KEYWORDS.getOrDefault(allergen, List.of());
-      boolean contains = ingredients.stream().anyMatch(name -> containsAny(name, keywords));
-      if (contains) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private Set<String> ingredientNameSet(Recipe recipe) {

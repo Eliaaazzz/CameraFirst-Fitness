@@ -8,6 +8,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fitnessapp.backend.user.dto.UserProfileMapper;
+import com.fitnessapp.backend.user.dto.UserProfileResponse;
 import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
@@ -69,6 +71,23 @@ public class UserProfileService {
         saved.getAvatarUrl(), saved.getAvatarFileKey());
     return saved;
   }
+
+  /**
+   * Updates avatar and returns the response DTO within the same transaction.
+   */
+  @Transactional
+  public AvatarUpdateResponseResult updateAvatarAndGetResponse(UUID userId, String url, String key) {
+    UserProfile profile = getOrCreateProfile(userId);
+    String oldKey = profile.getAvatarFileKey();
+    profile.setAvatarUrl(url);
+    profile.setAvatarFileKey(key);
+    UserProfile saved = save(profile);
+    // Map to DTO while still in transaction so lazy collections can be loaded
+    UserProfileResponse response = UserProfileMapper.toResponse(saved);
+    return new AvatarUpdateResponseResult(response, oldKey);
+  }
+
+  public record AvatarUpdateResponseResult(UserProfileResponse response, String oldFileKey) {}
 
   private void computeDerivedMetrics(UserProfile profile) {
     Integer heightCm = profile.getHeightCm();

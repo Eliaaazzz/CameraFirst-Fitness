@@ -2,14 +2,10 @@ package com.fitnessapp.backend.user.entity;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -75,13 +71,6 @@ public class UserProfile {
   @Builder.Default
   private HealthMode healthMode = HealthMode.PREVENTION;
 
-  @ElementCollection(fetch = FetchType.LAZY)
-  @CollectionTable(name = "user_profile_allergens", joinColumns = @JoinColumn(name = "user_id"))
-  @Enumerated(EnumType.STRING)
-  @Column(name = "allergen", length = 32, nullable = false)
-  @Builder.Default
-  private Set<Allergen> allergens = new HashSet<>();
-
   @Column(name = "daily_calorie_target")
   private Integer dailyCalorieTarget;
 
@@ -133,10 +122,5 @@ public class UserProfile {
     this.dailyFatTarget = source.getDailyFatTarget();
     this.avatarUrl = source.getAvatarUrl();
     this.avatarFileKey = source.getAvatarFileKey();
-
-    this.allergens.clear();
-    if (source.getAllergens() != null) {
-      this.allergens.addAll(source.getAllergens());
-    }
   }
 }

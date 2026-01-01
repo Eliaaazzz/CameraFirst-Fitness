@@ -116,7 +116,7 @@ public class MealPlanController {
 
   @Operation(
       summary = "Suggest alternative recipes",
-      description = "Returns nutrition-similar replacement recipes after filtering allergens and dietary preferences"
+      description = "Returns nutrition-similar replacement recipes after filtering by dietary preferences"
   )
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "Suggestions generated successfully"),

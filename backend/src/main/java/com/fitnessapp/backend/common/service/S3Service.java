@@ -45,13 +45,13 @@ public class S3Service {
      * @return presigned upload result
      */
     public PresignedUploadResult generatePresignedUrl(String pathPrefix, UUID userId, String contentType) {
-        String fileKey = String.format("%s/%s/%s", pathPrefix, userId, UUID.randomUUID());
+        String extension = getExtension(contentType);
+        String fileKey = String.format("%s/%s/%s%s", pathPrefix, userId, UUID.randomUUID(), extension);
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(fileKey)
                 .contentType(contentType)
-                .acl("public-read")  // Make uploaded files publicly readable
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
@@ -118,6 +118,17 @@ public class S3Service {
 
     private String buildPublicUrl(String fileKey) {
         return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, fileKey);
+    }
+
+    private String getExtension(String contentType) {
+        if (contentType == null) return "";
+        return switch (contentType.toLowerCase()) {
+            case "image/jpeg", "image/jpg" -> ".jpg";
+            case "image/png" -> ".png";
+            case "image/webp" -> ".webp";
+            case "image/gif" -> ".gif";
+            default -> "";
+        };
     }
 
     public record PresignedUploadResult(String uploadUrl, String publicUrl, String fileKey) {}

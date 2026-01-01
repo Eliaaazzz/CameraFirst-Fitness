@@ -29,6 +29,7 @@ services:
   backend:
     # Use local image for development
     image: fitness-backend:local
+    build: ./backend
     container_name: fitness-backend
     restart: unless-stopped
     depends_on:
