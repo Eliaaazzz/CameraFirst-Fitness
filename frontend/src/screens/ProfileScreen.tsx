@@ -1019,7 +1019,7 @@ const ProfileScreen = () => {
                 <Image
                   key={avatarCacheKey}
                   source={{ uri: avatarUri }}
-                  style={[styles.avatarImage, { backgroundColor: 'red' }]}
+                  style={styles.avatarImage}
                   onLoadStart={() => console.log('[ProfileScreen] Avatar load start:', avatarUri)}
                   onLoadEnd={() => console.log('[ProfileScreen] Avatar load end')}
                   onError={(event) => console.log('[ProfileScreen] Avatar load error:', event.nativeEvent.error)}
