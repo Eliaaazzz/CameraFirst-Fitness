@@ -24,7 +24,7 @@ import useCurrentUser from '@/hooks/useCurrentUser';
 import { useDailyNutrition } from '@/hooks/useDailyNutrition';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
 import { useGoals, useGoalStatistics } from '@/services/goalsApi';
-import { BRAND_COLORS, spacing } from '@/utils';
+import { BRAND_COLORS, colors, spacing } from '@/utils';
 import { GENERATED_GOALS_KEY } from './ProfileScreen';
 
 // Goal type display config
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   greeting: {
-    opacity: 0.6,
+    color: colors.light.textSecondary,
     marginBottom: spacing.xs,
   },
   profileButton: {
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   goalItemLabel: {
-    opacity: 0.6,
+    color: colors.light.textSecondary,
     marginTop: 2,
   },
   activityRow: {
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
+    borderTopColor: colors.light.border,
   },
   activityItem: {
     flexDirection: 'row',
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   setGoalsSubtext: {
-    opacity: 0.7,
+    color: colors.light.textSecondary,
     marginTop: 2,
   },
   quickStats: {
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   statLabel: {
-    opacity: 0.6,
+    color: colors.light.textSecondary,
     textAlign: 'center',
   },
   calorieCard: {
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   calorieRatio: {
-    opacity: 0.7,
+    color: colors.light.textSecondary,
   },
   circularProgress: {
     alignItems: 'center',
@@ -644,7 +644,7 @@ const styles = StyleSheet.create({
     color: BRAND_COLORS.primary,
   },
   calorieSubtext: {
-    opacity: 0.6,
+    color: colors.light.textSecondary,
   },
   macrosContainer: {
     gap: spacing.sm,
@@ -660,11 +660,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   macroValue: {
-    opacity: 0.7,
+    color: colors.light.textSecondary,
   },
   macroBarBg: {
     height: 8,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: colors.light.border,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -708,10 +708,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   emptyMealsText: {
-    opacity: 0.7,
+    color: colors.light.textSecondary,
   },
   emptyMealsHint: {
-    opacity: 0.5,
+    color: colors.light.textMuted,
     textAlign: 'center',
   },
   mealItem: {
@@ -734,7 +734,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   mealTime: {
-    opacity: 0.6,
+    color: colors.light.textSecondary,
   },
   mealCalories: {
     color: BRAND_COLORS.primary,
@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   mealMacroText: {
-    opacity: 0.7,
+    color: colors.light.textSecondary,
   },
 });
 

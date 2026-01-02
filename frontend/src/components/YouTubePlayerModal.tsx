@@ -65,7 +65,7 @@ export const YouTubePlayerModal: React.FC<YouTubePlayerModalProps> = ({
         startInLoadingState
         renderLoading={() => (
           <View style={[styles.loadingContainer, { width: videoWidth, height: videoHeight }]}>
-            <ActivityIndicator size="large" color={colors.dark.primary} />
+            <ActivityIndicator size="large" color={colors.light.primary} />
           </View>
         )}
       />

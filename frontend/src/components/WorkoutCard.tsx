@@ -1,11 +1,11 @@
 import { BookmarkButton, Button, Text, useSnackbar, YouTubePlayerModal } from '@/components';
 import type { WorkoutCard as Workout } from '@/types';
-import { colors, radii, shadows, spacing, useResponsiveValue } from '@/utils';
+import { colors, getTheme, radii, shadows, spacing, useResponsiveValue } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, View, useColorScheme } from 'react-native';
 
 type Props = {
   item: Workout;
@@ -19,6 +19,8 @@ type Props = {
  * Clean design, purple palette, micro-animations
  */
 export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
+  // Always use light mode
+  const theme = getTheme('light');
   const [saving, setSaving] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
   const { showSnackbar } = useSnackbar();
@@ -72,8 +74,6 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
     }
   };
 
-  const dark = colors.dark;
-
   // Dynamic styles for hover/press effect
   const cardDynamicStyle = {
     transform: [{ scale: isHovered ? 1.05 : 1 }],
@@ -89,7 +89,7 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
     <Pressable
       onPressIn={Platform.OS !== 'web' ? handlePressIn : undefined}
       onPressOut={Platform.OS !== 'web' ? handlePressOut : undefined}
-      style={[styles.card, cardDynamicStyle]}
+      style={[styles.card, { backgroundColor: theme.colors.surface }, cardDynamicStyle]}
       {...webHoverProps}
     >
       {/* Image */}
@@ -101,7 +101,7 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
             resizeMode="cover"
           />
         ) : (
-          <View style={[styles.image, { backgroundColor: dark.surfaceVariant }]} />
+          <View style={[styles.image, { backgroundColor: theme.colors.surfaceVariant }]} />
         )}
         
         {/* Gradient overlay */}
@@ -111,18 +111,18 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
         />
         
         {/* Level chip */}
-        <View style={styles.chip}>
+        <View style={[styles.chip, { backgroundColor: theme.colors.primary }]}>
           <Text variant="label" style={{ color: '#FFF', fontSize: 11 }}>{level}</Text>
         </View>
       </View>
 
       {/* Content */}
       <View style={styles.content}>
-        <Text variant="body" weight="semibold" numberOfLines={2} style={{ color: dark.textPrimary }}>
+        <Text variant="body" weight="semibold" numberOfLines={2} style={{ color: theme.colors.textPrimary }}>
           {item.title}
         </Text>
         
-        <Text variant="caption" style={{ color: dark.textSecondary }}>
+        <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
           {duration}{equipment ? ` · ${equipment}` : ''}
         </Text>
 
@@ -136,12 +136,13 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
               setShowPlayer(true);
             }}
+            style={{ backgroundColor: theme.colors.primary }}
           />
           <BookmarkButton
             isSaved={!!isSaved}
             isLoading={saving}
             onPress={handleBookmark}
-            color={dark.primary}
+            color={theme.colors.primary}
           />
         </View>
       </View>
@@ -159,10 +160,13 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.dark.surface,
     borderRadius: radii.xl,
     overflow: 'hidden',
-    ...shadows.dark.medium,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   imageContainer: {
     position: 'relative',
@@ -179,7 +183,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.sm,
     right: spacing.sm,
-    backgroundColor: colors.dark.primary,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radii.sm,

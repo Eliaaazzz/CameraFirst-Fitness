@@ -46,7 +46,7 @@ export const BookmarkButton = ({
   isSaved,
   isLoading,
   onPress,
-  color = '#4ECDC4',
+  color = '#EC4899',
   size = 24,
   accessibilityLabel,
   style,

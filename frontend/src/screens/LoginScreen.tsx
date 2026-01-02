@@ -1,4 +1,4 @@
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
@@ -17,9 +17,9 @@ import {
   Text,
   TextInput,
   TouchableWithoutFeedback,
-  useWindowDimensions,
   View,
 } from 'react-native';
+import Svg, { Circle, Defs, Ellipse, G, LinearGradient as SvgLinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -38,198 +38,167 @@ const GOOGLE_ANDROID_CLIENT_ID = EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process
 const GOOGLE_WEB_CLIENT_ID = EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
 // ============================================================================
-// Design Tokens - iOS HIG Inspired
+// Design Tokens - Modern Light Theme
 // ============================================================================
-const TOKENS = {
-  // Colors
-  colors: {
-    // Gradient background
-    gradientStart: '#FBFAFF',
-    gradientMid: '#EFE9FF',
-    gradientEnd: '#E7DFFF',
+const COLORS = {
+  // Brand
+  brand50: '#F3E8FF', // Light Lavender
+  brand100: '#E9D5FF',
+  brand500: '#8B5CF6',
+  brand600: '#7C3AED', // Primary Purple
+  brand700: '#6D28D9',
 
-    // Surfaces
-    cardBg: '#FFFFFF',
-    mobilePanelBg: 'rgba(255,255,255,0.92)',
+  // Surfaces
+  white: '#FFFFFF',
+  background: '#F3E8FF', // Main Background
 
-    // Primary purple
-    primary: '#7C3AED',
-    primaryLight: '#A78BFA',
-    primaryDisabled: '#C4B5FD',
-    primaryContainer: '#F5F3FF',
+  // Text
+  gray50: '#F9FAFB',
+  gray100: '#F3F4F6',
+  gray200: '#E5E7EB',
+  gray400: '#9CA3AF',
+  gray500: '#6B7280',
+  gray700: '#374151',
+  gray800: '#1F2937',
+  gray900: '#111827',
 
-    // Text
-    textPrimary: '#111827',
-    textSecondary: '#6B7280',
-    textMuted: '#9CA3AF',
-    textOnPrimary: '#FFFFFF',
+  // States
+  error: '#EF4444',
+  errorBg: '#FEE2E2',
+};
 
-    // Input
-    inputBg: '#FFFFFF',
-    inputBorder: '#E5E7EB',
-    inputBorderFocus: '#8B5CF6',
-    inputIcon: '#9CA3AF',
-    placeholder: '#9CA3AF',
+const SPACING = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  '2xl': 24,
+  '3xl': 32,
+  '4xl': 40,
+};
 
-    // Buttons
-    googleBg: '#FFFFFF',
-    googleBorder: '#E5E7EB',
-    appleBg: '#111827',
-
-    // Divider
-    divider: '#E5E7EB',
-
-    // Error
-    errorBg: '#FEE2E2',
-    errorText: '#991B1B',
-
-    // Link
-    link: '#7C3AED',
-  },
-
-  // Spacing
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 20,
-    '2xl': 24,
-    '3xl': 32,
-  },
-
-  // Border radius
-  radii: {
-    input: 14,
-    button: 16,
-    card: 24,
-    mobilePanel: 20,
-    logoBadge: 32,
-  },
-
-  // Shadows
-  shadows: {
-    card: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 12 },
-      shadowOpacity: 0.08,
-      shadowRadius: 24,
-      elevation: 12,
-    },
-    inputFocus: {
-      shadowColor: '#8B5CF6',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.10,
-      shadowRadius: 8,
-      elevation: 2,
-    },
-    button: {
-      shadowColor: '#7C3AED',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.25,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-  },
-
-  // Typography
-  typography: {
-    title: {
-      fontSize: 34,
-      fontWeight: '700' as const,
-      color: '#111827',
-      letterSpacing: -0.5,
-    },
-    subtitle: {
-      fontSize: 15,
-      fontWeight: '400' as const,
-      color: '#6B7280',
-    },
-    label: {
-      fontSize: 13,
-      fontWeight: '600' as const,
-      color: '#6B7280',
-    },
-    input: {
-      fontSize: 16,
-      fontWeight: '400' as const,
-      color: '#111827',
-    },
-    button: {
-      fontSize: 17,
-      fontWeight: '600' as const,
-    },
-    link: {
-      fontSize: 14,
-      fontWeight: '500' as const,
-      color: '#7C3AED',
-    },
-    legal: {
-      fontSize: 12,
-      fontWeight: '400' as const,
-      color: '#6B7280',
-      lineHeight: 18,
-    },
-  },
-
-  // Sizes
-  sizes: {
-    inputHeight: 52,
-    buttonHeight: 54,
-    logoBadge: 64,
-    logoIcon: 28,
-    inputIcon: 20,
-  },
-
-  // Breakpoints
-  breakpoints: {
-    desktop: 520,
-  },
+const RADII = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  '2xl': 32,
 };
 
 // ============================================================================
-// Responsive Hook
+// AuraFit Logo Component (SVG)
 // ============================================================================
-const useResponsiveLayout = () => {
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= TOKENS.breakpoints.desktop;
+const AuraFitLogo = ({ size = 112 }: { size?: number }) => (
+  <View style={{ width: size, height: size }}>
+    <Svg viewBox="0 0 120 120" width={size} height={size}>
+      <Defs>
+        {/* Main Sphere Gradient */}
+        <RadialGradient id="sphereGrad" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+          <Stop offset="0%" stopColor="#F3E8FF" />
+          <Stop offset="60%" stopColor="#8B5CF6" />
+          <Stop offset="100%" stopColor="#581C87" />
+        </RadialGradient>
 
-  return {
-    isDesktop,
-    isMobile: !isDesktop,
-    width,
-  };
-};
+        {/* 'A' Gradient */}
+        <SvgLinearGradient id="aGrad" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0%" stopColor="#E9D5FF" />
+          <Stop offset="100%" stopColor="#9333EA" />
+        </SvgLinearGradient>
 
-// ============================================================================
-// Components
-// ============================================================================
+        {/* Weight Gradient */}
+        <SvgLinearGradient id="weightGrad" x1="0" y1="0" x2="1" y2="0">
+          <Stop offset="0%" stopColor="#4C1D95" />
+          <Stop offset="30%" stopColor="#C4B5FD" />
+          <Stop offset="50%" stopColor="#8B5CF6" />
+          <Stop offset="80%" stopColor="#5B21B6" />
+          <Stop offset="100%" stopColor="#4C1D95" />
+        </SvgLinearGradient>
 
-// Logo Badge Component
-const LogoBadge = () => (
-  <View style={styles.logoBadge}>
-    <View style={styles.logoInnerCircle}>
-      <MaterialCommunityIcons
-        name="dumbbell"
-        size={TOKENS.sizes.logoIcon}
-        color={TOKENS.colors.primary}
+        {/* Bar Gradient */}
+        <SvgLinearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0%" stopColor="#7C3AED" />
+          <Stop offset="50%" stopColor="#E9D5FF" />
+          <Stop offset="100%" stopColor="#7C3AED" />
+        </SvgLinearGradient>
+      </Defs>
+
+      {/* Main Background Circle */}
+      <Circle cx="60" cy="60" r="58" fill="url(#sphereGrad)" stroke="#8B5CF6" strokeWidth="1" />
+
+      {/* Top Shine/Reflection */}
+      <Ellipse cx="60" cy="25" rx="35" ry="12" fill="white" fillOpacity={0.2} />
+
+      {/* The 'A' Shape - Squat/Fat Structure */}
+      <Path
+        d="M 34 88 L 60 42 L 86 88"
+        stroke="url(#aGrad)"
+        strokeWidth="14"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
       />
-    </View>
+
+      {/* The Barbell Group */}
+      <G>
+        {/* Bar - Curved Upwards */}
+        <Path
+          d="M 28 68 Q 60 60 92 68"
+          stroke="url(#barGrad)"
+          strokeWidth="6"
+          strokeLinecap="round"
+          fill="none"
+        />
+
+        {/* Left Weight */}
+        <G transform="translate(28, 68) rotate(-15)">
+          <Rect x="-8" y="-10" width="4" height="20" rx="1" fill="#5B21B6" />
+          <Rect x="-4" y="-14" width="10" height="28" rx="3" fill="url(#weightGrad)" />
+          <Rect x="6" y="-10" width="3" height="20" rx="1" fill="#5B21B6" />
+        </G>
+
+        {/* Right Weight */}
+        <G transform="translate(92, 68) rotate(15)">
+          <Rect x="4" y="-10" width="4" height="20" rx="1" fill="#5B21B6" />
+          <Rect x="-6" y="-14" width="10" height="28" rx="3" fill="url(#weightGrad)" />
+          <Rect x="-9" y="-10" width="3" height="20" rx="1" fill="#5B21B6" />
+        </G>
+      </G>
+
+      {/* Bottom Glow/Shadow */}
+      <Path d="M 30 102 Q 60 112 90 102" stroke="none" fill="#4C1D95" fillOpacity={0.3} />
+    </Svg>
   </View>
 );
 
-// Google G Icon (multi-color)
+// ============================================================================
+// Google Icon Component
+// ============================================================================
 const GoogleIcon = () => (
-  <View style={styles.googleIconContainer}>
-    <Text style={styles.googleG}>
-      <Text style={{ color: '#4285F4' }}>G</Text>
-    </Text>
-  </View>
+  <Svg width={20} height={20} viewBox="0 0 24 24">
+    <Path
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      fill="#4285F4"
+    />
+    <Path
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      fill="#34A853"
+    />
+    <Path
+      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+      fill="#FBBC05"
+    />
+    <Path
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      fill="#EA4335"
+    />
+  </Svg>
 );
 
+// ============================================================================
 // Input Field Component
+// ============================================================================
 interface InputFieldProps {
-  label: string;
   icon: keyof typeof Ionicons.glyphMap;
   placeholder: string;
   value: string;
@@ -238,14 +207,11 @@ interface InputFieldProps {
   showToggle?: boolean;
   onToggleSecure?: () => void;
   isSecureVisible?: boolean;
-  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   keyboardType?: 'default' | 'email-address';
   textContentType?: 'emailAddress' | 'password' | 'newPassword';
-  accessibilityLabel: string;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
-  label,
   icon,
   placeholder,
   value,
@@ -254,67 +220,77 @@ const InputField: React.FC<InputFieldProps> = ({
   showToggle = false,
   onToggleSecure,
   isSecureVisible = false,
-  autoCapitalize = 'none',
   keyboardType = 'default',
   textContentType,
-  accessibilityLabel,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
   return (
-    <View style={styles.fieldContainer}>
-      <Text style={styles.inputLabel}>{label}</Text>
-      <View
-        style={[
-          styles.inputContainer,
-          isFocused && styles.inputContainerFocused,
-        ]}
-      >
-        <Ionicons
-          name={icon}
-          size={TOKENS.sizes.inputIcon}
-          color={TOKENS.colors.inputIcon}
-          style={styles.inputIcon}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder={placeholder}
-          placeholderTextColor={TOKENS.colors.placeholder}
-          value={value}
-          onChangeText={onChangeText}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          secureTextEntry={secureTextEntry && !isSecureVisible}
-          autoCapitalize={autoCapitalize}
-          autoCorrect={false}
-          keyboardType={keyboardType}
-          textContentType={textContentType}
-          accessibilityLabel={accessibilityLabel}
-        />
-        {showToggle && (
-          <Pressable
-            onPress={onToggleSecure}
-            style={styles.eyeButton}
-            accessibilityLabel={isSecureVisible ? 'Hide password' : 'Show password'}
-          >
-            <Ionicons
-              name={isSecureVisible ? 'eye-off-outline' : 'eye-outline'}
-              size={TOKENS.sizes.inputIcon}
-              color={TOKENS.colors.inputIcon}
-            />
-          </Pressable>
-        )}
+    <View style={[styles.inputContainer, isFocused && styles.inputContainerFocused]}>
+      <View style={styles.inputIconContainer}>
+        <Ionicons name={icon} size={20} color={COLORS.gray400} />
       </View>
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.gray400}
+        value={value}
+        onChangeText={onChangeText}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        secureTextEntry={secureTextEntry && !isSecureVisible}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType={keyboardType}
+        textContentType={textContentType}
+      />
+      {showToggle && (
+        <Pressable onPress={onToggleSecure} style={styles.eyeButton}>
+          <Ionicons
+            name={isSecureVisible ? 'eye-off-outline' : 'eye-outline'}
+            size={20}
+            color={COLORS.gray400}
+          />
+        </Pressable>
+      )}
     </View>
   );
 };
 
-// Error Message Component
-const ErrorMessage: React.FC<{ message: string }> = ({ message }) => (
-  <View style={styles.errorContainer}>
-    <Text style={styles.errorText}>{message}</Text>
-  </View>
-);
+// ============================================================================
+// Social Button Component
+// ============================================================================
+interface SocialButtonProps {
+  provider: 'google' | 'apple';
+  onPress: () => void;
+  disabled?: boolean;
+}
+
+const SocialButton: React.FC<SocialButtonProps> = ({ provider, onPress, disabled }) => {
+  const isGoogle = provider === 'google';
+
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.socialButton,
+        isGoogle ? styles.googleButton : styles.appleButton,
+        pressed && styles.socialButtonPressed,
+        disabled && styles.buttonDisabled,
+      ]}
+      onPress={onPress}
+      disabled={disabled}
+    >
+      {isGoogle ? (
+        <GoogleIcon />
+      ) : (
+        <Ionicons name="logo-apple" size={20} color={COLORS.white} />
+      )}
+      <Text style={[styles.socialButtonText, !isGoogle && styles.appleButtonText]}>
+        Continue with {isGoogle ? 'Google' : 'Apple'}
+      </Text>
+    </Pressable>
+  );
+};
 
 // ============================================================================
 // Main Login Screen
@@ -322,7 +298,6 @@ const ErrorMessage: React.FC<{ message: string }> = ({ message }) => (
 export default function LoginScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { isDesktop } = useResponsiveLayout();
 
   // Auth state
   const [isLoading, setIsLoading] = useState(false);
@@ -485,148 +460,12 @@ export default function LoginScreen() {
     navigation.navigate('Register' as never);
   };
 
-  // Dismiss keyboard
-  const dismissKeyboard = () => {
-    Keyboard.dismiss();
-  };
-
-  // Render form content
-  const renderFormContent = () => (
-    <>
-      {/* Logo */}
-      <LogoBadge />
-
-      {/* Title */}
-      <Text style={styles.title}>AuraFit</Text>
-      <Text style={styles.subtitle}>Welcome back! Sign in to continue.</Text>
-
-      {/* Error Message */}
-      {error && <ErrorMessage message={error} />}
-
-      {/* Email Input */}
-      <InputField
-        label="Email"
-        icon="mail-outline"
-        placeholder="name@example.com"
-        value={email}
-        onChangeText={(text) => { setEmail(text); setError(null); }}
-        keyboardType="email-address"
-        textContentType="emailAddress"
-        accessibilityLabel="Email address input"
-      />
-
-      {/* Password Input */}
-      <InputField
-        label="Password"
-        icon="lock-closed-outline"
-        placeholder="••••••••"
-        value={password}
-        onChangeText={(text) => { setPassword(text); setError(null); }}
-        secureTextEntry
-        showToggle
-        onToggleSecure={() => setShowPassword(!showPassword)}
-        isSecureVisible={showPassword}
-        textContentType="password"
-        accessibilityLabel="Password input"
-      />
-
-      {/* Forgot Password */}
-      <Pressable
-        onPress={handleForgotPassword}
-        style={styles.forgotPasswordContainer}
-        accessibilityLabel="Forgot password"
-      >
-        <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-      </Pressable>
-
-      {/* Sign In Button */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.primaryButton,
-          !isFormValid && styles.primaryButtonDisabled,
-          pressed && isFormValid && !isLoading && styles.primaryButtonPressed,
-        ]}
-        onPress={handleEmailLogin}
-        disabled={!isFormValid || isLoading}
-        accessibilityLabel="Sign in"
-        accessibilityState={{ disabled: !isFormValid || isLoading }}
-      >
-        {isLoading ? (
-          <View style={styles.loadingContent}>
-            <ActivityIndicator size="small" color={TOKENS.colors.textOnPrimary} />
-            <Text style={styles.primaryButtonText}>Signing in...</Text>
-          </View>
-        ) : (
-          <Text style={styles.primaryButtonText}>Sign In</Text>
-        )}
-      </Pressable>
-
-      {/* Divider */}
-      <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>OR</Text>
-        <View style={styles.dividerLine} />
-      </View>
-
-      {/* Google Button */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.socialButton,
-          styles.googleButton,
-          pressed && styles.socialButtonPressed,
-          !request && styles.buttonDisabled,
-        ]}
-        disabled={!request || isLoading}
-        onPress={() => promptAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined)}
-        accessibilityLabel="Continue with Google"
-      >
-        <GoogleIcon />
-        <Text style={styles.googleButtonText}>Continue with Google</Text>
-      </Pressable>
-
-      {/* Apple Button */}
-      {appleAuthAvailable && (
-        <Pressable
-          style={({ pressed }) => [
-            styles.socialButton,
-            styles.appleButton,
-            pressed && styles.socialButtonPressed,
-          ]}
-          onPress={handleAppleLogin}
-          disabled={isLoading}
-          accessibilityLabel="Continue with Apple"
-        >
-          <Ionicons name="logo-apple" size={20} color={TOKENS.colors.textOnPrimary} />
-          <Text style={styles.appleButtonText}>Continue with Apple</Text>
-        </Pressable>
-      )}
-
-      {/* Create Account */}
-      <View style={styles.createAccountContainer}>
-        <Text style={styles.createAccountText}>Don't have an account?  </Text>
-        <Pressable onPress={handleCreateAccount} accessibilityLabel="Create account">
-          <Text style={styles.createAccountLink}>Create account</Text>
-        </Pressable>
-      </View>
-
-      {/* Legal */}
-      <View style={styles.legalContainer}>
-        <Text style={styles.legalText}>
-          By continuing, you agree to our{' '}
-          <Text style={styles.legalLink}>Terms of Service</Text>
-          {' '}and{' '}
-          <Text style={styles.legalLink}>Privacy Policy</Text>.
-        </Text>
-      </View>
-    </>
-  );
-
   return (
     <LinearGradient
-      colors={[TOKENS.colors.gradientStart, TOKENS.colors.gradientMid, TOKENS.colors.gradientEnd]}
+      colors={['#F3E8FF', '#F3E8FF', '#FFFFFF']}
       style={styles.gradient}
     >
-      <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView
           style={styles.keyboardView}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -634,26 +473,112 @@ export default function LoginScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.scrollContent,
-              { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 },
+              { paddingTop: insets.top + SPACING.xl, paddingBottom: insets.bottom + SPACING.xl },
             ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {isDesktop ? (
-              // Desktop: Centered card
-              <View style={styles.desktopWrapper}>
-                <View style={styles.card}>
-                  {renderFormContent()}
-                </View>
+            <View style={styles.card}>
+              {/* Logo Section */}
+              <View style={styles.logoSection}>
+                <AuraFitLogo size={112} />
+                <Text style={styles.title}>AuraFit</Text>
+                <Text style={styles.subtitle}>Welcome back! Sign in to continue.</Text>
               </View>
-            ) : (
-              // Mobile: Panel layout
-              <View style={styles.mobileWrapper}>
-                <View style={styles.mobilePanel}>
-                  {renderFormContent()}
+
+              {/* Error Message */}
+              {error && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{error}</Text>
                 </View>
+              )}
+
+              {/* Form Section */}
+              <View style={styles.formSection}>
+                <InputField
+                  icon="mail-outline"
+                  placeholder="Email address"
+                  value={email}
+                  onChangeText={(text) => { setEmail(text); setError(null); }}
+                  keyboardType="email-address"
+                  textContentType="emailAddress"
+                />
+
+                <InputField
+                  icon="lock-closed-outline"
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={(text) => { setPassword(text); setError(null); }}
+                  secureTextEntry
+                  showToggle
+                  onToggleSecure={() => setShowPassword(!showPassword)}
+                  isSecureVisible={showPassword}
+                  textContentType="password"
+                />
+
+                <Pressable onPress={handleForgotPassword} style={styles.forgotPasswordContainer}>
+                  <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.signInButton,
+                    !isFormValid && styles.signInButtonDisabled,
+                    pressed && isFormValid && !isLoading && styles.signInButtonPressed,
+                  ]}
+                  onPress={handleEmailLogin}
+                  disabled={!isFormValid || isLoading}
+                >
+                  {isLoading ? (
+                    <View style={styles.loadingContent}>
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                      <Text style={styles.signInButtonText}>Signing in...</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.signInButtonText}>Sign In</Text>
+                  )}
+                </Pressable>
               </View>
-            )}
+
+              {/* Divider */}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>Or continue with</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Social Login */}
+              <View style={styles.socialSection}>
+                <SocialButton
+                  provider="google"
+                  onPress={() => promptAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined)}
+                  disabled={!request || isLoading}
+                />
+                {appleAuthAvailable && (
+                  <SocialButton
+                    provider="apple"
+                    onPress={handleAppleLogin}
+                    disabled={isLoading}
+                  />
+                )}
+              </View>
+
+              {/* Footer */}
+              <View style={styles.footer}>
+                <View style={styles.signUpContainer}>
+                  <Text style={styles.signUpText}>Don't have an account? </Text>
+                  <Pressable onPress={handleCreateAccount}>
+                    <Text style={styles.signUpLink}>Sign up</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={styles.legalText}>
+                  By continuing, you agree to our{' '}
+                  <Text style={styles.legalLink}>Terms of Service</Text> and{' '}
+                  <Text style={styles.legalLink}>Privacy Policy</Text>.
+                </Text>
+              </View>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
@@ -674,250 +599,215 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-  },
-
-  // Desktop layout
-  desktopWrapper: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: TOKENS.spacing.xl,
+    paddingHorizontal: SPACING.xl,
   },
   card: {
-    width: '92%',
-    maxWidth: 520,
-    backgroundColor: TOKENS.colors.cardBg,
-    borderRadius: TOKENS.radii.card,
-    paddingHorizontal: 40,
-    paddingVertical: 48,
-    ...TOKENS.shadows.card,
+    backgroundColor: COLORS.white,
+    borderRadius: RADII.xl,
+    paddingHorizontal: SPACING['2xl'],
+    paddingVertical: SPACING['3xl'],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 12,
+    maxWidth: 420,
+    width: '100%',
   },
 
-  // Mobile layout
-  mobileWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: TOKENS.spacing.xl,
-  },
-  mobilePanel: {
-    backgroundColor: TOKENS.colors.mobilePanelBg,
-    borderRadius: TOKENS.radii.mobilePanel,
-    padding: TOKENS.spacing.xl,
-  },
-
-  // Logo
-  logoBadge: {
-    alignSelf: 'center',
-    width: TOKENS.sizes.logoBadge,
-    height: TOKENS.sizes.logoBadge,
-    borderRadius: TOKENS.radii.logoBadge,
-    backgroundColor: TOKENS.colors.primaryContainer,
-    borderWidth: 2,
-    borderColor: TOKENS.colors.primaryLight,
-    justifyContent: 'center',
+  // Logo Section
+  logoSection: {
     alignItems: 'center',
-    marginBottom: TOKENS.spacing.lg,
+    marginBottom: SPACING['2xl'],
   },
-  logoInnerCircle: {
-    width: TOKENS.sizes.logoBadge - 16,
-    height: TOKENS.sizes.logoBadge - 16,
-    borderRadius: (TOKENS.sizes.logoBadge - 16) / 2,
-    backgroundColor: TOKENS.colors.cardBg,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Typography
   title: {
-    ...TOKENS.typography.title,
-    textAlign: 'center',
-    marginBottom: TOKENS.spacing.xs,
+    fontSize: 30,
+    fontWeight: '700',
+    color: COLORS.gray900,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.xs,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    ...TOKENS.typography.subtitle,
+    fontSize: 14,
+    color: COLORS.gray500,
     textAlign: 'center',
-    marginBottom: TOKENS.spacing['2xl'],
   },
 
   // Error
   errorContainer: {
-    backgroundColor: TOKENS.colors.errorBg,
-    borderRadius: TOKENS.spacing.sm,
-    padding: TOKENS.spacing.md,
-    marginBottom: TOKENS.spacing.lg,
+    backgroundColor: COLORS.errorBg,
+    borderRadius: RADII.sm,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
   },
   errorText: {
-    color: TOKENS.colors.errorText,
+    color: COLORS.error,
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
   },
 
-  // Input
-  fieldContainer: {
-    marginBottom: TOKENS.spacing.md,
-  },
-  inputLabel: {
-    ...TOKENS.typography.label,
-    marginBottom: TOKENS.spacing.xs,
-    marginLeft: TOKENS.spacing.xs,
+  // Form Section
+  formSection: {
+    gap: SPACING.lg,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: TOKENS.sizes.inputHeight,
-    backgroundColor: TOKENS.colors.inputBg,
-    borderRadius: TOKENS.radii.input,
+    backgroundColor: COLORS.white,
+    borderRadius: RADII.md,
     borderWidth: 1,
-    borderColor: TOKENS.colors.inputBorder,
+    borderColor: COLORS.gray200,
+    height: 48,
   },
   inputContainerFocused: {
-    borderColor: TOKENS.colors.inputBorderFocus,
-    ...TOKENS.shadows.inputFocus,
+    borderColor: COLORS.brand500,
+    backgroundColor: COLORS.white,
   },
-  inputIcon: {
-    marginLeft: TOKENS.spacing.lg,
-    marginRight: TOKENS.spacing.sm,
+  inputIconContainer: {
+    paddingLeft: SPACING.md,
+    paddingRight: SPACING.sm,
   },
   input: {
     flex: 1,
     height: '100%',
-    ...TOKENS.typography.input,
-    paddingRight: TOKENS.spacing.lg,
+    fontSize: 14,
+    color: COLORS.gray800,
   },
   eyeButton: {
-    padding: TOKENS.spacing.lg,
+    padding: SPACING.md,
   },
-
-  // Forgot password
   forgotPasswordContainer: {
     alignSelf: 'flex-end',
-    marginBottom: TOKENS.spacing.xl,
-    marginTop: -TOKENS.spacing.xs,
+    marginTop: -SPACING.sm,
   },
   forgotPasswordText: {
-    ...TOKENS.typography.link,
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.brand600,
   },
-
-  // Primary button
-  primaryButton: {
-    height: TOKENS.sizes.buttonHeight,
-    backgroundColor: TOKENS.colors.primary,
-    borderRadius: TOKENS.radii.button,
+  signInButton: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: RADII.md,
+    height: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: TOKENS.spacing.lg,
-    ...TOKENS.shadows.button,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  primaryButtonDisabled: {
-    backgroundColor: TOKENS.colors.primaryDisabled,
+  signInButtonDisabled: {
+    backgroundColor: COLORS.gray400,
     shadowOpacity: 0,
     elevation: 0,
   },
-  primaryButtonPressed: {
+  signInButtonPressed: {
     opacity: 0.9,
     transform: [{ scale: 0.98 }],
   },
-  primaryButtonText: {
-    ...TOKENS.typography.button,
-    color: TOKENS.colors.textOnPrimary,
+  signInButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.white,
   },
   loadingContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: TOKENS.spacing.sm,
+    gap: SPACING.sm,
   },
 
   // Divider
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: TOKENS.spacing.lg + 2, // 18px
+    marginVertical: SPACING['2xl'],
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: TOKENS.colors.divider,
+    backgroundColor: COLORS.gray100,
   },
   dividerText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
-    color: TOKENS.colors.textMuted,
-    marginHorizontal: TOKENS.spacing.lg,
+    color: COLORS.gray400,
+    marginHorizontal: SPACING.lg,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 
-  // Social buttons
+  // Social Section
+  socialSection: {
+    gap: SPACING.md,
+  },
   socialButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: TOKENS.sizes.buttonHeight,
-    borderRadius: TOKENS.radii.button,
-    marginBottom: TOKENS.spacing.md,
-    gap: TOKENS.spacing.sm + 2,
+    height: 48,
+    borderRadius: RADII.md,
+    gap: SPACING.md,
   },
   socialButtonPressed: {
     opacity: 0.9,
     transform: [{ scale: 0.98 }],
   },
   googleButton: {
-    backgroundColor: TOKENS.colors.googleBg,
+    backgroundColor: COLORS.white,
     borderWidth: 1,
-    borderColor: TOKENS.colors.googleBorder,
-  },
-  googleButtonText: {
-    ...TOKENS.typography.button,
-    color: TOKENS.colors.textPrimary,
-  },
-  googleIconContainer: {
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  googleG: {
-    fontSize: 18,
-    fontWeight: '600',
+    borderColor: COLORS.gray200,
   },
   appleButton: {
-    backgroundColor: TOKENS.colors.appleBg,
+    backgroundColor: '#000000',
+    shadowColor: COLORS.gray400,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  socialButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.gray700,
   },
   appleButtonText: {
-    ...TOKENS.typography.button,
-    color: TOKENS.colors.textOnPrimary,
+    color: COLORS.white,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
 
-  // Create account
-  createAccountContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  // Footer
+  footer: {
+    marginTop: SPACING['2xl'],
     alignItems: 'center',
-    marginTop: TOKENS.spacing.lg,
-    marginBottom: TOKENS.spacing.xl,
+    gap: SPACING.lg,
   },
-  createAccountText: {
-    fontSize: 15,
-    color: TOKENS.colors.textSecondary,
+  signUpContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  createAccountLink: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: TOKENS.colors.link,
+  signUpText: {
+    fontSize: 14,
+    color: COLORS.gray500,
   },
-
-  // Legal
-  legalContainer: {
-    paddingHorizontal: TOKENS.spacing.sm,
+  signUpLink: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.brand600,
   },
   legalText: {
-    ...TOKENS.typography.legal,
+    fontSize: 12,
+    color: COLORS.gray400,
     textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: SPACING.lg,
   },
   legalLink: {
-    color: TOKENS.colors.link,
-    fontWeight: '500',
+    color: COLORS.brand600,
   },
 });

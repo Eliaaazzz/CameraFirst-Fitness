@@ -1,12 +1,12 @@
 import { BookmarkButton, Button, Text, useSnackbar } from '@/components';
 import type { RecipeCard as Recipe, RecipeImageUrls } from '@/types';
-import { colors, radii, shadows, spacing, useResponsiveValue } from '@/utils';
+import { colors, getTheme, radii, shadows, spacing, useResponsiveValue } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View, useColorScheme } from 'react-native';
 import { SmartRecipeImage } from './RecipeImage';
 
 /**
@@ -89,6 +89,8 @@ type Props = {
  * Uses optimized images with small thumbnails for lists.
  */
 export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVariant = 'thumb' }: Props) => {
+  // Always use light mode
+  const theme = getTheme('light');
   const [saving, setSaving] = useState(false);
   const { showSnackbar } = useSnackbar();
   const navigation = useNavigation<any>();
@@ -168,8 +170,6 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
   // Reuse handleCardPress for button as behavior is identical
   const handleStartPress = handleCardPress;
 
-  const dark = colors.dark;
-
   // Dynamic styles for hover/press effect
   const cardDynamicStyle = {
     transform: [{ scale: isHovered ? 1.05 : 1 }],
@@ -182,7 +182,7 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
   };
 
   return (
-    <View style={[styles.card, cardDynamicStyle]} {...webHoverProps}>
+    <View style={[styles.card, { backgroundColor: theme.colors.surface }, cardDynamicStyle]} {...webHoverProps}>
       {/* Image - Clickable area */}
       <Pressable
         onPressIn={Platform.OS !== 'web' ? handlePressIn : undefined}
@@ -205,11 +205,11 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
         {/* Chips */}
         <View style={styles.chipRow}>
           {item.isAiGenerated && (
-            <View style={[styles.chip, { backgroundColor: dark.secondary }]}>
+            <View style={[styles.chip, { backgroundColor: theme.colors.secondary }]}>
               <Text variant="label" style={{ color: '#FFF', fontSize: 10 }}>AI</Text>
             </View>
           )}
-          <View style={[styles.chip, { backgroundColor: dark.primary }]}>
+          <View style={[styles.chip, { backgroundColor: theme.colors.primary }]}>
             <Text variant="label" style={{ color: '#FFF', fontSize: 11 }}>{difficulty}</Text>
           </View>
         </View>
@@ -217,11 +217,11 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
 
       {/* Content */}
       <View style={styles.content}>
-        <Text variant="body" weight="semibold" numberOfLines={2} style={{ color: dark.textPrimary }}>
+        <Text variant="body" weight="semibold" numberOfLines={2} style={{ color: theme.colors.textPrimary }}>
           {item.title}
         </Text>
 
-        <Text variant="caption" style={{ color: dark.textSecondary }}>
+        <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
           {time}{calories ? ` · ${calories}` : ''}
         </Text>
 
@@ -232,12 +232,13 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
             variant="primary"
             size="small"
             onPress={handleStartPress}
+            style={{ backgroundColor: theme.colors.primary }}
           />
           <BookmarkButton
             isSaved={!!isSaved}
             isLoading={saving}
             onPress={handleBookmark}
-            color={dark.primary}
+            color={theme.colors.primary}
           />
         </View>
       </View>
@@ -247,10 +248,13 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.dark.surface,
     borderRadius: radii.xl,
     overflow: 'hidden',
-    ...shadows.dark.medium,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   imageContainer: {
     position: 'relative',

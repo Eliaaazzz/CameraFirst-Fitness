@@ -16,14 +16,15 @@ export const colors = {
     secondaryContainer: '#FCE7F3',
     
     // Surfaces
-    background: '#FAFAFA',
+    background: '#F3E8FF',        // Light lavender fallback
+    backgroundGradient: ['#F3E8FF', '#FFFFFF'], // Soft lavender gradient
     surface: '#FFFFFF',
     surfaceVariant: '#F5F3FF',    // Very light violet
     
-    // Text
-    textPrimary: '#1F2937',       // Gray-800
-    textSecondary: '#6B7280',     // Gray-500
-    textMuted: '#9CA3AF',         // Gray-400
+    // Text - Soft and readable on lavender background
+    textPrimary: '#3F3D56',       // Soft dark purple-gray (not harsh black)
+    textSecondary: '#6C6A7E',     // Medium purple-gray (softer than pure gray)
+    textMuted: '#9694A8',         // Light purple-gray (harmonizes with lavender)
     
     // States
     error: '#EF4444',
@@ -47,9 +48,9 @@ export const colors = {
     secondaryContainer: '#831843',
     
     // Surfaces - Material Dark
-    background: '#121212',        // Material Dark background
-    surface: '#1E1E1E',           // Elevated surface
-    surfaceVariant: '#2D2D2D',    // Higher elevation
+    background: '#1A1A1A',        // Dark Gray (Not pure black)
+    surface: '#252525',           // Elevated surface
+    surfaceVariant: '#333333',    // Higher elevation
     
     // Text
     textPrimary: '#F9FAFB',       // Gray-50

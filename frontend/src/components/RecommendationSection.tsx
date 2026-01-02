@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
   },
   headerText: {
-    color: colors.dark.textPrimary,
+    color: colors.light.textPrimary,
   },
   rowContainer: {
     marginBottom: spacing.lg,
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   rowTitle: {
-    color: colors.dark.textPrimary,
+    color: colors.light.textPrimary,
   },
   seeAllButton: {
     flexDirection: 'row',
