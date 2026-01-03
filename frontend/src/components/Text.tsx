@@ -48,9 +48,10 @@ export const Text = ({
 }: PropsWithChildren<TextProps>) => {
   const config = variantStyles[variant];
   const finalWeight = weight || config.defaultWeight;
-  const dark = colors.dark;
+  // Always use light mode colors for better readability
+  const light = colors.light;
   
-  const textColor = color || (muted ? dark.textMuted : dark.textPrimary);
+  const textColor = color || (muted ? light.textMuted : light.textPrimary);
 
   return (
     <RNText

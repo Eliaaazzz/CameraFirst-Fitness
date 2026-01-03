@@ -22,7 +22,7 @@ import com.fitnessapp.backend.recipe.entity.Recipe;
 import com.fitnessapp.backend.recipe.entity.RecipeIngredient;
 import com.fitnessapp.backend.recipe.repository.RecipeRepository;
 import com.fitnessapp.backend.recipe.service.RecipeSwapService;
-import com.fitnessapp.backend.user.entity.Allergen;
+import com.fitnessapp.backend.user.entity.DietaryPreference;
 import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
@@ -51,24 +51,24 @@ class RecipeSwapServiceTest {
   }
 
   @Test
-  void suggestionsRespectAllergensAndSimilarity() {
-    Recipe original = recipeWithMacros(originalId, "坚果鸡胸", 500, 45, 30, 18, "EASY", 25, Set.of("chicken breast", "olive oil"));
+  void suggestionsRespectDietaryPreferenceAndSimilarity() {
+    Recipe original = recipeWithMacros(originalId, "烤鸡胸", 500, 45, 30, 18, "EASY", 25, Set.of("chicken breast", "olive oil"));
     Recipe candidateSafe = recipeWithMacros(UUID.randomUUID(), "地中海烤鸡", 520, 42, 32, 17, "EASY", 22, Set.of("chicken breast", "lemon"));
-    Recipe candidateWithAllergen = recipeWithMacros(UUID.randomUUID(), "坚果沙拉", 480, 20, 40, 15, "EASY", 15, Set.of("mixed nuts", "spinach"));
+    Recipe candidateVegan = recipeWithMacros(UUID.randomUUID(), "素食沙拉", 480, 20, 40, 15, "EASY", 15, Set.of("tofu", "spinach"));
 
     UserProfile profile = UserProfile.builder()
         .userId(userId)
         .user(User.builder().id(userId).build())
-        .allergens(Set.of(Allergen.NUTS))
+        .dietaryPreference(DietaryPreference.NONE)
         .build();
 
     when(recipeRepository.findById(originalId)).thenReturn(Optional.of(original));
     when(userProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
-    when(recipeRepository.findAllWithIngredients()).thenReturn(List.of(original, candidateSafe, candidateWithAllergen));
+    when(recipeRepository.findAllWithIngredients()).thenReturn(List.of(original, candidateSafe, candidateVegan));
 
     List<RecipeSwapService.AlternativeRecipe> results = service.suggestAlternatives(userId, originalId, "不喜欢口感");
 
-    assertThat(results).hasSize(1);
+    assertThat(results).hasSize(2);
     RecipeSwapService.AlternativeRecipe suggestion = results.get(0);
     assertThat(suggestion.title()).isEqualTo("地中海烤鸡");
     assertThat(suggestion.score()).isGreaterThan(0.5);

@@ -1,25 +1,27 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import Svg, { Circle, Defs, Ellipse, G, LinearGradient as SvgLinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SafeAreaWrapper, Text } from '@/components';
-import { BRAND_COLORS, spacing } from '@/utils';
 import {
   EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
   EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
@@ -29,41 +31,303 @@ import { api } from '../services/apiClient';
 import { queryClient } from '../services/queryClient';
 import { saveJWT, getJWT } from '../utils/jwtStorage';
 
-// Required for Web support and handling login redirect callbacks
 WebBrowser.maybeCompleteAuthSession();
 
 const GOOGLE_IOS_CLIENT_ID = EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 const GOOGLE_ANDROID_CLIENT_ID = EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 const GOOGLE_WEB_CLIENT_ID = EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
-type AuthMode = 'login' | 'register';
+// ============================================================================
+// Design Tokens - Modern Light Theme
+// ============================================================================
+const COLORS = {
+  // Brand
+  brand50: '#F3E8FF', // Light Lavender
+  brand100: '#E9D5FF',
+  brand500: '#8B5CF6',
+  brand600: '#7C3AED', // Primary Purple
+  brand700: '#6D28D9',
 
+  // Surfaces
+  white: '#FFFFFF',
+  background: '#F3E8FF', // Main Background
+
+  // Text
+  gray50: '#F9FAFB',
+  gray100: '#F3F4F6',
+  gray200: '#E5E7EB',
+  gray400: '#9CA3AF',
+  gray500: '#6B7280',
+  gray700: '#374151',
+  gray800: '#1F2937',
+  gray900: '#111827',
+
+  // States
+  error: '#EF4444',
+  errorBg: '#FEE2E2',
+};
+
+const SPACING = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  '2xl': 24,
+  '3xl': 32,
+  '4xl': 40,
+};
+
+const RADII = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  '2xl': 32,
+};
+
+// ============================================================================
+// AuraFit Logo Component (SVG)
+// ============================================================================
+const AuraFitLogo = ({ size = 112 }: { size?: number }) => (
+  <View style={{ width: size, height: size }}>
+    <Svg viewBox="0 0 120 120" width={size} height={size}>
+      <Defs>
+        {/* Main Sphere Gradient */}
+        <RadialGradient id="sphereGrad" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+          <Stop offset="0%" stopColor="#F3E8FF" />
+          <Stop offset="60%" stopColor="#8B5CF6" />
+          <Stop offset="100%" stopColor="#581C87" />
+        </RadialGradient>
+
+        {/* 'A' Gradient */}
+        <SvgLinearGradient id="aGrad" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0%" stopColor="#E9D5FF" />
+          <Stop offset="100%" stopColor="#9333EA" />
+        </SvgLinearGradient>
+
+        {/* Weight Gradient */}
+        <SvgLinearGradient id="weightGrad" x1="0" y1="0" x2="1" y2="0">
+          <Stop offset="0%" stopColor="#4C1D95" />
+          <Stop offset="30%" stopColor="#C4B5FD" />
+          <Stop offset="50%" stopColor="#8B5CF6" />
+          <Stop offset="80%" stopColor="#5B21B6" />
+          <Stop offset="100%" stopColor="#4C1D95" />
+        </SvgLinearGradient>
+
+        {/* Bar Gradient */}
+        <SvgLinearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0%" stopColor="#7C3AED" />
+          <Stop offset="50%" stopColor="#E9D5FF" />
+          <Stop offset="100%" stopColor="#7C3AED" />
+        </SvgLinearGradient>
+      </Defs>
+
+      {/* Main Background Circle */}
+      <Circle cx="60" cy="60" r="58" fill="url(#sphereGrad)" stroke="#8B5CF6" strokeWidth="1" />
+
+      {/* Top Shine/Reflection */}
+      <Ellipse cx="60" cy="25" rx="35" ry="12" fill="white" fillOpacity={0.2} />
+
+      {/* The 'A' Shape - Squat/Fat Structure */}
+      <Path
+        d="M 34 88 L 60 42 L 86 88"
+        stroke="url(#aGrad)"
+        strokeWidth="14"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+
+      {/* The Barbell Group */}
+      <G>
+        {/* Bar - Curved Upwards */}
+        <Path
+          d="M 28 68 Q 60 60 92 68"
+          stroke="url(#barGrad)"
+          strokeWidth="6"
+          strokeLinecap="round"
+          fill="none"
+        />
+
+        {/* Left Weight */}
+        <G transform="translate(28, 68) rotate(-15)">
+          <Rect x="-8" y="-10" width="4" height="20" rx="1" fill="#5B21B6" />
+          <Rect x="-4" y="-14" width="10" height="28" rx="3" fill="url(#weightGrad)" />
+          <Rect x="6" y="-10" width="3" height="20" rx="1" fill="#5B21B6" />
+        </G>
+
+        {/* Right Weight */}
+        <G transform="translate(92, 68) rotate(15)">
+          <Rect x="4" y="-10" width="4" height="20" rx="1" fill="#5B21B6" />
+          <Rect x="-6" y="-14" width="10" height="28" rx="3" fill="url(#weightGrad)" />
+          <Rect x="-9" y="-10" width="3" height="20" rx="1" fill="#5B21B6" />
+        </G>
+      </G>
+
+      {/* Bottom Glow/Shadow */}
+      <Path d="M 30 102 Q 60 112 90 102" stroke="none" fill="#4C1D95" fillOpacity={0.3} />
+    </Svg>
+  </View>
+);
+
+// ============================================================================
+// Google Icon Component
+// ============================================================================
+const GoogleIcon = () => (
+  <Svg width={20} height={20} viewBox="0 0 24 24">
+    <Path
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      fill="#4285F4"
+    />
+    <Path
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      fill="#34A853"
+    />
+    <Path
+      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+      fill="#FBBC05"
+    />
+    <Path
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      fill="#EA4335"
+    />
+  </Svg>
+);
+
+// ============================================================================
+// Input Field Component
+// ============================================================================
+interface InputFieldProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  placeholder: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  secureTextEntry?: boolean;
+  showToggle?: boolean;
+  onToggleSecure?: () => void;
+  isSecureVisible?: boolean;
+  keyboardType?: 'default' | 'email-address';
+  textContentType?: 'emailAddress' | 'password' | 'newPassword';
+}
+
+const InputField: React.FC<InputFieldProps> = ({
+  icon,
+  placeholder,
+  value,
+  onChangeText,
+  secureTextEntry = false,
+  showToggle = false,
+  onToggleSecure,
+  isSecureVisible = false,
+  keyboardType = 'default',
+  textContentType,
+}) => {
+  const [isFocused, setIsFocused] = useState(false);
+
+  return (
+    <View style={[styles.inputContainer, isFocused && styles.inputContainerFocused]}>
+      <View style={styles.inputIconContainer}>
+        <Ionicons name={icon} size={20} color={COLORS.gray400} />
+      </View>
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.gray400}
+        value={value}
+        onChangeText={onChangeText}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        secureTextEntry={secureTextEntry && !isSecureVisible}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType={keyboardType}
+        textContentType={textContentType}
+      />
+      {showToggle && (
+        <Pressable onPress={onToggleSecure} style={styles.eyeButton}>
+          <Ionicons
+            name={isSecureVisible ? 'eye-off-outline' : 'eye-outline'}
+            size={20}
+            color={COLORS.gray400}
+          />
+        </Pressable>
+      )}
+    </View>
+  );
+};
+
+// ============================================================================
+// Social Button Component
+// ============================================================================
+interface SocialButtonProps {
+  provider: 'google' | 'apple';
+  onPress: () => void;
+  disabled?: boolean;
+}
+
+const SocialButton: React.FC<SocialButtonProps> = ({ provider, onPress, disabled }) => {
+  const isGoogle = provider === 'google';
+
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.socialButton,
+        isGoogle ? styles.googleButton : styles.appleButton,
+        pressed && styles.socialButtonPressed,
+        disabled && styles.buttonDisabled,
+      ]}
+      onPress={onPress}
+      disabled={disabled}
+    >
+      {isGoogle ? (
+        <GoogleIcon />
+      ) : (
+        <Ionicons name="logo-apple" size={20} color={COLORS.white} />
+      )}
+      <Text style={[styles.socialButtonText, !isGoogle && styles.appleButtonText]}>
+        Continue with {isGoogle ? 'Google' : 'Apple'}
+      </Text>
+    </Pressable>
+  );
+};
+
+// ============================================================================
+// Main Login Screen
+// ============================================================================
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const [isLoading, setIsLoading] = useState(false);
-  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
+  const insets = useSafeAreaInsets();
 
-  // Email/Password auth state
-  const [authMode, setAuthMode] = useState<AuthMode>('login');
+  // Auth state
+  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
 
-  // Check if Apple auth is available on this device
+  // Validation
+  const isEmailValid = useMemo(() => {
+    return email.trim().length > 0 && email.includes('@');
+  }, [email]);
+
+  const isPasswordValid = useMemo(() => {
+    return password.length > 0;
+  }, [password]);
+
+  const isFormValid = isEmailValid && isPasswordValid;
+
+  // Check Apple auth availability
   useEffect(() => {
     const checkAppleAuth = async () => {
       if (Platform.OS === 'web') {
-        // Always show Apple button on web (Sign in with Apple JS will handle it)
         setAppleAuthAvailable(true);
       } else if (Platform.OS === 'ios') {
         try {
           const isAvailable = await AppleAuthentication.isAvailableAsync();
-          console.log('[LoginScreen] Apple Sign In available:', isAvailable);
           setAppleAuthAvailable(isAvailable);
-        } catch (error) {
-          console.error('[LoginScreen] Failed to check Apple Sign In availability:', error);
-          // On simulator or when API fails, assume available for testing
+        } catch {
           setAppleAuthAvailable(true);
         }
       }
@@ -71,11 +335,7 @@ export default function LoginScreen() {
     checkAppleAuth();
   }, []);
 
-  if (!GOOGLE_WEB_CLIENT_ID) {
-    console.error('[LoginScreen] Missing EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID; update frontend/.env and restart Expo');
-  }
-
-  // Generate redirect URI for Google OAuth
+  // Google OAuth setup
   const redirectUri = Platform.OS === 'web'
     ? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081')
     : AuthSession.makeRedirectUri({ scheme: 'com.fitnessapp.mvp' });
@@ -88,24 +348,15 @@ export default function LoginScreen() {
     scopes: ['profile', 'email'],
   });
 
+  // Handle successful login
   const handleLoginSuccess = useCallback(async (data: { token: string; email: string; isNewUser?: boolean }) => {
-    console.log('[LoginScreen] Login successful!');
-    console.log('[LoginScreen] JWT received, length:', data.token?.length);
-
-    // Clear any cached data from previous user before saving new JWT
     queryClient.clear();
-
     await saveJWT(data.token, undefined, data.email);
-
-    // Verify the JWT was saved correctly
     const savedToken = await getJWT();
     if (!savedToken) {
-      throw new Error('JWT was not saved correctly to storage');
+      throw new Error('JWT was not saved correctly');
     }
-
-    // Small delay to ensure JWT is fully persisted before navigation
     await new Promise(resolve => setTimeout(resolve, 500));
-
     setIsLoading(false);
     navigation.reset({
       index: 0,
@@ -113,27 +364,23 @@ export default function LoginScreen() {
     });
   }, [navigation]);
 
+  // Send Google token to backend
   const sendTokenToBackend = useCallback(async (idToken: string) => {
     setIsLoading(true);
+    setError(null);
     try {
-      console.log('[LoginScreen] Sending Google token to backend...');
-
       const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
         loginType: 'GOOGLE',
-        idToken: idToken,
+        idToken,
       });
-
       await handleLoginSuccess(data);
-    } catch (error) {
+    } catch (err) {
       setIsLoading(false);
-      console.error('[LoginScreen] Backend validation failed:', error);
-      Alert.alert(
-        'Login Failed',
-        error instanceof Error ? error.message : 'Unable to connect to Aura Fitness server. Please check your internet connection and try again.'
-      );
+      setError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.');
     }
   }, [handleLoginSuccess]);
 
+  // Handle Google OAuth response
   useEffect(() => {
     if (response?.type === 'success') {
       const { id_token } = response.params;
@@ -141,21 +388,19 @@ export default function LoginScreen() {
         sendTokenToBackend(id_token);
       }
     } else if (response?.type === 'error') {
-      Alert.alert('Google Sign-In Error', response.error?.message || 'Please try again later.');
+      setError(response.error?.message || 'Google sign-in failed.');
     }
   }, [response, sendTokenToBackend]);
 
+  // Handle Apple login
   const handleAppleLogin = async () => {
-    // Web platform - Apple Sign In not yet implemented
     if (Platform.OS === 'web') {
-      Alert.alert(
-        'Coming Soon',
-        'Apple Sign In on web is coming soon. Please use email/password or Google sign-in for now.'
-      );
+      setError('Apple Sign In on web is coming soon.');
       return;
     }
 
     setIsLoading(true);
+    setError(null);
     try {
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
@@ -169,8 +414,6 @@ export default function LoginScreen() {
         throw new Error('No identity token received from Apple');
       }
 
-      console.log('[LoginScreen] Sending Apple token to backend...');
-
       const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
         loginType: 'APPLE',
         idToken: identityToken,
@@ -180,397 +423,391 @@ export default function LoginScreen() {
       });
 
       await handleLoginSuccess(data);
-    } catch (error: any) {
+    } catch (err: any) {
       setIsLoading(false);
-      if (error.code === 'ERR_REQUEST_CANCELED') {
+      if (err.code === 'ERR_REQUEST_CANCELED') {
         return;
       }
-      console.error('Apple login failed:', error);
-      Alert.alert(
-        'Login Failed',
-        error instanceof Error ? error.message : 'Apple sign-in failed. Please try again.'
-      );
+      setError(err instanceof Error ? err.message : 'Apple sign-in failed.');
     }
   };
 
-  const handleEmailAuth = async () => {
-    // Validate inputs
-    if (!email.trim() || !password) {
-      Alert.alert('Missing Information', 'Please enter both email and password.');
-      return;
-    }
-
-    if (authMode === 'register') {
-      if (password !== confirmPassword) {
-        Alert.alert('Password Mismatch', 'Passwords do not match.');
-        return;
-      }
-      if (password.length < 6) {
-        Alert.alert('Weak Password', 'Password must be at least 6 characters.');
-        return;
-      }
-    }
+  // Handle email/password login
+  const handleEmailLogin = async () => {
+    if (!isFormValid) return;
 
     setIsLoading(true);
+    setError(null);
     try {
-      const endpoint = authMode === 'register' ? '/api/v1/auth/register' : '/api/v1/auth/login';
-      const body = authMode === 'register'
-        ? { email: email.trim().toLowerCase(), password }
-        : { loginType: 'EMAIL', email: email.trim().toLowerCase(), password };
-
-      console.log(`[LoginScreen] ${authMode === 'register' ? 'Registering' : 'Logging in'} with email...`);
-
-      const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>(endpoint, body);
-
-      if (authMode === 'register') {
-        // Registration successful - show success and switch to login mode
-        setIsLoading(false);
-        Alert.alert(
-          'Account Created',
-          'Your account has been created successfully. Please sign in.',
-          [{ text: 'OK', onPress: () => {
-            setAuthMode('login');
-            setPassword('');
-            setConfirmPassword('');
-          }}]
-        );
-      } else {
-        // Login successful - proceed with login
-        await handleLoginSuccess(data);
-      }
-    } catch (error: any) {
+      const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
+        loginType: 'EMAIL',
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      await handleLoginSuccess(data);
+    } catch (err) {
       setIsLoading(false);
-      console.error(`[LoginScreen] ${authMode} failed:`, error);
-
-      let message = 'An error occurred. Please try again.';
-      if (error?.message) {
-        message = error.message;
-      } else if (authMode === 'register') {
-        message = 'Registration failed. Email may already be in use.';
-      } else {
-        message = 'Invalid email or password.';
-      }
-
-      Alert.alert(authMode === 'register' ? 'Registration Failed' : 'Login Failed', message);
+      setError(err instanceof Error ? err.message : 'Invalid email or password.');
     }
   };
 
-  const toggleAuthMode = () => {
-    setAuthMode(authMode === 'login' ? 'register' : 'login');
-    setPassword('');
-    setConfirmPassword('');
+  // Navigation handlers
+  const handleForgotPassword = () => {
+    navigation.navigate('ForgotPassword' as never);
+  };
+
+  const handleCreateAccount = () => {
+    navigation.navigate('Register' as never);
   };
 
   return (
-    <SafeAreaWrapper>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <LinearGradient
-          colors={[BRAND_COLORS.background, '#1A1025', BRAND_COLORS.background]}
-          style={styles.container}
+    <LinearGradient
+      colors={['#F3E8FF', '#F3E8FF', '#FFFFFF']}
+      style={styles.gradient}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          style={styles.keyboardView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingTop: insets.top + SPACING.xl, paddingBottom: insets.bottom + SPACING.xl },
+            ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Logo and Title */}
-            <View style={styles.header}>
-              <View style={styles.logoContainer}>
-                <MaterialCommunityIcons name="dumbbell" size={48} color={BRAND_COLORS.primary} />
+            <View style={styles.card}>
+              {/* Logo Section */}
+              <View style={styles.logoSection}>
+                <AuraFitLogo size={112} />
+                <Text style={styles.title}>AuraFit</Text>
+                <Text style={styles.subtitle}>Welcome back! Sign in to continue.</Text>
               </View>
-              <Text variant="heading1" weight="bold" style={styles.title}>
-                Aura Fitness
-              </Text>
-              <Text variant="body" style={styles.subtitle}>
-                {authMode === 'login'
-                  ? 'Welcome back! Sign in to continue.'
-                  : 'Create your account to get started.'}
-              </Text>
-            </View>
 
-            {isLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
-                <Text variant="body" style={styles.loadingText}>
-                  {authMode === 'register' ? 'Creating your account...' : 'Signing you in...'}
+              {/* Error Message */}
+              {error && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              )}
+
+              {/* Form Section */}
+              <View style={styles.formSection}>
+                <InputField
+                  icon="mail-outline"
+                  placeholder="Email address"
+                  value={email}
+                  onChangeText={(text) => { setEmail(text); setError(null); }}
+                  keyboardType="email-address"
+                  textContentType="emailAddress"
+                />
+
+                <InputField
+                  icon="lock-closed-outline"
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={(text) => { setPassword(text); setError(null); }}
+                  secureTextEntry
+                  showToggle
+                  onToggleSecure={() => setShowPassword(!showPassword)}
+                  isSecureVisible={showPassword}
+                  textContentType="password"
+                />
+
+                <Pressable onPress={handleForgotPassword} style={styles.forgotPasswordContainer}>
+                  <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.signInButton,
+                    !isFormValid && styles.signInButtonDisabled,
+                    pressed && isFormValid && !isLoading && styles.signInButtonPressed,
+                  ]}
+                  onPress={handleEmailLogin}
+                  disabled={!isFormValid || isLoading}
+                >
+                  {isLoading ? (
+                    <View style={styles.loadingContent}>
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                      <Text style={styles.signInButtonText}>Signing in...</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.signInButtonText}>Sign In</Text>
+                  )}
+                </Pressable>
+              </View>
+
+              {/* Divider */}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>Or continue with</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Social Login */}
+              <View style={styles.socialSection}>
+                <SocialButton
+                  provider="google"
+                  onPress={() => promptAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined)}
+                  disabled={!request || isLoading}
+                />
+                {appleAuthAvailable && (
+                  <SocialButton
+                    provider="apple"
+                    onPress={handleAppleLogin}
+                    disabled={isLoading}
+                  />
+                )}
+              </View>
+
+              {/* Footer */}
+              <View style={styles.footer}>
+                <View style={styles.signUpContainer}>
+                  <Text style={styles.signUpText}>Don't have an account? </Text>
+                  <Pressable onPress={handleCreateAccount}>
+                    <Text style={styles.signUpLink}>Sign up</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={styles.legalText}>
+                  By continuing, you agree to our{' '}
+                  <Text style={styles.legalLink}>Terms of Service</Text> and{' '}
+                  <Text style={styles.legalLink}>Privacy Policy</Text>.
                 </Text>
               </View>
-            ) : (
-              <>
-                {/* Email/Password Form */}
-                <View style={styles.formContainer}>
-                  <View style={styles.inputContainer}>
-                    <MaterialCommunityIcons name="email-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Email"
-                      placeholderTextColor="#6B7280"
-                      value={email}
-                      onChangeText={setEmail}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      keyboardType="email-address"
-                      textContentType="emailAddress"
-                    />
-                  </View>
-
-                  <View style={styles.inputContainer}>
-                    <MaterialCommunityIcons name="lock-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Password"
-                      placeholderTextColor="#6B7280"
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry={!showPassword}
-                      textContentType={authMode === 'register' ? 'newPassword' : 'password'}
-                    />
-                    <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                      <MaterialCommunityIcons
-                        name={showPassword ? 'eye-off' : 'eye'}
-                        size={20}
-                        color="#9CA3AF"
-                      />
-                    </Pressable>
-                  </View>
-
-                  {authMode === 'register' && (
-                    <View style={styles.inputContainer}>
-                      <MaterialCommunityIcons name="lock-check-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Confirm Password"
-                        placeholderTextColor="#6B7280"
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        secureTextEntry={!showPassword}
-                        textContentType="newPassword"
-                      />
-                    </View>
-                  )}
-
-                  {/* Email Auth Button */}
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.emailButton,
-                      pressed && styles.buttonPressed,
-                    ]}
-                    onPress={handleEmailAuth}
-                  >
-                    <Text variant="body" weight="bold" style={styles.emailButtonText}>
-                      {authMode === 'login' ? 'Sign In' : 'Create Account'}
-                    </Text>
-                  </Pressable>
-
-                  {/* Toggle Auth Mode */}
-                  <Pressable onPress={toggleAuthMode} style={styles.toggleButton}>
-                    <Text variant="body" style={styles.toggleText}>
-                      {authMode === 'login'
-                        ? "Don't have an account? "
-                        : 'Already have an account? '}
-                      <Text weight="bold" style={styles.toggleTextBold}>
-                        {authMode === 'login' ? 'Register' : 'Sign In'}
-                      </Text>
-                    </Text>
-                  </Pressable>
-                </View>
-
-                {/* Divider */}
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text variant="caption" style={styles.dividerText}>or continue with</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                {/* Social Login Buttons */}
-                <View style={styles.socialButtonContainer}>
-                  {/* Google Login Button */}
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.socialButton,
-                      styles.googleButton,
-                      pressed && styles.buttonPressed,
-                      !request && styles.buttonDisabled,
-                    ]}
-                    disabled={!request}
-                    onPress={() => promptAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined)}
-                  >
-                    <MaterialCommunityIcons name="google" size={24} color="#FFF" />
-                    <Text variant="body" weight="bold" style={styles.socialButtonText}>
-                      Continue with Google
-                    </Text>
-                  </Pressable>
-
-                  {/* Apple Login Button */}
-                  {appleAuthAvailable && (
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.socialButton,
-                        styles.appleButton,
-                        pressed && styles.buttonPressed,
-                      ]}
-                      onPress={handleAppleLogin}
-                    >
-                      <MaterialCommunityIcons name="apple" size={24} color="#FFF" />
-                      <Text variant="body" weight="bold" style={styles.socialButtonText}>
-                        Continue with Apple
-                      </Text>
-                    </Pressable>
-                  )}
-                </View>
-              </>
-            )}
-
-            {/* Footer */}
-            <View style={styles.footer}>
-              <Text variant="caption" style={styles.footerText}>
-                By continuing, you agree to our Terms of Service and Privacy Policy
-              </Text>
             </View>
           </ScrollView>
-        </LinearGradient>
-      </KeyboardAvoidingView>
-    </SafeAreaWrapper>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
+    </LinearGradient>
   );
 }
 
+// ============================================================================
+// Styles
+// ============================================================================
 const styles = StyleSheet.create({
-  container: {
+  gradient: {
+    flex: 1,
+  },
+  keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
-    justifyContent: 'center',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(167, 139, 250, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    paddingHorizontal: SPACING.xl,
+  },
+  card: {
+    backgroundColor: COLORS.white,
+    borderRadius: RADII.xl,
+    paddingHorizontal: SPACING['2xl'],
+    paddingVertical: SPACING['3xl'],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 12,
+    maxWidth: 420,
+    width: '100%',
+  },
+
+  // Logo Section
+  logoSection: {
+    alignItems: 'center',
+    marginBottom: SPACING['2xl'],
   },
   title: {
-    fontSize: 28,
-    marginBottom: spacing.xs,
+    fontSize: 30,
+    fontWeight: '700',
+    color: COLORS.gray900,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.xs,
+    letterSpacing: -0.5,
   },
   subtitle: {
+    fontSize: 14,
+    color: COLORS.gray500,
     textAlign: 'center',
-    opacity: 0.7,
-    paddingHorizontal: spacing.lg,
   },
-  loadingContainer: {
-    alignItems: 'center',
-    padding: spacing.xl,
-    gap: spacing.md,
+
+  // Error
+  errorContainer: {
+    backgroundColor: COLORS.errorBg,
+    borderRadius: RADII.sm,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
   },
-  loadingText: {
-    opacity: 0.7,
+  errorText: {
+    color: COLORS.error,
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
-  formContainer: {
-    gap: spacing.md,
-    marginBottom: spacing.lg,
+
+  // Form Section
+  formSection: {
+    gap: SPACING.lg,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BRAND_COLORS.surface,
-    borderRadius: 12,
+    backgroundColor: COLORS.white,
+    borderRadius: RADII.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: COLORS.gray200,
+    height: 48,
   },
-  inputIcon: {
-    marginLeft: spacing.md,
+  inputContainerFocused: {
+    borderColor: COLORS.brand500,
+    backgroundColor: COLORS.white,
+  },
+  inputIconContainer: {
+    paddingLeft: SPACING.md,
+    paddingRight: SPACING.sm,
   },
   input: {
     flex: 1,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    fontSize: 16,
-    color: '#FFF',
+    height: '100%',
+    fontSize: 14,
+    color: COLORS.gray800,
   },
-  eyeIcon: {
-    padding: spacing.md,
+  eyeButton: {
+    padding: SPACING.md,
   },
-  emailButton: {
-    backgroundColor: BRAND_COLORS.primary,
-    paddingVertical: spacing.md,
-    borderRadius: 12,
+  forgotPasswordContainer: {
+    alignSelf: 'flex-end',
+    marginTop: -SPACING.sm,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.brand600,
+  },
+  signInButton: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: RADII.md,
+    height: 52,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: spacing.sm,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  emailButtonText: {
-    color: '#1A1F2E',
+  signInButtonDisabled: {
+    backgroundColor: COLORS.gray400,
+    shadowOpacity: 0,
+    elevation: 0,
   },
-  toggleButton: {
+  signInButtonPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+  },
+  signInButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  loadingContent: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
+    gap: SPACING.sm,
   },
-  toggleText: {
-    opacity: 0.7,
-  },
-  toggleTextBold: {
-    color: BRAND_COLORS.primary,
-  },
+
+  // Divider
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: spacing.lg,
+    marginVertical: SPACING['2xl'],
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: COLORS.gray100,
   },
   dividerText: {
-    marginHorizontal: spacing.md,
-    opacity: 0.5,
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.gray400,
+    marginHorizontal: SPACING.lg,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  socialButtonContainer: {
-    flexDirection: 'column',
-    gap: spacing.md,
+
+  // Social Section
+  socialSection: {
+    gap: SPACING.md,
   },
   socialButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: 12,
-    gap: spacing.sm,
+    height: 48,
+    borderRadius: RADII.md,
+    gap: SPACING.md,
   },
-  appleButton: {
-    backgroundColor: BRAND_COLORS.primaryDark,
+  socialButtonPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
   },
   googleButton: {
-    backgroundColor: BRAND_COLORS.primary,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.gray200,
+  },
+  appleButton: {
+    backgroundColor: '#000000',
+    shadowColor: COLORS.gray400,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   socialButtonText: {
-    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.gray700,
   },
-  buttonPressed: {
-    opacity: 0.8,
-    transform: [{ scale: 0.98 }],
+  appleButtonText: {
+    color: COLORS.white,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
+
+  // Footer
   footer: {
+    marginTop: SPACING['2xl'],
     alignItems: 'center',
-    marginTop: spacing.xl,
+    gap: SPACING.lg,
   },
-  footerText: {
-    opacity: 0.4,
+  signUpContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  signUpText: {
+    fontSize: 14,
+    color: COLORS.gray500,
+  },
+  signUpLink: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.brand600,
+  },
+  legalText: {
+    fontSize: 12,
+    color: COLORS.gray400,
     textAlign: 'center',
-    paddingHorizontal: spacing.lg,
+    lineHeight: 18,
+    paddingHorizontal: SPACING.lg,
+  },
+  legalLink: {
+    color: COLORS.brand600,
   },
 });

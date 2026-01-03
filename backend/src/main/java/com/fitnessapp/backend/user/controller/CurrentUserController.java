@@ -45,7 +45,6 @@ public class CurrentUserController {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
     Optional<UserProfile> profile = userProfileService.getProfile(userId);
-    profile.ifPresent(p -> p.getAllergens().size()); // initialize lazy collection for serialization
     return ResponseEntity.ok(new MeResponse(
         userId,
         user.getEmail(),

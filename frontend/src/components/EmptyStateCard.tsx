@@ -77,21 +77,21 @@ export const EmptyStateCard = ({
 };
 
 const styles = StyleSheet.create({
-  // Outer surface - deep dark card
+  // Outer surface - light card
   outerCard: {
-    backgroundColor: colors.dark.surface,
+    backgroundColor: colors.light.surface,
     borderRadius: radii.xl,
     padding: spacing.lg,
     gap: spacing.lg,
-    // Subtle top border for layering
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    // Subtle border for layering
+    borderWidth: 1,
+    borderColor: colors.light.border,
     // Web max-width handled by Container
   },
 
   // Inner panel - slightly elevated surface
   innerPanel: {
-    backgroundColor: colors.dark.surfaceVariant,
+    backgroundColor: colors.light.surfaceVariant,
     borderRadius: radii.lg,
     padding: spacing.xl,
     alignItems: 'center',
@@ -120,20 +120,19 @@ const styles = StyleSheet.create({
 
   title: {
     textAlign: 'center',
-    color: colors.dark.textPrimary,
+    color: colors.light.textPrimary,
   },
 
   subtitle: {
     textAlign: 'center',
-    color: colors.dark.textSecondary,
-    opacity: 0.7,
+    color: colors.light.textSecondary,
     lineHeight: 22,
     paddingHorizontal: spacing.sm,
   },
 
   // CTA button - contained style
   ctaButton: {
-    backgroundColor: colors.dark.primary,
+    backgroundColor: colors.light.primary,
     paddingVertical: 14,
     paddingHorizontal: spacing.xl,
     borderRadius: radii.lg,

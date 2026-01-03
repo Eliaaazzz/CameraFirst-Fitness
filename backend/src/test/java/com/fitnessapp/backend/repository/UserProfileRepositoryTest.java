@@ -2,7 +2,6 @@ package com.fitnessapp.backend.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fitnessapp.backend.user.entity.Allergen;
 import com.fitnessapp.backend.user.entity.DietaryPreference;
 import com.fitnessapp.backend.user.entity.FitnessGoal;
 import com.fitnessapp.backend.user.entity.User;
@@ -10,7 +9,6 @@ import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
 import com.fitnessapp.backend.user.repository.UserRepository;
 import java.math.BigDecimal;
-import java.util.Set;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -97,7 +95,6 @@ class UserProfileRepositoryTest {
     profile.setFitnessGoal(FitnessGoal.MAINTAIN);
     profile.setDietaryPreference(DietaryPreference.NONE);
     profile.setDailyCalorieTarget(2200);
-    profile.getAllergens().addAll(Set.of(Allergen.NUTS, Allergen.SEAFOOD));
 
     userProfileRepository.save(profile);
 
@@ -108,7 +105,6 @@ class UserProfileRepositoryTest {
     assertThat(persisted.getWeightKg()).isEqualTo(new BigDecimal("75.5"));
     assertThat(persisted.getFitnessGoal()).isEqualTo(FitnessGoal.MAINTAIN);
     assertThat(persisted.getDietaryPreference()).isEqualTo(DietaryPreference.NONE);
-    assertThat(persisted.getAllergens()).containsExactlyInAnyOrder(Allergen.NUTS, Allergen.SEAFOOD);
     assertThat(persisted.getCreatedAt()).isNotNull();
     assertThat(persisted.getUpdatedAt()).isNotNull();
   }

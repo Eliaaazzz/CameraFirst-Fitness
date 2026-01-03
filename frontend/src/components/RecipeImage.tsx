@@ -123,7 +123,7 @@ export const RecipeImage: React.FC<RecipeImageProps> = ({
       <Image
         source={{ uri: imageUrl }}
         style={[styles.image, { borderRadius }, imageStyle]}
-        resizeMode="contain"
+        resizeMode="cover"
         onLoadStart={handleLoadStart}
         onLoadEnd={handleLoadEnd}
         onError={handleError}
@@ -195,7 +195,7 @@ export const RecipeImageWeb: React.FC<RecipeImageProps> = ({
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'contain',
+            objectFit: 'cover',
             borderRadius,
           }}
           loading="lazy"

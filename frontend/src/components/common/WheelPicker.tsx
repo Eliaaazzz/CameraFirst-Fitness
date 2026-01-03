@@ -1,17 +1,19 @@
-import React, { useRef, useCallback, useEffect } from 'react';
-import {
-  Animated,
-  FlatList,
-  StyleSheet,
-  View,
-  ViewStyle,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-  Platform,
-} from 'react-native';
 import { Text } from '@/components';
 import { BRAND_COLORS, spacing } from '@/utils';
+import { getTheme } from '@/utils/theme';
 import * as Haptics from 'expo-haptics';
+import React, { useCallback, useEffect, useRef } from 'react';
+import {
+    Animated,
+    FlatList,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    Platform,
+    StyleSheet,
+    useColorScheme,
+    View,
+    ViewStyle,
+} from 'react-native';
 
 const ITEM_HEIGHT = 50;
 const VISIBLE_ITEMS = 5;
@@ -35,8 +37,8 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
   label,
   unit,
   style,
-}) => {
-  const flatListRef = useRef<FlatList>(null);
+}) => {  // Always use light mode
+  const theme = getTheme('light');  const flatListRef = useRef<FlatList>(null);
   const scrollOffset = useRef(new Animated.Value(0)).current;
   const lastHapticIndex = useRef(-1);
 
@@ -128,13 +130,17 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
             },
           ]}
         >
-          <Text variant="heading2" weight="bold" style={styles.itemText}>
+          <Text 
+            variant="heading2" 
+            weight="bold" 
+            style={[styles.itemText, { color: theme.colors.textPrimary }]}
+          >
             {item.label}
           </Text>
         </Animated.View>
       );
     },
-    [scrollOffset, data.length]
+    [scrollOffset, data.length, theme.colors.textPrimary]
   );
 
   const keyExtractor = useCallback(
@@ -161,14 +167,27 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
   return (
     <View style={[styles.container, style]}>
       {label && (
-        <Text variant="body" weight="semibold" style={styles.label}>
+        <Text 
+          variant="body" 
+          weight="semibold" 
+          style={[styles.label, { color: theme.colors.textSecondary }]}
+        >
           {label}
         </Text>
       )}
 
       <View style={styles.pickerWrapper}>
         {/* Selection highlight - positioned at center of visible area */}
-        <View style={styles.selectionHighlight} pointerEvents="none" />
+        <View 
+          style={[
+            styles.selectionHighlight, 
+            { 
+              borderColor: theme.colors.primary,
+              backgroundColor: theme.colors.primary + '26' // ~15% opacity
+            }
+          ]} 
+          pointerEvents="none" 
+        />
 
         <Animated.FlatList
           ref={flatListRef}
@@ -198,7 +217,7 @@ export const WheelPicker: React.FC<WheelPickerProps> = ({
 
         {unit && (
           <View style={styles.unitContainer}>
-            <Text variant="body" style={styles.unitText}>
+            <Text variant="body" style={[styles.unitText, { color: theme.colors.textSecondary }]}>
               {unit}
             </Text>
           </View>

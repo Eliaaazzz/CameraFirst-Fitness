@@ -13,7 +13,6 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -97,7 +96,6 @@ class SmartRecipeServiceTest {
     profile.setHeightCm(180);
     profile.setWeightKg(new BigDecimal("78.0"));
     profile.setDailyCalorieTarget(2500);
-    profile.setAllergens(Set.of());
     when(userProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
 
     WorkoutSession session = new WorkoutSession();
@@ -124,7 +122,6 @@ class SmartRecipeServiceTest {
 
     UserProfile profile = new UserProfile();
     profile.setDailyCalorieTarget(2200);
-    profile.setAllergens(Set.of());
     when(userProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
     when(workoutSessionRepository.findByUserIdAndStartedAtBetweenOrderByStartedAtDesc(eq(userId), any(), any()))
         .thenReturn(List.of());

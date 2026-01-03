@@ -4,10 +4,11 @@ import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecipeById, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
 import type { RecipeImageUrls } from '@/types';
 import { colors, radii, spacing } from '@/utils';
+import { getTheme } from '@/utils/theme';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useMemo } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
 // Default food images for recipes without images
 const DEFAULT_FOOD_IMAGES = [
@@ -85,7 +86,8 @@ export const RecipeDetailScreen = () => {
     );
   }
 
-  const dark = colors.dark;
+  // Always use light mode
+  const theme = getTheme('light');
   const isLoadingFullRecipe = needsFullRecipe && fullRecipeQuery.isLoading;
 
   const handleSaveToggle = async () => {
@@ -106,7 +108,7 @@ export const RecipeDetailScreen = () => {
             variant="outline"
             size="small"
             onPress={() => navigation.goBack()}
-            icon={<Feather name="arrow-left" size={20} color={dark.textPrimary} />}
+            icon={<Feather name="arrow-left" size={20} color={theme.colors.textPrimary} />}
           />
           <Text variant="heading3" weight="semibold" style={{ flex: 1, textAlign: 'center' }}>
             Recipe Details
@@ -124,7 +126,7 @@ export const RecipeDetailScreen = () => {
             accessibilityLabel={`${recipe.title} hero image`}
           />
           <View style={styles.imageOverlay}>
-            <View style={[styles.badge, { backgroundColor: dark.primary }]}>
+            <View style={[styles.badge, { backgroundColor: theme.colors.primary }]}>
               <Text variant="label" style={{ color: '#FFF' }}>
                 {recipe.difficulty?.toUpperCase() || 'EASY'}
               </Text>
@@ -135,20 +137,20 @@ export const RecipeDetailScreen = () => {
         <Container>
           {/* Title & Quick Info */}
           <View style={styles.titleSection}>
-            <Text variant="heading1" weight="bold" style={{ color: dark.textPrimary }}>
+            <Text variant="heading1" weight="bold" style={{ color: theme.colors.textPrimary }}>
               {recipe.title}
             </Text>
             <View style={styles.metaRow}>
               <View style={styles.metaItem}>
-                <Feather name="clock" size={16} color={dark.textSecondary} />
-                <Text variant="body" style={{ color: dark.textSecondary, marginLeft: 4 }}>
+                <Feather name="clock" size={16} color={theme.colors.textSecondary} />
+                <Text variant="body" style={{ color: theme.colors.textSecondary, marginLeft: 4 }}>
                   {recipe.timeMinutes} min
                 </Text>
               </View>
               {recipe.calories && (
                 <View style={styles.metaItem}>
-                  <Feather name="zap" size={16} color={dark.textSecondary} />
-                  <Text variant="body" style={{ color: dark.textSecondary, marginLeft: 4 }}>
+                  <Feather name="zap" size={16} color={theme.colors.textSecondary} />
+                  <Text variant="body" style={{ color: theme.colors.textSecondary, marginLeft: 4 }}>
                     {recipe.calories} cal
                   </Text>
                 </View>
@@ -165,7 +167,7 @@ export const RecipeDetailScreen = () => {
               <View style={styles.nutritionGrid}>
                 {Object.entries(recipe.nutritionSummary).map(([key, value]) => (
                   <View key={key} style={styles.nutritionItem}>
-                    <Text variant="caption" style={{ color: dark.textSecondary }}>
+                    <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
                       {key.charAt(0).toUpperCase() + key.slice(1)}
                     </Text>
                     <Text variant="body" weight="semibold">
@@ -185,8 +187,8 @@ export const RecipeDetailScreen = () => {
               </Text>
               <View style={styles.tagsRow}>
                 {recipe.tags.map((tag: string, index: number) => (
-                  <View key={index} style={[styles.tag, { backgroundColor: dark.surfaceVariant }]}>
-                    <Text variant="caption" style={{ color: dark.textSecondary }}>
+                  <View key={index} style={[styles.tag, { backgroundColor: theme.colors.surfaceVariant }]}>
+                    <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
                       {tag}
                     </Text>
                   </View>
@@ -202,7 +204,7 @@ export const RecipeDetailScreen = () => {
               variant={isSaved ? 'outline' : 'primary'}
               onPress={handleSaveToggle}
               loading={saveRecipe.isPending || removeRecipe.isPending}
-              icon={<Feather name={isSaved ? 'bookmark' : 'bookmark'} size={18} color={isSaved ? dark.primary : '#FFF'} />}
+              icon={<Feather name={isSaved ? 'bookmark' : 'bookmark'} size={18} color={isSaved ? theme.colors.primary : '#FFF'} />}
             />
           </View>
 
@@ -210,14 +212,14 @@ export const RecipeDetailScreen = () => {
           {isLoadingFullRecipe ? (
             <Card style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Feather name="list" size={20} color={dark.primary} />
+                <Feather name="list" size={20} color={theme.colors.primary} />
                 <Text variant="heading3" weight="semibold" style={{ marginLeft: spacing.sm }}>
                   Ingredients
                 </Text>
               </View>
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={dark.primary} />
-                <Text variant="caption" style={{ color: dark.textSecondary, marginLeft: spacing.sm }}>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text variant="caption" style={{ color: theme.colors.textSecondary, marginLeft: spacing.sm }}>
                   Loading ingredients...
                 </Text>
               </View>
@@ -225,7 +227,7 @@ export const RecipeDetailScreen = () => {
           ) : recipe.ingredients && recipe.ingredients.length > 0 ? (
             <Card style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Feather name="list" size={20} color={dark.primary} />
+                <Feather name="list" size={20} color={theme.colors.primary} />
                 <Text variant="heading3" weight="semibold" style={{ marginLeft: spacing.sm }}>
                   Ingredients ({recipe.ingredients.length})
                 </Text>
@@ -240,7 +242,7 @@ export const RecipeDetailScreen = () => {
 
                   return (
                     <View key={index} style={styles.ingredientItem}>
-                      <View style={[styles.ingredientBullet, { backgroundColor: dark.primary }]} />
+                      <View style={[styles.ingredientBullet, { backgroundColor: theme.colors.primary }]} />
                       <Text variant="body" style={{ flex: 1 }}>
                         {quantity ? `${quantity} ` : ''}
                         {unit ? `${unit} ` : ''}
@@ -253,8 +255,8 @@ export const RecipeDetailScreen = () => {
             </Card>
           ) : (
             <Card style={styles.infoCard}>
-              <Feather name="info" size={20} color={dark.textSecondary} style={{ marginBottom: spacing.xs }} />
-              <Text variant="body" style={{ color: dark.textSecondary, textAlign: 'center' }}>
+              <Feather name="info" size={20} color={theme.colors.textSecondary} style={{ marginBottom: spacing.xs }} />
+              <Text variant="body" style={{ color: theme.colors.textSecondary, textAlign: 'center' }}>
                 Ingredients not available for this recipe.
               </Text>
             </Card>
@@ -264,14 +266,14 @@ export const RecipeDetailScreen = () => {
           {isLoadingFullRecipe ? (
             <Card style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Feather name="check-circle" size={20} color={dark.primary} />
+                <Feather name="check-circle" size={20} color={theme.colors.primary} />
                 <Text variant="heading3" weight="semibold" style={{ marginLeft: spacing.sm }}>
                   Instructions
                 </Text>
               </View>
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={dark.primary} />
-                <Text variant="caption" style={{ color: dark.textSecondary, marginLeft: spacing.sm }}>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text variant="caption" style={{ color: theme.colors.textSecondary, marginLeft: spacing.sm }}>
                   Loading instructions...
                 </Text>
               </View>
@@ -279,7 +281,7 @@ export const RecipeDetailScreen = () => {
           ) : recipe.steps && (Array.isArray(recipe.steps) ? recipe.steps.length > 0 : Object.keys(recipe.steps).length > 0) ? (
             <Card style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Feather name="check-circle" size={20} color={dark.primary} />
+                <Feather name="check-circle" size={20} color={theme.colors.primary} />
                 <Text variant="heading3" weight="semibold" style={{ marginLeft: spacing.sm }}>
                   Instructions ({Array.isArray(recipe.steps) ? recipe.steps.length : Object.keys(recipe.steps).length} steps)
                 </Text>
@@ -305,7 +307,7 @@ export const RecipeDetailScreen = () => {
 
                   return (
                     <View key={index} style={styles.stepItem}>
-                      <View style={[styles.stepNumber, { backgroundColor: dark.primary }]}>
+                      <View style={[styles.stepNumber, { backgroundColor: theme.colors.primary }]}>
                         <Text variant="label" style={{ color: '#FFF' }}>{stepNumber}</Text>
                       </View>
                       <Text variant="body" style={{ flex: 1, lineHeight: 24 }}>
@@ -318,8 +320,8 @@ export const RecipeDetailScreen = () => {
             </Card>
           ) : (
             <Card style={styles.infoCard}>
-              <Feather name="info" size={20} color={dark.textSecondary} style={{ marginBottom: spacing.xs }} />
-              <Text variant="body" style={{ color: dark.textSecondary, textAlign: 'center' }}>
+              <Feather name="info" size={20} color={theme.colors.textSecondary} style={{ marginBottom: spacing.xs }} />
+              <Text variant="body" style={{ color: theme.colors.textSecondary, textAlign: 'center' }}>
                 Cooking steps not available for this recipe.
               </Text>
             </Card>

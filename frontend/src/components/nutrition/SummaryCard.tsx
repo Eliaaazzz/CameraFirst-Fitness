@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, useColorScheme } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
 import { MacroPill } from './MacroPill';
+import { getTheme } from '@/utils';
 
 interface SummaryCardProps {
   calories: number;
@@ -18,6 +19,8 @@ interface SummaryCardProps {
 }
 
 export function SummaryCard({ calories, goal, protein, carbs, fat, netCarbs, sugar }: SummaryCardProps) {
+  // Always use light mode
+  const theme = getTheme('light');
   const progressWidth = useSharedValue(0);
 
   useEffect(() => {
@@ -27,13 +30,14 @@ export function SummaryCard({ calories, goal, protein, carbs, fat, netCarbs, sug
 
   const progressStyle = useAnimatedStyle(() => ({
     width: `${progressWidth.value}%`,
+    backgroundColor: theme.colors.primary,
   }));
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Today</Text>
-        <Text style={styles.date}>
+        <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Today</Text>
+        <Text style={[styles.date, { color: theme.colors.textSecondary }]}>
           {new Date().toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
@@ -41,8 +45,8 @@ export function SummaryCard({ calories, goal, protein, carbs, fat, netCarbs, sug
         </Text>
       </View>
 
-      <Text style={styles.calories}>
-        {Math.round(calories)} <Text style={styles.caloriesGoal}>of {goal} kcal</Text>
+      <Text style={[styles.calories, { color: theme.colors.textPrimary }]}>
+        {Math.round(calories)} <Text style={[styles.caloriesGoal, { color: theme.colors.textSecondary }]}>of {goal} kcal</Text>
       </Text>
 
       <View style={styles.progressBar}>

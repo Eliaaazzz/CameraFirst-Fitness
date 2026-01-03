@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
-import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { navigationRef } from './navigationService';
@@ -236,6 +236,7 @@ const MainTabs = () => {
           title: 'Results',
           tabBarButton: () => null,
           tabBarItemStyle: { display: 'none' },
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Tab.Screen
@@ -245,6 +246,7 @@ const MainTabs = () => {
           title: 'Recipe',
           tabBarButton: () => null,
           tabBarItemStyle: { display: 'none' },
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Tab.Screen
@@ -254,6 +256,7 @@ const MainTabs = () => {
           title: 'Review Meal',
           tabBarButton: () => null,
           tabBarItemStyle: { display: 'none' },
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Tab.Screen
@@ -263,6 +266,7 @@ const MainTabs = () => {
           title: 'Meal History',
           tabBarButton: () => null,
           tabBarItemStyle: { display: 'none' },
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Tab.Screen
@@ -272,6 +276,7 @@ const MainTabs = () => {
           title: 'Weekly Insights',
           tabBarButton: () => null,
           tabBarItemStyle: { display: 'none' },
+          tabBarStyle: { display: 'none' },
         }}
       />
     </Tab.Navigator>
@@ -279,10 +284,9 @@ const MainTabs = () => {
 };
 
 export const AppNavigator = () => {
-  const colorScheme = useColorScheme();
-
+  // Always use light mode
   return (
-    <NavigationContainer ref={navigationRef} theme={colorScheme === 'dark' ? DarkNavigationTheme : LightNavigationTheme}>
+    <NavigationContainer ref={navigationRef} theme={LightNavigationTheme}>
       <Stack.Navigator
         initialRouteName="Splash"
         screenOptions={{ headerShown: false }}

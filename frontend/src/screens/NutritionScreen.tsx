@@ -1,6 +1,5 @@
 import React, { useCallback } from 'react';
 import {
-  SafeAreaView,
   ScrollView,
   Text,
   View,
@@ -15,6 +14,7 @@ import { SummaryCard } from '@/components/nutrition/SummaryCard';
 import { AddFoodButton } from '@/components/nutrition/AddFoodButton';
 import { MealListItem } from '@/components/nutrition/MealListItem';
 import { useDailyNutrition } from '@/hooks/useDailyNutrition';
+import { SafeAreaWrapper } from '@/components/SafeAreaWrapper';
 
 export function NutritionScreen({ navigation }: any) {
   const { data, refresh } = useDailyNutrition();
@@ -117,7 +117,7 @@ export function NutritionScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaWrapper style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Nutrition</Text>
       </View>
@@ -151,19 +151,17 @@ export function NutritionScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
   },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    backgroundColor: 'transparent',
+    marginBottom: 10,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#000',
+    color: '#1F2937',
   },
   mealsSection: {
     marginTop: 24,
@@ -172,13 +170,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000',
+    color: '#1F2937',
     marginHorizontal: 16,
     marginBottom: 12,
   },
   emptyText: {
     textAlign: 'center',
-    color: '#999',
+    color: '#6B7280',
     marginTop: 20,
     fontSize: 16,
   },

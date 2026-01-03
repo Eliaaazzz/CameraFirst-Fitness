@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +29,6 @@ import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService;
 import com.fitnessapp.backend.recipe.service.SmartRecipeService;
 import com.fitnessapp.backend.user.controller.UserProfileController;
 import com.fitnessapp.backend.user.dto.UserProfileRequest;
-import com.fitnessapp.backend.user.entity.Allergen;
 import com.fitnessapp.backend.user.entity.DietaryPreference;
 import com.fitnessapp.backend.user.entity.FitnessGoal;
 import com.fitnessapp.backend.user.entity.HealthMode;
@@ -75,7 +73,6 @@ class UserProfileControllerTest {
     profile.setDailyProteinTarget(180);
     profile.setDailyCarbsTarget(250);
     profile.setDailyFatTarget(70);
-    profile.setAllergens(Set.of(Allergen.NUTS));
     profile.setCreatedAt(OffsetDateTime.parse("2025-11-04T05:00:00Z"));
     profile.setUpdatedAt(OffsetDateTime.parse("2025-11-04T05:00:00Z"));
     return profile;
@@ -110,7 +107,7 @@ class UserProfileControllerTest {
     when(userProfileService.upsertProfile(eq(userId), any(UserProfile.class))).thenReturn(profile);
 
   UserProfileRequest request = new UserProfileRequest(180, new BigDecimal("78.0"), new BigDecimal("18.5"), 1600, FitnessGoal.GAIN_MUSCLE,
-    DietaryPreference.NONE, HealthMode.PREVENTION, Set.of(Allergen.NUTS), 2600, 180, 250, 70);
+    DietaryPreference.NONE, HealthMode.PREVENTION, 2600, 180, 250, 70);
 
     mockMvc.perform(put("/api/v1/users/{userId}/profile", userId)
             .contentType(MediaType.APPLICATION_JSON)

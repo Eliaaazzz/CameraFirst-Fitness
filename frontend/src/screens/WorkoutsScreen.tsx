@@ -1,14 +1,26 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 import { FAB } from 'react-native-paper';
 
-import { Container, EmptyStateCard, ListSkeleton, SafeAreaWrapper, SearchBar, Text, WorkoutCard } from '@/components';
+import { Container, EmptyStateCard, ListSkeleton, SafeAreaWrapper, SearchBar, SearchSuggestions, Text, WorkoutCard, type SuggestionItem } from '@/components';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedWorkouts, useRemoveWorkout, useSavedWorkouts, useSaveWorkout } from '@/services';
 import { searchWorkouts, WorkoutSearchResult } from '@/services/searchApi';
 import type { SavedWorkout } from '@/types';
-import { colors, spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
+import { colors, getTheme, spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
+
+// Workout search suggestions with fun icons
+const WORKOUT_SUGGESTIONS: SuggestionItem[] = [
+  { id: 'hiit', label: 'HIIT', icon: 'fire', color: '#EF4444' },
+  { id: 'yoga', label: 'Yoga', icon: 'yoga', color: '#8B5CF6' },
+  { id: 'strength', label: 'Strength', icon: 'dumbbell', color: '#F59E0B' },
+  { id: 'cardio', label: 'Cardio', icon: 'run-fast', color: '#EC4899' },
+  { id: 'abs', label: 'Abs', icon: 'human', color: '#06B6D4' },
+  { id: 'stretch', label: 'Stretching', icon: 'human-handsup', color: '#10B981' },
+  { id: 'legs', label: 'Legs', icon: 'walk', color: '#F97316' },
+  { id: 'arms', label: 'Arms', icon: 'arm-flex', color: '#3B82F6' },
+];
 
 const styles = StyleSheet.create({
   container: {
@@ -30,6 +42,9 @@ const styles = StyleSheet.create({
   searchContainer: {
     marginTop: spacing.md,
   },
+  suggestionsSection: {
+    marginTop: spacing.sm,
+  },
   section: {
     marginTop: spacing.lg,
     gap: spacing.sm,
@@ -50,6 +65,9 @@ const styles = StyleSheet.create({
   searchResultCard: {
     marginBottom: spacing.sm,
   },
+  noResultsText: {
+    opacity: 0.6,
+  },
   savedHeader: {
     marginTop: spacing.lg,
   },
@@ -66,7 +84,6 @@ const styles = StyleSheet.create({
   },
   errorBody: {
     textAlign: 'center',
-    color: colors.dark.textSecondary,
     opacity: 0.7,
   },
   savedAt: {
@@ -83,6 +100,8 @@ const styles = StyleSheet.create({
 const ItemSeparator = () => <View style={{ height: spacing.md }} />;
 
 export const WorkoutsScreen = () => {
+  // Always use light mode
+  const theme = getTheme('light');
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const saved = useSavedWorkouts(userId);
@@ -99,6 +118,7 @@ export const WorkoutsScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<WorkoutSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSearch = useCallback(async (query: string) => {
@@ -133,6 +153,10 @@ export const WorkoutsScreen = () => {
     setSearchResults([]);
     setIsSearching(false);
   }, []);
+
+  const handleSuggestionSelect = useCallback((suggestion: SuggestionItem) => {
+    handleSearch(suggestion.label);
+  }, [handleSearch]);
 
   // Calculate bottom padding using shared utility
   const listBottomPadding = useContentBottomPadding(spacing.lg);
@@ -177,13 +201,13 @@ export const WorkoutsScreen = () => {
             isSaved
             onRemove={(id) => removeWorkout.mutateAsync(id).then(() => true)}
           />
-          <Text variant="caption" style={styles.savedAt}>
+          <Text variant="caption" style={[styles.savedAt, { color: theme.colors.textSecondary }]}>
             {meta}
           </Text>
         </View>
       );
     },
-    [removeWorkout],
+    [removeWorkout, theme],
   );
 
   // Loading state
@@ -192,10 +216,10 @@ export const WorkoutsScreen = () => {
       <SafeAreaWrapper>
         <Container>
           <View style={styles.header}>
-            <Text variant="heading1" weight="bold">
+            <Text variant="heading1" weight="bold" style={{ color: theme.colors.textPrimary }}>
               Workouts
             </Text>
-            <Text variant="body" style={styles.subtitle}>
+            <Text variant="body" style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
               Recommended routines and your saved list.
             </Text>
           </View>
@@ -211,7 +235,7 @@ export const WorkoutsScreen = () => {
       <SafeAreaWrapper>
         <Container>
           <EmptyStateCard
-            icon={<MaterialCommunityIcons name="alert-circle-outline" size={32} color="#EF4444" />}
+            icon={<MaterialCommunityIcons name="alert-circle-outline" size={32} color={theme.colors.error} />}
             title="Unable to load workouts"
             subtitle="Check your network connection and try again."
             ctaLabel="Retry"
@@ -228,13 +252,15 @@ export const WorkoutsScreen = () => {
   const workouts = savedWorkouts;
   const isRefreshing = saved.isRefetching;
   const isSearchMode = searchQuery.trim().length > 0;
+  // Show search UI when focused or has query text
+  const showSearchUI = isSearchFocused || isSearchMode;
 
   const listHeaderComponent = (
     <View style={styles.header}>
-      <Text variant="heading1" weight="bold">
+      <Text variant="heading1" weight="bold" style={{ color: theme.colors.textPrimary }}>
         Workouts
       </Text>
-      <Text variant="body" style={styles.subtitle}>
+      <Text variant="body" style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
         Recommended routines and your saved list.
       </Text>
 
@@ -245,22 +271,34 @@ export const WorkoutsScreen = () => {
           value={searchQuery}
           onChangeText={handleSearch}
           onClear={clearSearch}
+          onFocusChange={setIsSearchFocused}
           isLoading={isSearching}
         />
       </View>
 
-      {/* Search Results or Recommended */}
-      {isSearchMode ? (
+      {/* Search Suggestions - only visible when search is focused */}
+      {showSearchUI && (
+        <View style={styles.suggestionsSection}>
+          <SearchSuggestions
+            suggestions={WORKOUT_SUGGESTIONS}
+            onSelect={handleSuggestionSelect}
+            title="Popular searches"
+          />
+        </View>
+      )}
+
+      {/* Search Results - only when has query text */}
+      {isSearchMode && (
         <View style={styles.section}>
-          <Text variant="heading2" weight="semibold">
+          <Text variant="heading2" weight="semibold" style={{ color: theme.colors.textPrimary }}>
             Search Results
           </Text>
           {isSearching ? (
-            <Text variant="caption" style={styles.recommendedNote}>
+            <Text variant="caption" style={[styles.recommendedNote, { color: theme.colors.textSecondary }]}>
               Searching...
             </Text>
           ) : searchResults.length === 0 ? (
-            <Text variant="caption" style={styles.recommendedNote}>
+            <Text variant="caption" style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
               No workouts found for "{searchQuery}"
             </Text>
           ) : (
@@ -284,21 +322,24 @@ export const WorkoutsScreen = () => {
             </View>
           )}
         </View>
-      ) : (
+      )}
+
+      {/* Recommended Section - hidden when search UI is active */}
+      {!showSearchUI && (
         <View style={styles.section}>
-          <Text variant="heading2" weight="semibold">
+          <Text variant="heading2" weight="semibold" style={{ color: theme.colors.textPrimary }}>
             Recommended for you
           </Text>
           {recommended.isLoading ? (
-            <Text variant="caption" style={styles.recommendedNote}>
+            <Text variant="caption" style={[styles.recommendedNote, { color: theme.colors.textSecondary }]}>
               Loading recommendations...
             </Text>
           ) : recommended.isError ? (
-            <Text variant="caption" style={styles.recommendedNote}>
+            <Text variant="caption" style={[styles.recommendedNote, { color: theme.colors.textSecondary }]}>
               Unable to load recommendations.
             </Text>
           ) : recommendedItems.length === 0 ? (
-            <Text variant="caption" style={styles.recommendedNote}>
+            <Text variant="caption" style={[styles.recommendedNote, { color: theme.colors.textSecondary }]}>
               No recommendations yet.
             </Text>
           ) : (
@@ -321,9 +362,13 @@ export const WorkoutsScreen = () => {
           )}
         </View>
       )}
-      <Text variant="heading2" weight="semibold" style={styles.savedHeader}>
-        Saved Workouts
-      </Text>
+
+      {/* Saved Workouts Header - hidden when search UI is active */}
+      {!showSearchUI && (
+        <Text variant="heading2" weight="semibold" style={[styles.savedHeader, { color: theme.colors.textPrimary }]}>
+          Saved Workouts
+        </Text>
+      )}
     </View>
   );
 
@@ -332,18 +377,18 @@ export const WorkoutsScreen = () => {
       <Container style={styles.container}>
         <FlatList
           ref={listRef}
-          data={workouts}
+          data={showSearchUI ? [] : workouts}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
           ItemSeparatorComponent={ItemSeparator}
           ListHeaderComponent={listHeaderComponent}
-          ListEmptyComponent={listEmptyComponent}
+          ListEmptyComponent={showSearchUI ? null : listEmptyComponent}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              tintColor="#4ECDC4"
+              tintColor={theme.colors.primary}
             />
           }
           onScroll={handleScroll}
@@ -352,7 +397,8 @@ export const WorkoutsScreen = () => {
       </Container>
       <FAB
         icon="arrow-up"
-        style={[styles.fab, { bottom: fabBottomPosition }]}
+        style={[styles.fab, { bottom: fabBottomPosition, backgroundColor: theme.colors.primary }]}
+        color="#FFF"
         mode="elevated"
         onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
         visible={showFab}

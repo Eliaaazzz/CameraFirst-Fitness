@@ -4,7 +4,6 @@ import nutritionApi, {
   DetectedFood,
   TotalNutrition,
 } from '@/services/nutritionApi';
-import { BRAND_COLORS } from '@/utils';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
@@ -22,10 +21,13 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const SUCCESS_GRADIENT = ['#A78BFA', '#F472B6'] as const;
 
 export function ReviewMealScreen({ route, navigation }: any) {
   const { imageUri } = route.params;
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<1 | 2 | 3>(1);
@@ -221,7 +223,10 @@ export function ReviewMealScreen({ route, navigation }: any) {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.content, { paddingBottom: 140 + insets.bottom }]}
+      >
         <View style={styles.imageContainer}>
           <Image source={{ uri: processedImageUri }} style={styles.image} />
           <View style={styles.photoTag}>
@@ -252,14 +257,14 @@ export function ReviewMealScreen({ route, navigation }: any) {
       </ScrollView>
 
       {!loading && !showSuccess && (
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { paddingBottom: 16 + insets.bottom }]}>
           <Pressable
             onPress={handleSave}
             disabled={saving}
             style={[styles.saveButton, saving && styles.saveButtonDisabled]}
           >
             {saving ? (
-              <ActivityIndicator color="#FFF" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={styles.saveButtonText}>Save to today</Text>
             )}
@@ -267,7 +272,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
         </View>
       )}
 
-      {/* Success Animation Overlay */}
+      {/* Success Animation Overlay - 淡粉色弹窗 */}
       {showSuccess && total && (
         <Animated.View
           style={[
@@ -285,32 +290,38 @@ export function ReviewMealScreen({ route, navigation }: any) {
             },
           ]}
         >
-          <LinearGradient
-            colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.successGradient}
-          >
-            <MaterialCommunityIcons name="check-circle" size={80} color="#FFF" />
-            <Text style={styles.successTitle}>Meal Saved!</Text>
-            <View style={styles.successStats}>
-              <View style={styles.successStatItem}>
-                <Text style={styles.successStatValue}>+{Math.round(total.calories)}</Text>
-                <Text style={styles.successStatLabel}>kcal</Text>
+          <View style={styles.successCard}>
+            <LinearGradient
+              colors={SUCCESS_GRADIENT}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.successHeader}
+            />
+
+            <View style={styles.successBody}>
+              <View style={styles.successIconCircle}>
+                <MaterialCommunityIcons name="check" size={44} color="#7C3AED" />
               </View>
-              <View style={styles.successStatDivider} />
-              <View style={styles.successStatItem}>
-                <Text style={styles.successStatValue}>+{Math.round(total.protein)}g</Text>
-                <Text style={styles.successStatLabel}>protein</Text>
+              <Text style={styles.successTitle}>Meal Saved!</Text>
+              <View style={styles.successStats}>
+                <View style={styles.successStatItem}>
+                  <Text style={styles.successStatValue}>+{Math.round(total.calories)}</Text>
+                  <Text style={styles.successStatLabel}>kcal</Text>
+                </View>
+                <View style={styles.successStatDivider} />
+                <View style={styles.successStatItem}>
+                  <Text style={styles.successStatValue}>+{Math.round(total.protein)}g</Text>
+                  <Text style={styles.successStatLabel}>protein</Text>
+                </View>
+                <View style={styles.successStatDivider} />
+                <View style={styles.successStatItem}>
+                  <Text style={styles.successStatValue}>+{Math.round(total.carbs)}g</Text>
+                  <Text style={styles.successStatLabel}>carbs</Text>
+                </View>
               </View>
-              <View style={styles.successStatDivider} />
-              <View style={styles.successStatItem}>
-                <Text style={styles.successStatValue}>+{Math.round(total.carbs)}g</Text>
-                <Text style={styles.successStatLabel}>carbs</Text>
-              </View>
+              <Text style={styles.successSubtitle}>Added to today's nutrition</Text>
             </View>
-            <Text style={styles.successSubtitle}>Added to today's nutrition</Text>
-          </LinearGradient>
+          </View>
         </Animated.View>
       )}
     </SafeAreaView>
@@ -344,7 +355,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   content: {
-    paddingBottom: 100,
+    paddingBottom: 120, // Extra space for absolute positioned bottom bar
   },
   imageContainer: {
     margin: 16,
@@ -408,11 +419,11 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   saveButtonText: {
-    color: '#FFF',
+    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '600',
   },
-  // Success overlay styles
+  // Success overlay styles - 淡粉色弹窗
   successOverlay: {
     position: 'absolute',
     top: 0,
@@ -421,48 +432,68 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
-  successGradient: {
+  successCard: {
     width: '85%',
     borderRadius: 24,
-    padding: 32,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  successHeader: {
+    height: 72,
+    width: '100%',
+  },
+  successBody: {
+    padding: 24,
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
+  },
+  successIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   successTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFF',
-    marginTop: 8,
+    color: '#7C3AED',
+    marginTop: 4,
   },
   successStats: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 8,
+    backgroundColor: 'rgba(124,58,237,0.08)',
+    borderRadius: 16,
+    padding: 12,
   },
   successStatItem: {
     alignItems: 'center',
     paddingHorizontal: 16,
   },
   successStatValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#FFF',
+    color: '#7C3AED',
   },
   successStatLabel: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
+    color: '#6C6A7E',
     marginTop: 2,
   },
   successStatDivider: {
     width: 1,
     height: 32,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(124,58,237,0.2)',
   },
   successSubtitle: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
+    color: '#6C6A7E',
     marginTop: 8,
   },
 });

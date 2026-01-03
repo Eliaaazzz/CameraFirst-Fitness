@@ -17,7 +17,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-import com.fitnessapp.backend.user.entity.Allergen;
 import com.fitnessapp.backend.user.entity.DietaryPreference;
 import com.fitnessapp.backend.user.entity.FitnessGoal;
 import com.fitnessapp.backend.user.entity.User;
@@ -111,25 +110,21 @@ class UserProfileServiceTest {
     payload.setFitnessGoal(FitnessGoal.GAIN_MUSCLE);
     payload.setDietaryPreference(DietaryPreference.MEDITERRANEAN);
     payload.setDailyCalorieTarget(2600);
-    payload.getAllergens().add(Allergen.SEAFOOD);
 
     UserProfile saved = service.upsertProfile(user.getId(), payload);
 
     assertThat(saved.getUserId()).isEqualTo(user.getId());
     assertThat(saved.getBmi()).isEqualByComparingTo(new BigDecimal("24.07"));
-    assertThat(saved.getAllergens()).containsExactly(Allergen.SEAFOOD);
 
     UserProfile secondPayload = new UserProfile();
     secondPayload.setHeightCm(180);
     secondPayload.setWeightKg(new BigDecimal("70.0"));
     secondPayload.setFitnessGoal(FitnessGoal.LOSE_WEIGHT);
-    secondPayload.getAllergens().add(Allergen.LACTOSE);
 
     UserProfile updated = service.upsertProfile(user.getId(), secondPayload);
 
     assertThat(updated.getBmi()).isEqualByComparingTo(new BigDecimal("21.6"));
     assertThat(updated.getFitnessGoal()).isEqualTo(FitnessGoal.LOSE_WEIGHT);
-    assertThat(updated.getAllergens()).containsExactly(Allergen.LACTOSE);
     assertThat(userProfileRepository.count()).isEqualTo(1);
   }
 

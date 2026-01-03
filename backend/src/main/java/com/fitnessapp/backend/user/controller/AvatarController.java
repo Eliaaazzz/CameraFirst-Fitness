@@ -17,9 +17,7 @@ import com.fitnessapp.backend.security.AuthenticatedUser;
 import com.fitnessapp.backend.user.dto.ConfirmAvatarRequest;
 import com.fitnessapp.backend.user.dto.UploadAvatarRequest;
 import com.fitnessapp.backend.user.dto.UploadAvatarResponse;
-import com.fitnessapp.backend.user.dto.UserProfileMapper;
 import com.fitnessapp.backend.user.dto.UserProfileResponse;
-import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.service.UserProfileService;
 
 import jakarta.validation.Valid;
@@ -81,7 +79,7 @@ public class AvatarController {
         }
 
         UUID userId = currentUser.userId();
-        log.info("Confirming avatar upload for user: {}, publicUrl: {}, fileKey: {}", 
+        log.info("Confirming avatar upload for user: {}, publicUrl: {}, fileKey: {}",
             userId, request.publicUrl(), request.fileKey());
 
         // Update avatar in a single transaction to avoid detached entity issues

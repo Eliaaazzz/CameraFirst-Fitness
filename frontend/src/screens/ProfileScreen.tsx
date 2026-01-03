@@ -1,3 +1,4 @@
+import { api } from '@/services/apiClient';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -16,10 +17,10 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  useColorScheme,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { api } from '@/services/apiClient';
 
 import { Button, Card, SafeAreaWrapper, Text, WheelPicker } from '@/components';
 import { StateView } from '@/components/common/StateView';
@@ -36,12 +37,13 @@ import {
 } from '@/services/geminiApi';
 import { useGoalStatistics } from '@/services/goalsApi';
 import userApi from '@/services/userApi';
+import type { CurrentUserResponse, UserProfileResponse } from '@/types';
 import { BRAND_COLORS, spacing, useContentBottomPadding } from '@/utils';
 import { clearJWT, getUserEmail } from '@/utils/jwtStorage';
-import type { CurrentUserResponse, UserProfileResponse } from '@/types';
+import { getTheme } from '@/utils/theme';
 
 export const GENERATED_GOALS_KEY = '@generated_fitness_goals';
-const AVATAR_UPLOAD_CONTENT_TYPE = 'image/jpeg';
+const DEFAULT_AVATAR_CONTENT_TYPE = 'image/jpeg';
 
 const mapGoalTypeToFitnessGoal = (goalType: GoalType): string => {
   switch (goalType) {
@@ -116,6 +118,8 @@ const weightData = Array.from({ length: 171 }, (_, i) => ({
 type Step = 'sex' | 'measurements' | 'goal' | 'generating' | 'complete';
 
 const ProfileScreen = () => {
+  // Always use light mode
+  const theme = getTheme('light');
   const navigation = useNavigation<any>();
   const currentUser = useCurrentUser();
   const queryClient = useQueryClient();
@@ -215,11 +219,18 @@ const ProfileScreen = () => {
       const imageResponse = await fetch(imageUri);
       const blob = await imageResponse.blob();
 
-      // Keep presign and upload Content-Type aligned to avoid signature mismatch.
-      const detectedContentType = blob.type;
-      const contentType = AVATAR_UPLOAD_CONTENT_TYPE;
+      // Determine content type dynamically
+      let contentType = blob.type;
+      
+      // Fallback if blob type is missing or generic (common on some Android versions)
+      if (!contentType || contentType === 'application/octet-stream') {
+        const ext = imageUri.split('.').pop()?.toLowerCase();
+        if (ext === 'png') contentType = 'image/png';
+        else if (ext === 'webp') contentType = 'image/webp';
+        else contentType = DEFAULT_AVATAR_CONTENT_TYPE;
+      }
 
-      console.log('[ProfileScreen] Image blob type:', detectedContentType, 'Using contentType:', contentType);
+      console.log('[ProfileScreen] Image blob type:', blob.type, 'Detected content type:', contentType);
 
       // Step 2: Get presigned URL from backend with the correct content type
       const presignResponse = await api.post<{
@@ -523,25 +534,29 @@ const ProfileScreen = () => {
     badge?: string | number
   ) => (
     <Pressable
-      style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+      style={({ pressed }) => [
+        styles.menuItem,
+        { backgroundColor: theme.colors.surface },
+        pressed && { opacity: 0.7 },
+      ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityHint={subtitle}
     >
-      <View style={styles.menuIcon}>
-        <MaterialCommunityIcons name={icon as any} size={24} color={BRAND_COLORS.primary} />
+      <View style={[styles.menuIcon, { backgroundColor: theme.colors.background }]}>
+        <MaterialCommunityIcons name={icon as any} size={24} color={theme.colors.primary} />
       </View>
       <View style={styles.menuContent}>
-        <Text variant="body" weight="semibold">{title}</Text>
-        <Text variant="caption" style={styles.menuSubtitle}>{subtitle}</Text>
+        <Text variant="body" weight="semibold" style={{ color: theme.colors.textPrimary }}>{title}</Text>
+        <Text variant="caption" style={[styles.menuSubtitle, { color: theme.colors.textSecondary }]}>{subtitle}</Text>
       </View>
       {badge !== undefined && (
-        <View style={styles.badge}>
+        <View style={[styles.badge, { backgroundColor: theme.colors.primary }]}>
           <Text variant="caption" weight="bold" style={styles.badgeText}>{badge}</Text>
         </View>
       )}
-      <Feather name="chevron-right" size={20} color="#6B7280" />
+      <Feather name="chevron-right" size={20} color={theme.colors.textSecondary} />
     </Pressable>
   );
 
@@ -556,12 +571,12 @@ const ProfileScreen = () => {
       onRequestClose={resetGoalsModal}
     >
       <KeyboardAvoidingView
-        style={[styles.modalContainer, { backgroundColor: BRAND_COLORS.background }]}
+        style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Fixed App Bar */}
-        <View style={[styles.modalAppBar, { paddingTop: insets.top + 8 }]}>
-          <Text variant="heading2" weight="bold" style={styles.modalTitle}>
+        <View style={[styles.modalAppBar, { paddingTop: insets.top + 8, borderBottomColor: theme.colors.border }]}>
+          <Text variant="heading2" weight="bold" style={[styles.modalTitle, { color: theme.colors.textPrimary }]}>
             {step === 'sex' && 'About You'}
             {step === 'measurements' && 'Your Stats'}
             {step === 'goal' && 'Your Goal'}
@@ -575,7 +590,7 @@ const ProfileScreen = () => {
             accessibilityRole="button"
             accessibilityLabel="Close"
           >
-            <Feather name="x" size={24} color="#9CA3AF" />
+            <Feather name="x" size={24} color={theme.colors.textSecondary} />
           </Pressable>
         </View>
 
@@ -592,11 +607,11 @@ const ProfileScreen = () => {
           {/* Step 1: Sex Selection */}
           {step === 'sex' && (
             <View style={styles.stepContent}>
-              <Text variant="body" style={styles.stepDescription}>
+              <Text variant="body" style={[styles.stepDescription, { color: theme.colors.textSecondary }]}>
                 Let's personalize your fitness journey! First, tell us about yourself:
               </Text>
 
-              <Text variant="heading3" weight="semibold" style={styles.stepLabel}>
+              <Text variant="heading3" weight="semibold" style={[styles.stepLabel, { color: theme.colors.textPrimary }]}>
                 I am...
               </Text>
 
@@ -606,6 +621,7 @@ const ProfileScreen = () => {
                     key={option.value}
                     style={({ pressed }) => [
                       styles.sexOption,
+                      { backgroundColor: theme.colors.surface },
                       selectedSex === option.value && { backgroundColor: option.color },
                       pressed && styles.optionPressed,
                     ]}
@@ -625,7 +641,10 @@ const ProfileScreen = () => {
                     <Text
                       variant="body"
                       weight="semibold"
-                      style={selectedSex === option.value ? styles.optionTextSelected : undefined}
+                      style={[
+                        { color: theme.colors.textPrimary },
+                        selectedSex === option.value ? styles.optionTextSelected : undefined
+                      ]}
                     >
                       {option.label}
                     </Text>
@@ -638,7 +657,7 @@ const ProfileScreen = () => {
           {/* Step 2: Height & Weight with Wheel Pickers */}
           {step === 'measurements' && (
             <View style={styles.stepContent}>
-              <Text variant="body" style={styles.stepDescription}>
+              <Text variant="body" style={[styles.stepDescription, { color: theme.colors.textSecondary }]}>
                 Now let's get your measurements for accurate calculations:
               </Text>
 
@@ -665,7 +684,7 @@ const ProfileScreen = () => {
           {/* Step 3: Goal Selection */}
           {step === 'goal' && (
             <View style={styles.stepContent}>
-              <Text variant="body" style={styles.stepDescription}>
+              <Text variant="body" style={[styles.stepDescription, { color: theme.colors.textSecondary }]}>
                 What's your primary fitness goal?
               </Text>
 
@@ -675,6 +694,7 @@ const ProfileScreen = () => {
                     key={option.value}
                     style={({ pressed }) => [
                       styles.goalOption,
+                      { backgroundColor: theme.colors.surface },
                       selectedGoalType === option.value && {
                         borderColor: option.color,
                         backgroundColor: `${option.color}20`,
@@ -697,8 +717,8 @@ const ProfileScreen = () => {
                       />
                     </View>
                     <View style={styles.goalTextContainer}>
-                      <Text variant="body" weight="bold">{option.label}</Text>
-                      <Text variant="caption" style={styles.goalDescription}>
+                      <Text variant="body" weight="bold" style={{ color: theme.colors.textPrimary }}>{option.label}</Text>
+                      <Text variant="caption" style={[styles.goalDescription, { color: theme.colors.textSecondary }]}>
                         {option.description}
                       </Text>
                     </View>
@@ -715,15 +735,15 @@ const ProfileScreen = () => {
           {step === 'generating' && (
             <View style={styles.generatingContent}>
               <LinearGradient
-                colors={['rgba(167, 139, 250, 0.1)', 'rgba(244, 114, 182, 0.1)']}
+                colors={[theme.colors.primary + '20', theme.colors.secondary + '20']}
                 style={styles.generatingOverlay}
               >
                 <View style={styles.generatingInner}>
-                  <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
-                  <Text variant="heading3" weight="semibold" style={styles.generatingText}>
+                  <ActivityIndicator size="large" color={theme.colors.primary} />
+                  <Text variant="heading3" weight="semibold" style={[styles.generatingText, { color: theme.colors.textPrimary }]}>
                     Generating your personalized goals...
                   </Text>
-                  <Text variant="caption" style={styles.generatingSubtext}>
+                  <Text variant="caption" style={[styles.generatingSubtext, { color: theme.colors.textSecondary }]}>
                     AI is calculating the best plan for you
                   </Text>
                 </View>
@@ -790,48 +810,48 @@ const ProfileScreen = () => {
               </Card>
 
               {/* Other Targets */}
-              <Card style={styles.goalCard}>
+              <Card style={[styles.goalCard, { backgroundColor: theme.colors.surface }]}>
                 <View style={styles.goalCardHeader}>
-                  <MaterialCommunityIcons name="target" size={24} color="#3B82F6" />
-                  <Text variant="body" weight="semibold">Daily Targets</Text>
+                  <MaterialCommunityIcons name="target" size={24} color={theme.colors.info} />
+                  <Text variant="body" weight="semibold" style={{ color: theme.colors.textPrimary }}>Daily Targets</Text>
                 </View>
                 <View style={styles.targetRow}>
-                  <MaterialCommunityIcons name="cube-outline" size={20} color="#F59E0B" />
-                  <Text variant="body">Sugar Limit: {generatedGoals.sugarLimit_g_per_day}g</Text>
+                  <MaterialCommunityIcons name="cube-outline" size={20} color={theme.colors.warning} />
+                  <Text variant="body" style={{ color: theme.colors.textSecondary }}>Sugar Limit: {generatedGoals.sugarLimit_g_per_day}g</Text>
                 </View>
                 <View style={styles.targetRow}>
-                  <MaterialCommunityIcons name="leaf" size={20} color="#10B981" />
-                  <Text variant="body">Fiber Target: {generatedGoals.fiberTarget_g_per_day}g</Text>
+                  <MaterialCommunityIcons name="leaf" size={20} color={theme.colors.success} />
+                  <Text variant="body" style={{ color: theme.colors.textSecondary }}>Fiber Target: {generatedGoals.fiberTarget_g_per_day}g</Text>
                 </View>
                 <View style={styles.targetRow}>
-                  <MaterialCommunityIcons name="run" size={20} color="#EF4444" />
-                  <Text variant="body">
+                  <MaterialCommunityIcons name="run" size={20} color={theme.colors.error} />
+                  <Text variant="body" style={{ color: theme.colors.textSecondary }}>
                     Cardio: {generatedGoals.weeklyActivityPlan.cardio_minutes_per_week} min/week
                   </Text>
                 </View>
                 <View style={styles.targetRow}>
-                  <MaterialCommunityIcons name="dumbbell" size={20} color="#A78BFA" />
-                  <Text variant="body">
+                  <MaterialCommunityIcons name="dumbbell" size={20} color={theme.colors.primary} />
+                  <Text variant="body" style={{ color: theme.colors.textSecondary }}>
                     Strength: {generatedGoals.weeklyActivityPlan.strength_sessions_per_week}x/week
                   </Text>
                 </View>
                 <View style={styles.targetRow}>
-                  <MaterialCommunityIcons name="shoe-print" size={20} color="#3B82F6" />
-                  <Text variant="body">
+                  <MaterialCommunityIcons name="shoe-print" size={20} color={theme.colors.info} />
+                  <Text variant="body" style={{ color: theme.colors.textSecondary }}>
                     Steps: {generatedGoals.weeklyActivityPlan.steps_per_day_target.toLocaleString()}/day
                   </Text>
                 </View>
               </Card>
 
               {/* Safety Note */}
-              <Card style={[styles.goalCard, styles.safetyCard]}>
+              <Card style={[styles.goalCard, styles.safetyCard, { backgroundColor: theme.colors.warning + '15', borderColor: theme.colors.warning + '40' }]}>
                 <View style={styles.safetyHeader}>
-                  <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#F59E0B" />
-                  <Text variant="caption" weight="semibold" style={styles.safetyTitle}>
+                  <MaterialCommunityIcons name="alert-circle-outline" size={20} color={theme.colors.warning} />
+                  <Text variant="caption" weight="semibold" style={[styles.safetyTitle, { color: theme.colors.warning }]}>
                     Important Note
                   </Text>
                 </View>
-                <Text variant="caption" style={styles.safetyText}>
+                <Text variant="caption" style={[styles.safetyText, { color: theme.colors.textSecondary }]}>
                   {generatedGoals.safetyNote}
                 </Text>
               </Card>
@@ -841,11 +861,12 @@ const ProfileScreen = () => {
 
         {/* Fixed Bottom CTA */}
         {step !== 'generating' && (
-          <View style={[styles.modalBottomCta, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={[styles.modalBottomCta, { paddingBottom: insets.bottom + 12, backgroundColor: theme.colors.background, borderTopColor: theme.colors.border }]}>
             {step === 'sex' && (
               <Pressable
                 style={({ pressed }) => [
                   styles.ctaButton,
+                  { backgroundColor: theme.colors.primary },
                   !canProceedToMeasurements && styles.ctaButtonDisabled,
                   pressed && canProceedToMeasurements && styles.ctaButtonPressed,
                 ]}
@@ -855,7 +876,7 @@ const ProfileScreen = () => {
                 accessibilityLabel="Continue to measurements"
                 accessibilityState={{ disabled: !canProceedToMeasurements }}
               >
-                <Text variant="body" weight="bold" style={styles.ctaButtonText}>
+                <Text variant="body" weight="bold" style={[styles.ctaButtonText, { color: '#FFFFFF' }]}>
                   Continue
                 </Text>
               </Pressable>
@@ -866,13 +887,14 @@ const ProfileScreen = () => {
                 <Pressable
                   style={({ pressed }) => [
                     styles.secondaryButton,
+                    { backgroundColor: theme.colors.surface },
                     pressed && styles.secondaryButtonPressed,
                   ]}
                   onPress={() => setStep('sex')}
                   accessibilityRole="button"
                   accessibilityLabel="Go back to sex selection"
                 >
-                  <Text variant="body" weight="semibold" style={styles.secondaryButtonText}>
+                  <Text variant="body" weight="semibold" style={[styles.secondaryButtonText, { color: theme.colors.primary }]}>
                     Back
                   </Text>
                 </Pressable>
@@ -880,6 +902,7 @@ const ProfileScreen = () => {
                   style={({ pressed }) => [
                     styles.ctaButton,
                     styles.ctaButtonFlex,
+                    { backgroundColor: theme.colors.primary },
                     !canProceedToGoal && styles.ctaButtonDisabled,
                     pressed && canProceedToGoal && styles.ctaButtonPressed,
                   ]}
@@ -901,13 +924,14 @@ const ProfileScreen = () => {
                 <Pressable
                   style={({ pressed }) => [
                     styles.secondaryButton,
+                    { backgroundColor: theme.colors.surface },
                     pressed && styles.secondaryButtonPressed,
                   ]}
                   onPress={() => setStep('measurements')}
                   accessibilityRole="button"
                   accessibilityLabel="Go back to measurements"
                 >
-                  <Text variant="body" weight="semibold" style={styles.secondaryButtonText}>
+                  <Text variant="body" weight="semibold" style={[styles.secondaryButtonText, { color: theme.colors.primary }]}>
                     Back
                   </Text>
                 </Pressable>
@@ -923,7 +947,7 @@ const ProfileScreen = () => {
                   accessibilityState={{ disabled: !canGenerate }}
                 >
                   <LinearGradient
-                    colors={canGenerate ? [BRAND_COLORS.primary, BRAND_COLORS.secondary] : ['#6B7280', '#6B7280']}
+                    colors={canGenerate ? [theme.colors.primary, theme.colors.secondary] : ['#6B7280', '#6B7280']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.generateButtonGradient}
@@ -947,7 +971,7 @@ const ProfileScreen = () => {
                 accessibilityRole="button"
                 accessibilityLabel="Save goals and go to dashboard"
               >
-                <Text variant="body" weight="bold" style={styles.ctaButtonText}>
+                <Text variant="body" weight="bold" style={[styles.ctaButtonText, { color: '#FFFFFF' }]}>
                   Save & View Dashboard
                 </Text>
               </Pressable>
@@ -990,7 +1014,7 @@ const ProfileScreen = () => {
   return (
     <SafeAreaWrapper>
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: 'transparent' }]}
         contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
       >
         {/* Profile Header */}
@@ -999,6 +1023,7 @@ const ProfileScreen = () => {
             <Pressable
               style={({ pressed }) => [
                 styles.avatar,
+                { backgroundColor: theme.colors.surface },
                 pressed && { opacity: 0.7 },
               ]}
               onPress={handleAvatarPress}
@@ -1007,23 +1032,24 @@ const ProfileScreen = () => {
               accessibilityLabel="Change profile photo"
             >
               {isUploadingAvatar ? (
-                <ActivityIndicator size="small" color={BRAND_COLORS.primary} />
+                <ActivityIndicator size="small" color={theme.colors.primary} />
               ) : avatarUrl ? (
                 <Image
                   key={avatarCacheKey}
                   source={{ uri: avatarUri }}
-                  style={[styles.avatarImage, { backgroundColor: 'red' }]}
+                  style={styles.avatarImage}
                   onLoadStart={() => console.log('[ProfileScreen] Avatar load start:', avatarUri)}
                   onLoadEnd={() => console.log('[ProfileScreen] Avatar load end')}
                   onError={(event) => console.log('[ProfileScreen] Avatar load error:', event.nativeEvent.error)}
                 />
               ) : (
-                <Feather name="user" size={40} color={BRAND_COLORS.primary} />
+                <Feather name="user" size={40} color={theme.colors.primary} />
               )}
             </Pressable>
             <Pressable
               style={({ pressed }) => [
                 styles.editAvatarBtn,
+                { backgroundColor: theme.colors.primary },
                 pressed && { opacity: 0.85 },
               ]}
               onPress={handleAvatarPress}
@@ -1035,34 +1061,34 @@ const ProfileScreen = () => {
               <Feather name="camera" size={14} color="#FFF" />
             </Pressable>
           </View>
-          <Text variant="heading2" weight="bold">Hi, {displayName}</Text>
-          <Text variant="caption" style={styles.email}>{userEmail}</Text>
+          <Text variant="heading2" weight="bold" style={{ color: theme.colors.textPrimary }}>Hi, {displayName}</Text>
+          <Text variant="caption" style={[styles.email, { color: theme.colors.textSecondary }]}>{userEmail}</Text>
         </View>
 
         {/* Goals Status */}
         {generatedGoals ? (
-          <Card style={styles.goalsStatusCard}>
+          <Card style={[styles.goalsStatusCard, { backgroundColor: theme.colors.surface }]}>
             <View style={styles.goalsStatusHeader}>
-              <MaterialCommunityIcons name="check-circle" size={24} color="#10B981" />
-              <Text variant="body" weight="semibold">Goals Active</Text>
+              <MaterialCommunityIcons name="check-circle" size={24} color={theme.colors.success} />
+              <Text variant="body" weight="semibold" style={{ color: theme.colors.textPrimary }}>Goals Active</Text>
               {goalTypeLabel && (
-                <View style={styles.goalTypeBadge}>
+                <View style={[styles.goalTypeBadge, { backgroundColor: theme.colors.primary }]}>
                   <Text variant="caption" weight="bold" style={styles.goalTypeBadgeText}>
                     {goalTypeLabel}
                   </Text>
                 </View>
               )}
             </View>
-            <View style={styles.goalsPreview}>
+            <View style={[styles.goalsPreview, { backgroundColor: theme.colors.background }]}>
               <View style={styles.goalsPreviewRow}>
-                <Text variant="caption" style={styles.goalsPreviewLabel}>Daily Target:</Text>
-                <Text variant="body" weight="bold" style={styles.goalsPreviewValue}>
+                <Text variant="caption" style={[styles.goalsPreviewLabel, { color: theme.colors.textSecondary }]}>Daily Target:</Text>
+                <Text variant="body" weight="bold" style={{ color: theme.colors.primary }}>
                   {generatedGoals.dailyCalories.target} kcal
                 </Text>
               </View>
               <View style={styles.goalsPreviewRow}>
-                <Text variant="caption" style={styles.goalsPreviewLabel}>Macros:</Text>
-                <Text variant="body" weight="semibold">
+                <Text variant="caption" style={[styles.goalsPreviewLabel, { color: theme.colors.textSecondary }]}>Macros:</Text>
+                <Text variant="body" weight="semibold" style={{ color: theme.colors.textPrimary }}>
                   P: {generatedGoals.macros_grams.protein_g}g | C: {generatedGoals.macros_grams.carbs_g}g | F: {generatedGoals.macros_grams.fat_g}g
                 </Text>
               </View>
@@ -1071,6 +1097,8 @@ const ProfileScreen = () => {
               title="Regenerate Goals"
               variant="secondary"
               onPress={() => setShowGoalsModal(true)}
+              style={{ backgroundColor: theme.colors.background }}
+              textStyle={{ color: theme.colors.primary }}
             />
           </Card>
         ) : (
@@ -1105,7 +1133,7 @@ const ProfileScreen = () => {
 
         {/* Menu Items */}
         <View style={styles.menuSection}>
-          <Text variant="heading3" weight="semibold" style={styles.sectionTitle}>
+          <Text variant="heading3" weight="semibold" style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
             Your Library
           </Text>
           {renderMenuItem(
@@ -1136,7 +1164,7 @@ const ProfileScreen = () => {
         </View>
 
         <View style={styles.menuSection}>
-          <Text variant="heading3" weight="semibold" style={styles.sectionTitle}>
+          <Text variant="heading3" weight="semibold" style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
             Settings
           </Text>
           {renderMenuItem(
@@ -1156,13 +1184,17 @@ const ProfileScreen = () => {
 
         {/* Logout Button */}
         <Pressable
-          style={({ pressed }) => [styles.logoutButton, pressed && styles.logoutButtonPressed]}
+          style={({ pressed }) => [
+            styles.logoutButton,
+            { backgroundColor: theme.colors.surface },
+            pressed && { opacity: 0.7 }
+          ]}
           onPress={handleLogout}
           accessibilityRole="button"
           accessibilityLabel="Logout from your account"
         >
-          <Feather name="log-out" size={20} color="#EF4444" />
-          <Text variant="body" weight="semibold" style={styles.logoutText}>
+          <Feather name="log-out" size={20} color={theme.colors.error} />
+          <Text variant="body" weight="semibold" style={[styles.logoutText, { color: theme.colors.error }]}>
             Logout
           </Text>
         </Pressable>

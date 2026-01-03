@@ -16,6 +16,7 @@ interface SearchBarProps {
   onChangeText: (text: string) => void;
   onSubmit?: () => void;
   onClear?: () => void;
+  onFocusChange?: (isFocused: boolean) => void;
   isLoading?: boolean;
   autoFocus?: boolean;
 }
@@ -26,10 +27,21 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   onChangeText,
   onSubmit,
   onClear,
+  onFocusChange,
   isLoading = false,
   autoFocus = false,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    onFocusChange?.(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    onFocusChange?.(false);
+  };
 
   const handleClear = () => {
     onChangeText('');
@@ -50,8 +62,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         placeholderTextColor="#6B7280"
         value={value}
         onChangeText={onChangeText}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         onSubmitEditing={onSubmit}
         returnKeyType="search"
         autoCapitalize="none"

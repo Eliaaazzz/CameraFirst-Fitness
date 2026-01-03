@@ -1,16 +1,16 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { ActivityIndicator, Text, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { MD3DarkTheme as PaperDarkTheme, MD3LightTheme as PaperLightTheme, Provider as PaperProvider } from 'react-native-paper';
+import { MD3LightTheme as PaperLightTheme, Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SnackbarProvider } from '@/components';
 import { useVersionCheck } from '@/hooks/useVersionCheck';
 import { AppNavigator } from '@/navigation/AppNavigator';
 import { queryClient } from '@/services';
-import { BRAND_COLORS } from '@/utils';
+import { BRAND_COLORS, getTheme } from '@/utils';
 
 // Top-level error boundary to catch and display errors on web
 class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
@@ -48,12 +48,13 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
 }
 
 const App = () => {
-  const colorScheme = useColorScheme();
-  const barStyle = colorScheme === 'dark' ? 'light' : 'dark';
+  // Always use light mode
+  const barStyle = 'dark';
   const { isChecking, needsUpdate, currentVersion } = useVersionCheck();
 
   // Ensure theme has all required properties for web platform
-  const baseTheme = colorScheme === 'dark' ? PaperDarkTheme : PaperLightTheme;
+  const baseTheme = PaperLightTheme;
+  const customTheme = getTheme('light');
 
   // Calculate direction for cross-platform compatibility
   const themeDirection = 'ltr';
@@ -61,6 +62,20 @@ const App = () => {
   const paperTheme = {
     ...baseTheme,
     direction: themeDirection,
+    colors: {
+      ...baseTheme.colors,
+      primary: customTheme.colors.primary,
+      primaryContainer: customTheme.colors.primaryContainer,
+      secondary: customTheme.colors.secondary,
+      secondaryContainer: customTheme.colors.secondaryContainer,
+      background: customTheme.colors.background,
+      surface: customTheme.colors.surface,
+      surfaceVariant: customTheme.colors.surfaceVariant,
+      error: customTheme.colors.error,
+      onSurface: customTheme.colors.textPrimary,
+      onBackground: customTheme.colors.textPrimary,
+      outline: customTheme.colors.border,
+    },
   } as any;
 
   // Show loading screen while checking version

@@ -1,16 +1,32 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 import { FAB } from 'react-native-paper';
 
-import { Container, EmptyStateCard, ListSkeleton, RecipeCard, SafeAreaWrapper, SearchBar, Text } from '@/components';
+import { Container, EmptyStateCard, ListSkeleton, RecipeCard, SafeAreaWrapper, SearchBar, SearchSuggestions, Text, type SuggestionItem } from '@/components';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedRecipes, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
 import { searchRecipes, RecipeSearchResult } from '@/services/searchApi';
 import type { SavedRecipe } from '@/types';
 import { spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
+import { getTheme } from '@/utils/theme';
+
+// Recipe search suggestions with fun icons
+const RECIPE_SUGGESTIONS: SuggestionItem[] = [
+  { id: 'salad', label: 'Salad', icon: 'food-apple', color: '#10B981' },
+  { id: 'chicken', label: 'Chicken', icon: 'food-drumstick', color: '#F59E0B' },
+  { id: 'smoothie', label: 'Smoothie', icon: 'cup-water', color: '#EC4899' },
+  { id: 'pasta', label: 'Pasta', icon: 'pasta', color: '#EF4444' },
+  { id: 'breakfast', label: 'Breakfast', icon: 'egg-fried', color: '#F97316' },
+  { id: 'soup', label: 'Soup', icon: 'bowl-mix', color: '#8B5CF6' },
+  { id: 'fish', label: 'Fish', icon: 'fish', color: '#06B6D4' },
+  { id: 'vegetarian', label: 'Vegetarian', icon: 'leaf', color: '#22C55E' },
+];
 
 export const RecipesScreen = () => {
+  // Always use light mode
+  const theme = getTheme('light');
+
   // All hooks must be called before any early returns
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
@@ -31,6 +47,7 @@ export const RecipesScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<RecipeSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Calculate bottom padding for content using shared utility
@@ -73,6 +90,10 @@ export const RecipesScreen = () => {
     setIsSearching(false);
   }, []);
 
+  const handleSuggestionSelect = useCallback((suggestion: SuggestionItem) => {
+    handleSearch(suggestion.label);
+  }, [handleSearch]);
+
   const handleRefresh = useCallback(() => {
     if (!saved.isLoading) {
       saved.refetch();
@@ -97,22 +118,22 @@ export const RecipesScreen = () => {
             isSaved
             onRemove={(id) => removeRecipe.mutateAsync(id).then(() => true)}
           />
-          <Text variant="caption" style={styles.savedAt}>
+          <Text variant="caption" style={[styles.savedAt, { color: theme.colors.textSecondary }]}>
             {meta}
           </Text>
         </View>
       );
     },
-    [removeRecipe],
+    [removeRecipe, theme],
   );
 
   const listEmptyComponent = useMemo(() => (
     <EmptyStateCard
-      icon={<Feather name="coffee" size={32} color="#4ECDC4" />}
+      icon={<Feather name="coffee" size={32} color={theme.colors.primary} />}
       title="Your saved recipes will appear here"
       variant="single"
     />
-  ), []);
+  ), [theme]);
 
   // Loading state
   if (currentUser.isLoading || saved.isLoading) {
@@ -120,10 +141,10 @@ export const RecipesScreen = () => {
       <SafeAreaWrapper>
         <Container>
           <View style={styles.header}>
-            <Text variant="heading1" weight="bold">
+            <Text variant="heading1" weight="bold" style={{ color: theme.colors.textPrimary }}>
               Recipes
             </Text>
-            <Text variant="body" style={styles.subtitle}>
+            <Text variant="body" style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
               Recommended meals and your saved list.
             </Text>
           </View>
@@ -139,7 +160,7 @@ export const RecipesScreen = () => {
       <SafeAreaWrapper>
         <Container>
           <EmptyStateCard
-            icon={<MaterialCommunityIcons name="alert-circle-outline" size={32} color="#EF4444" />}
+            icon={<MaterialCommunityIcons name="alert-circle-outline" size={32} color={theme.colors.error} />}
             title="Unable to load recipes"
             subtitle="Check your network connection and try again."
             ctaLabel="Retry"
@@ -157,13 +178,15 @@ export const RecipesScreen = () => {
   const isRefreshing = saved.isRefetching;
 
   const isSearchMode = searchQuery.trim().length > 0;
+  // Show search UI when focused or has query text
+  const showSearchUI = isSearchFocused || isSearchMode;
 
   const listHeaderComponent = (
     <View style={styles.header}>
-      <Text variant="heading1" weight="bold">
+      <Text variant="heading1" weight="bold" style={{ color: theme.colors.textPrimary }}>
         Recipes
       </Text>
-      <Text variant="body" style={styles.subtitle}>
+      <Text variant="body" style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
         Healthy meals and your saved list.
       </Text>
 
@@ -174,22 +197,34 @@ export const RecipesScreen = () => {
           value={searchQuery}
           onChangeText={handleSearch}
           onClear={clearSearch}
+          onFocusChange={setIsSearchFocused}
           isLoading={isSearching}
         />
       </View>
 
-      {/* Search Results or Recommended Recipes */}
-      {isSearchMode ? (
+      {/* Search Suggestions - only visible when search is focused */}
+      {showSearchUI && (
+        <View style={styles.suggestionsSection}>
+          <SearchSuggestions
+            suggestions={RECIPE_SUGGESTIONS}
+            onSelect={handleSuggestionSelect}
+            title="Popular searches"
+          />
+        </View>
+      )}
+
+      {/* Search Results - only when has query text */}
+      {isSearchMode && (
         <View style={styles.section}>
-          <Text variant="heading2" weight="semibold">
+          <Text variant="heading2" weight="semibold" style={{ color: theme.colors.textPrimary }}>
             Search Results
           </Text>
           {isSearching ? (
-            <Text variant="caption" style={styles.recommendedNote}>
+            <Text variant="caption" style={[styles.recommendedNote, { color: theme.colors.textSecondary }]}>
               Searching...
             </Text>
           ) : searchResults.length === 0 ? (
-            <Text variant="caption" style={styles.recommendedNote}>
+            <Text variant="caption" style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
               No recipes found for "{searchQuery}"
             </Text>
           ) : (
@@ -215,47 +250,53 @@ export const RecipesScreen = () => {
             </View>
           )}
         </View>
-      ) : (
-        /* Recommended Recipes Section */
-      <View style={styles.section}>
-        <Text variant="heading2" weight="semibold">
-          Recommended for you
-        </Text>
-        {recommended.isLoading ? (
-          <Text variant="caption" style={styles.recommendedNote}>
-            Loading recommendations...
-          </Text>
-        ) : recommended.isError ? (
-          <Text variant="caption" style={styles.recommendedNote}>
-            Unable to load recommendations.
-          </Text>
-        ) : recommendedRecipes.length === 0 ? (
-          <Text variant="caption" style={styles.recommendedNote}>
-            No recommendations yet.
-          </Text>
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.recommendedList}
-          >
-            {recommendedRecipes.map((item) => (
-              <View key={item.id} style={styles.recommendedCard}>
-                <RecipeCard
-                  item={item}
-                  isSaved={savedRecipeIds.has(item.id)}
-                  onSave={(id) => saveRecipe.mutateAsync(id).then(() => true)}
-                  onRemove={(id) => removeRecipe.mutateAsync(id).then(() => true)}
-                />
-              </View>
-            ))}
-          </ScrollView>
-        )}
-      </View>
       )}
-      <Text variant="heading2" weight="semibold" style={styles.savedHeader}>
-        Saved Recipes
-      </Text>
+
+      {/* Recommended Recipes Section - hidden when search UI is active */}
+      {!showSearchUI && (
+        <View style={styles.section}>
+          <Text variant="heading2" weight="semibold" style={{ color: theme.colors.textPrimary }}>
+            Recommended for you
+          </Text>
+          {recommended.isLoading ? (
+            <Text variant="caption" style={[styles.recommendedNote, { color: theme.colors.textSecondary }]}>
+              Loading recommendations...
+            </Text>
+          ) : recommended.isError ? (
+            <Text variant="caption" style={[styles.recommendedNote, { color: theme.colors.textSecondary }]}>
+              Unable to load recommendations.
+            </Text>
+          ) : recommendedRecipes.length === 0 ? (
+            <Text variant="caption" style={[styles.recommendedNote, { color: theme.colors.textSecondary }]}>
+              No recommendations yet.
+            </Text>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recommendedList}
+            >
+              {recommendedRecipes.map((item) => (
+                <View key={item.id} style={styles.recommendedCard}>
+                  <RecipeCard
+                    item={item}
+                    isSaved={savedRecipeIds.has(item.id)}
+                    onSave={(id) => saveRecipe.mutateAsync(id).then(() => true)}
+                    onRemove={(id) => removeRecipe.mutateAsync(id).then(() => true)}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      )}
+
+      {/* Saved Recipes Header - hidden when search UI is active */}
+      {!showSearchUI && (
+        <Text variant="heading2" weight="semibold" style={[styles.savedHeader, { color: theme.colors.textPrimary }]}>
+          Saved Recipes
+        </Text>
+      )}
     </View>
   );
 
@@ -264,18 +305,18 @@ export const RecipesScreen = () => {
       <Container style={styles.container}>
         <FlatList
           ref={listRef}
-          data={recipes}
+          data={showSearchUI ? [] : recipes}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
           ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
           ListHeaderComponent={listHeaderComponent}
-          ListEmptyComponent={listEmptyComponent}
+          ListEmptyComponent={showSearchUI ? null : listEmptyComponent}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              tintColor="#4ECDC4"
+              tintColor={theme.colors.primary}
             />
           }
           onScroll={handleScroll}
@@ -284,7 +325,8 @@ export const RecipesScreen = () => {
       </Container>
       <FAB
         icon="arrow-up"
-        style={[styles.fab, { bottom: fabBottomPosition }]}
+        style={[styles.fab, { bottom: fabBottomPosition, backgroundColor: theme.colors.primary }]}
+        color="#FFFFFF"
         mode="elevated"
         onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
         visible={showFab}
@@ -313,6 +355,9 @@ const styles = StyleSheet.create({
   searchContainer: {
     marginTop: spacing.md,
   },
+  suggestionsSection: {
+    marginTop: spacing.sm,
+  },
   section: {
     marginTop: spacing.lg,
     gap: spacing.sm,
@@ -332,6 +377,9 @@ const styles = StyleSheet.create({
   },
   searchResultCard: {
     marginBottom: spacing.sm,
+  },
+  noResultsText: {
+    opacity: 0.6,
   },
   savedHeader: {
     marginTop: spacing.lg,

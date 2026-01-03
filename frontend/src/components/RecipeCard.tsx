@@ -1,12 +1,12 @@
 import { BookmarkButton, Button, Text, useSnackbar } from '@/components';
 import type { RecipeCard as Recipe, RecipeImageUrls } from '@/types';
-import { colors, radii, spacing, useResponsiveValue } from '@/utils';
+import { colors, getTheme, radii, shadows, spacing, useResponsiveValue } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View, useColorScheme } from 'react-native';
 import { SmartRecipeImage } from './RecipeImage';
 
 /**
@@ -89,10 +89,26 @@ type Props = {
  * Uses optimized images with small thumbnails for lists.
  */
 export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVariant = 'thumb' }: Props) => {
+  // Always use light mode
+  const theme = getTheme('light');
   const [saving, setSaving] = useState(false);
-  const [isPressed, setIsPressed] = useState(false);
   const { showSnackbar } = useSnackbar();
   const navigation = useNavigation<any>();
+
+  // Animation for floating card effect - each card has its own state
+  // Disable hover effect for saved items
+  const [isHovered, setIsHovered] = useState(false);
+  const enableHover = !isSaved;
+
+  // Web hover handlers
+  const webHoverProps = Platform.OS === 'web' && enableHover ? {
+    onMouseEnter: () => setIsHovered(true),
+    onMouseLeave: () => setIsHovered(false),
+  } : {};
+
+  // Mobile press handlers
+  const handlePressIn = () => enableHover && setIsHovered(true);
+  const handlePressOut = () => enableHover && setIsHovered(false);
 
   const time = item.timeMinutes ? `${item.timeMinutes} min` : '—';
   const difficulty = item.difficulty?.toUpperCase() ?? '—';
@@ -154,21 +170,23 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
   // Reuse handleCardPress for button as behavior is identical
   const handleStartPress = handleCardPress;
 
-  const dark = colors.dark;
+  // Dynamic styles for hover/press effect
+  const cardDynamicStyle = {
+    transform: [{ scale: isHovered ? 1.05 : 1 }],
+    ...(Platform.OS === 'web' && {
+      transition: 'transform 0.2s ease-out, box-shadow 0.2s ease-out',
+      boxShadow: isHovered
+        ? '0 12px 28px rgba(0, 0, 0, 0.35), 0 8px 12px rgba(0, 0, 0, 0.22)'
+        : '0 4px 12px rgba(0, 0, 0, 0.15)',
+    }),
+  };
 
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          transform: [{ scale: isPressed ? 0.98 : 1 }],
-        },
-      ]}
-    >
+    <View style={[styles.card, { backgroundColor: theme.colors.surface }, cardDynamicStyle]} {...webHoverProps}>
       {/* Image - Clickable area */}
       <Pressable
-        onPressIn={() => setIsPressed(true)}
-        onPressOut={() => setIsPressed(false)}
+        onPressIn={Platform.OS !== 'web' ? handlePressIn : undefined}
+        onPressOut={Platform.OS !== 'web' ? handlePressOut : undefined}
         onPress={handleCardPress}
         style={[styles.imageContainer, { height: imageHeight }]}
       >
@@ -187,11 +205,11 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
         {/* Chips */}
         <View style={styles.chipRow}>
           {item.isAiGenerated && (
-            <View style={[styles.chip, { backgroundColor: dark.secondary }]}>
+            <View style={[styles.chip, { backgroundColor: theme.colors.secondary }]}>
               <Text variant="label" style={{ color: '#FFF', fontSize: 10 }}>AI</Text>
             </View>
           )}
-          <View style={[styles.chip, { backgroundColor: dark.primary }]}>
+          <View style={[styles.chip, { backgroundColor: theme.colors.primary }]}>
             <Text variant="label" style={{ color: '#FFF', fontSize: 11 }}>{difficulty}</Text>
           </View>
         </View>
@@ -199,11 +217,11 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
 
       {/* Content */}
       <View style={styles.content}>
-        <Text variant="body" weight="semibold" numberOfLines={2} style={{ color: dark.textPrimary }}>
+        <Text variant="body" weight="semibold" numberOfLines={2} style={{ color: theme.colors.textPrimary }}>
           {item.title}
         </Text>
 
-        <Text variant="caption" style={{ color: dark.textSecondary }}>
+        <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
           {time}{calories ? ` · ${calories}` : ''}
         </Text>
 
@@ -214,12 +232,13 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
             variant="primary"
             size="small"
             onPress={handleStartPress}
+            style={{ backgroundColor: theme.colors.primary }}
           />
           <BookmarkButton
             isSaved={!!isSaved}
             isLoading={saving}
             onPress={handleBookmark}
-            color={dark.secondary}
+            color={theme.colors.primary}
           />
         </View>
       </View>
@@ -229,12 +248,13 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.dark.surface,
     borderRadius: radii.xl,
     overflow: 'hidden',
-    ...(Platform.OS === 'web' && {
-      transition: 'transform 0.15s ease',
-    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   imageContainer: {
     position: 'relative',

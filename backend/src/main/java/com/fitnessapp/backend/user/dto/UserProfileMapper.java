@@ -1,9 +1,6 @@
 package com.fitnessapp.backend.user.dto;
 
-import com.fitnessapp.backend.user.entity.Allergen;
 import com.fitnessapp.backend.user.entity.UserProfile;
-import java.util.HashSet;
-import java.util.Set;
 
 public final class UserProfileMapper {
 
@@ -22,11 +19,6 @@ public final class UserProfileMapper {
     profile.setDailyProteinTarget(request.dailyProteinTarget());
     profile.setDailyCarbsTarget(request.dailyCarbsTarget());
     profile.setDailyFatTarget(request.dailyFatTarget());
-
-    Set<Allergen> allergens = request.allergens() != null
-        ? new HashSet<>(request.allergens())
-        : new HashSet<>();
-    profile.setAllergens(allergens);
     return profile;
   }
 
@@ -41,7 +33,6 @@ public final class UserProfileMapper {
         profile.getFitnessGoal(),
         profile.getDietaryPreference(),
         profile.getHealthMode(),
-        profile.getAllergens(),
         profile.getDailyCalorieTarget(),
         profile.getDailyProteinTarget(),
         profile.getDailyCarbsTarget(),

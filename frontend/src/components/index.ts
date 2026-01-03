@@ -27,6 +27,7 @@ export * from './YouTubePlayerModal';
 
 // Common components
 export { SearchBar } from './common/SearchBar';
+export { SearchSuggestions, type SuggestionItem } from './common/SearchSuggestions';
 export { StateView } from './common/StateView';
 export { WheelPicker } from './common/WheelPicker';
 

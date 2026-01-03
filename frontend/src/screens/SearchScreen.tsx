@@ -44,7 +44,8 @@ export const SearchScreen = () => {
   const uploadWorkout = useUploadWorkout();
   const uploadRecipe = useUploadRecipe();
 
-  const dark = colors.dark;
+  // Use light mode colors for better readability
+  const light = colors.light;
 
   // Open camera
   const handleOpenCamera = async () => {
@@ -197,7 +198,7 @@ export const SearchScreen = () => {
   if (mode === 'processing' || isProcessing) {
     return (
       <SafeAreaWrapper>
-        <View style={[styles.container, { backgroundColor: dark.background }]}>
+        <View style={[styles.container, { backgroundColor: light.background }]}>
           <LoadingState label="AI is analyzing image..." />
           {capturedImage && (
             <Image source={{ uri: capturedImage }} style={styles.previewImage} />
@@ -211,7 +212,7 @@ export const SearchScreen = () => {
   return (
     <SafeAreaWrapper>
       <KeyboardAvoidingView 
-        style={[styles.container, { backgroundColor: dark.background }]}
+        style={[styles.container, { backgroundColor: light.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView 
@@ -220,10 +221,10 @@ export const SearchScreen = () => {
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text variant="heading1" style={{ color: dark.textPrimary }}>
+            <Text variant="heading1" style={{ color: light.textPrimary }}>
               Search
             </Text>
-            <Text variant="body" style={{ color: dark.textSecondary, marginTop: spacing.xs }}>
+            <Text variant="body" style={{ color: light.textSecondary, marginTop: spacing.xs }}>
               Camera, Gallery, Voice or Keyword
             </Text>
           </View>
@@ -233,12 +234,12 @@ export const SearchScreen = () => {
             <Pressable
               style={[
                 styles.typeBtn,
-                searchType === 'workout' && { backgroundColor: dark.primary },
+                searchType === 'workout' && { backgroundColor: light.primary },
               ]}
               onPress={() => setSearchType('workout')}
             >
               <Text style={{ 
-                color: searchType === 'workout' ? '#1F2937' : dark.textSecondary,
+                color: searchType === 'workout' ? '#FFFFFF' : light.textSecondary,
                 fontWeight: '600',
               }}>
                 Workout
@@ -247,12 +248,12 @@ export const SearchScreen = () => {
             <Pressable
               style={[
                 styles.typeBtn,
-                searchType === 'recipe' && { backgroundColor: dark.secondary },
+                searchType === 'recipe' && { backgroundColor: light.secondary },
               ]}
               onPress={() => setSearchType('recipe')}
             >
               <Text style={{ 
-                color: searchType === 'recipe' ? '#1F2937' : dark.textSecondary,
+                color: searchType === 'recipe' ? '#FFFFFF' : light.textSecondary,
                 fontWeight: '600',
               }}>
                 Recipe
@@ -265,14 +266,14 @@ export const SearchScreen = () => {
             <TextInput
               style={styles.searchInput}
               placeholder={searchType === 'workout' ? 'Search workouts...' : 'Search recipes...'}
-              placeholderTextColor={dark.textMuted}
+              placeholderTextColor={light.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={handleKeywordSearch}
               returnKeyType="search"
             />
             <Pressable style={styles.searchIconBtn} onPress={handleKeywordSearch}>
-              <SearchIcon color={dark.textSecondary} />
+              <SearchIcon color={light.textSecondary} />
             </Pressable>
           </View>
 
@@ -287,7 +288,7 @@ export const SearchScreen = () => {
               onPress={handleOpenCamera}
             >
               <LinearGradient
-                colors={[dark.primary, dark.primaryDark]}
+                colors={[light.primary, light.primaryDark]}
                 style={styles.methodGradient}
               >
                 <CameraIcon size={32} color="#FFF" />
@@ -309,7 +310,7 @@ export const SearchScreen = () => {
               onPress={handlePickImage}
             >
               <LinearGradient
-                colors={[dark.secondary, '#DB2777']}
+                colors={[light.secondary, '#DB2777']}
                 style={styles.methodGradient}
               >
                 <GalleryIcon size={32} color="#FFF" />
@@ -372,7 +373,7 @@ export const SearchScreen = () => {
 
           {/* Tips */}
           <View style={styles.tips}>
-            <Text variant="caption" style={{ color: dark.textMuted, textAlign: 'center' }}>
+            <Text variant="caption" style={{ color: light.textSecondary, textAlign: 'center' }}>
               💡 Snap gym equipment for workouts, or food for healthy recipes
             </Text>
           </View>
@@ -482,7 +483,7 @@ const styles = StyleSheet.create({
   },
   typeToggle: {
     flexDirection: 'row',
-    backgroundColor: colors.dark.surface,
+    backgroundColor: colors.light.surfaceVariant,
     borderRadius: radii.lg,
     padding: spacing.xs,
     marginBottom: spacing.lg,
@@ -496,16 +497,18 @@ const styles = StyleSheet.create({
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.dark.surface,
+    backgroundColor: colors.light.surface,
     borderRadius: radii.lg,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.light.border,
   },
   searchInput: {
     flex: 1,
     paddingVertical: spacing.md,
     fontSize: 16,
-    color: colors.dark.textPrimary,
+    color: colors.light.textPrimary,
   },
   searchIconBtn: {
     padding: spacing.sm,

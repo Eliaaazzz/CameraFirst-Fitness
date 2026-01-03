@@ -1,11 +1,11 @@
 import { BookmarkButton, Button, Text, useSnackbar, YouTubePlayerModal } from '@/components';
 import type { WorkoutCard as Workout } from '@/types';
-import { colors, radii, spacing, useResponsiveValue } from '@/utils';
+import { colors, getTheme, radii, shadows, spacing, useResponsiveValue } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, View, useColorScheme } from 'react-native';
 
 type Props = {
   item: Workout;
@@ -19,11 +19,27 @@ type Props = {
  * Clean design, purple palette, micro-animations
  */
 export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
+  // Always use light mode
+  const theme = getTheme('light');
   const [saving, setSaving] = useState(false);
-  const [isPressed, setIsPressed] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
   const { showSnackbar } = useSnackbar();
-  
+
+  // Animation for floating card effect - each card has its own state
+  // Disable hover effect for saved items
+  const [isHovered, setIsHovered] = useState(false);
+  const enableHover = !isSaved;
+
+  // Web hover handlers
+  const webHoverProps = Platform.OS === 'web' && enableHover ? {
+    onMouseEnter: () => setIsHovered(true),
+    onMouseLeave: () => setIsHovered(false),
+  } : {};
+
+  // Mobile press handlers
+  const handlePressIn = () => enableHover && setIsHovered(true);
+  const handlePressOut = () => enableHover && setIsHovered(false);
+
   const level = item.level?.toUpperCase?.() ?? '—';
   const duration = item.durationMinutes ? `${item.durationMinutes} min` : '—';
   const equipment = (item.equipment ?? []).slice(0, 2).join(' · ');
@@ -58,25 +74,34 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
     }
   };
 
-  const dark = colors.dark;
+  // Dynamic styles for hover/press effect
+  const cardDynamicStyle = {
+    transform: [{ scale: isHovered ? 1.05 : 1 }],
+    ...(Platform.OS === 'web' && {
+      transition: 'transform 0.2s ease-out, box-shadow 0.2s ease-out',
+      boxShadow: isHovered
+        ? '0 12px 28px rgba(0, 0, 0, 0.35), 0 8px 12px rgba(0, 0, 0, 0.22)'
+        : '0 4px 12px rgba(0, 0, 0, 0.15)',
+    }),
+  };
 
   return (
     <Pressable
-      onPressIn={() => setIsPressed(true)}
-      onPressOut={() => setIsPressed(false)}
-      style={[
-        styles.card,
-        {
-          transform: [{ scale: isPressed ? 0.98 : 1 }],
-        },
-      ]}
+      onPressIn={Platform.OS !== 'web' ? handlePressIn : undefined}
+      onPressOut={Platform.OS !== 'web' ? handlePressOut : undefined}
+      style={[styles.card, { backgroundColor: theme.colors.surface }, cardDynamicStyle]}
+      {...webHoverProps}
     >
       {/* Image */}
       <View style={[styles.imageContainer, { height: imageHeight }]}>
         {item.thumbnailUrl ? (
-          <Image source={{ uri: item.thumbnailUrl }} style={styles.image} resizeMode="contain" />
+          <Image
+            source={{ uri: item.thumbnailUrl }}
+            style={[styles.image, Platform.OS === 'web' && { objectFit: 'cover' } as any]}
+            resizeMode="cover"
+          />
         ) : (
-          <View style={[styles.image, { backgroundColor: dark.surfaceVariant }]} />
+          <View style={[styles.image, { backgroundColor: theme.colors.surfaceVariant }]} />
         )}
         
         {/* Gradient overlay */}
@@ -86,18 +111,18 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
         />
         
         {/* Level chip */}
-        <View style={styles.chip}>
+        <View style={[styles.chip, { backgroundColor: theme.colors.primary }]}>
           <Text variant="label" style={{ color: '#FFF', fontSize: 11 }}>{level}</Text>
         </View>
       </View>
 
       {/* Content */}
       <View style={styles.content}>
-        <Text variant="body" weight="semibold" numberOfLines={2} style={{ color: dark.textPrimary }}>
+        <Text variant="body" weight="semibold" numberOfLines={2} style={{ color: theme.colors.textPrimary }}>
           {item.title}
         </Text>
         
-        <Text variant="caption" style={{ color: dark.textSecondary }}>
+        <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
           {duration}{equipment ? ` · ${equipment}` : ''}
         </Text>
 
@@ -111,12 +136,13 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
               setShowPlayer(true);
             }}
+            style={{ backgroundColor: theme.colors.primary }}
           />
           <BookmarkButton
             isSaved={!!isSaved}
             isLoading={saving}
             onPress={handleBookmark}
-            color={dark.primary}
+            color={theme.colors.primary}
           />
         </View>
       </View>
@@ -134,15 +160,17 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.dark.surface,
     borderRadius: radii.xl,
     overflow: 'hidden',
-    ...(Platform.OS === 'web' && {
-      transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   imageContainer: {
     position: 'relative',
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
@@ -155,7 +183,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.sm,
     right: spacing.sm,
-    backgroundColor: colors.dark.primary,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radii.sm,
