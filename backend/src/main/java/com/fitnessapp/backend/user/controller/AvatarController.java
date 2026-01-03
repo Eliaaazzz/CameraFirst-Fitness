@@ -82,13 +82,16 @@ public class AvatarController {
         log.info("Confirming avatar upload for user: {}, publicUrl: {}, fileKey: {}",
             userId, request.publicUrl(), request.fileKey());
 
-        // updateAvatarAndGetResponse handles the transaction and returns the DTO
-        // to avoid LazyInitializationException when accessing allergens
-        var result = userProfileService.updateAvatarAndGetResponse(userId, request.publicUrl(), request.fileKey());
-        UserProfileResponse response = result.response();
-        String oldFileKey = result.oldFileKey();
+        // Update avatar in a single transaction to avoid detached entity issues
+        // This also retrieves the old file key for cleanup
+        UserProfileService.AvatarUpdateResult result = userProfileService.updateAvatar(
+            userId, request.publicUrl(), request.fileKey());
+        
+        log.info("Saved profile for user: {}, new avatarUrl: {}, avatarFileKey: {}, oldFileKey: {}", 
+            userId, result.profile().getAvatarUrl(), result.profile().getAvatarFileKey(), result.oldFileKey());
 
-        // Delete old avatar if exists (outside transaction to not block DB)
+        // Delete old avatar if exists
+        String oldFileKey = result.oldFileKey();
         if (oldFileKey != null && !oldFileKey.isEmpty()) {
             try {
                 log.info("Deleting old avatar file: {}", oldFileKey);
@@ -98,8 +101,9 @@ public class AvatarController {
             }
         }
 
+        UserProfileResponse response = UserProfileMapper.toResponse(result.profile());
         log.info("Returning response with avatarUrl: {}", response.avatarUrl());
-
+        
         return ResponseEntity.ok(response);
     }
 }
