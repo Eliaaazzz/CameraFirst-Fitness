@@ -24,7 +24,7 @@ import useCurrentUser from '@/hooks/useCurrentUser';
 import { useDailyNutrition } from '@/hooks/useDailyNutrition';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
 import { useGoals, useGoalStatistics } from '@/services/goalsApi';
-import { BRAND_COLORS, colors, spacing } from '@/utils';
+import { BRAND_COLORS, colors, spacing, useContentBottomPadding } from '@/utils';
 import { GENERATED_GOALS_KEY } from './ProfileScreen';
 
 // Goal type display config
@@ -42,6 +42,9 @@ const DashboardScreen = () => {
   const { data: nutritionData, refresh } = useDailyNutrition();
   const goals = useGoals(userId);
   const stats = useGoalStatistics(userId);
+
+  // Calculate proper bottom padding for tab bar
+  const contentBottomPadding = useContentBottomPadding(spacing.lg);
 
   // Fetch personalized recommendations based on fitness goal
 
@@ -220,7 +223,7 @@ const DashboardScreen = () => {
     <SafeAreaWrapper>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -492,7 +495,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    paddingBottom: spacing['3xl'],
+    // paddingBottom is set dynamically via useContentBottomPadding
   },
   header: {
     flexDirection: 'row',

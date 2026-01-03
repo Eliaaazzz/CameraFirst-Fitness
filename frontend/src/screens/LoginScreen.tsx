@@ -39,6 +39,17 @@ const GOOGLE_ANDROID_CLIENT_ID = EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process
 const GOOGLE_WEB_CLIENT_ID = EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const APPLE_SERVICE_ID = EXPO_PUBLIC_APPLE_SERVICE_ID || process.env.EXPO_PUBLIC_APPLE_SERVICE_ID;
 
+// Debug: Log OAuth config status (not values) in development
+if (__DEV__) {
+  console.log('[OAuth] Config loaded:', {
+    hasWebClientId: !!GOOGLE_WEB_CLIENT_ID,
+    hasIosClientId: !!GOOGLE_IOS_CLIENT_ID,
+    hasAndroidClientId: !!GOOGLE_ANDROID_CLIENT_ID,
+    hasAppleServiceId: !!APPLE_SERVICE_ID,
+    webClientIdPrefix: GOOGLE_WEB_CLIENT_ID?.substring(0, 12) + '...',
+  });
+}
+
 // Declare AppleID type for Sign in with Apple JS
 declare global {
   interface Window {

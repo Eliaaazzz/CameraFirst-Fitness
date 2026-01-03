@@ -576,7 +576,20 @@ const ProfileScreen = () => {
       >
         {/* Fixed App Bar */}
         <View style={[styles.modalAppBar, { paddingTop: insets.top + 8, borderBottomColor: theme.colors.border }]}>
-          <Text variant="heading2" weight="bold" style={[styles.modalTitle, { color: theme.colors.textPrimary }]}>
+          {/* Home Button - Navigate back to Dashboard */}
+          <Pressable
+            onPress={() => {
+              resetGoalsModal();
+              navigation.navigate('Dashboard');
+            }}
+            style={styles.homeButton}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityRole="button"
+            accessibilityLabel="Go to Home"
+          >
+            <Feather name="home" size={22} color={theme.colors.primary} />
+          </Pressable>
+          <Text variant="heading2" weight="bold" style={[styles.modalTitle, styles.modalTitleCentered, { color: theme.colors.textPrimary }]}>
             {step === 'sex' && 'About You'}
             {step === 'measurements' && 'Your Stats'}
             {step === 'goal' && 'Your Goal'}
@@ -1388,8 +1401,20 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255, 255, 255, 0.08)',
     backgroundColor: BRAND_COLORS.background,
   },
+  homeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(76, 175, 80, 0.12)',
+  },
   modalTitle: {
     flex: 1,
+  },
+  modalTitleCentered: {
+    textAlign: 'center',
+    marginHorizontal: spacing.sm,
   },
   closeButton: {
     width: 44,
