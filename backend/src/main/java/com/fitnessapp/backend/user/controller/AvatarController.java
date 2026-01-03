@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fitnessapp.backend.common.service.S3Service;
+import com.fitnessapp.backend.common.service.R2StorageService;
 import com.fitnessapp.backend.security.AuthenticatedUser;
 import com.fitnessapp.backend.user.dto.ConfirmAvatarRequest;
 import com.fitnessapp.backend.user.dto.UploadAvatarRequest;
@@ -36,7 +36,7 @@ public class AvatarController {
         "image/jpeg", "image/jpg", "image/png", "image/webp"
     );
 
-    private final S3Service s3Service;
+    private final R2StorageService r2StorageService;
     private final UserProfileService userProfileService;
 
     @PostMapping("/presign")
@@ -61,7 +61,7 @@ public class AvatarController {
             return ResponseEntity.badRequest().build();
         }
 
-        var result = s3Service.generatePresignedUrl(PATH_PREFIX, userId, contentType);
+        var result = r2StorageService.generatePresignedUrl(PATH_PREFIX, userId, contentType);
 
         return ResponseEntity.ok(new UploadAvatarResponse(
             result.uploadUrl(), result.publicUrl(), result.fileKey()
@@ -95,7 +95,7 @@ public class AvatarController {
         if (oldFileKey != null && !oldFileKey.isEmpty()) {
             try {
                 log.info("Deleting old avatar file: {}", oldFileKey);
-                s3Service.deleteFile(oldFileKey);
+                r2StorageService.deleteFile(oldFileKey);
             } catch (Exception e) {
                 log.warn("Failed to delete old avatar: {}", e.getMessage());
             }

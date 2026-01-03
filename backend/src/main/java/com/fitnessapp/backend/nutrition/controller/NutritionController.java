@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fitnessapp.backend.common.service.S3Service;
+import com.fitnessapp.backend.common.service.R2StorageService;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.service.ai.FoodRecognitionService;
@@ -46,7 +46,7 @@ public class NutritionController {
   private final NutritionInsightService insightService;
   private final FoodRecognitionService foodRecognitionService;
   private final NutritionEngine nutritionEngine;
-  private final S3Service s3Service;
+  private final R2StorageService r2StorageService;
 
   @PostMapping(value = "/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<FoodRecognitionResponse> analyzeFoodImage(
@@ -66,7 +66,7 @@ public class NutritionController {
     // Upload to S3
     String s3Url = null;
     try {
-      s3Url = s3Service.uploadFile(image, PATH_PREFIX);
+      s3Url = r2StorageService.uploadFile(image, PATH_PREFIX);
     } catch (Exception e) {
       log.warn("S3 upload failed; continuing without image URL", e);
     }

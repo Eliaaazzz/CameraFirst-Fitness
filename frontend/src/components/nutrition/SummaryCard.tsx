@@ -1,12 +1,12 @@
+import { getTheme } from '@/utils';
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, useColorScheme } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
 } from 'react-native-reanimated';
 import { MacroPill } from './MacroPill';
-import { getTheme } from '@/utils';
 
 interface SummaryCardProps {
   calories: number;

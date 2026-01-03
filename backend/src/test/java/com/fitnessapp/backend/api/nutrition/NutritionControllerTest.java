@@ -53,13 +53,13 @@ class NutritionControllerTest {
   private NutritionEngine nutritionEngine;
 
   @Mock
-  private com.fitnessapp.backend.common.service.S3Service s3Service;
+  private com.fitnessapp.backend.common.service.R2StorageService r2StorageService;
 
   @BeforeEach
   void setUp() {
     objectMapper = new ObjectMapper();
     objectMapper.findAndRegisterModules();
-    NutritionController controller = new NutritionController(trackingService, insightService, foodRecognitionService, nutritionEngine, s3Service);
+    NutritionController controller = new NutritionController(trackingService, insightService, foodRecognitionService, nutritionEngine, r2StorageService);
     mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
   }
 
@@ -145,13 +145,13 @@ class NutritionControllerTest {
         .carbs(new BigDecimal("5"))
         .build();
 
-    when(s3Service.uploadFile(any(), any())).thenReturn("https://bucket.s3.us-east-1.amazonaws.com/meals/test.jpg");
+    when(r2StorageService.uploadFile(any(), any())).thenReturn("https://media.aurafitness.com/meals/test.jpg");
     when(foodRecognitionService.recognizeFoods(any(), any())).thenReturn(result);
     when(nutritionEngine.calculateTotal(any())).thenReturn(nutritionInfo);
 
     mockMvc.perform(multipart("/api/v1/nutrition/analyze").file(file))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.imageUrl").value("https://bucket.s3.us-east-1.amazonaws.com/meals/test.jpg"))
+        .andExpect(jsonPath("$.imageUrl").value("https://media.aurafitness.com/meals/test.jpg"))
         .andExpect(jsonPath("$.suggestedMealType").value("lunch"))
         .andExpect(jsonPath("$.items[0].display_name").value("Grilled Chicken"));
   }

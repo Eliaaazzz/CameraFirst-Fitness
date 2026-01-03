@@ -1,26 +1,26 @@
-import React, { useState, useCallback } from 'react';
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-  Image,
-  KeyboardAvoidingView,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { launchImageLibraryAsync } from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
+import { launchImageLibraryAsync } from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useCallback, useState } from 'react';
+import {
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    View,
+} from 'react-native';
 
-import { SafeAreaWrapper, Text, LoadingState, useSnackbar, CameraView } from '@/components';
-import { colors, spacing, radii, compressImage } from '@/utils';
-import { getFriendlyErrorMessage } from '@/utils/errors';
-import { useUploadWorkout, useUploadRecipe, searchWorkouts, searchRecipes } from '@/services';
-import { useNavigation } from '@react-navigation/native';
+import { CameraView, LoadingState, SafeAreaWrapper, Text, useSnackbar } from '@/components';
 import { useCameraPermission } from '@/hooks/useCameraPermission';
 import { useGalleryPermission } from '@/hooks/useGalleryPermission';
 import { usePermissionHelper } from '@/hooks/usePermissionHelper';
+import { searchRecipes, searchWorkouts, useUploadRecipe, useUploadWorkout } from '@/services';
+import { colors, compressImage, radii, spacing } from '@/utils';
+import { getFriendlyErrorMessage } from '@/utils/errors';
+import { useNavigation } from '@react-navigation/native';
 
 type SearchMode = 'home' | 'camera' | 'processing';
 

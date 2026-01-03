@@ -1,7 +1,6 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { PropsWithChildren } from 'react';
 import { SafeAreaView, SafeAreaViewProps } from 'react-native-safe-area-context';
-import { useColorScheme } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { getTheme } from '@/utils';
 

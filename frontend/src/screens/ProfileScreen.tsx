@@ -17,8 +17,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  useColorScheme,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -559,6 +558,7 @@ const ProfileScreen = () => {
       <Feather name="chevron-right" size={20} color={theme.colors.textSecondary} />
     </Pressable>
   );
+  // last seen
 
   // Get safe area insets for full-screen modal
   const insets = useSafeAreaInsets();

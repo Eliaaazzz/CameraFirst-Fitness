@@ -1,12 +1,12 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
 
 import { Container, EmptyStateCard, ListSkeleton, RecipeCard, SafeAreaWrapper, SearchBar, SearchSuggestions, Text, type SuggestionItem } from '@/components';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedRecipes, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
-import { searchRecipes, RecipeSearchResult } from '@/services/searchApi';
+import { RecipeSearchResult, searchRecipes } from '@/services/searchApi';
 import type { SavedRecipe } from '@/types';
 import { spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
 import { getTheme } from '@/utils/theme';

@@ -1,12 +1,12 @@
 import { BookmarkButton, Button, Text, useSnackbar } from '@/components';
 import type { RecipeCard as Recipe, RecipeImageUrls } from '@/types';
-import { colors, getTheme, radii, shadows, spacing, useResponsiveValue } from '@/utils';
+import { getTheme, radii, spacing, useResponsiveValue } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View, useColorScheme } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SmartRecipeImage } from './RecipeImage';
 
 /**

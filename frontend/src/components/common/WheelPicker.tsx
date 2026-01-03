@@ -4,15 +4,14 @@ import { getTheme } from '@/utils/theme';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
-    Animated,
-    FlatList,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    Platform,
-    StyleSheet,
-    useColorScheme,
-    View,
-    ViewStyle,
+  Animated,
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Platform,
+  StyleSheet,
+  View,
+  ViewStyle
 } from 'react-native';
 
 const ITEM_HEIGHT = 50;

@@ -26,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
+        "/",
         "/actuator/**",
         "/swagger-ui.html",
         "/swagger-ui/**",
