@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
 
 import { Container, EmptyStateCard, ListSkeleton, SafeAreaWrapper, SearchBar, SearchSuggestions, Text, WorkoutCard, type SuggestionItem } from '@/components';
@@ -8,7 +8,7 @@ import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedWorkouts, useRemoveWorkout, useSavedWorkouts, useSaveWorkout } from '@/services';
 import { searchWorkouts, WorkoutSearchResult } from '@/services/searchApi';
 import type { SavedWorkout } from '@/types';
-import { colors, getTheme, spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
+import { getTheme, spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
 
 // Workout search suggestions with fun icons
 const WORKOUT_SUGGESTIONS: SuggestionItem[] = [

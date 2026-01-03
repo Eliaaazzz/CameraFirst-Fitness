@@ -32,8 +32,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fitnessapp.backend.common.service.S3Service;
-import com.fitnessapp.backend.common.service.S3Service.PresignedUploadResult;
+import com.fitnessapp.backend.common.service.R2StorageService;
+import com.fitnessapp.backend.common.service.R2StorageService.PresignedUploadResult;
 import com.fitnessapp.backend.security.AuthenticatedUser;
 import com.fitnessapp.backend.user.controller.AvatarController;
 import com.fitnessapp.backend.user.dto.ConfirmAvatarRequest;
@@ -53,7 +53,7 @@ class AvatarControllerTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Mock
-    private S3Service s3Service;
+    private R2StorageService r2StorageService;
 
     @Mock
     private UserProfileService userProfileService;
@@ -71,7 +71,7 @@ class AvatarControllerTest {
         // Set up SecurityContext for @AuthenticationPrincipal resolution
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        AvatarController controller = new AvatarController(s3Service, userProfileService);
+        AvatarController controller = new AvatarController(r2StorageService, userProfileService);
 
         // Use Spring Security's built-in AuthenticationPrincipalArgumentResolver
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
@@ -93,7 +93,7 @@ class AvatarControllerTest {
                 "avatars/" + testUserId + "/uuid"
             );
 
-            when(s3Service.generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/jpeg")))
+            when(r2StorageService.generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/jpeg")))
                 .thenReturn(mockResult);
 
             mockMvc.perform(post("/api/v1/user/avatar/presign")
@@ -105,7 +105,7 @@ class AvatarControllerTest {
                 .andExpect(jsonPath("$.publicUrl").value(mockResult.publicUrl()))
                 .andExpect(jsonPath("$.fileKey").value(mockResult.fileKey()));
 
-            verify(s3Service).generatePresignedUrl("avatars", testUserId, "image/jpeg");
+            verify(r2StorageService).generatePresignedUrl("avatars", testUserId, "image/jpeg");
         }
 
         @Test
@@ -118,7 +118,7 @@ class AvatarControllerTest {
                 "avatars/" + testUserId + "/uuid"
             );
 
-            when(s3Service.generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/png")))
+            when(r2StorageService.generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/png")))
                 .thenReturn(mockResult);
 
             mockMvc.perform(post("/api/v1/user/avatar/presign")
@@ -140,7 +140,7 @@ class AvatarControllerTest {
                     .with(authentication(authentication)))
                 .andExpect(status().isBadRequest());
 
-            verify(s3Service, never()).generatePresignedUrl(any(), any(), any());
+            verify(r2StorageService, never()).generatePresignedUrl(any(), any(), any());
         }
 
         @Test
@@ -154,7 +154,7 @@ class AvatarControllerTest {
                     .with(authentication(authentication)))
                 .andExpect(status().isBadRequest());
 
-            verify(s3Service, never()).generatePresignedUrl(any(), any(), any());
+            verify(r2StorageService, never()).generatePresignedUrl(any(), any(), any());
         }
 
         @Test
@@ -167,7 +167,7 @@ class AvatarControllerTest {
                 "avatars/" + testUserId + "/uuid"
             );
 
-            when(s3Service.generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/jpeg")))
+            when(r2StorageService.generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/jpeg")))
                 .thenReturn(mockResult);
 
             mockMvc.perform(post("/api/v1/user/avatar/presign")
@@ -177,7 +177,7 @@ class AvatarControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.uploadUrl").value(mockResult.uploadUrl()));
 
-            verify(s3Service).generatePresignedUrl("avatars", testUserId, "image/jpeg");
+            verify(r2StorageService).generatePresignedUrl("avatars", testUserId, "image/jpeg");
         }
 
         @Test
@@ -191,7 +191,7 @@ class AvatarControllerTest {
                     .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
 
-            verify(s3Service, never()).generatePresignedUrl(any(), any(), any());
+            verify(r2StorageService, never()).generatePresignedUrl(any(), any(), any());
         }
 
         @Test
@@ -204,7 +204,7 @@ class AvatarControllerTest {
                 "avatars/" + testUserId + "/uuid"
             );
 
-            when(s3Service.generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/webp")))
+            when(r2StorageService.generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/webp")))
                 .thenReturn(mockResult);
 
             mockMvc.perform(post("/api/v1/user/avatar/presign")
@@ -214,7 +214,7 @@ class AvatarControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.uploadUrl").value(mockResult.uploadUrl()));
 
-            verify(s3Service).generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/webp"));
+            verify(r2StorageService).generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/webp"));
         }
 
         @Test
@@ -227,7 +227,7 @@ class AvatarControllerTest {
                 "avatars/" + testUserId + "/uuid"
             );
 
-            when(s3Service.generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/jpeg")))
+            when(r2StorageService.generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/jpeg")))
                 .thenReturn(mockResult);
 
             mockMvc.perform(post("/api/v1/user/avatar/presign")
@@ -237,7 +237,7 @@ class AvatarControllerTest {
                 .andExpect(status().isOk());
 
             // Should be normalized to lowercase
-            verify(s3Service).generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/jpeg"));
+            verify(r2StorageService).generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/jpeg"));
         }
 
         @Test
@@ -262,7 +262,7 @@ class AvatarControllerTest {
                     .andExpect(status().isBadRequest());
             }
 
-            verify(s3Service, never()).generatePresignedUrl(any(), any(), any());
+            verify(r2StorageService, never()).generatePresignedUrl(any(), any(), any());
         }
     }
 
@@ -330,7 +330,7 @@ class AvatarControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.avatarUrl").value(newPublicUrl));
 
-            verify(s3Service).deleteFile(oldFileKey);
+            verify(r2StorageService).deleteFile(oldFileKey);
 
             ArgumentCaptor<UserProfile> profileCaptor = ArgumentCaptor.forClass(UserProfile.class);
             verify(userProfileService).save(profileCaptor.capture());
@@ -365,7 +365,7 @@ class AvatarControllerTest {
                     .with(authentication(authentication)))
                 .andExpect(status().isOk());
 
-            verify(s3Service, never()).deleteFile(any());
+            verify(r2StorageService, never()).deleteFile(any());
         }
 
         @Test
@@ -393,7 +393,7 @@ class AvatarControllerTest {
                     .with(authentication(authentication)))
                 .andExpect(status().isOk());
 
-            verify(s3Service, never()).deleteFile(any());
+            verify(r2StorageService, never()).deleteFile(any());
         }
 
         @Test
@@ -436,7 +436,7 @@ class AvatarControllerTest {
                 .andExpect(status().isOk());
 
             // Should not attempt to delete empty file key
-            verify(s3Service, never()).deleteFile(any());
+            verify(r2StorageService, never()).deleteFile(any());
         }
 
         @Test
@@ -455,7 +455,7 @@ class AvatarControllerTest {
 
             // Simulate S3 deletion failure using doThrow for void method
             doThrow(new RuntimeException("S3 deletion failed"))
-                .when(s3Service).deleteFile(oldFileKey);
+                .when(r2StorageService).deleteFile(oldFileKey);
 
             UserProfile savedProfile = new UserProfile();
             savedProfile.setUserId(testUserId);
@@ -471,7 +471,7 @@ class AvatarControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.avatarUrl").value(newPublicUrl));
 
-            verify(s3Service).deleteFile(oldFileKey);
+            verify(r2StorageService).deleteFile(oldFileKey);
             verify(userProfileService).save(any(UserProfile.class));
         }
     }
@@ -493,7 +493,7 @@ class AvatarControllerTest {
                 fileKey
             );
 
-            when(s3Service.generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/jpeg")))
+            when(r2StorageService.generatePresignedUrl(eq("avatars"), eq(testUserId), eq("image/jpeg")))
                 .thenReturn(presignResult);
 
             mockMvc.perform(post("/api/v1/user/avatar/presign")

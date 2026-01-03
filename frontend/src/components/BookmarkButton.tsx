@@ -9,26 +9,26 @@
  * - Platform-aware styling
  */
 
+import {
+    MaterialAnimations,
+    MaterialOpacity,
+    MaterialScale,
+    MaterialSprings,
+    radii,
+    spacing,
+} from '@/utils';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, ViewStyle } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  withSequence,
-} from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator } from 'react-native-paper';
-import * as Haptics from 'expo-haptics';
-import {
-  MaterialAnimations,
-  MaterialSprings,
-  MaterialScale,
-  MaterialOpacity,
-  spacing,
-  radii,
-} from '@/utils';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withSpring,
+    withTiming,
+} from 'react-native-reanimated';
 
 type Props = {
   isSaved: boolean;

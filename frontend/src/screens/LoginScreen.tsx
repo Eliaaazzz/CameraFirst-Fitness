@@ -8,6 +8,7 @@ import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -16,26 +17,57 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import Svg, { Circle, Defs, Ellipse, G, LinearGradient as SvgLinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 import {
+  EXPO_PUBLIC_APPLE_SERVICE_ID,
   EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
   EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
   EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
 } from '@env';
 import { api } from '../services/apiClient';
 import { queryClient } from '../services/queryClient';
-import { saveJWT, getJWT } from '../utils/jwtStorage';
+import { getJWT, saveJWT } from '../utils/jwtStorage';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const GOOGLE_IOS_CLIENT_ID = EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 const GOOGLE_ANDROID_CLIENT_ID = EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 const GOOGLE_WEB_CLIENT_ID = EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+const APPLE_SERVICE_ID = EXPO_PUBLIC_APPLE_SERVICE_ID || process.env.EXPO_PUBLIC_APPLE_SERVICE_ID;
+
+// Declare AppleID type for Sign in with Apple JS
+declare global {
+  interface Window {
+    AppleID?: {
+      auth: {
+        init: (config: {
+          clientId: string;
+          scope: string;
+          redirectURI: string;
+          usePopup: boolean;
+        }) => void;
+        signIn: () => Promise<{
+          authorization: {
+            code: string;
+            id_token: string;
+            state?: string;
+          };
+          user?: {
+            email?: string;
+            name?: {
+              firstName?: string;
+              lastName?: string;
+            };
+          };
+        }>;
+      };
+    };
+  }
+}
 
 // ============================================================================
 // Design Tokens - Modern Light Theme
@@ -87,88 +119,14 @@ const RADII = {
 };
 
 // ============================================================================
-// AuraFit Logo Component (SVG)
+// AuraFit Logo Component
 // ============================================================================
-const AuraFitLogo = ({ size = 112 }: { size?: number }) => (
-  <View style={{ width: size, height: size }}>
-    <Svg viewBox="0 0 120 120" width={size} height={size}>
-      <Defs>
-        {/* Main Sphere Gradient */}
-        <RadialGradient id="sphereGrad" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-          <Stop offset="0%" stopColor="#F3E8FF" />
-          <Stop offset="60%" stopColor="#8B5CF6" />
-          <Stop offset="100%" stopColor="#581C87" />
-        </RadialGradient>
-
-        {/* 'A' Gradient */}
-        <SvgLinearGradient id="aGrad" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0%" stopColor="#E9D5FF" />
-          <Stop offset="100%" stopColor="#9333EA" />
-        </SvgLinearGradient>
-
-        {/* Weight Gradient */}
-        <SvgLinearGradient id="weightGrad" x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0%" stopColor="#4C1D95" />
-          <Stop offset="30%" stopColor="#C4B5FD" />
-          <Stop offset="50%" stopColor="#8B5CF6" />
-          <Stop offset="80%" stopColor="#5B21B6" />
-          <Stop offset="100%" stopColor="#4C1D95" />
-        </SvgLinearGradient>
-
-        {/* Bar Gradient */}
-        <SvgLinearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0%" stopColor="#7C3AED" />
-          <Stop offset="50%" stopColor="#E9D5FF" />
-          <Stop offset="100%" stopColor="#7C3AED" />
-        </SvgLinearGradient>
-      </Defs>
-
-      {/* Main Background Circle */}
-      <Circle cx="60" cy="60" r="58" fill="url(#sphereGrad)" stroke="#8B5CF6" strokeWidth="1" />
-
-      {/* Top Shine/Reflection */}
-      <Ellipse cx="60" cy="25" rx="35" ry="12" fill="white" fillOpacity={0.2} />
-
-      {/* The 'A' Shape - Squat/Fat Structure */}
-      <Path
-        d="M 34 88 L 60 42 L 86 88"
-        stroke="url(#aGrad)"
-        strokeWidth="14"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-
-      {/* The Barbell Group */}
-      <G>
-        {/* Bar - Curved Upwards */}
-        <Path
-          d="M 28 68 Q 60 60 92 68"
-          stroke="url(#barGrad)"
-          strokeWidth="6"
-          strokeLinecap="round"
-          fill="none"
-        />
-
-        {/* Left Weight */}
-        <G transform="translate(28, 68) rotate(-15)">
-          <Rect x="-8" y="-10" width="4" height="20" rx="1" fill="#5B21B6" />
-          <Rect x="-4" y="-14" width="10" height="28" rx="3" fill="url(#weightGrad)" />
-          <Rect x="6" y="-10" width="3" height="20" rx="1" fill="#5B21B6" />
-        </G>
-
-        {/* Right Weight */}
-        <G transform="translate(92, 68) rotate(15)">
-          <Rect x="4" y="-10" width="4" height="20" rx="1" fill="#5B21B6" />
-          <Rect x="-6" y="-14" width="10" height="28" rx="3" fill="url(#weightGrad)" />
-          <Rect x="-9" y="-10" width="3" height="20" rx="1" fill="#5B21B6" />
-        </G>
-      </G>
-
-      {/* Bottom Glow/Shadow */}
-      <Path d="M 30 102 Q 60 112 90 102" stroke="none" fill="#4C1D95" fillOpacity={0.3} />
-    </Svg>
-  </View>
+const AuraFitLogo = ({ size = 150 }: { size?: number }) => (
+  <Image
+    source={require('../../assets/logo.png')}
+    style={{ width: size, height: size }}
+    resizeMode="contain"
+  />
 );
 
 // ============================================================================
@@ -305,7 +263,9 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
+  // iOS: always show Apple button (actual sign-in will error gracefully if unavailable)
+  // Web: only show if Service ID is configured and JS SDK loads.
+  const [appleAuthAvailable, setAppleAuthAvailable] = useState(Platform.OS === 'ios');
 
   // Validation
   const isEmailValid = useMemo(() => {
@@ -318,18 +278,35 @@ export default function LoginScreen() {
 
   const isFormValid = isEmailValid && isPasswordValid;
 
-  // Check Apple auth availability
+  // Check Apple auth availability and load Apple JS SDK on web
   useEffect(() => {
     const checkAppleAuth = async () => {
       if (Platform.OS === 'web') {
-        setAppleAuthAvailable(true);
-      } else if (Platform.OS === 'ios') {
-        try {
-          const isAvailable = await AppleAuthentication.isAvailableAsync();
-          setAppleAuthAvailable(isAvailable);
-        } catch {
-          setAppleAuthAvailable(true);
+        // Load Apple Sign In JS SDK for web
+        if (APPLE_SERVICE_ID && typeof document !== 'undefined' && !document.getElementById('apple-signin-script')) {
+          const script = document.createElement('script');
+          script.id = 'apple-signin-script';
+          script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+          script.async = true;
+          script.onload = () => {
+            if (globalThis.window?.AppleID) {
+              const redirectURI = globalThis.window.location.origin + '/auth/apple/callback';
+              globalThis.window.AppleID.auth.init({
+                clientId: APPLE_SERVICE_ID,
+                scope: 'email name',
+                redirectURI,
+                usePopup: true,
+              });
+              setAppleAuthAvailable(true);
+            }
+          };
+          document.head.appendChild(script);
+        } else if (!APPLE_SERVICE_ID) {
+          // No Apple Service ID configured
+          setAppleAuthAvailable(false);
         }
+      } else if (Platform.OS === 'ios') {
+        setAppleAuthAvailable(true);
       }
     };
     checkAppleAuth();
@@ -394,14 +371,41 @@ export default function LoginScreen() {
 
   // Handle Apple login
   const handleAppleLogin = async () => {
-    if (Platform.OS === 'web') {
-      setError('Apple Sign In on web is coming soon.');
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
+
     try {
+      if (Platform.OS === 'web') {
+        // Web: Use Apple Sign In JS SDK
+        if (!globalThis.window?.AppleID) {
+          throw new Error('Apple Sign In is not available. Please try again later.');
+        }
+
+        const response = await globalThis.window.AppleID.auth.signIn();
+        const identityToken = response.authorization.id_token;
+
+        if (!identityToken) {
+          throw new Error('No identity token received from Apple');
+        }
+
+        // Build full name from user info (only provided on first sign in)
+        let fullName: string | undefined;
+        if (response.user?.name) {
+          const { firstName, lastName } = response.user.name;
+          fullName = `${firstName || ''} ${lastName || ''}`.trim() || undefined;
+        }
+
+        const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
+          loginType: 'APPLE',
+          idToken: identityToken,
+          fullName,
+        });
+
+        await handleLoginSuccess(data);
+        return;
+      }
+
+      // iOS: Use native Apple Authentication
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
@@ -460,24 +464,31 @@ export default function LoginScreen() {
     navigation.navigate('Register' as never);
   };
 
+  // Handle tap outside inputs to dismiss keyboard (only on native)
+  const handleOutsideTap = useCallback(() => {
+    if (Platform.OS !== 'web') {
+      Keyboard.dismiss();
+    }
+  }, []);
+
   return (
     <LinearGradient
       colors={['#F3E8FF', '#F3E8FF', '#FFFFFF']}
       style={styles.gradient}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          style={styles.keyboardView}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + SPACING.xl, paddingBottom: insets.bottom + SPACING.xl },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          onScrollBeginDrag={handleOutsideTap}
         >
-          <ScrollView
-            contentContainerStyle={[
-              styles.scrollContent,
-              { paddingTop: insets.top + SPACING.xl, paddingBottom: insets.bottom + SPACING.xl },
-            ]}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
             <View style={styles.card}>
               {/* Logo Section */}
               <View style={styles.logoSection}>
@@ -581,7 +592,6 @@ export default function LoginScreen() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
     </LinearGradient>
   );
 }

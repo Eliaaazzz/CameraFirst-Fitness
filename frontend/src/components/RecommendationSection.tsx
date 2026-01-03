@@ -5,13 +5,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
-  ActivityIndicator,
-  Dimensions,
-  FlatList,
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    Dimensions,
+    FlatList,
+    Platform,
+    Pressable,
+    StyleSheet,
+    View,
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');

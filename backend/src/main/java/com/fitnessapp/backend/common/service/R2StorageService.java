@@ -19,37 +19,32 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 /**
- * Unified S3 service for all file operations.
+ * Cloudflare R2 storage service.
  * Single bucket, different folders via pathPrefix parameter.
  */
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class S3Service {
+public class R2StorageService {
 
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
 
-    @Value("${aws.s3.bucket-name}")
-    private String bucketName;
+    @Value("${r2.bucket:${R2_BUCKET_NAME}}")
+    private String bucket;
 
-    @Value("${aws.s3.region}")
-    private String region;
+    @Value("${r2.public-url:${R2_PUBLIC_URL}}")
+    private String publicUrl;
 
     /**
      * Generate a presigned URL for client-side direct upload.
-     *
-     * @param pathPrefix folder prefix (e.g., "avatars", "meals")
-     * @param userId user identifier
-     * @param contentType MIME type
-     * @return presigned upload result
      */
     public PresignedUploadResult generatePresignedUrl(String pathPrefix, UUID userId, String contentType) {
         String extension = getExtension(contentType);
         String fileKey = String.format("%s/%s/%s%s", pathPrefix, userId, UUID.randomUUID(), extension);
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucketName)
+                .bucket(bucket)
                 .key(fileKey)
                 .contentType(contentType)
                 .build();
@@ -61,18 +56,14 @@ public class S3Service {
 
         PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(presignRequest);
         String uploadUrl = presignedRequest.url().toString();
-        String publicUrl = buildPublicUrl(fileKey);
+        String filePublicUrl = buildPublicUrl(fileKey);
 
-        log.info("Generated presigned URL for {}/{} with public-read ACL", pathPrefix, userId);
-        return new PresignedUploadResult(uploadUrl, publicUrl, fileKey);
+        log.info("Generated R2 presigned URL for {}/{}", pathPrefix, userId);
+        return new PresignedUploadResult(uploadUrl, filePublicUrl, fileKey);
     }
 
     /**
-     * Upload a file directly to S3 (server-side).
-     *
-     * @param file the file to upload
-     * @param pathPrefix folder prefix (e.g., "avatars", "meals")
-     * @return public URL of the uploaded file
+     * Upload a file directly to R2 (server-side).
      */
     public String uploadFile(MultipartFile file, String pathPrefix) {
         if (file == null || file.isEmpty()) {
@@ -84,24 +75,24 @@ public class S3Service {
 
         try {
             PutObjectRequest putRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
+                    .bucket(bucket)
                     .key(fileKey)
                     .contentType(file.getContentType())
                     .build();
 
             s3Client.putObject(putRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            String publicUrl = buildPublicUrl(fileKey);
-            log.info("Uploaded file to S3: {}", fileKey);
-            return publicUrl;
+            String filePublicUrl = buildPublicUrl(fileKey);
+            log.info("Uploaded file to R2: {}", fileKey);
+            return filePublicUrl;
         } catch (IOException e) {
-            log.error("Failed to upload file to S3: {}", e.getMessage());
-            throw new RuntimeException("Failed to upload file to S3", e);
+            log.error("Failed to upload file to R2: {}", e.getMessage());
+            throw new RuntimeException("Failed to upload file to R2", e);
         }
     }
 
     /**
-     * Delete a file from S3.
+     * Delete a file from R2.
      */
     public void deleteFile(String fileKey) {
         if (fileKey == null || fileKey.isEmpty()) {
@@ -109,15 +100,15 @@ public class S3Service {
         }
 
         DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
-                .bucket(bucketName)
+                .bucket(bucket)
                 .key(fileKey)
                 .build();
         s3Client.deleteObject(deleteRequest);
-        log.info("Deleted file from S3: {}", fileKey);
+        log.info("Deleted file from R2: {}", fileKey);
     }
 
     private String buildPublicUrl(String fileKey) {
-        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, fileKey);
+        return String.format("%s/%s", publicUrl, fileKey);
     }
 
     private String getExtension(String contentType) {

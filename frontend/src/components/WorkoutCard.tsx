@@ -1,11 +1,11 @@
 import { BookmarkButton, Button, Text, useSnackbar, YouTubePlayerModal } from '@/components';
 import type { WorkoutCard as Workout } from '@/types';
-import { colors, getTheme, radii, shadows, spacing, useResponsiveValue } from '@/utils';
+import { getTheme, radii, spacing, useResponsiveValue } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { Image, Platform, Pressable, StyleSheet, View, useColorScheme } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 type Props = {
   item: Workout;

@@ -9,23 +9,23 @@
  */
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withTiming,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 
 import { Text } from '@/components/Text';
 import {
-  BRAND_COLORS,
-  MaterialDuration,
-  MaterialEasing,
-  radii,
-  spacing,
+    BRAND_COLORS,
+    MaterialDuration,
+    MaterialEasing,
+    radii,
+    spacing,
 } from '@/utils';
 
 export type SuggestionItem = {

@@ -44,6 +44,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
     private List<RequestMatcher> publicEndpoints;
 
     private static final String[] PUBLIC_ENDPOINT_PATTERNS = {
+        "/",
         "/actuator/**",
         "/swagger-ui.html",
         "/swagger-ui/**",

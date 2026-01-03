@@ -1,17 +1,17 @@
+import { colors, spacing } from '@/utils';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
-  Dimensions,
-  ActivityIndicator,
+    ActivityIndicator,
+    Dimensions,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    View,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text } from './Text';
-import { colors, spacing } from '@/utils';
 
 interface YouTubePlayerModalProps {
   visible: boolean;
