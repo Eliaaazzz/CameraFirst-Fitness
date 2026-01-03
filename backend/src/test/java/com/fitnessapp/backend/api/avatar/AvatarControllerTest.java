@@ -294,7 +294,7 @@ class AvatarControllerTest {
                 .andExpect(jsonPath("$.avatarUrl").value(publicUrl));
 
             verify(userProfileService).updateAvatar(testUserId, publicUrl, fileKey);
-            verify(s3Service, never()).deleteFile(any());
+            verify(r2StorageService, never()).deleteFile(any());
         }
 
         @Test
@@ -320,7 +320,7 @@ class AvatarControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.avatarUrl").value(newPublicUrl));
 
-            verify(s3Service).deleteFile(oldFileKey);
+            verify(r2StorageService).deleteFile(oldFileKey);
             verify(userProfileService).updateAvatar(testUserId, newPublicUrl, newFileKey);
         }
 
@@ -439,7 +439,7 @@ class AvatarControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.avatarUrl").value(newPublicUrl));
 
-            verify(s3Service).deleteFile(oldFileKey);
+            verify(r2StorageService).deleteFile(oldFileKey);
             verify(userProfileService).updateAvatar(testUserId, newPublicUrl, newFileKey);
         }
     }

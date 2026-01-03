@@ -17,6 +17,7 @@ import com.fitnessapp.backend.security.AuthenticatedUser;
 import com.fitnessapp.backend.user.dto.ConfirmAvatarRequest;
 import com.fitnessapp.backend.user.dto.UploadAvatarRequest;
 import com.fitnessapp.backend.user.dto.UploadAvatarResponse;
+import com.fitnessapp.backend.user.dto.UserProfileMapper;
 import com.fitnessapp.backend.user.dto.UserProfileResponse;
 import com.fitnessapp.backend.user.service.UserProfileService;
 
