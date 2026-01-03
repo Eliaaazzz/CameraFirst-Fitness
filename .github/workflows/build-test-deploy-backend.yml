@@ -288,7 +288,7 @@ jobs:
           done
           
           echo "❌ Backend failed health check"
-          docker-compose logs app
+          docker-compose logs backend
           exit 1
           EOF
           
