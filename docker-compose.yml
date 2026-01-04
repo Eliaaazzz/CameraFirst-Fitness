@@ -37,9 +37,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    # 读取服务器上的 .env 文件
+    # 本地开发环境配置
     env_file:
-      - .env
+      - .env.dev
     ports:
       - "8080:8080"
 

@@ -5,7 +5,7 @@
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useState } from 'react';
@@ -27,6 +27,7 @@ import { BRAND_COLORS, spacing } from '@/utils';
 const GENERATED_GOALS_KEY = '@generated_fitness_goals';
 
 export const WeeklyInsightsScreen = () => {
+  const navigation = useNavigation();
   const queryClient = useQueryClient();
   const { data, isLoading, error, refetch } = useWeeklyInsights();
   const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
@@ -121,12 +122,27 @@ export const WeeklyInsightsScreen = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text variant="heading2" weight="bold">
-            Weekly Insights
-          </Text>
-          <Text variant="caption" style={styles.dateRange}>
-            {dateRange.startDate} to {dateRange.endDate}
-          </Text>
+          <View style={styles.headerRow}>
+            <Pressable
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={24}
+                color={BRAND_COLORS.textPrimary}
+              />
+            </Pressable>
+            <View style={styles.headerTextContainer}>
+              <Text variant="heading2" weight="bold">
+                Weekly Insights
+              </Text>
+              <Text variant="caption" style={styles.dateRange}>
+                {dateRange.startDate} to {dateRange.endDate}
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* Summary Card */}
@@ -381,6 +397,18 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: spacing.lg,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    marginRight: spacing.md,
+    padding: spacing.xs,
+    borderRadius: 8,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   dateRange: {
     color: BRAND_COLORS.textSecondary,

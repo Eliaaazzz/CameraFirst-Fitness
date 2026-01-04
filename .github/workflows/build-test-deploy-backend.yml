@@ -248,31 +248,43 @@ jobs:
           cat > scripts/deploy-backend.sh << 'EOF'
           #!/bin/bash
           set -euo pipefail
-          
+
           DOCKER_IMAGE="${1:-}"
           [ -z "$DOCKER_IMAGE" ] && { echo "Usage: $0 <docker-image>"; exit 1; }
-          
+
+          APP_DIR="/opt/fitness-app"
+
           echo "🚀 Starting backend deployment..."
           echo "📦 Image: $DOCKER_IMAGE"
-          
+
           # Pull latest image
           echo "📥 Pulling Docker image..."
           docker pull "$DOCKER_IMAGE" || {
             echo "❌ Failed to pull Docker image"
             exit 1
           }
-          
-          # Navigate to infrastructure directory
-          cd /home/$USER/infrastructure/backend || { echo "❌ Infrastructure directory not found"; exit 1; }
-          
+
+          # Navigate to app directory
+          cd "$APP_DIR" || { echo "❌ App directory not found: $APP_DIR"; exit 1; }
+
+          # Check required files
+          if [ ! -f ".env.prod" ]; then
+            echo "❌ .env.prod not found in $APP_DIR"
+            exit 1
+          fi
+          if [ ! -f "docker-compose.prod.yml" ]; then
+            echo "❌ docker-compose.prod.yml not found in $APP_DIR"
+            exit 1
+          fi
+
           # Stop and remove old container
           echo "🛑 Stopping old container..."
-          docker-compose down --remove-orphans || true
-          
+          docker-compose -f docker-compose.prod.yml down --remove-orphans || true
+
           # Start new container
           echo "🚀 Starting new container..."
-          DOCKER_IMAGE="$DOCKER_IMAGE" docker-compose up -d
-          
+          DOCKER_IMAGE="$DOCKER_IMAGE" docker-compose -f docker-compose.prod.yml up -d
+
           # Wait for health check
           echo "⏳ Waiting for service to be healthy..."
           max_attempts=30
@@ -286,12 +298,12 @@ jobs:
             echo "⏳ Attempt $attempt/$max_attempts..."
             sleep 2
           done
-          
+
           echo "❌ Backend failed health check"
-          docker-compose logs app
+          docker-compose -f docker-compose.prod.yml logs app
           exit 1
           EOF
-          
+
           chmod +x scripts/deploy-backend.sh
 
       - name: Deploy to EC2
@@ -396,11 +408,11 @@ jobs:
         run: |
           set -euo pipefail
           echo "⚠️ ROLLING BACK DEPLOYMENT"
-          
+
           ssh -i ~/.ssh/id_rsa \
             "$EC2_USER@$EC2_HOST" \
-            "cd /home/$EC2_USER/infrastructure/backend && docker-compose pull && docker-compose up -d"
-          
+            "cd /opt/fitness-app && docker-compose -f docker-compose.prod.yml pull && docker-compose -f docker-compose.prod.yml up -d"
+
           echo "✅ Rollback complete"
 
       - name: Notify rollback

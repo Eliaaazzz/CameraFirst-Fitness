@@ -11,8 +11,8 @@ import { navigateToLogin } from '../navigation/navigationService';
 // Ensure API Key is available (prioritize .env API_KEY, fallback to Expo environment variable)
 const APP_API_KEY = API_KEY || process.env.EXPO_PUBLIC_API_KEY || 'fitness-secret-key-123';
 
-// Ensure API Base URL is available (prioritize .env, fallback to Expo env var, then localhost)
-const RAW_API_BASE_URL = API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+// Ensure API Base URL is available (prioritize .env, fallback to Expo env var, then production URL)
+const RAW_API_BASE_URL = API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL || 'https://aurafitness.org';
 
 // Log configuration at init for debugging
 console.log('[APIClient Init]', {
@@ -23,12 +23,12 @@ console.log('[APIClient Init]', {
 
 // Use the environment variable for all platforms
 const normalizeBaseUrl = (url: string) => {
-  if (!url) return 'http://localhost:8080';
+  if (!url) return 'https://aurafitness.org';
   // strip trailing slashes
   let normalized = url.replace(/\/+$/, '');
   // drop trailing /api/v1 to avoid double-prefix when endpoints already include it
   normalized = normalized.replace(/\/api\/v1$/, '');
-  return normalized || 'http://localhost:8080';
+  return normalized || 'https://aurafitness.org';
 };
 
 const BASE_URL = normalizeBaseUrl(RAW_API_BASE_URL);
