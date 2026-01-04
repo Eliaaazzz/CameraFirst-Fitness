@@ -15,10 +15,8 @@ echo "========================================="
 # Configuration
 DOCKER_IMAGE="${DOCKER_IMAGE:-fitnessdev/fitness-backend:latest}"
 APP_DIR="/opt/fitness-app"
-COMPOSE_FILE="/opt/fitness-app/docker-compose.yml"
-ENV_FILE="/opt/fitness-app/.env"
-POSTGRES_DATA_DIR="/opt/fitness-app/data/postgres"
-REDIS_DATA_DIR="/opt/fitness-app/data/redis"
+COMPOSE_FILE="/opt/fitness-app/docker-compose.prod.yml"
+ENV_FILE="/opt/fitness-app/.env.prod"
 
 # Colors for output
 RED='\033[0;31m'
@@ -62,101 +60,78 @@ fi
 
 echo -e "${GREEN}Step 3: Creating application directories...${NC}"
 mkdir -p ${APP_DIR}
-mkdir -p ${POSTGRES_DATA_DIR}
-mkdir -p ${REDIS_DATA_DIR}
 
 echo -e "${GREEN}Step 4: Setting up environment file...${NC}"
 if [ ! -f "${ENV_FILE}" ]; then
     cat > ${ENV_FILE} <<'EOF'
-# Docker Compose Environment Variables
-# IMPORTANT: Update these values for production!
+# ==========================================
+# PRODUCTION ENVIRONMENT (EC2)
+# ==========================================
+# 生产环境: Postgres 在 Docker 容器, Redis 用 AWS ElastiCache
 
 # Spring Profile
 SPRING_PROFILES_ACTIVE=prod
 
-# Database Password (CHANGE THIS!)
-POSTGRES_PASSWORD=CHANGE_ME_SECURE_PASSWORD
+# Database - AWS RDS
+SPRING_DATASOURCE_URL=jdbc:postgresql://database-1.cdq2m4iswpu8.ap-southeast-2.rds.amazonaws.com:5432/fitness_mvp
+SPRING_DATASOURCE_USERNAME=fitnessuser
+SPRING_DATASOURCE_PASSWORD=CHANGE_ME_SECURE_PASSWORD
 
-# Redis Password (Optional, leave empty for no password)
-REDIS_PASSWORD=
+# Redis - AWS ElastiCache (更新为你的 ElastiCache 地址)
+SPRING_DATA_REDIS_HOST=master.aura-redis.rz4l3i.apse2.cache.amazonaws.com
+SPRING_DATA_REDIS_PORT=6379
+SPRING_DATA_REDIS_PASSWORD=CHANGE_ME_REDIS_PASSWORD
+SPRING_DATA_REDIS_SSL=false
 
-# API Keys (Optional - app works without these)
-OPENAI_ENABLED=false
-OPENAI_API_KEY=
+# API Keys (Required)
 YOUTUBE_API_KEY=
 SPOONACULAR_API_KEY=
+USDA_API_KEY=
+
+# Google OAuth
+GOOGLE_CLIENT_ID=
+
+# AI APIs (Optional)
+OPENAI_ENABLED=false
+OPENAI_API_KEY=
+GEMINI_API_KEY=
 
 # Application Settings
-APP_SEED_ENABLED=true
+APP_SEED_ENABLED=false
+SERVER_PORT=8080
+API_KEY=fitness-secret-key-123
+APP_API_KEY=fitness-secret-key-123
+
+# Cloudflare R2 Storage
+R2_ACCESS_KEY=
+R2_SECRET_ACCESS_KEY=
+R2_ENDPOINT=
+R2_BUCKET_NAME=aurafit
+R2_PUBLIC_URL=
 EOF
-    echo -e "${YELLOW}Created .env file. IMPORTANT: Edit ${ENV_FILE} with your configuration!${NC}"
+    echo -e "${YELLOW}Created .env.prod file. IMPORTANT: Edit ${ENV_FILE} with your configuration!${NC}"
     chmod 600 ${ENV_FILE}
 else
-    echo ".env file already exists, keeping current configuration"
+    echo ".env.prod file already exists, keeping current configuration"
 fi
 
-echo -e "${GREEN}Step 5: Creating docker-compose.yml...${NC}"
+echo -e "${GREEN}Step 5: Creating docker-compose.prod.yml...${NC}"
 cat > ${COMPOSE_FILE} <<'EOF'
+# ==========================================
+# PRODUCTION DOCKER COMPOSE (EC2)
+# ==========================================
+# RDS PostgreSQL + AWS ElastiCache Redis
+# 只运行 backend 容器
+
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: fitness-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: fitness_mvp
-      POSTGRES_USER: fitnessuser
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      PGDATA: /var/lib/postgresql/data/pgdata
-    ports:
-      - "5432:5432"
-    volumes:
-      - /opt/fitness-app/data/postgres:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fitnessuser -d fitness_mvp"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: fitness-redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes ${REDIS_PASSWORD:+--requirepass ${REDIS_PASSWORD}}
-    ports:
-      - "6379:6379"
-    volumes:
-      - /opt/fitness-app/data/redis:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
   app:
     image: ${DOCKER_IMAGE}
     container_name: fitness-app
     restart: unless-stopped
     ports:
       - "8080:8080"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/fitness_mvp
-      SPRING_DATASOURCE_USERNAME: fitnessuser
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-      OPENAI_ENABLED: ${OPENAI_ENABLED:-false}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
-      SPOONACULAR_API_KEY: ${SPOONACULAR_API_KEY:-}
-      SERVER_PORT: 8080
-      APP_SEED_ENABLED: ${APP_SEED_ENABLED:-true}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    env_file:
+      - .env.prod
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
       interval: 30s
