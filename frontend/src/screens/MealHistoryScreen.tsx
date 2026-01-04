@@ -4,7 +4,7 @@
  */
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
@@ -40,6 +40,7 @@ const formatTime = (isoString: string) => {
 };
 
 export const MealHistoryScreen = () => {
+  const navigation = useNavigation();
   const [page, setPage] = useState(0);
   const pageSize = 20;
 
@@ -241,14 +242,29 @@ export const MealHistoryScreen = () => {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text variant="heading2" weight="bold">
-            Meal History
-          </Text>
-          {data && (
-            <Text variant="caption" style={styles.totalCount}>
-              {data.totalElements} meals logged
-            </Text>
-          )}
+          <View style={styles.headerRow}>
+            <Pressable
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={24}
+                color={BRAND_COLORS.textPrimary}
+              />
+            </Pressable>
+            <View style={styles.headerTextContainer}>
+              <Text variant="heading2" weight="bold">
+                Meal History
+              </Text>
+              {data && (
+                <Text variant="caption" style={styles.totalCount}>
+                  {data.totalElements} meals logged
+                </Text>
+              )}
+            </View>
+          </View>
         </View>
 
         {/* List */}
@@ -283,6 +299,18 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: BRAND_COLORS.surfaceVariant,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    marginRight: spacing.md,
+    padding: spacing.xs,
+    borderRadius: 8,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   totalCount: {
     color: BRAND_COLORS.textSecondary,
