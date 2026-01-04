@@ -10,13 +10,13 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useMemo } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
-// Default food images for recipes without images
+// Default food images for recipes without images (using reliable Unsplash source URLs)
 const DEFAULT_FOOD_IMAGES = [
-  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800',
-  'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800',
-  'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800',
-  'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800',
-  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800',
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
 ];
 
 /**
@@ -100,7 +100,11 @@ export const RecipeDetailScreen = () => {
 
   return (
     <SafeAreaWrapper>
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header with Back Button */}
         <View style={styles.headerBar}>
           <Button
@@ -200,11 +204,19 @@ export const RecipeDetailScreen = () => {
           {/* Action Buttons */}
           <View style={styles.actions}>
             <Button
-              title={isSaved ? 'Remove from Library' : 'Save to Library'}
-              variant={isSaved ? 'outline' : 'primary'}
+              title={isSaved ? 'Saved to Library' : 'Save to Library'}
+              variant={isSaved ? 'secondary' : 'primary'}
               onPress={handleSaveToggle}
               loading={saveRecipe.isPending || removeRecipe.isPending}
-              icon={<Feather name={isSaved ? 'bookmark' : 'bookmark'} size={18} color={isSaved ? theme.colors.primary : '#FFF'} />}
+              icon={
+                isSaved ? (
+                  <View style={{ backgroundColor: theme.colors.primary, borderRadius: 4, padding: 2 }}>
+                    <Feather name="check" size={14} color="#FFF" />
+                  </View>
+                ) : (
+                  <Feather name="bookmark" size={18} color="#FFF" />
+                )
+              }
             />
           </View>
 
