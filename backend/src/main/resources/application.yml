@@ -91,7 +91,7 @@ spring:
     restart:
       enabled: false
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/fitness_mvp}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://database-1.cdq2m4iswpu8.ap-southeast-2.rds.amazonaws.com:5432/fitness_mvp}
     username: ${SPRING_DATASOURCE_USERNAME:fitnessuser}
     password: ${SPRING_DATASOURCE_PASSWORD:dev_password}
     driver-class-name: org.postgresql.Driver
@@ -142,7 +142,7 @@ spring:
       max-lifetime: 1800000
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      host: ${SPRING_DATA_REDIS_HOST:}
       port: ${SPRING_DATA_REDIS_PORT:6379}
       password: ${SPRING_DATA_REDIS_PASSWORD:}
       timeout: 2000ms

@@ -163,4 +163,16 @@ public interface ExerciseVideoRepository extends JpaRepository<ExerciseVideo, UU
         LIMIT :limit
         """, nativeQuery = true)
     List<ExerciseVideo> findTopByTargetGoal(@Param("goal") String goal, @Param("limit") int limit);
+
+    /**
+     * Get one exercise from each distinct category for diverse workout display.
+     * Uses DISTINCT ON to pick one video per primary_category.
+     */
+    @Query(value = """
+        SELECT DISTINCT ON (e.primary_category) *
+        FROM exercise_videos e
+        WHERE e.thumbnail_url IS NOT NULL
+        ORDER BY e.primary_category, e.exercise_name
+        """, nativeQuery = true)
+    List<ExerciseVideo> findOnePerCategory();
 }

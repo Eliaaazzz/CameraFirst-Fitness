@@ -656,7 +656,7 @@ const ProfileScreen = () => {
                       weight="semibold"
                       style={[
                         { color: theme.colors.textPrimary },
-                        selectedSex === option.value ? styles.optionTextSelected : undefined
+                        selectedSex === option.value ? styles.optionTextSelected : {}
                       ]}
                     >
                       {option.label}
@@ -1108,10 +1108,8 @@ const ProfileScreen = () => {
             </View>
             <Button
               title="Regenerate Goals"
-              variant="secondary"
+              variant="outline"
               onPress={() => setShowGoalsModal(true)}
-              style={{ backgroundColor: theme.colors.background }}
-              textStyle={{ color: theme.colors.primary }}
             />
           </Card>
         ) : (

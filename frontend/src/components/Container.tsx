@@ -49,7 +49,7 @@ export const Container = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    width: '100%',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
     gap: spacing.md,

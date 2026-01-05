@@ -119,7 +119,7 @@ export const WorkoutsScreen = () => {
   const [searchResults, setSearchResults] = useState<WorkoutSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
@@ -309,9 +309,12 @@ export const WorkoutsScreen = () => {
                     item={{
                       id: item.id,
                       title: item.exerciseName,
-                      thumbnailUrl: item.thumbnailUrl,
+                      thumbnailUrl: item.thumbnailUrl ?? undefined,
                       youtubeId: item.youtubeId,
-                      primaryCategory: item.primaryCategory,
+                      durationMinutes: 5,
+                      level: 'intermediate',
+                      equipment: [],
+                      bodyPart: [item.primaryCategory],
                     }}
                     isSaved={savedWorkoutIds.has(item.id)}
                     onSave={(id) => saveWorkout.mutateAsync(id).then(() => true)}

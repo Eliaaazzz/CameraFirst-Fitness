@@ -85,6 +85,21 @@ public class WorkoutRetrievalService {
     }
 
     /**
+     * Get default workouts - one from each body part category for diverse display.
+     * Returns up to 7 workouts covering: Chest, Back, Legs, Shoulders, Arms, Core, Glutes
+     */
+    public List<WorkoutCard> getDefaultWorkouts(int limit) {
+        log.info("Getting default diverse workouts, limit={}", limit);
+
+        List<ExerciseVideo> diverseVideos = exerciseVideoRepository.findOnePerCategory();
+
+        return diverseVideos.stream()
+                .limit(limit)
+                .map(this::toCard)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Map common equipment/search terms to body part categories
      */
     private String mapEquipmentToCategory(String equipment) {

@@ -144,7 +144,7 @@ export function NutritionScreen({ navigation }: any) {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </SafeAreaWrapper>
   );
 }
 

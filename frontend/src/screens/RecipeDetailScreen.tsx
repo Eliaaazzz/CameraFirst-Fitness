@@ -29,6 +29,31 @@ function getPlaceholderImageUrls(id: string, title: string): RecipeImageUrls {
   return { thumb: url, medium: url, large: url };
 }
 
+/**
+ * Format nutrition value with appropriate unit
+ */
+const formatNutritionValue = (key: string, value: unknown): string => {
+  const num = Number(value);
+  if (isNaN(num)) return String(value);
+
+  switch (key.toLowerCase()) {
+    case 'calories':
+      return `${Math.round(num)} kcal`;
+    case 'protein':
+    case 'carbs':
+    case 'fat':
+    case 'fiber':
+    case 'sugar':
+      return `${Math.round(num)}g`;
+    case 'sodium':
+      return `${Math.round(num)}mg`;
+    case 'servings':
+      return String(Math.round(num));
+    default:
+      return String(num);
+  }
+};
+
 export const RecipeDetailScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation();
@@ -102,7 +127,7 @@ export const RecipeDetailScreen = () => {
     <SafeAreaWrapper>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header with Back Button */}
@@ -163,19 +188,19 @@ export const RecipeDetailScreen = () => {
           </View>
 
           {/* Nutrition Summary */}
-          {recipe.nutritionSummary && (
+          {(recipe.nutritionSummary || recipe.nutrition) && (
             <Card style={styles.nutritionCard}>
               <Text variant="heading3" weight="semibold" style={{ marginBottom: spacing.sm }}>
                 Nutrition
               </Text>
               <View style={styles.nutritionGrid}>
-                {Object.entries(recipe.nutritionSummary).map(([key, value]) => (
+                {Object.entries(recipe.nutritionSummary || recipe.nutrition || {}).map(([key, value]) => (
                   <View key={key} style={styles.nutritionItem}>
                     <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
                       {key.charAt(0).toUpperCase() + key.slice(1)}
                     </Text>
                     <Text variant="body" weight="semibold">
-                      {String(value)}
+                      {formatNutritionValue(key, value)}
                     </Text>
                   </View>
                 ))}
