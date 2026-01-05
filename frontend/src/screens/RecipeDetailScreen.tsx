@@ -127,7 +127,7 @@ export const RecipeDetailScreen = () => {
     <SafeAreaWrapper>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header with Back Button */}

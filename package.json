@@ -1,0 +1,47 @@
+{
+  "name": "aura-fitness",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AuraFitness Monorepo - AI-powered fitness and nutrition tracking app",
+  "workspaces": [
+    "frontend",
+    "shared"
+  ],
+  "scripts": {
+    "frontend:start": "npm run start --workspace=frontend",
+    "frontend:ios": "npm run ios --workspace=frontend",
+    "frontend:android": "npm run android --workspace=frontend",
+    "frontend:web": "npm run web --workspace=frontend",
+    "frontend:test": "npm run test --workspace=frontend",
+    "frontend:build": "npm run build --workspace=frontend",
+    "frontend:type-check": "npm run type-check --workspace=frontend",
+    "backend:build": "cd backend && ./gradlew build",
+    "backend:test": "cd backend && ./gradlew test",
+    "backend:run": "cd backend && ./gradlew bootRun",
+    "backend:clean": "cd backend && ./gradlew clean",
+    "docker:up": "docker compose -f infrastructure/docker-compose.yml up -d",
+    "docker:down": "docker compose -f infrastructure/docker-compose.yml down",
+    "docker:logs": "docker compose -f infrastructure/docker-compose.yml logs -f",
+    "docker:build": "docker compose -f infrastructure/docker-compose.yml build",
+    "docker:prod:up": "docker compose -f infrastructure/docker-compose.prod.yml up -d",
+    "docker:prod:down": "docker compose -f infrastructure/docker-compose.prod.yml down",
+    "test": "npm run frontend:test && npm run backend:test",
+    "clean": "npm run backend:clean && rm -rf frontend/node_modules shared/node_modules node_modules"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/aura-fitness.git"
+  },
+  "keywords": [
+    "fitness",
+    "nutrition",
+    "ai",
+    "react-native",
+    "spring-boot",
+    "monorepo"
+  ],
+  "license": "UNLICENSED"
+}

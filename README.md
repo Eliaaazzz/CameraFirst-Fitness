@@ -1,26 +1,25 @@
-# CameraFirst Fitness
+# AuraFitness
 
 AI-powered fitness and nutrition platform with pose detection and personalized meal planning.
 
-## 🎯 Project Overview
+## Project Overview
 
-CameraFirst Fitness is a comprehensive health and wellness application that combines:
+AuraFitness is a comprehensive health and wellness application that combines:
 - **AI-powered pose detection** for real-time workout form analysis
 - **Intelligent recipe recommendations** based on dietary goals
 - **Personalized nutrition tracking** and meal planning
 - **Progress monitoring** and gamification features
 
-## 🏗️ Project Structure
+## Monorepo Structure
 
 ```
-CameraFirst-Fitness/
-├── backend/                    # Spring Boot REST API
+AuraFitness/
+├── backend/                    # Spring Boot REST API (Java 21)
 │   ├── src/                   # Java source code
 │   ├── build.gradle.kts       # Gradle build configuration
-│   ├── Dockerfile             # Backend container image
-│   └── README.md              # Backend documentation
+│   └── Dockerfile             # Backend container image
 │
-├── frontend/                   # React Native mobile app
+├── frontend/                   # React Native mobile app (Expo)
 │   ├── src/                   # TypeScript/React source code
 │   │   ├── components/        # Reusable UI components
 │   │   ├── screens/           # App screens
@@ -29,16 +28,14 @@ CameraFirst-Fitness/
 │   ├── app.json               # Expo configuration
 │   └── package.json           # npm dependencies
 │
-├── shared/                     # Shared code between projects
-│   ├── types/                 # TypeScript type definitions
-│   ├── constants/             # Shared constants
-│   └── utils/                 # Shared utilities
+├── shared/                     # Shared TypeScript packages
+│   └── package.json           # Shared types and utilities
 │
 ├── infrastructure/             # Infrastructure as Code
-│   ├── backend/               # Backend deployment configs
-│   ├── frontend/              # Frontend deployment configs
-│   ├── docker/                # Docker compose files
-│   └── aws/                   # AWS configurations
+│   ├── docker-compose.yml     # Development environment
+│   ├── docker-compose.prod.yml # Production environment
+│   ├── aws-cloudformation.yaml # AWS infrastructure
+│   └── frontend-deploy.sh     # Frontend deployment script
 │
 ├── scripts/                    # Utility scripts
 │   ├── setup/                 # Environment setup scripts
@@ -47,36 +44,36 @@ CameraFirst-Fitness/
 │   └── testing/               # Test automation scripts
 │
 ├── docs/                       # Documentation
-│   ├── api/                   # API documentation
-│   ├── architecture/          # System architecture docs
-│   ├── deployment/            # Deployment guides
-│   └── development/           # Development guides
 │
-└── .github/                    # GitHub workflows & configs
-    └── workflows/             # CI/CD pipelines
+├── .github/workflows/          # CI/CD pipelines
+│
+├── package.json               # Root workspace configuration
+├── .env                       # Environment variables (gitignored)
+└── .gitignore                 # Git ignore rules
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- **Java 17+** (for backend)
+- **Java 21+** (for backend)
 - **Node.js 18+** (for frontend)
-- **PostgreSQL 14+** (for database)
-- **Gradle** (included via wrapper)
+- **PostgreSQL 16+** with pgvector extension
+- **Redis 7+** (for caching)
+- **Docker & Docker Compose** (recommended)
 - **Android Studio** or **Xcode** (for mobile development)
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/CameraFirst-Fitness.git
-   cd CameraFirst-Fitness
+   git clone https://github.com/yourusername/AuraFitness.git
+   cd AuraFitness
    ```
 
-2. **Install dependencies**
+2. **Install frontend dependencies**
    ```bash
-   npm run setup
+   npm install
    ```
 
 3. **Configure environment variables**
@@ -85,9 +82,9 @@ CameraFirst-Fitness/
    # Edit .env with your configuration
    ```
 
-4. **Set up database**
+4. **Start development infrastructure (PostgreSQL + Redis)**
    ```bash
-   bash scripts/setup/setup-database.sh
+   npm run docker:up
    ```
 
 ### Running Locally
@@ -98,8 +95,7 @@ CameraFirst-Fitness/
 npm run backend:run
 
 # Or using Gradle directly
-cd backend
-./gradlew bootRun
+cd backend && ./gradlew bootRun
 
 # Backend will be available at http://localhost:8080
 ```
@@ -109,20 +105,22 @@ cd backend
 # Run Expo development server
 npm run frontend:start
 
-# Run on Android
-npm run frontend:android
-
 # Run on iOS
 npm run frontend:ios
+
+# Run on Android
+npm run frontend:android
 
 # Run on Web
 npm run frontend:web
 ```
 
-## 📦 Available Scripts
+## Available Scripts
 
-### Root Level
-- `npm run setup` - Install all dependencies
+### Root Level (npm workspaces)
+- `npm run docker:up` - Start development infrastructure
+- `npm run docker:down` - Stop development infrastructure
+- `npm run docker:logs` - View container logs
 - `npm test` - Run all tests
 - `npm run clean` - Clean build artifacts
 
@@ -130,81 +128,86 @@ npm run frontend:web
 - `npm run backend:build` - Build backend with Gradle
 - `npm run backend:test` - Run backend tests
 - `npm run backend:run` - Start backend dev server
-- `npm run backend:jar` - Build executable JAR
+- `npm run backend:clean` - Clean backend build
 
 ### Frontend
-- `npm run frontend:install` - Install frontend dependencies
 - `npm run frontend:start` - Start Expo dev server
-- `npm run frontend:android` - Run on Android
 - `npm run frontend:ios` - Run on iOS
-- `npm run frontend:web` - Export for web
+- `npm run frontend:android` - Run on Android
+- `npm run frontend:web` - Run on Web
+- `npm run frontend:test` - Run frontend tests
+- `npm run frontend:type-check` - TypeScript type checking
 
-## 🧪 Testing
+## Testing
 
 ```bash
+# Run all tests
+npm test
+
 # Run backend tests
-cd backend
-./gradlew test
+npm run backend:test
 
 # Run frontend tests
-cd frontend
-npm test
+npm run frontend:test
 
 # Run integration tests
 bash scripts/testing/test-api.sh
 ```
 
-## 🚢 Deployment
+## Deployment
 
-### Backend Deployment (EC2)
+### Using Docker Compose
 ```bash
-# Build JAR
-npm run backend:jar
+# Development environment
+npm run docker:up
 
-# Deploy using script
-bash scripts/deployment/start-app.sh
+# Production environment
+npm run docker:prod:up
 ```
 
-### Frontend Deployment (Expo/Web)
+### Manual Deployment
 ```bash
-# Build for web
-npm run frontend:web
+# Backend - build JAR
+npm run backend:build
 
-# Deploy using script
-bash scripts/deployment/rebuild-frontend.sh
+# Frontend - build for web
+npm run frontend:build
 ```
 
-See [deployment documentation](docs/deployment/) for detailed instructions.
+See deployment scripts in `scripts/deployment/` for detailed instructions.
 
-## 📖 Documentation
+## Documentation
 
-- [API Documentation](docs/api/) - REST API endpoints and usage
-- [Architecture](docs/architecture/) - System design and architecture
-- [Deployment Guide](docs/deployment/) - Deployment instructions
-- [Development Guide](docs/development/) - Development setup and conventions
+See the `docs/` directory for detailed documentation on:
+- Nutrition database schema and ETL pipeline
+- API endpoints and usage
+- Development guides
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Backend
-- **Spring Boot 3.2** - Application framework
-- **PostgreSQL** - Primary database
+- **Spring Boot 3.3** - Application framework
+- **Java 21** - Runtime
+- **PostgreSQL 16** with pgvector - Primary database with vector search
+- **Redis 7** - Caching layer
 - **Gradle** - Build tool
-- **Spring Security** - Authentication & authorization
-- **JPA/Hibernate** - ORM
+- **Spring Security + JWT** - Authentication
+- **Flyway** - Database migrations
 
 ### Frontend
-- **React Native** - Mobile framework
-- **Expo** - Development platform
-- **TypeScript** - Type-safe JavaScript
-- **React Navigation** - Navigation library
+- **React Native 0.81** - Mobile framework
+- **Expo 54** - Development platform
+- **TypeScript 5.9** - Type-safe JavaScript
+- **React Navigation 7** - Navigation library
+- **TanStack Query** - Data fetching
 
 ### Infrastructure
 - **AWS EC2** - Application hosting
+- **Cloudflare R2** - Object storage
 - **Docker** - Containerization
 - **GitHub Actions** - CI/CD
-- **Nginx** - Web server
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -212,25 +215,6 @@ See [deployment documentation](docs/deployment/) for detailed instructions.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+## License
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Pose detection powered by AI models
-- Recipe data and nutrition information
-- Open source community
-
-## 📞 Support
-
-For issues and questions:
-- Create an issue on GitHub
-- Check existing documentation in `/docs`
-- Review closed issues for solutions
-
----
-
-**Built with ❤️ by the CameraFirst Fitness Team**
+This project is proprietary and confidential.
