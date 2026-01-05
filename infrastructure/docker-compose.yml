@@ -29,7 +29,9 @@ services:
   backend:
     # Use local image for development
     image: fitness-backend:local
-    build: ./backend
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
     container_name: fitness-backend
     restart: unless-stopped
     depends_on:
@@ -37,9 +39,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    # 本地开发环境配置
+    # Adjust environment variables as needed
     env_file:
-      - .env.dev
+      - ../.env
     ports:
       - "8080:8080"
 
