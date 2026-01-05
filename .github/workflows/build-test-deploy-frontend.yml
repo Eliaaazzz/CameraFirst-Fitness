@@ -1,440 +1,61 @@
-name: Build, Test & Deploy Frontend (Improved)
+name: Deploy Frontend to S3
 
 on:
   push:
-    branches: [main]
-    paths:
-      - 'frontend/**'
-      - '!frontend/README.md'
-      - '.github/workflows/build-test-deploy-frontend.yml'
-  workflow_dispatch:
-
-env:
-  NODE_VERSION: '20'
-
-concurrency:
-  group: frontend-deploy-${{ github.ref }}
-  cancel-in-progress: true
+    branches:
+      - main  # 确保这里跟你的分支名一致
 
 jobs:
-  # ========================================
-  # LINT, TYPE CHECK & TEST
-  # ========================================
-  lint-and-test:
-    name: Lint, Type Check & Test
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: |
-          echo "📦 Installing dependencies..."
-          npm ci
-
-      - name: Run ESLint
-        working-directory: frontend
-        run: |
-          echo "🔍 Running ESLint..."
-          npm run lint 2>&1 || {
-            echo "⚠️ ESLint found issues (non-blocking for now)"
-            exit 0
-          }
-
-      - name: Run TypeScript type check
-        working-directory: frontend
-        run: |
-          echo "🔍 Running TypeScript type check..."
-          npm run type-check || {
-            echo "❌ TypeScript errors found"
-            exit 1
-          }
-
-      - name: Run Jest tests
-        working-directory: frontend
-        run: |
-          echo "🧪 Running unit tests..."
-          npm run test -- --coverage --watchAll=false --passWithNoTests || {
-            echo "⚠️ Some tests failed (non-blocking for PR)"
-            [ "${{ github.event_name }}" = "push" ] && exit 1
-            exit 0
-          }
-
-      - name: Upload coverage report
-        if: always()
-        uses: codecov/codecov-action@v3
-        with:
-          files: frontend/coverage/lcov.info
-          flags: frontend
-          fail_ci_if_error: false
-
-      - name: Archive test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-test-results
-          path: frontend/coverage
-          retention-days: 30
-
-  # ========================================
-  # BUILD FRONTEND BUNDLE
-  # ========================================
-  build:
-    name: Build Frontend Bundle
-    runs-on: ubuntu-latest
-    needs: lint-and-test
-    env:
-      API_BASE_URL: ${{ secrets.API_BASE_URL }}
-    
-    outputs:
-      artifact-name: frontend-build-${{ github.sha }}
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: |
-          echo "📦 Installing dependencies..."
-          npm ci
-
-      - name: Build frontend
-        working-directory: frontend
-        env:
-          NODE_ENV: production
-          API_BASE_URL: ${{ secrets.API_BASE_URL }}
-        run: |
-          echo "🏗️ Building frontend..."
-          API_BASE_URL="${API_BASE_URL:-http://localhost:8080}"
-          echo "API_BASE_URL: ${API_BASE_URL}"
-          npm run build
-          echo "✅ Build completed"
-          ls -la dist/
-
-      - name: Generate build info
-        working-directory: frontend
-        env:
-          API_BASE_URL: ${{ secrets.API_BASE_URL }}
-        run: |
-          API_BASE_URL="${API_BASE_URL:-http://localhost:8080}"
-          cat > dist/.build-info.json << EOF
-          {
-            "buildTime": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
-            "gitCommit": "${{ github.sha }}",
-            "gitBranch": "${{ github.ref_name }}",
-            "buildNumber": "${{ github.run_number }}",
-            "apiUrl": "${API_BASE_URL}"
-          }
-          EOF
-          cat dist/.build-info.json
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build-${{ github.sha }}
-          path: frontend/dist
-          retention-days: 7
-
-      - name: Test build artifact
-        working-directory: frontend
-        run: |
-          echo "🔍 Verifying build artifact..."
-          [ -d "dist" ] && [ "$(find dist -type f | wc -l)" -gt 0 ] && echo "✅ Build artifact verified" || exit 1
-
-  # ========================================
-  # DEPLOY TO EC2
-  # ========================================
   deploy:
-    name: Deploy to EC2
     runs-on: ubuntu-latest
-    needs: build
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          name: ${{ needs.build.outputs.artifact-name }}
-          path: frontend/dist
+          node-version: '18'
+          cache: 'npm'
 
-      - name: Configure SSH
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_SSH_KEY_B64: ${{ secrets.EC2_SSH_KEY_B64 }}
-          EC2_USER: ${{ secrets.EC2_USER }}
-        run: |
-          set -euo pipefail
-          echo "🔐 Setting up SSH..."
-          
-          if [ -z "${EC2_HOST:-}" ]; then
-            echo "❌ EC2_HOST secret is missing" >&2
-            exit 1
-          fi
-          if [ -z "${EC2_SSH_KEY:-}" ] && [ -z "${EC2_SSH_KEY_B64:-}" ]; then
-            echo "❌ EC2_SSH_KEY secret is missing" >&2
-            exit 1
-          fi
-          if [ -z "${EC2_USER:-}" ]; then
-            echo "❌ EC2_USER secret is missing" >&2
-            exit 1
-          fi
-          
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          
-          if [ -n "${EC2_SSH_KEY_B64:-}" ]; then
-            if ! printf '%s' "$EC2_SSH_KEY_B64" | base64 -d > ~/.ssh/id_rsa 2>/dev/null; then
-              echo "❌ SSH key decode failed" >&2
-              exit 1
-            fi
-          else
-            printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/id_rsa
-          fi
-          
-          chmod 600 ~/.ssh/id_rsa
-          
-          if ! grep -q "BEGIN [A-Z ]*PRIVATE KEY" ~/.ssh/id_rsa; then
-            echo "❌ SSH key malformed" >&2
-            exit 1
-          fi
-          
-          if ! ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null; then
-            printf "Host *\n  StrictHostKeyChecking no\n" >> ~/.ssh/config
-          fi
-          
-          echo "✅ SSH configured"
+      - name: Install Dependencies
+        run: npm ci
 
-      - name: Create deployment package
-        run: |
-          echo "📦 Creating deployment package..."
-          cd frontend/dist
-          tar -czf ../frontend-build-${{ github.run_number }}.tar.gz .
-          cd ../..
-          ls -lh frontend/frontend-build-*.tar.gz
+      - name: Build
+        run: npm run build
+        # 此时应该生成 dist 文件夹
 
-      - name: Upload to EC2
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
-        run: |
-          set -euo pipefail
-          echo "📤 Uploading deployment package..."
-          
-          scp -i ~/.ssh/id_rsa \
-            -o ServerAliveInterval=30 \
-            -o ServerAliveCountMax=10 \
-            frontend/frontend-build-${{ github.run_number }}.tar.gz \
-            "$EC2_USER@$EC2_HOST":/tmp/
-          
-          echo "📤 Uploading deployment script..."
-          scp -i ~/.ssh/id_rsa \
-            -o ServerAliveInterval=30 \
-            -o ServerAliveCountMax=10 \
-            infrastructure/frontend-deploy.sh \
-            "$EC2_USER@$EC2_HOST":/tmp/
-
-      - name: Deploy on EC2
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
-        run: |
-          set -euo pipefail
-          echo "🚀 Deploying frontend..."
-          
-          ssh -i ~/.ssh/id_rsa \
-            -o ServerAliveInterval=30 \
-            -o ServerAliveCountMax=10 \
-            "$EC2_USER@$EC2_HOST" << 'DEPLOY_SCRIPT'
-            set -euo pipefail
-            
-            DEPLOY_DIR="/var/www/fitness-app"
-            BACKUP_DIR="/var/www/fitness-app-backup-$(date +%s)"
-            BUILD_FILE="/tmp/frontend-build-${{ github.run_number }}.tar.gz"
-            
-            echo "🚀 Starting frontend deployment..."
-            
-            # Backup current version
-            if [ -d "$DEPLOY_DIR" ] && [ "$(ls -A $DEPLOY_DIR)" ]; then
-              echo "💾 Backing up current version to $BACKUP_DIR..."
-              sudo cp -r "$DEPLOY_DIR" "$BACKUP_DIR"
-            fi
-            
-            # Extract new build
-            echo "📥 Extracting new build..."
-            sudo mkdir -p "$DEPLOY_DIR"
-            sudo tar -xzf "$BUILD_FILE" -C "$DEPLOY_DIR"
-            
-            # Verify deployment
-            echo "🔍 Verifying deployment..."
-            if [ ! -f "$DEPLOY_DIR/index.html" ]; then
-              echo "❌ Deployment verification failed"
-              [ -d "$BACKUP_DIR" ] && sudo cp -r "$BACKUP_DIR"/* "$DEPLOY_DIR/" && echo "✅ Rolled back to previous version"
-              exit 1
-            fi
-            
-            echo "✅ Frontend deployed successfully"
-            echo "📊 Deployed files:"
-            sudo ls -lah "$DEPLOY_DIR" | head -20
-            
-            # Cleanup
-            rm -f "$BUILD_FILE"
-          DEPLOY_SCRIPT
-
-      - name: Verify deployment
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-        run: |
-          set -euo pipefail
-          echo "🔍 Verifying frontend deployment..."
-          
-          max_attempts=10
-          attempt=0
-          while [ $attempt -lt $max_attempts ]; do
-            echo "⏳ Attempt $((attempt + 1))/$max_attempts..."
-            
-            if curl -sf "http://$EC2_HOST/" | grep -qE '<!DOCTYPE|<html'; then
-              echo "✅ Frontend is accessible"
-              exit 0
-            fi
-            
-            attempt=$((attempt + 1))
-            sleep 5
-          done
-          
-          echo "❌ Frontend verification failed"
-          exit 1
-
-      - name: Create deployment summary
-        if: always()
-        uses: actions/github-script@v7
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          script: |
-            const fs = require('fs');
-            const buildInfo = {
-              deployment_time: new Date().toISOString(),
-              branch: '${{ github.ref_name }}',
-              commit: '${{ github.sha }}',
-              run_number: '${{ github.run_number }}',
-              actor: '${{ github.actor }}'
-            };
-            
-            console.log('📊 Deployment Summary:', buildInfo);
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-2 # 记得确认区域，如果你在悉尼就是这个
 
-  # ========================================
-  # PERFORMANCE TEST (Optional)
-  # ========================================
-  performance-test:
-    name: Performance Test
-    runs-on: ubuntu-latest
-    needs: deploy
-    if: github.ref == 'refs/heads/main'
-    continue-on-error: true
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # --- 修改点：路径改为 ./dist ---
 
-      - name: Run Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v10
-        with:
-          uploadArtifacts: true
-          temporaryPublicStorage: true
-          runs: 3
-        env:
-          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LHCI_GITHUB_UPLOAD_ARTIFACT: 'true'
-
-  # ========================================
-  # ROLLBACK (Manual Trigger)
-  # ========================================
-  rollback:
-    name: Rollback Deployment
-    runs-on: ubuntu-latest
-    if: failure() && github.ref == 'refs/heads/main'
-    needs: deploy
-    
-    steps:
-      - name: Configure SSH
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_SSH_KEY_B64: ${{ secrets.EC2_SSH_KEY_B64 }}
-          EC2_USER: ${{ secrets.EC2_USER }}
+      # 1. 上传资源文件 (JS/CSS/图片) -> 设置长缓存 (1年)
+      - name: Deploy Assets with Long Cache
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          
-          if [ -n "${EC2_SSH_KEY_B64:-}" ]; then
-            printf '%s' "$EC2_SSH_KEY_B64" | base64 -d > ~/.ssh/id_rsa 2>/dev/null || true
-          else
-            printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/id_rsa
-          fi
-          
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          aws s3 sync ./dist s3://${{ secrets.S3_BUCKET_NAME }} \
+            --delete \
+            --exclude "index.html" \
+            --exclude "*.json" \
+            --cache-control "public, max-age=31536000, immutable"
 
-      - name: Rollback to previous version
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
+      # 2. 上传入口文件 (index.html) -> 设置无缓存 (No Cache)
+      - name: Deploy HTML with No Cache
         run: |
-          set -euo pipefail
-          echo "⚠️ Rolling back frontend..."
-          
-          ssh -i ~/.ssh/id_rsa \
-            "$EC2_USER@$EC2_HOST" << 'ROLLBACK_SCRIPT'
-            set -euo pipefail
-            
-            DEPLOY_DIR="/var/www/fitness-app"
-            BACKUP_DIR=$(ls -t /var/www/fitness-app-backup-* 2>/dev/null | head -1)
-            
-            if [ -n "$BACKUP_DIR" ] && [ -d "$BACKUP_DIR" ]; then
-              echo "🔄 Rolling back from $BACKUP_DIR..."
-              sudo rm -rf "$DEPLOY_DIR"/*
-              sudo cp -r "$BACKUP_DIR"/* "$DEPLOY_DIR/"
-              echo "✅ Rollback complete"
-            else
-              echo "❌ No backup found for rollback"
-              exit 1
-            fi
-          ROLLBACK_SCRIPT
+          aws s3 sync ./dist s3://${{ secrets.S3_BUCKET_NAME }} \
+            --exclude "*" \
+            --include "index.html" \
+            --include "*.json" \
+            --cache-control "no-cache, no-store, must-revalidate"
 
-      - name: Notify rollback
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const message = '🔄 Frontend deployment failed and was rolled back';
-            
-            // Only post comment if this is triggered from a PR or issue
-            if (context.issue && context.issue.number) {
-              await github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: message
-              });
-            } else {
-              // For push events, just log the message
-              console.log(message);
-              console.log(`Rollback triggered for commit: ${context.sha}`);
-            }
+      # 3. 刷新 CloudFront
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
