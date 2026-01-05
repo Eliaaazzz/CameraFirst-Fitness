@@ -48,7 +48,7 @@ export const RecipesScreen = () => {
   const [searchResults, setSearchResults] = useState<RecipeSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Calculate bottom padding for content using shared utility
   // These hooks MUST be called before any conditional returns
@@ -235,11 +235,10 @@ export const RecipesScreen = () => {
                     item={{
                       id: item.id,
                       title: item.title,
-                      imageUrl: item.imageUrl,
+                      imageUrl: item.imageUrl ?? undefined,
                       timeMinutes: item.timeMinutes,
-                      difficulty: item.difficulty,
-                      calories: item.calories,
-                      protein: item.protein,
+                      difficulty: (item.difficulty as 'easy' | 'medium' | 'hard') || 'easy',
+                      calories: item.calories ?? undefined,
                     }}
                     isSaved={savedRecipeIds.has(item.id)}
                     onSave={(id) => saveRecipe.mutateAsync(id).then(() => true)}

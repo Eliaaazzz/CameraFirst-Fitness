@@ -98,6 +98,15 @@ const DarkNavigationTheme = {
   },
 };
 
+// Stack navigator for Recipes tab with detail screen
+const RecipesStack = createStackNavigator();
+const RecipesStackScreen = () => (
+  <RecipesStack.Navigator screenOptions={{ headerShown: false }}>
+    <RecipesStack.Screen name="RecipesList" component={SafeRecipesScreen} />
+    <RecipesStack.Screen name="RecipeDetail" component={SafeRecipeDetailScreen} />
+  </RecipesStack.Navigator>
+);
+
 // Tab configuration for cleaner code
 const TAB_CONFIG = [
   {
@@ -118,7 +127,7 @@ const TAB_CONFIG = [
   },
   {
     name: 'Recipes',
-    component: SafeRecipesScreen,
+    component: RecipesStackScreen,
     label: 'Recipes',
     iconActive: 'book-open-variant',
     iconInactive: 'book-open-outline',
@@ -234,16 +243,6 @@ const MainTabs = () => {
         component={SafeResultsScreen}
         options={{
           title: 'Results',
-          tabBarButton: () => null,
-          tabBarItemStyle: { display: 'none' },
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-      <Tab.Screen
-        name="RecipeDetail"
-        component={SafeRecipeDetailScreen}
-        options={{
-          title: 'Recipe',
           tabBarButton: () => null,
           tabBarItemStyle: { display: 'none' },
           tabBarStyle: { display: 'none' },

@@ -39,8 +39,31 @@ public class ContentController {
     private final RecipeScalingService recipeScalingService;
 
     // ============================================================================
-    // Text Search Endpoints
+    // Workout Endpoints
     // ============================================================================
+
+    /**
+     * List default workouts - returns diverse workouts from different body parts.
+     * GET /api/v1/workouts?limit=7
+     *
+     * Default returns 7 workouts, one from each major body part category:
+     * Chest, Back, Legs, Shoulders, Arms, Core, Glutes
+     */
+    @GetMapping("/workouts")
+    public WorkoutSearchResponse listWorkouts(
+            @RequestParam(defaultValue = "7") int limit) {
+        Instant start = Instant.now();
+
+        List<WorkoutCard> results = workoutService.getDefaultWorkouts(limit);
+        Duration elapsed = Duration.between(start, Instant.now());
+
+        return WorkoutSearchResponse.builder()
+                .workouts(results)
+                .totalResults(results.size())
+                .query(null)
+                .latencyMs((int) elapsed.toMillis())
+                .build();
+    }
 
     /**
      * Text-based workout search

@@ -30,6 +30,7 @@ export const colors = {
     error: '#EF4444',
     success: '#10B981',
     warning: '#F59E0B',
+    info: '#3B82F6',
     
     // Borders
     border: '#E5E7EB',
@@ -61,6 +62,7 @@ export const colors = {
     error: '#F87171',
     success: '#34D399',
     warning: '#FBBF24',
+    info: '#60A5FA',
     
     // Borders - subtle
     border: 'rgba(255, 255, 255, 0.12)',

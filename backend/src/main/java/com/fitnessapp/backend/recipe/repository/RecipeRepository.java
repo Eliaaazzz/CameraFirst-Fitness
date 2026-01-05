@@ -373,7 +373,6 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
     SELECT * FROM recipe r
     WHERE LOWER(r.title) LIKE LOWER(CONCAT('%', :query, '%'))
        OR EXISTS (SELECT 1 FROM unnest(r.dietary_tags) AS dt WHERE LOWER(dt) LIKE LOWER(CONCAT('%', :query, '%')))
-       OR r.description ILIKE CONCAT('%', :query, '%')
     ORDER BY r.created_at DESC
     LIMIT :limit
     """, nativeQuery = true)

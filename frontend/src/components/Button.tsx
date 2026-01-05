@@ -114,7 +114,7 @@ const getVariantStyle = (variant: ButtonVariant, isPressed: boolean, disabled?: 
         backgroundColor: isPressed ? dark.primaryDark : dark.primary,
         borderWidth: 0,
         borderColor: 'transparent',
-        textColor: '#1F2937', // Dark text on light button
+        textColor: '#FFFFFF', // White text on purple button for contrast
       };
 
     case 'secondary':
@@ -154,7 +154,7 @@ const getVariantStyle = (variant: ButtonVariant, isPressed: boolean, disabled?: 
         backgroundColor: dark.primary,
         borderWidth: 0,
         borderColor: 'transparent',
-        textColor: '#1F2937',
+        textColor: '#FFFFFF',
       };
   }
 };
