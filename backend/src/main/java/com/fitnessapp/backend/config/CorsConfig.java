@@ -20,13 +20,21 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow all origins in development, restrict in production via env var
+        // Allow specific origins - required when using credentials (cookies)
+        // SECURITY: When allowCredentials=true, cannot use wildcard "*"
         String allowedOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
         if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
             configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
         } else {
-            // Development: allow all origins
-            configuration.setAllowedOriginPatterns(List.of("*"));
+            // Development: allow localhost and common development origins
+            // These patterns support credentials while still being flexible for dev
+            configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "https://localhost:*",
+                "https://*.aurafitness.org",
+                "https://aurafitness.org"
+            ));
         }
         
         // Allow common HTTP methods

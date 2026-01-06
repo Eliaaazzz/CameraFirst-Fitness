@@ -6,19 +6,43 @@ const REFRESH_TOKEN_KEY = 'aura_refresh_token';
 const USER_EMAIL_KEY = 'aura_user_email';
 
 /**
+ * SECURITY: On web, JWT is stored in HttpOnly cookie (set by backend).
+ * JavaScript cannot read/write HttpOnly cookies, which prevents XSS attacks.
+ * On mobile, we use SecureStore for encrypted local storage.
+ */
+const isWeb = Platform.OS === 'web';
+
+/**
  * Platform-aware storage helpers
- * Uses SecureStore on native (iOS/Android) and localStorage on web
+ * - Web: JWT is in HttpOnly cookie (managed by backend), only email stored in localStorage
+ * - Mobile: Uses SecureStore for encrypted local storage
  */
 async function setItem(key: string, value: string): Promise<void> {
-  if (Platform.OS === 'web') {
-    localStorage.setItem(key, value);
+  if (isWeb) {
+    // On web, only store non-sensitive data (email) in localStorage
+    // JWT is handled via HttpOnly cookie by the backend
+    if (key !== JWT_KEY && key !== REFRESH_TOKEN_KEY) {
+      localStorage.setItem(key, value);
+    }
+    // JWT and refresh token are NOT stored in localStorage on web
   } else {
     await SecureStore.setItemAsync(key, value);
   }
 }
 
 async function getItem(key: string): Promise<string | null> {
-  if (Platform.OS === 'web') {
+  if (isWeb) {
+    // On web, JWT is in HttpOnly cookie - we can't read it from JS
+    // Return a marker value to indicate "cookie-based auth"
+    if (key === JWT_KEY) {
+      // Check if we have email stored (indicates logged in)
+      // The actual JWT is in the HttpOnly cookie
+      const email = localStorage.getItem(USER_EMAIL_KEY);
+      return email ? 'httponly-cookie' : null;
+    }
+    if (key === REFRESH_TOKEN_KEY) {
+      return null; // Not used on web
+    }
     return localStorage.getItem(key);
   } else {
     return await SecureStore.getItemAsync(key);
@@ -26,31 +50,45 @@ async function getItem(key: string): Promise<string | null> {
 }
 
 async function deleteItem(key: string): Promise<void> {
-  if (Platform.OS === 'web') {
+  if (isWeb) {
     localStorage.removeItem(key);
+    // Note: HttpOnly cookie is cleared by calling POST /api/v1/auth/logout
   } else {
     await SecureStore.deleteItemAsync(key);
   }
 }
 
 /**
- * Save JWT and optional refresh token to secure storage
+ * Save JWT and optional refresh token to secure storage.
+ * On web: JWT is stored in HttpOnly cookie by backend, we only save email.
+ * On mobile: JWT is saved to SecureStore.
  */
 export async function saveJWT(jwtToken: string, refreshToken?: string, userEmail?: string) {
   try {
-    console.log('[saveJWT] Saving JWT token, length:', jwtToken?.length);
-    await setItem(JWT_KEY, jwtToken);
-    if (refreshToken) {
-      await setItem(REFRESH_TOKEN_KEY, refreshToken);
-    }
-    if (userEmail) {
-      await setItem(USER_EMAIL_KEY, userEmail);
-    }
-    console.log('✅ JWT saved to secure storage');
+    console.log('[saveJWT] Saving JWT token, length:', jwtToken?.length, 'platform:', Platform.OS);
 
-    // Verify it was saved correctly
-    const savedToken = await getItem(JWT_KEY);
-    console.log('[saveJWT] Verification - token saved correctly:', savedToken === jwtToken);
+    if (isWeb) {
+      // On web, JWT is in HttpOnly cookie (set by backend response)
+      // We only store the email locally for UI purposes
+      if (userEmail) {
+        await setItem(USER_EMAIL_KEY, userEmail);
+      }
+      console.log('✅ Web: Email saved, JWT is in HttpOnly cookie');
+    } else {
+      // On mobile, store JWT in SecureStore
+      await setItem(JWT_KEY, jwtToken);
+      if (refreshToken) {
+        await setItem(REFRESH_TOKEN_KEY, refreshToken);
+      }
+      if (userEmail) {
+        await setItem(USER_EMAIL_KEY, userEmail);
+      }
+      console.log('✅ Mobile: JWT saved to SecureStore');
+
+      // Verify it was saved correctly
+      const savedToken = await getItem(JWT_KEY);
+      console.log('[saveJWT] Verification - token saved correctly:', savedToken === jwtToken);
+    }
   } catch (error) {
     console.error('❌ Failed to save JWT to secure storage:', error);
     throw new Error('Failed to save authentication token');
@@ -58,22 +96,24 @@ export async function saveJWT(jwtToken: string, refreshToken?: string, userEmail
 }
 
 /**
- * Retrieve JWT from secure storage
- * IMPORTANT: Does NOT check expiration to avoid race conditions during login
- * Let the backend validate and return 401 if truly expired
+ * Retrieve JWT from secure storage.
+ * On web: Returns 'httponly-cookie' marker if user is logged in (actual JWT is in cookie).
+ * On mobile: Returns the actual JWT from SecureStore.
+ *
+ * IMPORTANT: Does NOT check expiration to avoid race conditions during login.
+ * Let the backend validate and return 401 if truly expired.
  */
 export async function getJWT(): Promise<string | null> {
   try {
     const token = await getItem(JWT_KEY);
-    console.log('[getJWT] Token retrieved, exists:', !!token, 'length:', token?.length);
-    if (!token) {
-      return null;
+
+    if (isWeb) {
+      // On web, token will be 'httponly-cookie' marker or null
+      console.log('[getJWT] Web: Using HttpOnly cookie, logged in:', token === 'httponly-cookie');
+      return token;
     }
-    
-    // DO NOT check expiration here - this causes race conditions during login
-    // The backend will validate the token and return 401 if expired
-    // Frontend should only clear JWT on explicit 401 response from backend
-    
+
+    console.log('[getJWT] Mobile: Token retrieved, exists:', !!token, 'length:', token?.length);
     return token;
   } catch (error) {
     console.error('❌ Failed to retrieve JWT from secure storage:', error);
