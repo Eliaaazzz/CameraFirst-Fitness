@@ -69,11 +69,14 @@ class APIError extends Error {
 }
 
 /**
- * Make an HTTP request with timeout and error handling
+ * Make an HTTP request with timeout and error handling.
+ * On web: Uses credentials: 'include' to send HttpOnly cookies.
+ * On mobile: Uses Authorization header with Bearer token.
  */
 async function request<T>(endpoint: string, config: RequestConfig = { method: 'GET' }): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.timeout || TIMEOUT);
+  const isWebPlatform = Platform.OS === 'web';
 
   try {
     const url = `${BASE_URL}${endpoint}`;
@@ -86,15 +89,19 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
       ...config.headers,
     };
 
-    // If JWT token exists locally, include it (dual authentication)
-    // This is the "ID Card"  - used for user session validation
-    const jwtToken = await getJWT();
-    console.log('[APIClient Request] JWT check - exists:', !!jwtToken, 'length:', jwtToken?.length);
-    if (jwtToken) {
-      headers['Authorization'] = `Bearer ${jwtToken}`;
-      console.log('[APIClient Request] Authorization header added');
+    // Mobile only: Add Authorization header with Bearer token
+    // Web: JWT is in HttpOnly cookie, sent automatically with credentials: 'include'
+    if (!isWebPlatform) {
+      const jwtToken = await getJWT();
+      console.log('[APIClient Request] Mobile JWT check - exists:', !!jwtToken, 'length:', jwtToken?.length);
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+        console.log('[APIClient Request] Mobile: Authorization header added');
+      } else {
+        console.log('[APIClient Request] Mobile: No JWT token found, proceeding with API key only');
+      }
     } else {
-      console.log('[APIClient Request] No JWT token found, proceeding with API key only');
+      console.log('[APIClient Request] Web: Using HttpOnly cookie (credentials: include)');
     }
 
     // Add Content-Type for JSON requests
@@ -106,8 +113,10 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
     console.log('[APIClient Request]', {
       method: config.method,
       url,
+      platform: Platform.OS,
       hasApiKey: !!headers['X-API-Key'], // Should always be true
-      hasToken: !!headers['Authorization'] // True after login
+      hasToken: !!headers['Authorization'], // True after login (mobile only)
+      usingCookies: isWebPlatform // Web uses HttpOnly cookies
     });
 
     const response = await fetch(url, {
@@ -119,6 +128,8 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
         ? JSON.stringify(config.body)
         : undefined,
       signal: controller.signal,
+      // SECURITY: On web, include cookies for HttpOnly JWT authentication
+      credentials: isWebPlatform ? 'include' : 'omit',
     });
 
     clearTimeout(timeout);
@@ -138,16 +149,38 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
       const errors = errorEnvelope?.errors ?? rawError?.errors;
 
       // Handle authentication failures (401/403)
-      if ((response.status === 401 || response.status === 403) && headers['Authorization']) {
+      // On web: We're using HttpOnly cookies, so check if we're authenticated (have stored email)
+      // On mobile: Check if we had an Authorization header
+      const wasAuthenticated = isWebPlatform
+        ? !!localStorage.getItem('aura_user_email')  // Web: check if logged in
+        : !!headers['Authorization'];                 // Mobile: check for token
+
+      if ((response.status === 401 || response.status === 403) && wasAuthenticated) {
         console.warn('[APIClient Auth Error] ⚠️ Authentication failed');
         console.warn('[APIClient Auth Error] Status:', response.status);
         console.warn('[APIClient Auth Error] URL:', url);
+        console.warn('[APIClient Auth Error] Platform:', Platform.OS);
         console.warn('[APIClient Auth Error] Response:', rawError);
         console.warn('[APIClient Auth Error] This likely means JWT is invalid or expired');
+
         const { clearJWT } = await import('@/utils/jwtStorage');
-        console.warn('[APIClient Auth Error] Clearing JWT from storage...');
+        console.warn('[APIClient Auth Error] Clearing local auth state...');
         await clearJWT();
-        
+
+        // On web, also call logout endpoint to clear HttpOnly cookie
+        if (isWebPlatform) {
+          try {
+            await fetch(`${BASE_URL}/api/v1/auth/logout`, {
+              method: 'POST',
+              headers: { 'X-API-Key': APP_API_KEY },
+              credentials: 'include',
+            });
+            console.log('[APIClient Auth Error] Web: HttpOnly cookie cleared via logout endpoint');
+          } catch (e) {
+            console.warn('[APIClient Auth Error] Failed to call logout endpoint:', e);
+          }
+        }
+
         // Navigate to login to prevent "Unable to load" screens
         navigateToLogin();
 

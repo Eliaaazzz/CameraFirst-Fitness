@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.auth;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -17,6 +18,7 @@ import com.fitnessapp.backend.security.AuthenticatedUser;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -40,16 +42,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
-        // Check if JWT token is present in the request
-        String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (!StringUtils.hasText(header) || !header.startsWith(BEARER_PREFIX)) {
-            // No JWT token - continue with existing authentication (from API key)
+        // Try to extract JWT token from Authorization header first (mobile clients)
+        // Then fall back to HttpOnly cookie (web clients)
+        String token = extractTokenFromHeader(request);
+        if (token == null) {
+            token = extractTokenFromCookie(request);
+        }
+
+        if (token == null) {
+            // No JWT token found anywhere - continue with existing authentication (from API key)
             chain.doFilter(request, response);
             return;
         }
 
-        // JWT token is present - extract and validate it
-        String token = header.substring(BEARER_PREFIX.length());
+        // JWT token is present - validate it
         try {
             UUID userId = jwtUtils.getUserId(token);
             // Replace any existing authentication (e.g., from API key) with JWT-based user auth
@@ -63,10 +69,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // This ensures users are logged out when JWT has any problems (format, signature, expiration)
             log.warn("Invalid JWT token provided - returning 401. Error: {}, Token prefix: {}",
                     e.getMessage(), token.length() > 10 ? token.substring(0, 10) + "..." : token);
-            
+
             // Clear any existing authentication to log out the user
             SecurityContextHolder.clearContext();
-            
+
             // Return 401 Unauthorized
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
@@ -75,5 +81,34 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Extract JWT from Authorization header (mobile clients).
+     * Format: "Bearer <token>"
+     */
+    private String extractTokenFromHeader(HttpServletRequest request) {
+        String header = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (StringUtils.hasText(header) && header.startsWith(BEARER_PREFIX)) {
+            return header.substring(BEARER_PREFIX.length());
+        }
+        return null;
+    }
+
+    /**
+     * Extract JWT from HttpOnly cookie (web clients).
+     * Cookie name: "aura_jwt"
+     */
+    private String extractTokenFromCookie(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        }
+        return Arrays.stream(cookies)
+                .filter(c -> AuthController.JWT_COOKIE_NAME.equals(c.getName()))
+                .map(Cookie::getValue)
+                .filter(StringUtils::hasText)
+                .findFirst()
+                .orElse(null);
     }
 }

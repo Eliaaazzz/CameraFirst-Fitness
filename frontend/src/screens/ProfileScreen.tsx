@@ -387,6 +387,17 @@ const ProfileScreen = () => {
 
   const performLogout = async () => {
     try {
+      // On web, call backend logout endpoint to clear HttpOnly cookie
+      if (Platform.OS === 'web') {
+        try {
+          await api.post('/api/v1/auth/logout');
+          console.log('[Logout] Web: HttpOnly cookie cleared via backend');
+        } catch (e) {
+          console.warn('[Logout] Failed to call logout endpoint:', e);
+          // Continue with local cleanup even if backend call fails
+        }
+      }
+
       await clearJWT();
       await AsyncStorage.removeItem(GENERATED_GOALS_KEY);
       queryClient.clear();
