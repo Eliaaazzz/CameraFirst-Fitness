@@ -30,7 +30,7 @@ import {
 } from '@env';
 import { api } from '../services/apiClient';
 import { queryClient } from '../services/queryClient';
-import { getJWT, saveJWT } from '../utils/jwtStorage';
+import { useAuthStore } from '../stores';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -336,15 +336,19 @@ export default function LoginScreen() {
     scopes: ['profile', 'email'],
   });
 
-  // Handle successful login
+  // Handle successful login - use Zustand store signIn
   const handleLoginSuccess = useCallback(async (data: { token: string; email: string; isNewUser?: boolean }) => {
+    // Clear React Query cache
     queryClient.clear();
-    await saveJWT(data.token, undefined, data.email);
-    const savedToken = await getJWT();
-    if (!savedToken) {
-      throw new Error('JWT was not saved correctly');
-    }
-    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Sign in via Zustand store (handles token storage + user info fetch)
+    await useAuthStore.getState().signIn(data.token, {
+      userId: '', // Will be populated by /api/v1/me call in signIn
+      email: data.email,
+      level: '',
+      timeBucket: 0,
+    });
+
     setIsLoading(false);
     navigation.reset({
       index: 0,

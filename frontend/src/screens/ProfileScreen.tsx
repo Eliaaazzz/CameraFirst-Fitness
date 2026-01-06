@@ -24,7 +24,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Card, SafeAreaWrapper, Text, WheelPicker } from '@/components';
 import { StateView } from '@/components/common/StateView';
 import useCurrentUser from '@/hooks/useCurrentUser';
-import { navigateToLogin } from '@/navigation/navigationService';
 import {
   GeneratedGoals,
   generateGoals,
@@ -36,9 +35,10 @@ import {
 } from '@/services/geminiApi';
 import { useGoalStatistics } from '@/services/goalsApi';
 import userApi from '@/services/userApi';
+import { useAuthStore } from '@/stores';
 import type { CurrentUserResponse, UserProfileResponse } from '@/types';
 import { BRAND_COLORS, spacing, useContentBottomPadding } from '@/utils';
-import { clearJWT, getUserEmail } from '@/utils/jwtStorage';
+import { getUserEmail } from '@/utils/jwtStorage';
 import { getTheme } from '@/utils/theme';
 
 export const GENERATED_GOALS_KEY = '@generated_fitness_goals';
@@ -387,21 +387,14 @@ const ProfileScreen = () => {
 
   const performLogout = async () => {
     try {
-      // On web, call backend logout endpoint to clear HttpOnly cookie
-      if (Platform.OS === 'web') {
-        try {
-          await api.post('/api/v1/auth/logout');
-          console.log('[Logout] Web: HttpOnly cookie cleared via backend');
-        } catch (e) {
-          console.warn('[Logout] Failed to call logout endpoint:', e);
-          // Continue with local cleanup even if backend call fails
-        }
-      }
-
-      await clearJWT();
+      // Clear generated goals from AsyncStorage
       await AsyncStorage.removeItem(GENERATED_GOALS_KEY);
+
+      // Clear React Query cache
       queryClient.clear();
-      navigateToLogin();
+
+      // Sign out via Zustand store (handles token cleanup + navigation)
+      await useAuthStore.getState().signOut();
     } catch (error) {
       console.error('Logout failed:', error);
       Alert.alert('Error', 'Failed to logout. Please try again.');

@@ -5,8 +5,6 @@
 
 import { API_BASE_URL, API_KEY } from '@env';
 import { Platform } from 'react-native';
-import { getJWT } from '../utils/jwtStorage';
-import { navigateToLogin } from '../navigation/navigationService';
 
 // Ensure API Key is available (prioritize .env API_KEY, fallback to Expo environment variable)
 const APP_API_KEY = API_KEY || process.env.EXPO_PUBLIC_API_KEY || 'fitness-secret-key-123';
@@ -89,13 +87,15 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
       ...config.headers,
     };
 
-    // Mobile only: Add Authorization header with Bearer token
+    // Mobile only: Add Authorization header with Bearer token from Zustand store
     // Web: JWT is in HttpOnly cookie, sent automatically with credentials: 'include'
     if (!isWebPlatform) {
-      const jwtToken = await getJWT();
-      console.log('[APIClient Request] Mobile JWT check - exists:', !!jwtToken, 'length:', jwtToken?.length);
-      if (jwtToken) {
-        headers['Authorization'] = `Bearer ${jwtToken}`;
+      // Use dynamic import to avoid circular dependency
+      const { getAuthState } = await import('../stores/useAuthStore');
+      const token = getAuthState().userToken;
+      console.log('[APIClient Request] Mobile JWT check - exists:', !!token, 'length:', token?.length);
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
         console.log('[APIClient Request] Mobile: Authorization header added');
       } else {
         console.log('[APIClient Request] Mobile: No JWT token found, proceeding with API key only');
@@ -163,26 +163,10 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
         console.warn('[APIClient Auth Error] Response:', rawError);
         console.warn('[APIClient Auth Error] This likely means JWT is invalid or expired');
 
-        const { clearJWT } = await import('@/utils/jwtStorage');
-        console.warn('[APIClient Auth Error] Clearing local auth state...');
-        await clearJWT();
-
-        // On web, also call logout endpoint to clear HttpOnly cookie
-        if (isWebPlatform) {
-          try {
-            await fetch(`${BASE_URL}/api/v1/auth/logout`, {
-              method: 'POST',
-              headers: { 'X-API-Key': APP_API_KEY },
-              credentials: 'include',
-            });
-            console.log('[APIClient Auth Error] Web: HttpOnly cookie cleared via logout endpoint');
-          } catch (e) {
-            console.warn('[APIClient Auth Error] Failed to call logout endpoint:', e);
-          }
-        }
-
-        // Navigate to login to prevent "Unable to load" screens
-        navigateToLogin();
+        // Use Zustand store signOut to handle cleanup and navigation
+        const { getAuthState } = await import('../stores/useAuthStore');
+        console.warn('[APIClient Auth Error] Triggering signOut via Zustand store...');
+        await getAuthState().signOut();
 
         throw new APIError(
           'Your session has expired. Please sign in again.',
