@@ -1,22 +1,39 @@
 /**
- * Tour Provider - Compatibility layer for react-native-spotlight-tour
- * Provides a similar API to rn-tourguide for easier migration
+ * Tour Provider - Custom implementation for app tour functionality
+ * A simple, cross-platform tour guide implementation for React Native
  */
 
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
-import { View, Text, StyleSheet, Pressable, ViewStyle } from 'react-native';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
-  SpotlightTourProvider,
-  useSpotlightTour,
-  TourStep,
-} from 'react-native-spotlight-tour';
+  Animated,
+  Dimensions,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  Text,
+  type LayoutRectangle,
+  type ViewStyle,
+} from 'react-native';
 
-// Tour step configuration
-export interface TourStepConfig {
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Tour step data stored in context
+interface TourStepData {
   zone: number;
   text: string;
-  shape?: 'rectangle' | 'circle';
-  borderRadius?: number;
+  ref: React.RefObject<View>;
+  layout: LayoutRectangle | null;
 }
 
 // Event emitter interface for compatibility
@@ -30,181 +47,177 @@ interface TourController {
   canStart: boolean;
   start: () => void;
   stop: () => void;
-  eventEmitter: TourEventEmitter | null;
+  eventEmitter: TourEventEmitter;
 }
 
-// Context for tour steps registration
+// Context for tour management
 interface TourContextValue {
-  registerStep: (zone: number, ref: React.RefObject<View>) => void;
+  registerStep: (zone: number, text: string, ref: React.RefObject<View>) => void;
   unregisterStep: (zone: number) => void;
-  controller: TourController;
+  isActive: boolean;
+  currentZone: number | null;
 }
 
 const TourContext = createContext<TourContextValue | null>(null);
 
-// Custom tooltip component
-const CustomTooltip: React.FC<{
-  current: number;
-  next: () => void;
-  previous: () => void;
-  stop: () => void;
-  isFirst: boolean;
-  isLast: boolean;
-}> = ({ current, next, previous, stop, isFirst, isLast }) => {
-  return (
-    <View style={tooltipStyles.container}>
-      <View style={tooltipStyles.content}>
-        <Text style={tooltipStyles.text}>
-          {/* Text is provided by the step */}
-        </Text>
-      </View>
-      <View style={tooltipStyles.buttons}>
-        {!isFirst && (
-          <Pressable onPress={previous} style={tooltipStyles.button}>
-            <Text style={tooltipStyles.buttonText}>Back</Text>
-          </Pressable>
-        )}
-        <Pressable onPress={stop} style={tooltipStyles.skipButton}>
-          <Text style={tooltipStyles.skipText}>Skip</Text>
-        </Pressable>
-        <Pressable onPress={isLast ? stop : next} style={tooltipStyles.nextButton}>
-          <Text style={tooltipStyles.nextText}>{isLast ? 'Done' : 'Next'}</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-};
+// Separate context for controller to avoid re-renders
+interface TourControllerContextValue {
+  controller: TourController;
+}
 
-const tooltipStyles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    maxWidth: 300,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  content: {
-    marginBottom: 12,
-  },
-  text: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#1F2937',
-  },
-  buttons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  button: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-  },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  skipButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  skipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#9CA3AF',
-  },
-  nextButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#A78BFA',
-  },
-  nextText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-});
+const TourControllerContext = createContext<TourControllerContextValue | null>(null);
 
 // Provider props
 interface TourGuideProviderProps {
   children: ReactNode;
   backdropColor?: string;
-  borderRadius?: number;
-  maskOffset?: number;
-  animationDuration?: number;
-  labels?: {
-    previous?: string;
-    next?: string;
-    skip?: string;
-    finish?: string;
-  };
-  tooltipStyle?: ViewStyle;
 }
 
-// Inner provider that has access to useSpotlightTour
-const TourGuideProviderInner: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const tour = useSpotlightTour();
-  const stepsRef = useRef<Map<number, React.RefObject<View>>>(new Map());
-  const eventListenersRef = useRef<Map<string, Set<() => void>>>(new Map());
-  const [isReady, setIsReady] = useState(false);
-
-  const registerStep = useCallback((zone: number, ref: React.RefObject<View>) => {
-    stepsRef.current.set(zone, ref);
-    setIsReady(stepsRef.current.size > 0);
-  }, []);
-
-  const unregisterStep = useCallback((zone: number) => {
-    stepsRef.current.delete(zone);
-    setIsReady(stepsRef.current.size > 0);
-  }, []);
-
-  const eventEmitter: TourEventEmitter = useMemo(() => ({
-    on: (event: string, callback: () => void) => {
-      if (!eventListenersRef.current.has(event)) {
-        eventListenersRef.current.set(event, new Set());
-      }
-      eventListenersRef.current.get(event)!.add(callback);
-    },
-    off: (event: string, callback: () => void) => {
-      eventListenersRef.current.get(event)?.delete(callback);
-    },
-  }), []);
-
-  const emitEvent = useCallback((event: string) => {
-    eventListenersRef.current.get(event)?.forEach((callback) => callback());
-  }, []);
-
-  const controller: TourController = useMemo(() => ({
-    canStart: isReady,
-    start: () => {
-      tour.start();
-    },
-    stop: () => {
-      tour.stop();
-      emitEvent('stop');
-    },
-    eventEmitter,
-  }), [isReady, tour, eventEmitter, emitEvent]);
-
-  const contextValue = useMemo(() => ({
-    registerStep,
-    unregisterStep,
-    controller,
-  }), [registerStep, unregisterStep, controller]);
+// Tooltip component
+const Tooltip: React.FC<{
+  text: string;
+  targetLayout: LayoutRectangle;
+  onNext: () => void;
+  onPrevious: () => void;
+  onSkip: () => void;
+  isFirst: boolean;
+  isLast: boolean;
+  currentStep: number;
+  totalSteps: number;
+}> = ({
+  text,
+  targetLayout,
+  onNext,
+  onPrevious,
+  onSkip,
+  isFirst,
+  isLast,
+  currentStep,
+  totalSteps,
+}) => {
+  const tooltipWidth = Math.min(300, SCREEN_WIDTH - 40);
+  
+  // Calculate tooltip position - prefer below target, but flip if needed
+  const spaceBelow = SCREEN_HEIGHT - (targetLayout.y + targetLayout.height);
+  const spaceAbove = targetLayout.y;
+  const showBelow = spaceBelow > 200 || spaceBelow > spaceAbove;
+  
+  const tooltipTop = showBelow
+    ? targetLayout.y + targetLayout.height + 16
+    : targetLayout.y - 180;
+  
+  // Center horizontally relative to target, but keep within screen bounds
+  let tooltipLeft = targetLayout.x + targetLayout.width / 2 - tooltipWidth / 2;
+  tooltipLeft = Math.max(20, Math.min(tooltipLeft, SCREEN_WIDTH - tooltipWidth - 20));
 
   return (
-    <TourContext.Provider value={contextValue}>
-      {children}
-    </TourContext.Provider>
+    <Animated.View
+      style={[
+        styles.tooltip,
+        {
+          top: tooltipTop,
+          left: tooltipLeft,
+          width: tooltipWidth,
+        },
+      ]}
+    >
+      <Text style={styles.tooltipText}>{text}</Text>
+      <Text style={styles.stepIndicator}>
+        Step {currentStep} of {totalSteps}
+      </Text>
+      <View style={styles.tooltipButtons}>
+        {!isFirst && (
+          <Pressable onPress={onPrevious} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>Back</Text>
+          </Pressable>
+        )}
+        <Pressable onPress={onSkip} style={styles.skipButton}>
+          <Text style={styles.skipButtonText}>Skip</Text>
+        </Pressable>
+        <Pressable onPress={onNext} style={styles.primaryButton}>
+          <Text style={styles.primaryButtonText}>{isLast ? 'Done' : 'Next'}</Text>
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
+};
+
+// Spotlight overlay with hole for target
+const SpotlightOverlay: React.FC<{
+  targetLayout: LayoutRectangle;
+  backdropColor: string;
+}> = ({ targetLayout, backdropColor }) => {
+  const padding = 8;
+  const borderRadius = 12;
+  
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      {/* Top overlay */}
+      <View
+        style={[
+          styles.overlayPart,
+          {
+            backgroundColor: backdropColor,
+            top: 0,
+            left: 0,
+            right: 0,
+            height: Math.max(0, targetLayout.y - padding),
+          },
+        ]}
+      />
+      {/* Left overlay */}
+      <View
+        style={[
+          styles.overlayPart,
+          {
+            backgroundColor: backdropColor,
+            top: targetLayout.y - padding,
+            left: 0,
+            width: Math.max(0, targetLayout.x - padding),
+            height: targetLayout.height + padding * 2,
+          },
+        ]}
+      />
+      {/* Right overlay */}
+      <View
+        style={[
+          styles.overlayPart,
+          {
+            backgroundColor: backdropColor,
+            top: targetLayout.y - padding,
+            left: targetLayout.x + targetLayout.width + padding,
+            right: 0,
+            height: targetLayout.height + padding * 2,
+          },
+        ]}
+      />
+      {/* Bottom overlay */}
+      <View
+        style={[
+          styles.overlayPart,
+          {
+            backgroundColor: backdropColor,
+            top: targetLayout.y + targetLayout.height + padding,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          },
+        ]}
+      />
+      {/* Spotlight border */}
+      <View
+        style={[
+          styles.spotlightBorder,
+          {
+            top: targetLayout.y - padding,
+            left: targetLayout.x - padding,
+            width: targetLayout.width + padding * 2,
+            height: targetLayout.height + padding * 2,
+            borderRadius,
+          },
+        ]}
+      />
+    </View>
   );
 };
 
@@ -213,38 +226,243 @@ export const TourGuideProvider: React.FC<TourGuideProviderProps> = ({
   children,
   backdropColor = 'rgba(0, 0, 0, 0.75)',
 }) => {
-  // Define tour steps - these will be dynamically populated
-  const steps: TourStep[] = useMemo(() => [
-    // Steps are defined in individual screens using TourGuideZone
-  ], []);
+  const [steps, setSteps] = useState<Map<number, TourStepData>>(new Map());
+  const [isActive, setIsActive] = useState(false);
+  const [currentZone, setCurrentZone] = useState<number | null>(null);
+  const eventListenersRef = useRef<Map<string, Set<() => void>>>(new Map());
+
+  // Get sorted step zones
+  const sortedZones = useMemo(() => {
+    return Array.from(steps.keys()).sort((a, b) => a - b);
+  }, [steps]);
+
+  const currentStepData = currentZone !== null ? steps.get(currentZone) : null;
+  const currentIndex = currentZone !== null ? sortedZones.indexOf(currentZone) : -1;
+  const isFirst = currentIndex === 0;
+  const isLast = currentIndex === sortedZones.length - 1;
+
+  // Register a step
+  const registerStep = useCallback(
+    (zone: number, text: string, ref: React.RefObject<View>) => {
+      setSteps((prev) => {
+        const newSteps = new Map(prev);
+        newSteps.set(zone, { zone, text, ref, layout: null });
+        return newSteps;
+      });
+    },
+    []
+  );
+
+  // Unregister a step
+  const unregisterStep = useCallback((zone: number) => {
+    setSteps((prev) => {
+      const newSteps = new Map(prev);
+      newSteps.delete(zone);
+      return newSteps;
+    });
+  }, []);
+
+  // Emit event to listeners
+  const emitEvent = useCallback((event: string) => {
+    eventListenersRef.current.get(event)?.forEach((callback) => callback());
+  }, []);
+
+  // Event emitter
+  const eventEmitter: TourEventEmitter = useMemo(
+    () => ({
+      on: (event: string, callback: () => void) => {
+        if (!eventListenersRef.current.has(event)) {
+          eventListenersRef.current.set(event, new Set());
+        }
+        eventListenersRef.current.get(event)!.add(callback);
+      },
+      off: (event: string, callback: () => void) => {
+        eventListenersRef.current.get(event)?.delete(callback);
+      },
+    }),
+    []
+  );
+
+  // Measure target layout
+  const measureStep = useCallback(async (stepData: TourStepData): Promise<LayoutRectangle | null> => {
+    return new Promise((resolve) => {
+      if (!stepData.ref.current) {
+        resolve(null);
+        return;
+      }
+      stepData.ref.current.measureInWindow((x, y, width, height) => {
+        if (width > 0 && height > 0) {
+          resolve({ x, y, width, height });
+        } else {
+          resolve(null);
+        }
+      });
+    });
+  }, []);
+
+  // Start tour
+  const start = useCallback(async () => {
+    if (sortedZones.length === 0) {
+      console.warn('[TourProvider] No tour steps registered');
+      return;
+    }
+
+    const firstZone = sortedZones[0];
+    const firstStep = steps.get(firstZone);
+    if (!firstStep) return;
+
+    // Measure the first step
+    const layout = await measureStep(firstStep);
+    if (layout) {
+      setSteps((prev) => {
+        const newSteps = new Map(prev);
+        const step = newSteps.get(firstZone);
+        if (step) {
+          newSteps.set(firstZone, { ...step, layout });
+        }
+        return newSteps;
+      });
+      setCurrentZone(firstZone);
+      setIsActive(true);
+    } else {
+      console.warn('[TourProvider] Could not measure first step');
+    }
+  }, [sortedZones, steps, measureStep]);
+
+  // Stop tour
+  const stop = useCallback(() => {
+    setIsActive(false);
+    setCurrentZone(null);
+    emitEvent('stop');
+  }, [emitEvent]);
+
+  // Go to next step
+  const next = useCallback(async () => {
+    if (isLast) {
+      stop();
+      return;
+    }
+
+    const nextIndex = currentIndex + 1;
+    const nextZone = sortedZones[nextIndex];
+    const nextStep = steps.get(nextZone);
+    if (!nextStep) return;
+
+    const layout = await measureStep(nextStep);
+    if (layout) {
+      setSteps((prev) => {
+        const newSteps = new Map(prev);
+        const step = newSteps.get(nextZone);
+        if (step) {
+          newSteps.set(nextZone, { ...step, layout });
+        }
+        return newSteps;
+      });
+      setCurrentZone(nextZone);
+    }
+  }, [currentIndex, isLast, sortedZones, steps, measureStep, stop]);
+
+  // Go to previous step
+  const previous = useCallback(async () => {
+    if (isFirst) return;
+
+    const prevIndex = currentIndex - 1;
+    const prevZone = sortedZones[prevIndex];
+    const prevStep = steps.get(prevZone);
+    if (!prevStep) return;
+
+    const layout = await measureStep(prevStep);
+    if (layout) {
+      setSteps((prev) => {
+        const newSteps = new Map(prev);
+        const step = newSteps.get(prevZone);
+        if (step) {
+          newSteps.set(prevZone, { ...step, layout });
+        }
+        return newSteps;
+      });
+      setCurrentZone(prevZone);
+    }
+  }, [currentIndex, isFirst, sortedZones, steps, measureStep]);
+
+  // Controller
+  const controller: TourController = useMemo(
+    () => ({
+      canStart: steps.size > 0,
+      start,
+      stop,
+      eventEmitter,
+    }),
+    [steps.size, start, stop, eventEmitter]
+  );
+
+  const tourContextValue = useMemo(
+    () => ({
+      registerStep,
+      unregisterStep,
+      isActive,
+      currentZone,
+    }),
+    [registerStep, unregisterStep, isActive, currentZone]
+  );
+
+  const controllerContextValue = useMemo(
+    () => ({ controller }),
+    [controller]
+  );
 
   return (
-    <SpotlightTourProvider
-      steps={steps}
-      overlayColor={backdropColor}
-      overlayOpacity={0.75}
-      nativeDriver={true}
-      motion="fade"
-      shape="rectangle"
-    >
-      <TourGuideProviderInner>
+    <TourControllerContext.Provider value={controllerContextValue}>
+      <TourContext.Provider value={tourContextValue}>
         {children}
-      </TourGuideProviderInner>
-    </SpotlightTourProvider>
+        
+        {/* Tour overlay modal */}
+        <Modal
+          visible={isActive && currentStepData?.layout != null}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={stop}
+        >
+          {currentStepData?.layout && (
+            <>
+              <SpotlightOverlay
+                targetLayout={currentStepData.layout}
+                backdropColor={backdropColor}
+              />
+              <Tooltip
+                text={currentStepData.text}
+                targetLayout={currentStepData.layout}
+                onNext={next}
+                onPrevious={previous}
+                onSkip={stop}
+                isFirst={isFirst}
+                isLast={isLast}
+                currentStep={currentIndex + 1}
+                totalSteps={sortedZones.length}
+              />
+            </>
+          )}
+        </Modal>
+      </TourContext.Provider>
+    </TourControllerContext.Provider>
   );
 };
 
-// Hook to get tour controller (replaces useTourGuideController)
+// Hook to get tour controller
 export const useTourGuideController = (): TourController => {
-  const context = useContext(TourContext);
-  
+  const context = useContext(TourControllerContext);
+
   if (!context) {
     // Return a no-op controller if not in a tour context
     return {
       canStart: false,
       start: () => {},
       stop: () => {},
-      eventEmitter: null,
+      eventEmitter: {
+        on: () => {},
+        off: () => {},
+      },
     };
   }
 
@@ -261,31 +479,98 @@ interface TourGuideZoneProps {
   style?: ViewStyle;
 }
 
-// Zone component (replaces TourGuideZone from rn-tourguide)
+// Zone component
 export const TourGuideZone: React.FC<TourGuideZoneProps> = ({
   zone,
   text,
   children,
-  shape = 'rectangle',
-  borderRadius = 8,
   style,
 }) => {
   const context = useContext(TourContext);
   const ref = useRef<View>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (context && ref.current) {
-      context.registerStep(zone, ref as React.RefObject<View>);
+      context.registerStep(zone, text, ref as React.RefObject<View>);
       return () => context.unregisterStep(zone);
     }
-  }, [context, zone]);
+  }, [context, zone, text]);
 
-  // For now, just render children - full tour integration will be added later
   return (
     <View ref={ref} style={style} collapsable={false}>
       {children}
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  overlayPart: {
+    position: 'absolute',
+  },
+  spotlightBorder: {
+    position: 'absolute',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  tooltip: {
+    position: 'absolute',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  tooltipText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  stepIndicator: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginBottom: 12,
+  },
+  tooltipButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  primaryButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#A78BFA',
+  },
+  primaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  secondaryButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  skipButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  skipButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+});
 
 export default TourGuideProvider;
