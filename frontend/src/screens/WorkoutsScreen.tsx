@@ -2,8 +2,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
+import { TourGuideZone } from 'rn-tourguide';
 
 import { Container, EmptyStateCard, ListSkeleton, SafeAreaWrapper, SearchBar, SearchSuggestions, Text, WorkoutCard, type SuggestionItem } from '@/components';
+import { WORKOUTS_TOUR_STEP } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedWorkouts, useRemoveWorkout, useSavedWorkouts, useSaveWorkout } from '@/services';
 import { searchWorkouts, WorkoutSearchResult } from '@/services/searchApi';
@@ -264,17 +266,24 @@ export const WorkoutsScreen = () => {
         Recommended routines and your saved list.
       </Text>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <SearchBar
-          placeholder="Search workouts..."
-          value={searchQuery}
-          onChangeText={handleSearch}
-          onClear={clearSearch}
-          onFocusChange={setIsSearchFocused}
-          isLoading={isSearching}
-        />
-      </View>
+      {/* Search Bar - Tour Zone 6 */}
+      <TourGuideZone
+        zone={WORKOUTS_TOUR_STEP.zone}
+        text={WORKOUTS_TOUR_STEP.text}
+        shape="rectangle"
+        borderRadius={12}
+      >
+        <View style={styles.searchContainer}>
+          <SearchBar
+            placeholder="Search workouts..."
+            value={searchQuery}
+            onChangeText={handleSearch}
+            onClear={clearSearch}
+            onFocusChange={setIsSearchFocused}
+            isLoading={isSearching}
+          />
+        </View>
+      </TourGuideZone>
 
       {/* Search Suggestions - only visible when search is focused */}
       {showSearchUI && (

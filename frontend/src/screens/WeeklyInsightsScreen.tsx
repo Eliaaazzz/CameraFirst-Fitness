@@ -17,8 +17,10 @@ import {
 	StyleSheet,
 	View,
 } from 'react-native';
+import { TourGuideZone } from 'rn-tourguide';
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
+import { WEEKLY_INSIGHTS_TOUR_STEP } from '@/config/tourSteps';
 import { useWeeklyInsights } from '@/hooks/useMealHistory';
 import { GeneratedGoals } from '@/services/geminiApi';
 import { BRAND_COLORS, spacing } from '@/utils';
@@ -145,34 +147,41 @@ export const WeeklyInsightsScreen = () => {
           </View>
         </View>
 
-        {/* Summary Card */}
-        <Card style={styles.summaryCard}>
-          <LinearGradient
-            colors={[BRAND_COLORS.primary + '20', BRAND_COLORS.secondary + '20']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.summaryGradient}
-          >
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryItem}>
-                <Text variant="heading3" weight="bold" style={styles.summaryValue}>
-                  {summary.totalMeals}
-                </Text>
-                <Text variant="caption" style={styles.summaryLabel}>
-                  Total Meals
-                </Text>
+        {/* Summary Card - Tour Zone 5 */}
+        <TourGuideZone
+          zone={WEEKLY_INSIGHTS_TOUR_STEP.zone}
+          text={WEEKLY_INSIGHTS_TOUR_STEP.text}
+          shape="rectangle"
+          borderRadius={16}
+        >
+          <Card style={styles.summaryCard}>
+            <LinearGradient
+              colors={[BRAND_COLORS.primary + '20', BRAND_COLORS.secondary + '20']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.summaryGradient}
+            >
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryItem}>
+                  <Text variant="heading3" weight="bold" style={styles.summaryValue}>
+                    {summary.totalMeals}
+                  </Text>
+                  <Text variant="caption" style={styles.summaryLabel}>
+                    Total Meals
+                  </Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text variant="heading3" weight="bold" style={styles.summaryValue}>
+                    {Math.round(summary.averageDailyCalories)}
+                  </Text>
+                  <Text variant="caption" style={styles.summaryLabel}>
+                    Avg Calories/Day
+                  </Text>
+                </View>
               </View>
-              <View style={styles.summaryItem}>
-                <Text variant="heading3" weight="bold" style={styles.summaryValue}>
-                  {Math.round(summary.averageDailyCalories)}
-                </Text>
-                <Text variant="caption" style={styles.summaryLabel}>
-                  Avg Calories/Day
-                </Text>
-              </View>
-            </View>
-          </LinearGradient>
-        </Card>
+            </LinearGradient>
+          </Card>
+        </TourGuideZone>
 
         {/* Macros Distribution */}
         <Card style={styles.card}>

@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,12 +16,16 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import { TourGuideZone, useTourGuideController } from 'rn-tourguide';
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
 import { MealImage } from '@/components/nutrition/MealImage';
+import WelcomeTourCard from '@/components/WelcomeTourCard';
+import { DASHBOARD_TOUR_STEPS } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useDailyNutrition } from '@/hooks/useDailyNutrition';
+import { useTourStatus } from '@/hooks/useTourStatus';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
 import { useGoals, useGoalStatistics } from '@/services/goalsApi';
 import { BRAND_COLORS, colors, spacing, useContentBottomPadding } from '@/utils';
@@ -43,6 +47,10 @@ const DashboardScreen = () => {
   const goals = useGoals(userId);
   const stats = useGoalStatistics(userId);
 
+  // Tour guide controller and status
+  const { canStart, start, eventEmitter } = useTourGuideController();
+  const { hasSeenTour, isLoading: tourStatusLoading, markTourComplete, markTourSkipped } = useTourStatus();
+
   // Calculate proper bottom padding for tab bar
   const contentBottomPadding = useContentBottomPadding(spacing.lg);
 
@@ -51,6 +59,42 @@ const DashboardScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
   const lastLoadedGoalsRef = useRef<string | null>(null);
+  const [showWelcomeCard, setShowWelcomeCard] = useState(false);
+
+  // Show welcome card for new users
+  useEffect(() => {
+    if (!tourStatusLoading && !hasSeenTour) {
+      setShowWelcomeCard(true);
+    }
+  }, [tourStatusLoading, hasSeenTour]);
+
+  // Handle tour events
+  useEffect(() => {
+    const handleStop = () => {
+      markTourComplete();
+      setShowWelcomeCard(false);
+    };
+
+    eventEmitter?.on('stop', handleStop);
+
+    return () => {
+      eventEmitter?.off('stop', handleStop);
+    };
+  }, [eventEmitter, markTourComplete]);
+
+  // Start tour handler
+  const handleStartTour = useCallback(() => {
+    if (canStart) {
+      setShowWelcomeCard(false);
+      start();
+    }
+  }, [canStart, start]);
+
+  // Skip tour handler
+  const handleSkipTour = useCallback(() => {
+    markTourSkipped();
+    setShowWelcomeCard(false);
+  }, [markTourSkipped]);
 
   // Load generated goals from AsyncStorage
   const loadGeneratedGoals = useCallback(async () => {
@@ -246,6 +290,14 @@ const DashboardScreen = () => {
           </Pressable>
         </View>
 
+        {/* Welcome Tour Card for new users */}
+        {showWelcomeCard && (
+          <WelcomeTourCard
+            onStartTour={handleStartTour}
+            onSkip={handleSkipTour}
+          />
+        )}
+
         {/* Generated Goals Card (if available) */}
         {generatedGoals && (
           <Card style={styles.goalsCard}>
@@ -368,122 +420,143 @@ const DashboardScreen = () => {
 
         {/* Recommendations are now shown on their respective tabs (Workouts/Recipes) */}
 
-        {/* Today's Nutrition Card */}
-        <Card style={styles.calorieCard}>
-          <View style={styles.calorieHeader}>
-            <Text variant="heading3" weight="semibold">Today's Nutrition</Text>
-            <Text variant="caption" style={styles.calorieRatio}>
-              {Math.round(nutritionData.calories)} / {calorieGoal} kcal
-            </Text>
-          </View>
+        {/* Today's Nutrition Card - Tour Zone 2 */}
+        <TourGuideZone
+          zone={DASHBOARD_TOUR_STEPS[1].zone}
+          text={DASHBOARD_TOUR_STEPS[1].text}
+          shape="rectangle"
+          borderRadius={16}
+        >
+          <Card style={styles.calorieCard}>
+            <View style={styles.calorieHeader}>
+              <Text variant="heading3" weight="semibold">Today's Nutrition</Text>
+              <Text variant="caption" style={styles.calorieRatio}>
+                {Math.round(nutritionData.calories)} / {calorieGoal} kcal
+              </Text>
+            </View>
 
-          <View style={styles.circularProgress}>
-            <View style={styles.progressRing}>
-              <LinearGradient
-                colors={['#A78BFA', '#F472B6']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.progressArc, {
-                  opacity: calorieProgress / 100,
-                }]}
-              />
-              <View style={styles.progressInner}>
-                <Text variant="heading1" weight="bold" style={styles.calorieText}>
-                  {Math.round(calorieProgress)}%
-                </Text>
-                <Text variant="caption" style={styles.calorieSubtext}>of daily goal</Text>
+            <View style={styles.circularProgress}>
+              <View style={styles.progressRing}>
+                <LinearGradient
+                  colors={['#A78BFA', '#F472B6']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.progressArc, {
+                    opacity: calorieProgress / 100,
+                  }]}
+                />
+                <View style={styles.progressInner}>
+                  <Text variant="heading1" weight="bold" style={styles.calorieText}>
+                    {Math.round(calorieProgress)}%
+                  </Text>
+                  <Text variant="caption" style={styles.calorieSubtext}>of daily goal</Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          {/* Macros */}
-          <View style={styles.macrosContainer}>
-            {renderMacroBar('Protein', nutritionData.protein.current, proteinGoal, '#10B981')}
-            {renderMacroBar('Carbs', nutritionData.carbs.current, carbsGoal, '#F59E0B')}
-            {renderMacroBar('Fat', nutritionData.fat.current, fatGoal, '#EF4444')}
-            {isBloodSugarGoal && renderMacroBar('Net Carbs', nutritionData.netCarbs?.current || 0, netCarbsGoal, '#F59E0B')}
-          </View>
-        </Card>
-
-        {/* Add Food Button */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.addFoodButton,
-            pressed && styles.addFoodButtonPressed,
-          ]}
-          onPress={handleAddFood}
-        >
-          <LinearGradient
-            colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.addFoodGradient}
-          >
-            <MaterialCommunityIcons name="camera" size={28} color="#FFF" />
-            <View style={styles.addFoodTextContainer}>
-              <Text variant="body" weight="bold" style={styles.addFoodTitle}>
-                Snap Your Meal
-              </Text>
-              <Text variant="caption" style={styles.addFoodSubtitle}>
-                AI will analyze nutrition instantly
-              </Text>
+            {/* Macros */}
+            <View style={styles.macrosContainer}>
+              {renderMacroBar('Protein', nutritionData.protein.current, proteinGoal, '#10B981')}
+              {renderMacroBar('Carbs', nutritionData.carbs.current, carbsGoal, '#F59E0B')}
+              {renderMacroBar('Fat', nutritionData.fat.current, fatGoal, '#EF4444')}
+              {isBloodSugarGoal && renderMacroBar('Net Carbs', nutritionData.netCarbs?.current || 0, netCarbsGoal, '#F59E0B')}
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" />
-          </LinearGradient>
-        </Pressable>
+          </Card>
+        </TourGuideZone>
 
-        {/* Today's Meals */}
-        <View style={styles.mealsSection}>
-          <Text variant="heading3" weight="semibold" style={styles.sectionTitle}>
-            Today's Meals
-          </Text>
+        {/* Add Food Button - Tour Zone 1 */}
+        <TourGuideZone
+          zone={DASHBOARD_TOUR_STEPS[0].zone}
+          text={DASHBOARD_TOUR_STEPS[0].text}
+          shape="rectangle"
+          borderRadius={16}
+        >
+          <Pressable
+            style={({ pressed }) => [
+              styles.addFoodButton,
+              pressed && styles.addFoodButtonPressed,
+            ]}
+            onPress={handleAddFood}
+          >
+            <LinearGradient
+              colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.addFoodGradient}
+            >
+              <MaterialCommunityIcons name="camera" size={28} color="#FFF" />
+              <View style={styles.addFoodTextContainer}>
+                <Text variant="body" weight="bold" style={styles.addFoodTitle}>
+                  Snap Your Meal
+                </Text>
+                <Text variant="caption" style={styles.addFoodSubtitle}>
+                  AI will analyze nutrition instantly
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" />
+            </LinearGradient>
+          </Pressable>
+        </TourGuideZone>
 
-          {nutritionData.meals.length === 0 ? (
-            <Card style={styles.emptyMeals}>
-              <MaterialCommunityIcons name="food-off" size={40} color="#6B7280" />
-              <Text variant="body" style={styles.emptyMealsText}>
-                No meals logged yet today
-              </Text>
-              <Text variant="caption" style={styles.emptyMealsHint}>
-                Tap the camera button above to log your first meal
-              </Text>
-            </Card>
-          ) : (
-            nutritionData.meals.map((meal) => (
-              <Card key={meal.id} style={styles.mealItem}>
-                <MealImage
-                  imageUrl={meal.imageUrl}
-                  size={80}
-                  borderRadius={12}
-                />
-                <View style={styles.mealDetails}>
-                  <View style={styles.mealHeader}>
-                    <Text variant="body" weight="semibold" numberOfLines={1} style={styles.mealName}>
-                      {meal.name}
-                    </Text>
-                    <Text variant="body" weight="bold" style={styles.mealCalories}>
-                      {meal.calories} kcal
-                    </Text>
-                  </View>
-                  <Text variant="caption" style={styles.mealTime}>
-                    {new Date(meal.consumedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </Text>
-                  <View style={styles.mealMacros}>
-                    <Text variant="caption" style={styles.mealMacroText}>
-                      P: {Math.round(meal.protein || 0)}g
-                    </Text>
-                    <Text variant="caption" style={styles.mealMacroText}>
-                      C: {Math.round(meal.carbs || 0)}g
-                    </Text>
-                    <Text variant="caption" style={styles.mealMacroText}>
-                      F: {Math.round(meal.fat || 0)}g
-                    </Text>
-                  </View>
-                </View>
+        {/* Today's Meals - Tour Zone 3 */}
+        <TourGuideZone
+          zone={DASHBOARD_TOUR_STEPS[2].zone}
+          text={DASHBOARD_TOUR_STEPS[2].text}
+          shape="rectangle"
+          borderRadius={16}
+        >
+          <View style={styles.mealsSection}>
+            <Text variant="heading3" weight="semibold" style={styles.sectionTitle}>
+              Today's Meals
+            </Text>
+
+            {nutritionData.meals.length === 0 ? (
+              <Card style={styles.emptyMeals}>
+                <MaterialCommunityIcons name="food-off" size={40} color="#6B7280" />
+                <Text variant="body" style={styles.emptyMealsText}>
+                  No meals logged yet today
+                </Text>
+                <Text variant="caption" style={styles.emptyMealsHint}>
+                  Tap the camera button above to log your first meal
+                </Text>
               </Card>
-            ))
-          )}
-        </View>
+            ) : (
+              nutritionData.meals.map((meal) => (
+                <Card key={meal.id} style={styles.mealItem}>
+                  <MealImage
+                    imageUrl={meal.imageUrl}
+                    size={80}
+                    borderRadius={12}
+                  />
+                  <View style={styles.mealDetails}>
+                    <View style={styles.mealHeader}>
+                      <Text variant="body" weight="semibold" numberOfLines={1} style={styles.mealName}>
+                        {meal.name}
+                      </Text>
+                      <Text variant="body" weight="bold" style={styles.mealCalories}>
+                        {meal.calories} kcal
+                      </Text>
+                    </View>
+                    <Text variant="caption" style={styles.mealTime}>
+                      {new Date(meal.consumedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                    <View style={styles.mealMacros}>
+                      <Text variant="caption" style={styles.mealMacroText}>
+                        P: {Math.round(meal.protein || 0)}g
+                      </Text>
+                      <Text variant="caption" style={styles.mealMacroText}>
+                        C: {Math.round(meal.carbs || 0)}g
+                      </Text>
+                      <Text variant="caption" style={styles.mealMacroText}>
+                        F: {Math.round(meal.fat || 0)}g
+                      </Text>
+                    </View>
+                  </View>
+                </Card>
+              ))
+            )}
+          </View>
+        </TourGuideZone>
       </ScrollView>
     </SafeAreaWrapper>
   );

@@ -5,6 +5,7 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { MD3LightTheme as PaperLightTheme, Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { TourGuideProvider } from 'rn-tourguide';
 
 import { SnackbarProvider } from '@/components';
 import { useVersionCheck } from '@/hooks/useVersionCheck';
@@ -100,8 +101,27 @@ const App = () => {
           <PaperProvider theme={paperTheme}>
             <QueryClientProvider client={queryClient}>
               <SnackbarProvider>
-                <StatusBar style={barStyle} />
-                <AppNavigator />
+                <TourGuideProvider
+                  backdropColor="rgba(0, 0, 0, 0.75)"
+                  borderRadius={16}
+                  maskOffset={8}
+                  animationDuration={300}
+                  labels={{
+                    previous: 'Back',
+                    next: 'Next',
+                    skip: 'Skip',
+                    finish: 'Done',
+                  }}
+                  tooltipStyle={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 16,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                  }}
+                >
+                  <StatusBar style={barStyle} />
+                  <AppNavigator />
+                </TourGuideProvider>
               </SnackbarProvider>
             </QueryClientProvider>
           </PaperProvider>

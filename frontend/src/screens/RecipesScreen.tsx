@@ -2,8 +2,10 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
+import { TourGuideZone } from 'rn-tourguide';
 
 import { Container, EmptyStateCard, ListSkeleton, RecipeCard, SafeAreaWrapper, SearchBar, SearchSuggestions, Text, type SuggestionItem } from '@/components';
+import { RECIPES_TOUR_STEP } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedRecipes, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
 import { RecipeSearchResult, searchRecipes } from '@/services/searchApi';
@@ -190,17 +192,24 @@ export const RecipesScreen = () => {
         Healthy meals and your saved list.
       </Text>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <SearchBar
-          placeholder="Search recipes..."
-          value={searchQuery}
-          onChangeText={handleSearch}
-          onClear={clearSearch}
-          onFocusChange={setIsSearchFocused}
-          isLoading={isSearching}
-        />
-      </View>
+      {/* Search Bar - Tour Zone 7 */}
+      <TourGuideZone
+        zone={RECIPES_TOUR_STEP.zone}
+        text={RECIPES_TOUR_STEP.text}
+        shape="rectangle"
+        borderRadius={12}
+      >
+        <View style={styles.searchContainer}>
+          <SearchBar
+            placeholder="Search recipes..."
+            value={searchQuery}
+            onChangeText={handleSearch}
+            onClear={clearSearch}
+            onFocusChange={setIsSearchFocused}
+            isLoading={isSearching}
+          />
+        </View>
+      </TourGuideZone>
 
       {/* Search Suggestions - only visible when search is focused */}
       {showSearchUI && (
