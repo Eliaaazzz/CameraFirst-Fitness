@@ -168,7 +168,7 @@ const GoogleIcon = () => (
 // Input Field Component
 // ============================================================================
 interface InputFieldProps {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: string;
   placeholder: string;
   value: string;
   onChangeText: (text: string) => void;
