@@ -103,21 +103,6 @@ const App = () => {
               <SnackbarProvider>
                 <TourGuideProvider
                   backdropColor="rgba(0, 0, 0, 0.75)"
-                  borderRadius={16}
-                  maskOffset={8}
-                  animationDuration={300}
-                  labels={{
-                    previous: 'Back',
-                    next: 'Next',
-                    skip: 'Skip',
-                    finish: 'Done',
-                  }}
-                  tooltipStyle={{
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 16,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                  }}
                 >
                   <StatusBar style={barStyle} />
                   <AppNavigator />
