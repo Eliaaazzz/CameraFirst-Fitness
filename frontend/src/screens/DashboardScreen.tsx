@@ -424,8 +424,8 @@ const DashboardScreen = () => {
         <TourGuideZone
           zone={DASHBOARD_TOUR_STEPS[1].zone}
           text={DASHBOARD_TOUR_STEPS[1].text}
-          shape="rectangle"
-          borderRadius={16}
+          title={DASHBOARD_TOUR_STEPS[1].title}
+          icon="📊"
         >
           <Card style={styles.calorieCard}>
             <View style={styles.calorieHeader}>
@@ -468,8 +468,8 @@ const DashboardScreen = () => {
         <TourGuideZone
           zone={DASHBOARD_TOUR_STEPS[0].zone}
           text={DASHBOARD_TOUR_STEPS[0].text}
-          shape="rectangle"
-          borderRadius={16}
+          title={DASHBOARD_TOUR_STEPS[0].title}
+          icon="📸"
         >
           <Pressable
             style={({ pressed }) => [
@@ -502,8 +502,8 @@ const DashboardScreen = () => {
         <TourGuideZone
           zone={DASHBOARD_TOUR_STEPS[2].zone}
           text={DASHBOARD_TOUR_STEPS[2].text}
-          shape="rectangle"
-          borderRadius={16}
+          title={DASHBOARD_TOUR_STEPS[2].title}
+          icon="🍽️"
         >
           <View style={styles.mealsSection}>
             <Text variant="heading3" weight="semibold" style={styles.sectionTitle}>
