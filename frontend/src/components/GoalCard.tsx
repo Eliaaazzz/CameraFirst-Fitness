@@ -76,7 +76,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 
   // Get goal type icon
   const getGoalIcon = () => {
-    const iconMap: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
+    const iconMap: Record<string, string> = {
       nutrition: 'food-apple',
       workout: 'dumbbell',
       hydration: 'water',

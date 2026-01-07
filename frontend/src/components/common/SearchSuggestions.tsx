@@ -31,7 +31,7 @@ import {
 export type SuggestionItem = {
   id: string;
   label: string;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  icon: string;
   color?: string;
 };
 
