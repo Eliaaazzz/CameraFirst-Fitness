@@ -14,7 +14,7 @@ import {
     StyleSheet,
     View,
 } from 'react-native';
-import { TourGuideZone } from 'rn-tourguide';
+import { TourGuideZone } from '@/components/tour/TourProvider';
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { MealImage } from '@/components/nutrition/MealImage';

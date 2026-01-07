@@ -16,7 +16,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { TourGuideZone, useTourGuideController } from 'rn-tourguide';
+import { TourGuideZone, useTourGuideController } from '@/components/tour/TourProvider';
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';

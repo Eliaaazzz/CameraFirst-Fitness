@@ -5,7 +5,7 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { MD3LightTheme as PaperLightTheme, Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { TourGuideProvider } from 'rn-tourguide';
+import { TourGuideProvider } from '@/components/tour/TourProvider';
 
 import { SnackbarProvider } from '@/components';
 import { useVersionCheck } from '@/hooks/useVersionCheck';
