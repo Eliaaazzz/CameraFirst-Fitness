@@ -151,7 +151,7 @@ jobs:
 
       - name: Deploy to S3
         env:
-          S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
         run: |
           echo "🚀 Deploying to S3..."
           aws s3 sync dist/ "s3://${S3_BUCKET}" \
@@ -183,7 +183,7 @@ jobs:
 
       - name: Deployment summary
         env:
-          S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
         run: |
           echo "📊 Deployment Summary"
           echo "===================="
