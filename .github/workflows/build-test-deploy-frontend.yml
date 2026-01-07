@@ -33,37 +33,33 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
+          cache-dependency-path: 'package-lock.json'
 
       - name: Install dependencies
-        working-directory: frontend
         run: |
           echo "📦 Installing dependencies..."
           npm ci
 
       - name: Run ESLint
-        working-directory: frontend
         run: |
           echo "🔍 Running ESLint..."
-          npm run lint 2>&1 || {
+          npm run lint --workspace=frontend 2>&1 || {
             echo "⚠️ ESLint found issues (non-blocking for now)"
             exit 0
           }
 
       - name: Run TypeScript type check
-        working-directory: frontend
         run: |
           echo "🔍 Running TypeScript type check..."
-          npm run type-check || {
+          npm run type-check --workspace=frontend || {
             echo "❌ TypeScript errors found"
             exit 1
           }
 
       - name: Run Jest tests
-        working-directory: frontend
         run: |
           echo "🧪 Running unit tests..."
-          npm run test -- --coverage --watchAll=false --passWithNoTests || {
+          npm run test --workspace=frontend -- --coverage --watchAll=false --passWithNoTests || {
             echo "⚠️ Some tests failed (non-blocking for PR)"
             [ "${{ github.event_name }}" = "push" ] && exit 1
             exit 0
@@ -107,16 +103,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
+          cache-dependency-path: 'package-lock.json'
 
       - name: Install dependencies
-        working-directory: frontend
         run: |
           echo "📦 Installing dependencies..."
           npm ci
 
       - name: Build frontend
-        working-directory: frontend
         env:
           NODE_ENV: production
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
@@ -124,9 +118,9 @@ jobs:
           echo "🏗️ Building frontend..."
           API_BASE_URL="${API_BASE_URL:-http://localhost:8080}"
           echo "API_BASE_URL: ${API_BASE_URL}"
-          npm run build
+          npm run build --workspace=frontend
           echo "✅ Build completed"
-          ls -la dist/
+          ls -la frontend/dist/
 
       - name: Generate build info
         working-directory: frontend
