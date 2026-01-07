@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## coding rule
+1. achieve high cohesion, low coupling
+2. follow SOLID rule
+3. refer to https://github.com/gilbarbara/react-joyride
+
 ## Project Overview
 
 AuraFitness is an AI-powered fitness and nutrition platform with pose detection and personalized meal planning. It uses a monorepo structure with a Spring Boot backend and React Native (Expo) frontend.
