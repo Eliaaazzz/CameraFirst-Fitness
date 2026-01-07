@@ -78,7 +78,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
         // Step 1: Check if this is a public endpoint (Swagger, Actuator, Auth)
         // Public endpoints can be accessed without API Key for debugging and new user registration
-        if (isPublicEndpoint(request)) {
+        if (isPublicEndpoint(request) || "OPTIONS".equalsIgnoreCase(request.getMethod())) {
             filterChain.doFilter(request, response);
             return;
         }

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
+import { TourGuideZone, TourScrollView, useTourGuideController, useTourNavigation } from '@/components/tour/TourProvider';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -12,11 +13,9 @@ import {
   Platform,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
-  View,
+  View
 } from 'react-native';
-import { TourGuideZone, useTourGuideController } from '@/components/tour/TourProvider';
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
@@ -47,8 +46,9 @@ const DashboardScreen = () => {
   const goals = useGoals(userId);
   const stats = useGoalStatistics(userId);
 
-  // Tour guide controller and status
+  // Tour guide controller and navigation
   const { canStart, start, eventEmitter } = useTourGuideController();
+  useTourNavigation(); // Enable cross-screen tour navigation
   const { hasSeenTour, isLoading: tourStatusLoading, markTourComplete, markTourSkipped } = useTourStatus();
 
   // Calculate proper bottom padding for tab bar
@@ -134,7 +134,7 @@ const DashboardScreen = () => {
   };
 
   const handleAddFood = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
 
     if (Platform.OS === 'web') {
       await handleChooseFromGallery();
@@ -265,7 +265,7 @@ const DashboardScreen = () => {
 
   return (
     <SafeAreaWrapper>
-      <ScrollView
+      <TourScrollView
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
         refreshControl={
@@ -557,7 +557,7 @@ const DashboardScreen = () => {
             )}
           </View>
         </TourGuideZone>
-      </ScrollView>
+      </TourScrollView>
     </SafeAreaWrapper>
   );
 };

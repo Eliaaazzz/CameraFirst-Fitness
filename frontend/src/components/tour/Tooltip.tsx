@@ -1,0 +1,185 @@
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { TourStep, ZoneLayout } from './types';
+
+interface TooltipProps {
+  step: TourStep;
+  layout: ZoneLayout;
+  onNext: () => void;
+  onPrev: () => void;
+  onStop: () => void;
+  isFirst: boolean;
+  isLast: boolean;
+  windowWidth: number;
+  windowHeight: number;
+  currentStepIndex: number;
+  totalSteps: number;
+}
+
+export const Tooltip: React.FC<TooltipProps> = ({
+  step,
+  layout,
+  onNext,
+  onPrev,
+  onStop,
+  isFirst,
+  isLast,
+  windowWidth,
+  windowHeight,
+  currentStepIndex,
+  totalSteps
+}) => {
+  // Simple positioning logic: prefer bottom, flip to top if not enough space
+  const tooltipHeight = 180; // estimated
+  const spaceBelow = windowHeight - (layout.y + layout.height);
+  const showBelow = spaceBelow > tooltipHeight || layout.y < tooltipHeight;
+
+  const top = showBelow
+    ? layout.y + layout.height + 10
+    : layout.y - tooltipHeight - 10;
+
+  // Center horizontally relative to target, but keep within screen bounds
+  let left = layout.x + (layout.width / 2) - 150; // assuming 300 width
+  left = Math.max(20, Math.min(left, windowWidth - 320));
+
+  // Determine arrow position
+  const arrowTop = showBelow ? -8 : undefined;
+  const arrowBottom = !showBelow ? -8 : undefined;
+  // Arrow horizontal center relative to the tooltip
+  const arrowLeft = Math.max(10, Math.min(layout.x + (layout.width / 2) - left - 10, 280));
+
+  return (
+    <View style={[styles.tooltipContainer, { top, left }]}>
+      {/* Arrow */}
+      <View
+        style={[
+          styles.tooltipArrow,
+          {
+            top: arrowTop,
+            bottom: arrowBottom,
+            left: arrowLeft,
+            transform: [{ rotate: '45deg' }]
+          }
+        ]}
+      />
+
+      <View style={styles.tooltipContent}>
+        <View style={styles.tooltipHeader}>
+          {/* Close Button at top right */}
+          <Pressable hitSlop={15} onPress={onStop} style={styles.closeBtnContainer}>
+            <Text style={styles.closeBtn}>✕</Text>
+          </Pressable>
+        </View>
+
+        {/* Title Centered */}
+        <Text style={styles.tooltipTitle}>{step.title}</Text>
+
+        {/* Content */}
+        <Text style={styles.tooltipText}>{step.text}</Text>
+
+        {/* Footer with SKIP and NEXT */}
+        <View style={styles.tooltipFooter}>
+          <Pressable onPress={onStop} hitSlop={10}>
+            <Text style={styles.skipBtnText}>S-K-I-P</Text>
+          </Pressable>
+
+          <Pressable onPress={onNext} style={[styles.navBtn, styles.primaryBtn]}>
+            <Text style={[styles.navBtnText, styles.primaryBtnText]}>
+              {isLast ? 'Finish' : `Next (Step ${currentStepIndex + 1} of ${totalSteps})`}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+};
+
+// Styles
+const styles = StyleSheet.create({
+  tooltipContainer: {
+    position: 'absolute',
+    width: 300,
+    backgroundColor: 'white',
+    borderRadius: 6,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+    zIndex: 1000,
+  },
+  tooltipContent: {
+    alignItems: 'center',
+  },
+  tooltipHeader: {
+    position: 'absolute',
+    top: -15,
+    right: -15,
+    zIndex: 1,
+  },
+  closeBtnContainer: {
+    padding: 5,
+  },
+  closeBtn: {
+    fontSize: 18,
+    color: '#9CA3AF',
+  },
+  tooltipTitle: {
+    fontSize: 20,
+    fontWeight: '800', // Extra bold
+    color: '#333333',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  tooltipText: {
+    fontSize: 15,
+    color: '#555555',
+    lineHeight: 22,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  tooltipFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+  },
+  skipBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555555',
+    letterSpacing: 1,
+  },
+  navBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 4,
+    elevation: 2,
+  },
+  navBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  primaryBtn: {
+    backgroundColor: '#ff0044', // Red/Pink from screenshot
+  },
+  primaryBtnText: {
+    color: 'white',
+  },
+  tooltipArrow: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    backgroundColor: 'white',
+    zIndex: -1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 10,
+  }
+});

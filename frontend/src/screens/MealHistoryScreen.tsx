@@ -3,18 +3,18 @@
  * Displays paginated list of user's meal logs with date filtering
  */
 
+import { TourGuideZone } from '@/components/tour/TourProvider';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Pressable,
-    RefreshControl,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  View,
 } from 'react-native';
-import { TourGuideZone } from '@/components/tour/TourProvider';
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { MealImage } from '@/components/nutrition/MealImage';

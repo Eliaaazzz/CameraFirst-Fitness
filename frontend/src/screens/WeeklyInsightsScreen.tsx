@@ -3,6 +3,7 @@
  * Displays weekly nutrition analytics and trends
  */
 
+import { TourGuideZone } from '@/components/tour/TourProvider';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -10,14 +11,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useState } from 'react';
 import {
-	ActivityIndicator,
-	Pressable,
-	RefreshControl,
-	ScrollView,
-	StyleSheet,
-	View,
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
-import { TourGuideZone } from '@/components/tour/TourProvider';
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { WEEKLY_INSIGHTS_TOUR_STEP } from '@/config/tourSteps';
@@ -274,8 +274,8 @@ export const WeeklyInsightsScreen = () => {
                           day.calories.percentage > 110
                             ? '#EF4444'
                             : day.calories.percentage > 90
-                            ? '#10B981'
-                            : '#F59E0B',
+                              ? '#10B981'
+                              : '#F59E0B',
                       },
                     ]}
                   />

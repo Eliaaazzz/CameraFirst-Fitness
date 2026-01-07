@@ -459,7 +459,7 @@ export default function LoginScreen() {
     setError(null);
     try {
       const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
-        loginType: 'EMAIL',
+        loginType: 'LOCAL',
         email: email.trim().toLowerCase(),
         password,
       });

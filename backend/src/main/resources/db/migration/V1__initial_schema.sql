@@ -136,11 +136,11 @@ VALUES
 
 INSERT INTO workout_video (youtube_id, title, duration_minutes, level, equipment, body_part, thumbnail_url, view_count)
 VALUES
-    ('dQw4w9WgXcQ', 'Full Body Energizer', 15, 'beginner', ARRAY['bodyweight'], ARRAY['full_body'], 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg', 1234567),
-    ('HIIT0001', '15-Minute Tabata Blaze', 15, 'intermediate', ARRAY['bodyweight'], ARRAY['cardio','full_body'], 'https://img.youtube.com/vi/HIIT0001/hqdefault.jpg', 245000),
-    ('DBL0002', 'Dumbbell Strength Circuit', 30, 'intermediate', ARRAY['dumbbells'], ARRAY['upper','core'], 'https://img.youtube.com/vi/DBL0002/hqdefault.jpg', 91000),
-    ('MAT0003', 'Mat Core Stability Flow', 20, 'beginner', ARRAY['mat'], ARRAY['core'], 'https://img.youtube.com/vi/MAT0003/hqdefault.jpg', 45500),
-    ('ADV0004', 'Advanced Power Builder', 45, 'advanced', ARRAY['barbell','resistance_bands'], ARRAY['lower','full_body'], 'https://img.youtube.com/vi/ADV0004/hqdefault.jpg', 7800);
+    ('dQw4w9WgXcQ', 'Full Body Energizer', 15, 'beginner', ARRAY['bodyweight'], ARRAY['full_body'], 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg', 1234567),
+    ('HIIT0001', '15-Minute Tabata Blaze', 15, 'intermediate', ARRAY['bodyweight'], ARRAY['cardio','full_body'], 'https://i.ytimg.com/vi/HIIT0001/hqdefault.jpg', 245000),
+    ('DBL0002', 'Dumbbell Strength Circuit', 30, 'intermediate', ARRAY['dumbbells'], ARRAY['upper','core'], 'https://i.ytimg.com/vi/DBL0002/hqdefault.jpg', 91000),
+    ('MAT0003', 'Mat Core Stability Flow', 20, 'beginner', ARRAY['mat'], ARRAY['core'], 'https://i.ytimg.com/vi/MAT0003/hqdefault.jpg', 45500),
+    ('ADV0004', 'Advanced Power Builder', 45, 'advanced', ARRAY['barbell','resistance_bands'], ARRAY['lower','full_body'], 'https://i.ytimg.com/vi/ADV0004/hqdefault.jpg', 7800);
 
 INSERT INTO recipe (title, image_url, time_minutes, difficulty, nutrition_summary, steps, swaps)
 VALUES

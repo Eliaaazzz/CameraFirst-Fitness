@@ -128,7 +128,11 @@ export const RecipeDetailScreen = () => {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
+        nestedScrollEnabled={true}
+        overScrollMode="always"
+        bounces={true}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Header with Back Button */}
         <View style={styles.headerBar}>
@@ -163,7 +167,7 @@ export const RecipeDetailScreen = () => {
           </View>
         </View>
 
-        <Container>
+        <View style={{ paddingHorizontal: spacing.lg }}>
           {/* Title & Quick Info */}
           <View style={styles.titleSection}>
             <Text variant="heading1" weight="bold" style={{ color: theme.colors.textPrimary }}>
@@ -365,7 +369,7 @@ export const RecipeDetailScreen = () => {
           )}
 
           <View style={{ height: spacing.xl }} />
-        </Container>
+        </View>
       </ScrollView>
     </SafeAreaWrapper>
   );
