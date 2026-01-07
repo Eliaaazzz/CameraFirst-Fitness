@@ -147,42 +147,47 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Deploy to S3
+        env:
+          S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
         run: |
           echo "🚀 Deploying to S3..."
-          aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET }} \
+          aws s3 sync dist/ "s3://${S3_BUCKET}" \
             --delete \
             --cache-control "max-age=31536000,public" \
             --exclude "index.html" \
             --exclude ".build-info.json"
 
           # Upload index.html with no-cache
-          aws s3 cp dist/index.html s3://${{ secrets.AWS_S3_BUCKET }}/index.html \
+          aws s3 cp dist/index.html "s3://${S3_BUCKET}/index.html" \
             --cache-control "no-cache,no-store,must-revalidate"
 
           # Upload build info
-          aws s3 cp dist/.build-info.json s3://${{ secrets.AWS_S3_BUCKET }}/.build-info.json \
+          aws s3 cp dist/.build-info.json "s3://${S3_BUCKET}/.build-info.json" \
             --cache-control "no-cache"
 
           echo "✅ S3 deployment completed"
 
       - name: Invalidate CloudFront cache
-        if: ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        env:
+          DISTRIBUTION_ID: ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }}
+        if: env.DISTRIBUTION_ID != ''
         run: |
           echo "🔄 Invalidating CloudFront cache..."
           aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }} \
+            --distribution-id "${DISTRIBUTION_ID}" \
             --paths "/*"
           echo "✅ CloudFront invalidation created"
-        continue-on-error: true
 
       - name: Deployment summary
+        env:
+          S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
         run: |
           echo "📊 Deployment Summary"
           echo "===================="
-          echo "Bucket: ${{ secrets.AWS_S3_BUCKET }}"
+          echo "Bucket: ${S3_BUCKET}"
           echo "Commit: ${{ github.sha }}"
           echo "Branch: ${{ github.ref_name }}"
           echo "Build: ${{ github.run_number }}"
