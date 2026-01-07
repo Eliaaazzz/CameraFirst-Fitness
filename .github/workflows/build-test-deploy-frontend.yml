@@ -154,19 +154,16 @@ jobs:
           S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
         run: |
           echo "🚀 Deploying to S3..."
+
+          # Sync all assets with long cache
           aws s3 sync dist/ "s3://${S3_BUCKET}" \
             --delete \
             --cache-control "max-age=31536000,public" \
-            --exclude "index.html" \
-            --exclude ".build-info.json"
+            --exclude "index.html"
 
-          # Upload index.html with no-cache
+          # Upload index.html with no-cache for SPA routing
           aws s3 cp dist/index.html "s3://${S3_BUCKET}/index.html" \
             --cache-control "no-cache,no-store,must-revalidate"
-
-          # Upload build info
-          aws s3 cp dist/.build-info.json "s3://${S3_BUCKET}/.build-info.json" \
-            --cache-control "no-cache"
 
           echo "✅ S3 deployment completed"
 
