@@ -351,6 +351,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   listContent: {
+    flexGrow: 1,
     gap: spacing.md,
   },
   header: {
