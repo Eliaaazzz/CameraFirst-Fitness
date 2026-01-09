@@ -50,15 +50,15 @@ export const WEEKLY_INSIGHTS_TOUR_STEP: TourStep = {
 export const WORKOUTS_TOUR_STEP: TourStep = {
   zone: 6,
   screen: 'Workouts',
-  title: 'Find Workouts',
-  text: 'Search for workout videos by type, muscle group, or equipment. Save your favorites!',
+  title: 'Workout Search Tab',
+  text: 'Search for workout videos by type, muscle group, or equipment. Save your favorite routines to your personal list.',
 };
 
 export const RECIPES_TOUR_STEP: TourStep = {
   zone: 7,
   screen: 'Recipes',
-  title: 'Discover Recipes',
-  text: 'Find healthy recipes that match your fitness goals. Search by ingredients or cuisine type.',
+  title: 'Recipe Search Tab',
+  text: 'Explore our vast library of healthy recipes. Use the search bar to find meals by ingredients, diet, or preparation time.',
 };
 
 // All tour steps in order

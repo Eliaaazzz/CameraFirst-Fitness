@@ -60,6 +60,7 @@ export const TourGuideProvider: React.FC<{
 
   // Navigation callback ref
   const navigationCallbackRef = useRef<((screen: string) => void) | null>(null);
+  const currentScreenRef = useRef<string>('Dashboard');
 
   // All zones from tour steps config
   const allZones = useMemo(() => ALL_TOUR_STEPS.map(s => s.zone).sort((a, b) => a - b), []);
@@ -105,7 +106,10 @@ export const TourGuideProvider: React.FC<{
   }, []);
 
   const setNavigationCallback = useCallback((callback: (screen: string) => void) => {
-    navigationCallbackRef.current = callback;
+    navigationCallbackRef.current = (screen: string) => {
+      currentScreenRef.current = screen;
+      callback(screen);
+    };
   }, []);
 
   // Scroll to a specific zone
@@ -158,26 +162,31 @@ export const TourGuideProvider: React.FC<{
 
   // Navigate to zone - handles cross-screen navigation
   const goToZone = useCallback((zone: number) => {
+    const prevZone = activeZone;
     const targetScreen = ZONE_SCREEN_MAP[zone];
+    const prevScreen = prevZone !== null ? ZONE_SCREEN_MAP[prevZone] : currentScreenRef.current;
+    const isCrossScreen = targetScreen !== prevScreen;
 
     // Hide tooltip while transitioning
     setShowTooltip(false);
     setActiveZone(zone);
 
     // Navigate to target screen if needed
-    if (navigationCallbackRef.current) {
+    if (isCrossScreen && navigationCallbackRef.current) {
       navigationCallbackRef.current(targetScreen);
     }
 
-    // Wait for navigation and layout - use longer delays for cross-screen
+    // Timeouts: shorter for same screen, medium for cross screen
+    const navDelay = isCrossScreen ? 600 : 100;
+    const scrollDelay = isCrossScreen ? 400 : 200;
+
     setTimeout(() => {
       scrollToZone(zone, null);
-      // Wait for scroll to complete before showing tooltip
       setTimeout(() => {
         setShowTooltip(true);
-      }, 800);
-    }, 1200);
-  }, [scrollToZone]);
+      }, scrollDelay);
+    }, navDelay);
+  }, [activeZone, scrollToZone]);
 
   const start = useCallback(() => {
     if (allZones.length > 0) {

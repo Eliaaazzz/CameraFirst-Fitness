@@ -77,17 +77,29 @@ export const Tooltip: React.FC<TooltipProps> = ({
         {/* Content */}
         <Text style={styles.tooltipText}>{step.text}</Text>
 
-        {/* Footer with SKIP and NEXT */}
+        {/* Footer with navigation - react-joyride style */}
         <View style={styles.tooltipFooter}>
+          {/* Skip - always visible on the left */}
           <Pressable onPress={onStop} hitSlop={10}>
-            <Text style={styles.skipBtnText}>S-K-I-P</Text>
+            <Text style={styles.skipText}>Skip</Text>
           </Pressable>
 
-          <Pressable onPress={onNext} style={[styles.navBtn, styles.primaryBtn]}>
-            <Text style={[styles.navBtnText, styles.primaryBtnText]}>
-              {isLast ? 'Finish' : `Next (Step ${currentStepIndex + 1} of ${totalSteps})`}
-            </Text>
-          </Pressable>
+          {/* Right side: Back + Next */}
+          <View style={styles.rightButtons}>
+            {/* Back - only visible after first step */}
+            {!isFirst && (
+              <Pressable onPress={onPrev} hitSlop={10} style={styles.backBtn}>
+                <Text style={styles.backText}>Back</Text>
+              </Pressable>
+            )}
+
+            {/* Next button with step counter */}
+            <Pressable onPress={onNext} style={styles.nextBtn}>
+              <Text style={styles.nextBtnText}>
+                {isLast ? 'Finish' : `Next (Step ${currentStepIndex + 1} of ${totalSteps})`}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     </View>
@@ -144,30 +156,38 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
+    marginTop: 8,
   },
-  skipBtnText: {
+  skipText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#555555',
-    letterSpacing: 1,
+    color: '#333333',
   },
-  navBtn: {
+  rightButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  backBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  backText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ff0044',
+  },
+  nextBtn: {
     paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     borderRadius: 4,
-    elevation: 2,
+    borderWidth: 2,
+    borderColor: '#ff0044',
+    backgroundColor: '#ff0044',
   },
-  navBtnText: {
+  nextBtnText: {
     fontSize: 14,
     fontWeight: '600',
-  },
-  primaryBtn: {
-    backgroundColor: '#ff0044', // Red/Pink from screenshot
-  },
-  primaryBtnText: {
     color: 'white',
   },
   tooltipArrow: {
