@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import { TourGuideZone, TourScrollView, useTourGuideController, useTourNavigation } from '@/components/tour/TourProvider';
+import { TourGuideZone, useTourGuideController } from '@/components/tour/TourProvider';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -14,8 +14,10 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
+  ScrollView,
   View
 } from 'react-native';
+
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
@@ -48,7 +50,7 @@ const DashboardScreen = () => {
 
   // Tour guide controller and navigation
   const { canStart, start, eventEmitter } = useTourGuideController();
-  useTourNavigation(); // Enable cross-screen tour navigation
+
   const { hasSeenTour, isLoading: tourStatusLoading, markTourComplete, markTourSkipped } = useTourStatus();
 
   // Calculate proper bottom padding for tab bar
@@ -265,7 +267,7 @@ const DashboardScreen = () => {
 
   return (
     <SafeAreaWrapper>
-      <TourScrollView
+      <ScrollView
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
         refreshControl={
@@ -557,7 +559,7 @@ const DashboardScreen = () => {
             )}
           </View>
         </TourGuideZone>
-      </TourScrollView>
+      </ScrollView>
     </SafeAreaWrapper>
   );
 };

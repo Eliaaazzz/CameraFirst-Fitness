@@ -19,6 +19,7 @@ import {
   View,
 } from 'react-native';
 
+
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { WEEKLY_INSIGHTS_TOUR_STEP } from '@/config/tourSteps';
 import { useWeeklyInsights } from '@/hooks/useMealHistory';

@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 
+
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { MealImage } from '@/components/nutrition/MealImage';
 import { MEAL_HISTORY_TOUR_STEP } from '@/config/tourSteps';
