@@ -1,8 +1,4 @@
-/**
- * Tour Provider - Custom implementation for app tour functionality
- * Uses full-screen modal cards instead of spotlight (works on Web + Native)
- */
-
+import { useNavigation } from '@react-navigation/native';
 import React, {
   createContext,
   useCallback,
@@ -14,469 +10,455 @@ import React, {
   type ReactNode,
 } from 'react';
 import {
-  Animated,
-  Dimensions,
   Modal,
-  Platform,
-  Pressable,
+  ScrollView,
   StyleSheet,
   View,
-  Text,
-  ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 
-// Tour step definition with title and icon
-interface TourStep {
-  zone: number;
-  title: string;
-  text: string;
-  icon: string;
-}
+import { ALL_TOUR_STEPS } from '@/config/tourSteps';
+import { SpotlightOverlay } from './SpotlightOverlay';
+import { Tooltip } from './Tooltip';
+import { TourContextValue, TourStep, ZoneLayout } from './types';
 
-// Event emitter interface for compatibility
-interface TourEventEmitter {
-  on: (event: string, callback: () => void) => void;
-  off: (event: string, callback: () => void) => void;
-}
-
-// Tour controller interface
-interface TourController {
-  canStart: boolean;
-  start: () => void;
-  stop: () => void;
-  eventEmitter: TourEventEmitter;
-}
-
-// Context for tour management
-interface TourContextValue {
-  registerStep: (zone: number, text: string, title?: string, icon?: string) => void;
-  unregisterStep: (zone: number) => void;
-  isActive: boolean;
-  currentZone: number | null;
-}
+// --- Contexts ---
 
 const TourContext = createContext<TourContextValue | null>(null);
 
-// Separate context for controller to avoid re-renders
-interface TourControllerContextValue {
-  controller: TourController;
-}
+// ScrollView ref context for auto-scrolling
+const ScrollViewContext = createContext<React.RefObject<ScrollView> | null>(null);
 
-const TourControllerContext = createContext<TourControllerContextValue | null>(null);
-
-// Provider props
-interface TourGuideProviderProps {
-  children: ReactNode;
-  backdropColor?: string;
-}
-
-// Step card component - shows in center of screen
-const StepCard: React.FC<{
-  step: TourStep;
-  onNext: () => void;
-  onPrevious: () => void;
-  onSkip: () => void;
-  isFirst: boolean;
-  isLast: boolean;
-  currentIndex: number;
-  totalSteps: number;
-}> = ({
-  step,
-  onNext,
-  onPrevious,
-  onSkip,
-  isFirst,
-  isLast,
-  currentIndex,
-  totalSteps,
-}) => {
-  return (
-    <Animated.View style={styles.cardContainer}>
-      <View style={styles.card}>
-        {/* Close button */}
-        <Pressable style={styles.closeButton} onPress={onSkip}>
-          <Text style={styles.closeButtonText}>✕</Text>
-        </Pressable>
-
-        {/* Icon */}
-        <View style={styles.iconContainer}>
-          <Text style={styles.icon}>{step.icon}</Text>
-        </View>
-
-        {/* Title */}
-        <Text style={styles.title}>{step.title}</Text>
-
-        {/* Description */}
-        <Text style={styles.description}>{step.text}</Text>
-
-        {/* Step indicators (dots) */}
-        <View style={styles.indicators}>
-          {Array.from({ length: totalSteps }).map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.indicator,
-                index === currentIndex && styles.indicatorActive,
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* Navigation buttons */}
-        <View style={styles.buttonRow}>
-          {!isFirst && (
-            <Pressable onPress={onPrevious} style={styles.backButton}>
-              <Text style={styles.backButtonText}>← Back</Text>
-            </Pressable>
-          )}
-          <View style={{ flex: 1 }} />
-          <Pressable onPress={onNext} style={styles.nextButton}>
-            <Text style={styles.nextButtonText}>
-              {isLast ? 'Get Started 🚀' : 'Next →'}
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Skip tour text */}
-        {!isLast && (
-          <Pressable onPress={onSkip} style={styles.skipText}>
-            <Text style={styles.skipTextContent}>Skip Tour</Text>
-          </Pressable>
-        )}
-      </View>
-    </Animated.View>
-  );
+// Zone to screen mapping - defines which screen each zone is on
+const ZONE_SCREEN_MAP: Record<number, string> = {
+  1: 'Dashboard',       // Snap Your Meal button
+  2: 'Dashboard',       // Today's Nutrition card
+  3: 'Dashboard',       // Today's Meals list
+  4: 'Profile',         // Meal History menu item
+  5: 'Profile',         // Weekly Insights menu item
+  6: 'Workouts',        // Workouts search bar
+  7: 'Recipes',         // Recipes search bar
 };
 
-// Main provider component
-export const TourGuideProvider: React.FC<TourGuideProviderProps> = ({
-  children,
-  backdropColor = 'rgba(0, 0, 0, 0.85)',
-}) => {
+// --- Components ---
+
+// Provider Component
+export const TourGuideProvider: React.FC<{
+  children: ReactNode;
+  backdropColor?: string;
+}> = ({ children, backdropColor = 'rgba(0, 0, 0, 0.7)' }) => {
   const [steps, setSteps] = useState<Map<number, TourStep>>(new Map());
+  const [layouts, setLayouts] = useState<Map<number, ZoneLayout>>(new Map());
+  const [activeZone, setActiveZone] = useState<number | null>(null);
   const [isActive, setIsActive] = useState(false);
-  const [currentZone, setCurrentZone] = useState<number | null>(null);
-  const eventListenersRef = useRef<Map<string, Set<() => void>>>(new Map());
+  const [showTooltip, setShowTooltip] = useState(false);
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
-  // Get sorted step zones
-  const sortedZones = useMemo(() => {
-    return Array.from(steps.keys()).sort((a, b) => a - b);
-  }, [steps]);
+  // Ref storage for zone View refs (for scrolling)
+  const zoneRefsMap = useRef<Map<number, React.RefObject<View>>>(new Map());
+  const scrollViewRefsMap = useRef<Map<string, React.RefObject<ScrollView>>>(new Map());
 
-  const currentStep = currentZone !== null ? steps.get(currentZone) : null;
-  const currentIndex = currentZone !== null ? sortedZones.indexOf(currentZone) : -1;
-  const isFirst = currentIndex === 0;
-  const isLast = currentIndex === sortedZones.length - 1;
+  // Navigation callback ref
+  const navigationCallbackRef = useRef<((screen: string) => void) | null>(null);
+  const currentScreenRef = useRef<string>('Dashboard');
 
-  // Register a step
-  const registerStep = useCallback(
-    (zone: number, text: string, title: string = 'Tour Step', icon: string = '📍') => {
-      setSteps((prev) => {
-        const newSteps = new Map(prev);
-        newSteps.set(zone, { zone, title, text, icon });
-        return newSteps;
-      });
-    },
-    []
-  );
+  // All zones from tour steps config
+  const allZones = useMemo(() => ALL_TOUR_STEPS.map(s => s.zone).sort((a, b) => a - b), []);
 
-  // Unregister a step
+  const registerStep = useCallback((step: TourStep) => {
+    setSteps(prev => new Map(prev).set(step.zone, step));
+  }, []);
+
   const unregisterStep = useCallback((zone: number) => {
-    setSteps((prev) => {
-      const newSteps = new Map(prev);
-      newSteps.delete(zone);
-      return newSteps;
+    setSteps(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(zone);
+      return newMap;
+    });
+    setLayouts(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(zone);
+      return newMap;
+    });
+    zoneRefsMap.current.delete(zone);
+  }, []);
+
+  const registerLayout = useCallback((zone: number, layout: ZoneLayout) => {
+    setLayouts(prev => {
+      const current = prev.get(zone);
+      if (current &&
+        Math.abs(current.x - layout.x) < 1 &&
+        Math.abs(current.y - layout.y) < 1 &&
+        Math.abs(current.width - layout.width) < 1 &&
+        Math.abs(current.height - layout.height) < 1) {
+        return prev;
+      }
+      return new Map(prev).set(zone, layout);
     });
   }, []);
 
-  // Emit event to listeners
-  const emitEvent = useCallback((event: string) => {
-    eventListenersRef.current.get(event)?.forEach((callback) => callback());
+  const registerZoneRef = useCallback((zone: number, ref: React.RefObject<View>) => {
+    zoneRefsMap.current.set(zone, ref);
+  }, []);
+
+  const registerScrollViewRef = useCallback((screen: string, ref: React.RefObject<ScrollView>) => {
+    scrollViewRefsMap.current.set(screen, ref);
+  }, []);
+
+  const setNavigationCallback = useCallback((callback: (screen: string) => void) => {
+    navigationCallbackRef.current = (screen: string) => {
+      currentScreenRef.current = screen;
+      callback(screen);
+    };
+  }, []);
+
+  // Scroll to a specific zone
+  const scrollToZone = useCallback((zone: number, scrollViewRef: React.RefObject<ScrollView> | null) => {
+    const screen = ZONE_SCREEN_MAP[zone];
+    const effectiveScrollRef = scrollViewRef || scrollViewRefsMap.current.get(screen);
+    if (!effectiveScrollRef?.current) return;
+
+    const ref = zoneRefsMap.current.get(zone);
+    if (!ref?.current) return;
+
+    ref.current.measureLayout(
+      effectiveScrollRef.current as any,
+      (x, y) => {
+        const scrollY = Math.max(0, y - 100);
+        effectiveScrollRef.current?.scrollTo({ y: scrollY, animated: true });
+      },
+      () => {
+        ref.current?.measureInWindow((x, y) => {
+          effectiveScrollRef.current?.scrollTo({ y: Math.max(0, y - 100), animated: true });
+        });
+      }
+    );
   }, []);
 
   // Event emitter
-  const eventEmitter: TourEventEmitter = useMemo(
-    () => ({
-      on: (event: string, callback: () => void) => {
-        if (!eventListenersRef.current.has(event)) {
-          eventListenersRef.current.set(event, new Set());
-        }
-        eventListenersRef.current.get(event)!.add(callback);
-      },
-      off: (event: string, callback: () => void) => {
-        eventListenersRef.current.get(event)?.delete(callback);
-      },
-    }),
-    []
-  );
+  const listenersRef = useRef<Map<string, Set<() => void>>>(new Map());
 
-  // Start tour
-  const start = useCallback(() => {
-    if (sortedZones.length === 0) {
-      console.warn('[TourProvider] No tour steps registered');
-      return;
+  const on = useCallback((event: string, callback: () => void) => {
+    if (!listenersRef.current.has(event)) {
+      listenersRef.current.set(event, new Set());
     }
+    listenersRef.current.get(event)?.add(callback);
+  }, []);
 
-    setCurrentZone(sortedZones[0]);
-    setIsActive(true);
-  }, [sortedZones]);
+  const off = useCallback((event: string, callback: () => void) => {
+    listenersRef.current.get(event)?.delete(callback);
+  }, []);
 
-  // Stop tour
+  const emit = useCallback((event: string) => {
+    listenersRef.current.get(event)?.forEach(cb => cb());
+  }, []);
+
   const stop = useCallback(() => {
     setIsActive(false);
-    setCurrentZone(null);
-    emitEvent('stop');
-  }, [emitEvent]);
+    setActiveZone(null);
+    setShowTooltip(false);
+    emit('stop');
+  }, [emit]);
 
-  // Go to next step
-  const next = useCallback(() => {
-    if (isLast) {
-      stop();
+  // Dashboard zones - skip scrolling when transitioning between them (1->2, 2->3)
+  const DASHBOARD_ZONES = [1, 2, 3];
+
+  // Navigate to zone - handles cross-screen navigation
+  const goToZone = useCallback((zone: number) => {
+    const prevZone = activeZone;
+    const targetScreen = ZONE_SCREEN_MAP[zone];
+    const prevScreen = prevZone !== null ? ZONE_SCREEN_MAP[prevZone] : currentScreenRef.current;
+    const isCrossScreen = targetScreen !== prevScreen;
+
+    // Check if transitioning within Dashboard (1->2, 2->3) - skip scroll for these
+    const isWithinDashboardTransition = prevZone !== null
+      && DASHBOARD_ZONES.includes(prevZone)
+      && DASHBOARD_ZONES.includes(zone);
+
+    // Hide tooltip while transitioning
+    setShowTooltip(false);
+    setActiveZone(zone);
+
+    // Navigate to target screen if needed
+    if (isCrossScreen && navigationCallbackRef.current) {
+      navigationCallbackRef.current(targetScreen);
+    }
+
+    // Skip scrolling for Dashboard internal transitions (1->2, 2->3)
+    if (isWithinDashboardTransition && !isCrossScreen) {
+      setTimeout(() => {
+        setShowTooltip(true);
+      }, 100);
       return;
     }
 
-    const nextIndex = currentIndex + 1;
-    setCurrentZone(sortedZones[nextIndex]);
-  }, [currentIndex, isLast, sortedZones, stop]);
+    // Timeouts: minimal delays for snappy transitions
+    const navDelay = isCrossScreen ? 150 : 50;
+    const scrollDelay = isCrossScreen ? 50 : 50;
 
-  // Go to previous step
+    setTimeout(() => {
+      scrollToZone(zone, null);
+      setTimeout(() => {
+        setShowTooltip(true);
+      }, scrollDelay);
+    }, navDelay);
+  }, [activeZone, scrollToZone]);
+
+  const start = useCallback(() => {
+    if (allZones.length > 0) {
+      setIsActive(true);
+      emit('start');
+      goToZone(allZones[0]);
+    }
+  }, [allZones, emit, goToZone]);
+
+  const next = useCallback(() => {
+    if (activeZone === null) return;
+    const idx = allZones.indexOf(activeZone);
+    if (idx < allZones.length - 1) {
+      goToZone(allZones[idx + 1]);
+    } else {
+      stop();
+    }
+  }, [activeZone, allZones, goToZone, stop]);
+
   const previous = useCallback(() => {
-    if (isFirst) return;
+    if (activeZone === null) return;
+    const idx = allZones.indexOf(activeZone);
+    if (idx > 0) {
+      goToZone(allZones[idx - 1]);
+    }
+  }, [activeZone, allZones, goToZone]);
 
-    const prevIndex = currentIndex - 1;
-    setCurrentZone(sortedZones[prevIndex]);
-  }, [currentIndex, isFirst, sortedZones]);
+  // Get step info from config
+  const currentStepInfo = activeZone !== null
+    ? ALL_TOUR_STEPS.find(s => s.zone === activeZone)
+    : null;
 
-  // Controller
-  const controller: TourController = useMemo(
-    () => ({
-      canStart: steps.size > 0,
-      start,
-      stop,
-      eventEmitter,
-    }),
-    [steps.size, start, stop, eventEmitter]
-  );
+  const currentLayout = activeZone !== null ? layouts.get(activeZone) : null;
+  const currentIndex = activeZone !== null ? allZones.indexOf(activeZone) : -1;
+  const isFirst = currentIndex === 0;
+  const isLast = currentIndex === allZones.length - 1;
 
-  const tourContextValue = useMemo(
-    () => ({
-      registerStep,
-      unregisterStep,
-      isActive,
-      currentZone,
-    }),
-    [registerStep, unregisterStep, isActive, currentZone]
-  );
+  const currentStep: TourStep | null = currentStepInfo ? {
+    zone: currentStepInfo.zone,
+    title: currentStepInfo.title,
+    text: currentStepInfo.text,
+    shape: 'rectangle',
+    borderRadius: 12,
+  } : null;
 
-  const controllerContextValue = useMemo(
-    () => ({ controller }),
-    [controller]
-  );
+  const value = useMemo(() => ({
+    registerStep,
+    unregisterStep,
+    registerLayout,
+    registerZoneRef,
+    scrollToZone,
+    isActive,
+    currentZone: activeZone,
+    start,
+    stop,
+    next,
+    previous,
+  }), [registerStep, unregisterStep, registerLayout, registerZoneRef, scrollToZone, isActive, activeZone, start, stop, next, previous]);
+
+  // Controller for hook
+  const controller = useMemo(() => ({
+    start, stop, canStart: allZones.length > 0,
+    eventEmitter: { on, off }
+  }), [start, stop, allZones.length, on, off]);
+
+  // Extended context with navigation helpers
+  const extendedValue = useMemo(() => ({
+    ...value,
+    registerScrollViewRef,
+    setNavigationCallback,
+  }), [value, registerScrollViewRef, setNavigationCallback]);
 
   return (
-    <TourControllerContext.Provider value={controllerContextValue}>
-      <TourContext.Provider value={tourContextValue}>
+    <TourContext.Provider value={extendedValue as TourContextValue}>
+      <TourControllerContext.Provider value={{ controller }}>
         {children}
-        
-        {/* Tour modal - full screen with backdrop */}
         <Modal
-          visible={isActive && currentStep != null}
           transparent
+          visible={isActive && showTooltip && !!currentStep && !!currentLayout}
           animationType="fade"
-          statusBarTranslucent
           onRequestClose={stop}
         >
-          <View style={[styles.backdrop, { backgroundColor: backdropColor }]}>
-            {currentStep && (
-              <StepCard
+          {isActive && showTooltip && currentStep && currentLayout ? (
+            <View style={StyleSheet.absoluteFill}>
+              <SpotlightOverlay
+                layout={currentLayout}
+                shape={currentStep.shape}
+                borderRadius={currentStep.borderRadius}
+                windowWidth={windowWidth}
+                windowHeight={windowHeight}
+                backdropColor={backdropColor}
+                onBackdropPress={stop}
+              />
+              <Tooltip
                 step={currentStep}
+                layout={currentLayout}
                 onNext={next}
-                onPrevious={previous}
-                onSkip={stop}
+                onPrev={previous}
+                onStop={stop}
                 isFirst={isFirst}
                 isLast={isLast}
-                currentIndex={currentIndex}
-                totalSteps={sortedZones.length}
+                windowWidth={windowWidth}
+                windowHeight={windowHeight}
+                currentStepIndex={currentIndex}
+                totalSteps={allZones.length}
               />
-            )}
-          </View>
+            </View>
+          ) : null}
         </Modal>
-      </TourContext.Provider>
-    </TourControllerContext.Provider>
+      </TourControllerContext.Provider>
+    </TourContext.Provider>
   );
 };
 
-// Hook to get tour controller
-export const useTourGuideController = (): TourController => {
-  const context = useContext(TourControllerContext);
-
-  if (!context) {
-    // Return a no-op controller if not in a tour context
-    return {
-      canStart: false,
-      start: () => {},
-      stop: () => {},
-      eventEmitter: {
-        on: () => {},
-        off: () => {},
-      },
-    };
-  }
-
-  return context.controller;
-};
-
-// Zone component props
-interface TourGuideZoneProps {
+// Tour Guide Zone Component
+export const TourGuideZone: React.FC<{
   zone: number;
   text: string;
   title?: string;
   icon?: string;
-  children: ReactNode;
   shape?: 'rectangle' | 'circle';
   borderRadius?: number;
+  children: ReactNode;
+  style?: any;
+}> = ({ zone, text, title = '', icon, shape, borderRadius, children, style }) => {
+  const context = useContext(TourContext);
+  const ref = useRef<View>(null);
+
+  const registerStep = context?.registerStep;
+  const unregisterStep = context?.unregisterStep;
+  const registerLayout = context?.registerLayout;
+  const registerZoneRef = context?.registerZoneRef;
+  const isActive = context?.isActive;
+  const currentZone = context?.currentZone;
+
+  // Register step on mount
+  useEffect(() => {
+    if (registerStep && unregisterStep) {
+      registerStep({ zone, title, text, icon, shape, borderRadius });
+      return () => unregisterStep(zone);
+    }
+  }, [registerStep, unregisterStep, zone, text, title, icon, shape, borderRadius]);
+
+  // Register ref for scrolling
+  useEffect(() => {
+    if (registerZoneRef && ref.current) {
+      registerZoneRef(zone, ref as React.RefObject<View>);
+    }
+  }, [registerZoneRef, zone]);
+
+  // Measure layout
+  const measure = useCallback(() => {
+    if (ref.current && registerLayout) {
+      ref.current.measureInWindow((x, y, width, height) => {
+        if (width > 0 && height > 0) {
+          registerLayout(zone, { x, y, width, height });
+        }
+      });
+    }
+  }, [registerLayout, zone]);
+
+  // Measure on mount and when this zone is active
+  useEffect(() => {
+    measure();
+
+    if (isActive && currentZone === zone) {
+      const interval = setInterval(measure, 100);
+      return () => clearInterval(interval);
+    }
+  }, [measure, isActive, currentZone, zone]);
+
+  return (
+    <View
+      ref={ref}
+      onLayout={measure}
+      style={style}
+      collapsable={false}
+    >
+      {children}
+    </View>
+  );
+};
+
+// ScrollView wrapper that registers with tour context
+interface TourScrollViewProps {
+  children: ReactNode;
+  style?: any;
+  contentContainerStyle?: any;
+  refreshControl?: React.ReactElement<any>;
+  showsVerticalScrollIndicator?: boolean;
+  screenName?: string;
+  [key: string]: any;
 }
 
-// Zone component - simplified, no ref needed
-export const TourGuideZone: React.FC<TourGuideZoneProps> = ({
-  zone,
-  text,
-  title,
-  icon,
+export const TourScrollView: React.FC<TourScrollViewProps> = ({
   children,
+  style,
+  contentContainerStyle,
+  refreshControl,
+  screenName = 'Dashboard',
+  ...props
 }) => {
+  const scrollRef = useRef<ScrollView>(null);
   const context = useContext(TourContext);
 
   useEffect(() => {
-    if (context) {
-      context.registerStep(zone, text, title, icon);
-      return () => context.unregisterStep(zone);
+    if (context && (context as any).registerScrollViewRef && scrollRef.current) {
+      (context as any).registerScrollViewRef(screenName, scrollRef);
     }
-  }, [context, zone, text, title, icon]);
+  }, [context, screenName]);
 
-  return <>{children}</>;
+  return (
+    <ScrollViewContext.Provider value={scrollRef as React.RefObject<ScrollView>}>
+      <ScrollView
+        ref={scrollRef}
+        style={style}
+        contentContainerStyle={contentContainerStyle}
+        refreshControl={refreshControl}
+        {...props}
+      >
+        {children}
+      </ScrollView>
+    </ScrollViewContext.Provider>
+  );
 };
 
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  cardContainer: {
-    width: '100%',
-    maxWidth: 400,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: '#6B7280',
-    fontWeight: '600',
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#F3F0FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: 24,
-  },
-  icon: {
-    fontSize: 40,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1F2937',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  indicators: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 24,
-  },
-  indicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#D1D5DB',
-  },
-  indicatorActive: {
-    backgroundColor: '#A78BFA',
-    width: 24,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  nextButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: '#A78BFA',
-    minWidth: 120,
-    alignItems: 'center',
-  },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  skipText: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  skipTextContent: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    textDecorationLine: 'underline',
-  },
-});
+// Hook to register navigation callback - call in main screen
+export const useTourNavigation = () => {
+  const context = useContext(TourContext);
+  const navigation = useNavigation<any>();
+
+  useEffect(() => {
+    if (context && (context as any).setNavigationCallback) {
+      (context as any).setNavigationCallback((screen: string) => {
+        console.log('[Tour] Navigating to:', screen);
+        navigation.navigate(screen);
+      });
+    }
+  }, [context, navigation]);
+};
+
+// Controller context and hook
+
+interface TourController {
+  start: () => void;
+  stop: () => void;
+  canStart: boolean;
+  eventEmitter: any;
+}
+
+const TourControllerContext = createContext<{ controller: TourController } | null>(null);
+
+export const useTourGuideController = () => {
+  const context = useContext(TourControllerContext);
+  if (!context) throw new Error("useTourGuideController must be used within TourGuideProvider");
+  return context.controller;
+};
 
 export default TourGuideProvider;
