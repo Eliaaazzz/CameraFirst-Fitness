@@ -160,12 +160,20 @@ export const TourGuideProvider: React.FC<{
     emit('stop');
   }, [emit]);
 
+  // Dashboard zones - skip scrolling when transitioning between them (1->2, 2->3)
+  const DASHBOARD_ZONES = [1, 2, 3];
+
   // Navigate to zone - handles cross-screen navigation
   const goToZone = useCallback((zone: number) => {
     const prevZone = activeZone;
     const targetScreen = ZONE_SCREEN_MAP[zone];
     const prevScreen = prevZone !== null ? ZONE_SCREEN_MAP[prevZone] : currentScreenRef.current;
     const isCrossScreen = targetScreen !== prevScreen;
+
+    // Check if transitioning within Dashboard (1->2, 2->3) - skip scroll for these
+    const isWithinDashboardTransition = prevZone !== null
+      && DASHBOARD_ZONES.includes(prevZone)
+      && DASHBOARD_ZONES.includes(zone);
 
     // Hide tooltip while transitioning
     setShowTooltip(false);
@@ -176,9 +184,17 @@ export const TourGuideProvider: React.FC<{
       navigationCallbackRef.current(targetScreen);
     }
 
-    // Timeouts: shorter for same screen, medium for cross screen
-    const navDelay = isCrossScreen ? 600 : 100;
-    const scrollDelay = isCrossScreen ? 400 : 200;
+    // Skip scrolling for Dashboard internal transitions (1->2, 2->3)
+    if (isWithinDashboardTransition && !isCrossScreen) {
+      setTimeout(() => {
+        setShowTooltip(true);
+      }, 100);
+      return;
+    }
+
+    // Timeouts: minimal delays for snappy transitions
+    const navDelay = isCrossScreen ? 150 : 50;
+    const scrollDelay = isCrossScreen ? 50 : 50;
 
     setTimeout(() => {
       scrollToZone(zone, null);
