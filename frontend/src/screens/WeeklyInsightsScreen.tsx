@@ -18,6 +18,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import { TourGuideZone } from '@/components/tour/TourProvider';
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { WEEKLY_INSIGHTS_TOUR_STEP } from '@/config/tourSteps';
