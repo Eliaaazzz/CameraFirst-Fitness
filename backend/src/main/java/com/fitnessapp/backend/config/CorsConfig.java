@@ -31,6 +31,8 @@ public class CorsConfig {
             configuration.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:*",
                 "http://127.0.0.1:*",
+                "http://localhost:8081",
+                "http://127.0.0.1:8081",
                 "https://localhost:*",
                 "https://*.aurafitness.org",
                 "https://aurafitness.org"

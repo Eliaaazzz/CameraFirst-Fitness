@@ -31,6 +31,12 @@ public class AuthController {
     @Value("${app.cookie.secure:true}")
     private boolean cookieSecure;
 
+    @Value("${app.cookie.same-site:Strict}")
+    private String cookieSameSite;
+
+    @Value("${app.cookie.domain:}")
+    private String cookieDomain;
+
     /**
      * Unified login endpoint supporting all authentication methods.
      * For web clients (detected via User-Agent), sets JWT as HttpOnly cookie.
@@ -122,14 +128,18 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletResponse response) {
         // Clear the JWT cookie by setting maxAge to 0
-        ResponseCookie cookie = ResponseCookie.from(JWT_COOKIE_NAME, "")
+        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from(JWT_COOKIE_NAME, "")
                 .httpOnly(true)
                 .secure(cookieSecure)
-                .sameSite("Strict")
+                .sameSite(cookieSameSite)
                 .path("/")
-                .maxAge(0)
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+                .maxAge(0);
+
+        if (cookieDomain != null && !cookieDomain.isBlank()) {
+            cookieBuilder = cookieBuilder.domain(cookieDomain);
+        }
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookieBuilder.build().toString());
         return ResponseEntity.ok().build();
     }
 
@@ -142,14 +152,18 @@ public class AuthController {
      * This prevents XSS attacks from stealing the token.
      */
     private void setJwtCookie(HttpServletResponse response, String token) {
-        ResponseCookie cookie = ResponseCookie.from(JWT_COOKIE_NAME, token)
+        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from(JWT_COOKIE_NAME, token)
                 .httpOnly(true)
                 .secure(cookieSecure)
-                .sameSite("Strict")
+                .sameSite(cookieSameSite)
                 .path("/")
-                .maxAge(jwtExpirationDays * 24 * 60 * 60) // Convert days to seconds
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+                .maxAge(jwtExpirationDays * 24 * 60 * 60); // Convert days to seconds
+
+        if (cookieDomain != null && !cookieDomain.isBlank()) {
+            cookieBuilder = cookieBuilder.domain(cookieDomain);
+        }
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookieBuilder.build().toString());
     }
 
     /**

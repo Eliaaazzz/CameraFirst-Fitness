@@ -36,8 +36,9 @@ ALTER TABLE exercise_videos
 
 -- 3) Backfill thumbnail_url when missing, using YouTube default thumbnail
 --    Applies only when platform='youtube' and youtube_id is present.
+--    Note: Use correct YouTube thumbnail domain i.ytimg.com instead of img.youtube.com
 UPDATE exercise_videos
-SET thumbnail_url = 'https://img.youtube.com/vi/' || youtube_id || '/hqdefault.jpg'
+SET thumbnail_url = 'https://i.ytimg.com/vi/' || youtube_id || '/hqdefault.jpg'
 WHERE thumbnail_url IS NULL
   AND platform = 'youtube'
   AND youtube_id IS NOT NULL;

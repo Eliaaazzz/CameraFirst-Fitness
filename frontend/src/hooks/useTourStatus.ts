@@ -1,6 +1,9 @@
 /**
  * useTourStatus Hook
  * Manages the tour completion status using AsyncStorage
+ * 
+ * In development mode (__DEV__), the tour status is never persisted
+ * so the Welcome Card always shows for testing purposes.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,6 +27,13 @@ export const useTourStatus = (): TourStatus => {
   useEffect(() => {
     const loadTourStatus = async () => {
       try {
+        // In development, always show the welcome card for testing
+        if (__DEV__) {
+          setHasSeenTour(false);
+          setIsLoading(false);
+          return;
+        }
+
         const value = await AsyncStorage.getItem(TOUR_STATUS_KEY);
         setHasSeenTour(value === 'true');
       } catch (error) {
@@ -40,6 +50,13 @@ export const useTourStatus = (): TourStatus => {
   // Mark tour as completed
   const markTourComplete = useCallback(async () => {
     try {
+      // In development, don't persist - just update local state temporarily
+      if (__DEV__) {
+        console.log('[DEV] Tour completed - not persisting for dev testing');
+        setHasSeenTour(true);
+        return;
+      }
+
       await AsyncStorage.setItem(TOUR_STATUS_KEY, 'true');
       setHasSeenTour(true);
     } catch (error) {
@@ -50,6 +67,13 @@ export const useTourStatus = (): TourStatus => {
   // Mark tour as skipped (same as complete for persistence)
   const markTourSkipped = useCallback(async () => {
     try {
+      // In development, don't persist - just update local state temporarily
+      if (__DEV__) {
+        console.log('[DEV] Tour skipped - not persisting for dev testing');
+        setHasSeenTour(true);
+        return;
+      }
+
       await AsyncStorage.setItem(TOUR_STATUS_KEY, 'true');
       setHasSeenTour(true);
     } catch (error) {
@@ -77,3 +101,4 @@ export const useTourStatus = (): TourStatus => {
 };
 
 export default useTourStatus;
+

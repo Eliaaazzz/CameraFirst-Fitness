@@ -25,6 +25,16 @@ r2:
 
 app:
   api-key: ${API_KEY:${APP_API_KEY:fitness-secret-key-123}}  # API Key for request authentication (X-API-Key header)
+  cookie:
+    # For web (cookie-based auth). In cross-site deployments (frontend on a different
+    # domain/subdomain than the API), set same-site to "None" and provide a domain.
+    # These can be overridden by environment variables:
+    #   APP_COOKIE_SECURE=true|false
+    #   APP_COOKIE_SAME_SITE=None|Lax|Strict
+    #   APP_COOKIE_DOMAIN=.aurafitness.org
+    secure: ${APP_COOKIE_SECURE:true}
+    same-site: ${APP_COOKIE_SAME_SITE:Strict}
+    domain: ${APP_COOKIE_DOMAIN:}
   youtube:
     api-key: ${YOUTUBE_API_KEY:}
     ingestion-enabled: ${YOUTUBE_INGESTION_ENABLED:true}
@@ -117,6 +127,12 @@ spring:
     baseline-on-migrate: true
     validate-on-migrate: false
     repair-on-migrate: true
+
+# Dev profile: Relax cookie settings for localhost HTTP development
+app:
+  cookie:
+    secure: false
+    same-site: Lax
 
 management:
   endpoint:
