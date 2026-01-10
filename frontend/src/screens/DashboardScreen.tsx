@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import { TourGuideZone, useTourGuideController } from '@/components/tour/TourProvider';
+import { TourGuideZone, TourScrollView, useTourGuideController, useTourNavigation } from '@/components/tour/TourProvider';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -14,7 +14,6 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
-  ScrollView,
   View
 } from 'react-native';
 
@@ -50,6 +49,7 @@ const DashboardScreen = () => {
 
   // Tour guide controller and navigation
   const { canStart, start, eventEmitter } = useTourGuideController();
+  useTourNavigation(); // Register navigation callback for cross-screen tour steps
 
   const { hasSeenTour, isLoading: tourStatusLoading, markTourComplete, markTourSkipped } = useTourStatus();
 
@@ -267,9 +267,10 @@ const DashboardScreen = () => {
 
   return (
     <SafeAreaWrapper>
-      <ScrollView
+      <TourScrollView
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
+        screenName="Dashboard"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -559,7 +560,7 @@ const DashboardScreen = () => {
             )}
           </View>
         </TourGuideZone>
-      </ScrollView>
+      </TourScrollView>
     </SafeAreaWrapper>
   );
 };

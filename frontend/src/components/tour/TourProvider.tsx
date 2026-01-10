@@ -170,8 +170,13 @@ export const TourGuideProvider: React.FC<{
     const prevScreen = prevZone !== null ? ZONE_SCREEN_MAP[prevZone] : currentScreenRef.current;
     const isCrossScreen = targetScreen !== prevScreen;
 
-    // Check if transitioning within Dashboard (1->2, 2->3) - skip scroll for these
+    // Check if this is the first step (zone 1 starting from null)
+    const isFirstStep = prevZone === null && zone === 1;
+
+    // Skip scrolling for Dashboard transitions (1->2, 2->3) since after scrolling to zone 1,
+    // zones 2 and 3 are already visible in the viewport
     const isWithinDashboardTransition = prevZone !== null
+      && zone !== 1      // Always scroll for zone 1 (first step)
       && DASHBOARD_ZONES.includes(prevZone)
       && DASHBOARD_ZONES.includes(zone);
 
@@ -192,9 +197,10 @@ export const TourGuideProvider: React.FC<{
       return;
     }
 
-    // Timeouts: minimal delays for snappy transitions
-    const navDelay = isCrossScreen ? 150 : 50;
-    const scrollDelay = isCrossScreen ? 50 : 50;
+    // For first step, use longer delays to ensure scroll completes before showing tooltip
+    // Elements may be below viewport and need time to scroll into view
+    const navDelay = isFirstStep ? 100 : (isCrossScreen ? 150 : 50);
+    const scrollDelay = isFirstStep ? 350 : (isCrossScreen ? 50 : 50);
 
     setTimeout(() => {
       scrollToZone(zone, null);
