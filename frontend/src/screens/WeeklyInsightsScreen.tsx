@@ -3,6 +3,7 @@
  * Displays weekly nutrition analytics and trends
  */
 
+import { TourGuideZone } from '@/components/tour/TourProvider';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -10,20 +11,19 @@ import { useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useState } from 'react';
 import {
-	ActivityIndicator,
-	Pressable,
-	RefreshControl,
-	ScrollView,
-	StyleSheet,
-	View,
+    ActivityIndicator,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    View,
 } from 'react-native';
-import { TourGuideZone } from '@/components/tour/TourProvider';
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { WEEKLY_INSIGHTS_TOUR_STEP } from '@/config/tourSteps';
 import { useWeeklyInsights } from '@/hooks/useMealHistory';
 import { GeneratedGoals } from '@/services/geminiApi';
-import { BRAND_COLORS, spacing } from '@/utils';
+import { BRAND_COLORS, spacing, useContentBottomPadding } from '@/utils';
 
 // Storage key for generated goals (shared with ProfileScreen)
 const GENERATED_GOALS_KEY = '@generated_fitness_goals';
@@ -34,6 +34,7 @@ export const WeeklyInsightsScreen = () => {
   const { data, isLoading, error, refetch } = useWeeklyInsights();
   const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const contentBottomPadding = useContentBottomPadding(spacing.xl);
 
   // Load generated goals from AsyncStorage
   const loadGeneratedGoals = useCallback(async () => {
@@ -113,7 +114,7 @@ export const WeeklyInsightsScreen = () => {
     <SafeAreaWrapper>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

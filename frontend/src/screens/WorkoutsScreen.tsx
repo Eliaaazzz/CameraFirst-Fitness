@@ -1,8 +1,8 @@
+import { TourGuideZone } from '@/components/tour/TourProvider';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
-import { TourGuideZone } from '@/components/tour/TourProvider';
 
 import { Container, EmptyStateCard, ListSkeleton, SafeAreaWrapper, SearchBar, SearchSuggestions, Text, WorkoutCard, type SuggestionItem } from '@/components';
 import { WORKOUTS_TOUR_STEP } from '@/config/tourSteps';
@@ -157,6 +157,7 @@ export const WorkoutsScreen = () => {
   }, []);
 
   const handleSuggestionSelect = useCallback((suggestion: SuggestionItem) => {
+    setSearchQuery(suggestion.label);
     handleSearch(suggestion.label);
   }, [handleSearch]);
 
@@ -374,13 +375,6 @@ export const WorkoutsScreen = () => {
           )}
         </View>
       )}
-
-      {/* Saved Workouts Header - hidden when search UI is active */}
-      {!showSearchUI && (
-        <Text variant="heading2" weight="semibold" style={[styles.savedHeader, { color: theme.colors.textPrimary }]}>
-          Saved Workouts
-        </Text>
-      )}
     </View>
   );
 
@@ -389,13 +383,13 @@ export const WorkoutsScreen = () => {
       <Container style={styles.container}>
         <FlatList
           ref={listRef}
-          data={showSearchUI ? [] : workouts}
+          data={[]} // Saved workouts moved to SavedWorkoutsScreen
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
           ItemSeparatorComponent={ItemSeparator}
           ListHeaderComponent={listHeaderComponent}
-          ListEmptyComponent={showSearchUI ? null : listEmptyComponent}
+          ListEmptyComponent={null}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}

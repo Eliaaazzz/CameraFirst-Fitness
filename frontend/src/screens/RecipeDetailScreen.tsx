@@ -5,10 +5,16 @@ import { useRecipeById, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '
 import type { RecipeImageUrls } from '@/types';
 import { radii, spacing } from '@/utils';
 import { getTheme } from '@/utils/theme';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useMemo } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
+
+// ScrollView style for Web compatibility
+const scrollViewStyle: ViewStyle = {
+  flex: 1,
+  overflow: 'scroll' as any, // Required for Web scrolling
+};
 
 // Default food images for recipes without images (using reliable Unsplash source URLs)
 const DEFAULT_FOOD_IMAGES = [
@@ -126,7 +132,7 @@ export const RecipeDetailScreen = () => {
   return (
     <SafeAreaWrapper>
       <ScrollView
-        style={{ flex: 1 }}
+        style={scrollViewStyle}
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={true}
         bounces={true}
@@ -232,16 +238,16 @@ export const RecipeDetailScreen = () => {
           <View style={styles.actions}>
             <Button
               title={isSaved ? 'Saved to Library' : 'Save to Library'}
-              variant={isSaved ? 'secondary' : 'primary'}
+              variant="primary"
               onPress={handleSaveToggle}
               loading={saveRecipe.isPending || removeRecipe.isPending}
+              style={isSaved ? { backgroundColor: '#EDE9FE' } : { backgroundColor: '#7C3AED' }}
+              textColor={isSaved ? '#7C3AED' : '#FFF'}
               icon={
                 isSaved ? (
-                  <View style={{ backgroundColor: theme.colors.primary, borderRadius: 4, padding: 2 }}>
-                    <Feather name="check" size={14} color="#FFF" />
-                  </View>
+                  <Ionicons name="bookmark" size={18} color="#7C3AED" />
                 ) : (
-                  <Feather name="bookmark" size={18} color="#FFF" />
+                  <Ionicons name="bookmark-outline" size={18} color="#FFF" />
                 )
               }
             />

@@ -8,16 +8,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -25,13 +25,13 @@ import { Button, Card, SafeAreaWrapper, Text, WheelPicker } from '@/components';
 import { StateView } from '@/components/common/StateView';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import {
-  GeneratedGoals,
-  generateGoals,
-  GenerateGoalsRequest,
-  getActiveGoal,
-  GoalType,
-  saveGoal,
-  Sex,
+    GeneratedGoals,
+    generateGoals,
+    GenerateGoalsRequest,
+    getActiveGoal,
+    GoalType,
+    saveGoal,
+    Sex,
 } from '@/services/geminiApi';
 import { useGoalStatistics } from '@/services/goalsApi';
 import userApi from '@/services/userApi';
@@ -1155,14 +1155,13 @@ const ProfileScreen = () => {
             'dumbbell',
             'Saved Workouts',
             'Your bookmarked workouts',
-            () => navigation.navigate('Workouts'),
-            stats.data?.activeGoals
+            () => navigation.navigate('SavedWorkouts' as any)
           )}
           {renderMenuItem(
             'book-open-variant',
             'Saved Recipes',
             'Your favorite recipes',
-            () => navigation.navigate('Recipes')
+            () => navigation.navigate('SavedRecipes' as any)
           )}
           {renderMenuItem(
             'food-apple',

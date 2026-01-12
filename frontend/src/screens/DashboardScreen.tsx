@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
+import { TourGuideZone, TourScrollView, useTourGuideController, useTourNavigation } from '@/components/tour/TourProvider';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -12,11 +13,10 @@ import {
   Platform,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
-  View,
+  View
 } from 'react-native';
-import { TourGuideZone, useTourGuideController } from '@/components/tour/TourProvider';
+
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
@@ -28,7 +28,7 @@ import { useDailyNutrition } from '@/hooks/useDailyNutrition';
 import { useTourStatus } from '@/hooks/useTourStatus';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
 import { useGoals, useGoalStatistics } from '@/services/goalsApi';
-import { BRAND_COLORS, colors, radii, shadows, spacing, useContentBottomPadding } from '@/utils';
+import { BRAND_COLORS, colors, spacing, useContentBottomPadding } from '@/utils';
 import { GENERATED_GOALS_KEY } from './ProfileScreen';
 
 // Goal type display config
@@ -47,8 +47,10 @@ const DashboardScreen = () => {
   const goals = useGoals(userId);
   const stats = useGoalStatistics(userId);
 
-  // Tour guide controller and status
+  // Tour guide controller and navigation
   const { canStart, start, eventEmitter } = useTourGuideController();
+  useTourNavigation(); // Register navigation callback for cross-screen tour steps
+
   const { hasSeenTour, isLoading: tourStatusLoading, markTourComplete, markTourSkipped } = useTourStatus();
 
   // Calculate proper bottom padding for tab bar
@@ -134,7 +136,7 @@ const DashboardScreen = () => {
   };
 
   const handleAddFood = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
 
     if (Platform.OS === 'web') {
       await handleChooseFromGallery();
@@ -265,9 +267,10 @@ const DashboardScreen = () => {
 
   return (
     <SafeAreaWrapper>
-      <ScrollView
+      <TourScrollView
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
+        screenName="Dashboard"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -523,27 +526,23 @@ const DashboardScreen = () => {
             ) : (
               nutritionData.meals.map((meal) => (
                 <Card key={meal.id} style={styles.mealItem}>
-                  <View style={styles.mealImageContainer}>
-                    <MealImage
-                      imageUrl={meal.imageUrl}
-                      size={72}
-                      borderRadius={radii.lg}
-                    />
-                  </View>
+                  <MealImage
+                    imageUrl={meal.imageUrl}
+                    size={80}
+                    borderRadius={12}
+                  />
                   <View style={styles.mealDetails}>
                     <View style={styles.mealHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text variant="body" weight="semibold" numberOfLines={2} style={styles.mealName}>
-                          {meal.name}
-                        </Text>
-                        <Text variant="caption" style={styles.mealTime}>
-                          {new Date(meal.consumedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
-                      </View>
+                      <Text variant="body" weight="semibold" numberOfLines={1} style={styles.mealName}>
+                        {meal.name}
+                      </Text>
                       <Text variant="body" weight="bold" style={styles.mealCalories}>
                         {meal.calories} kcal
                       </Text>
                     </View>
+                    <Text variant="caption" style={styles.mealTime}>
+                      {new Date(meal.consumedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
                     <View style={styles.mealMacros}>
                       <Text variant="caption" style={styles.mealMacroText}>
                         P: {Math.round(meal.protein || 0)}g
@@ -561,7 +560,7 @@ const DashboardScreen = () => {
             )}
           </View>
         </TourGuideZone>
-      </ScrollView>
+      </TourScrollView>
     </SafeAreaWrapper>
   );
 };
@@ -594,7 +593,7 @@ const styles = StyleSheet.create({
   },
   // Goals card styles
   goalsCard: {
-    padding: spacing.xl,
+    padding: spacing.lg,
     marginBottom: spacing.lg,
   },
   goalsHeader: {
@@ -650,16 +649,15 @@ const styles = StyleSheet.create({
   },
   // Set goals prompt
   setGoalsPrompt: {
-    borderRadius: radii.xl,
+    borderRadius: 16,
     overflow: 'hidden',
     marginBottom: spacing.lg,
-    ...shadows.light.light,
   },
   setGoalsGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.xl,
-    gap: spacing.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
   },
   setGoalsText: {
     flex: 1,
@@ -676,7 +674,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     alignItems: 'center',
-    padding: spacing.lg,
+    padding: spacing.md,
     gap: spacing.xs,
   },
   statLabel: {
@@ -684,7 +682,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   calorieCard: {
-    padding: spacing.xl,
+    padding: spacing.lg,
     marginBottom: spacing.lg,
   },
   calorieHeader: {
@@ -754,45 +752,39 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   addFoodButton: {
-    borderRadius: radii.xl,
+    borderRadius: 16,
     overflow: 'hidden',
     marginBottom: spacing.lg,
-    ...shadows.light.medium,
   },
   addFoodButtonPressed: {
-    opacity: 0.95,
+    opacity: 0.9,
     transform: [{ scale: 0.98 }],
   },
   addFoodGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.lg,
-    paddingVertical: spacing.xl,
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   addFoodTextContainer: {
     flex: 1,
-    gap: spacing.xs,
   },
   addFoodTitle: {
     color: '#FFF',
-    fontSize: 17,
-    letterSpacing: 0.2,
   },
   addFoodSubtitle: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
   },
   mealsSection: {
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   sectionTitle: {
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   emptyMeals: {
     alignItems: 'center',
-    padding: spacing['2xl'],
-    gap: spacing.md,
+    padding: spacing.xl,
+    gap: spacing.sm,
   },
   emptyMealsText: {
     color: colors.light.textSecondary,
@@ -804,47 +796,35 @@ const styles = StyleSheet.create({
   mealItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: spacing.lg,
-    gap: spacing.lg,
-  },
-  mealImageContainer: {
-    ...shadows.light.light,
-    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: spacing.md,
   },
   mealDetails: {
     flex: 1,
-    gap: spacing.sm,
-    paddingVertical: spacing.xs,
+    gap: spacing.xs,
   },
   mealHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
+    alignItems: 'center',
   },
   mealName: {
     flex: 1,
-    lineHeight: 22,
+    marginRight: spacing.sm,
   },
   mealTime: {
     color: colors.light.textSecondary,
-    marginTop: spacing.xs,
   },
   mealCalories: {
     color: BRAND_COLORS.primary,
-    fontSize: 15,
   },
   mealMacros: {
     flexDirection: 'row',
-    gap: spacing.lg,
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.light.borderSubtle,
+    gap: spacing.md,
+    marginTop: spacing.xs,
   },
   mealMacroText: {
     color: colors.light.textSecondary,
-    fontSize: 13,
   },
 });
 

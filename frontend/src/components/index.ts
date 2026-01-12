@@ -26,6 +26,7 @@ export * from './WorkoutCard';
 export * from './YouTubePlayerModal';
 
 // Common components
+export { ListScreen, type ListScreenProps } from './common/ListScreen';
 export { SearchBar } from './common/SearchBar';
 export { SearchSuggestions, type SuggestionItem } from './common/SearchSuggestions';
 export { StateView } from './common/StateView';
