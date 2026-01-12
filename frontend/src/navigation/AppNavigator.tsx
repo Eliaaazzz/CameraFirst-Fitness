@@ -17,11 +17,11 @@ import { RecipeDetailScreen } from '@/screens/RecipeDetailScreen';
 import { RecipesScreen } from '@/screens/RecipesScreen';
 import { ResultsScreen } from '@/screens/ResultsScreen';
 import { ReviewMealScreen } from '@/screens/ReviewMealScreen';
+import { SavedRecipesScreen } from '@/screens/SavedRecipesScreen';
+import { SavedWorkoutsScreen } from '@/screens/SavedWorkoutsScreen';
 import SplashScreen from '@/screens/SplashScreen';
 import { WeeklyInsightsScreen } from '@/screens/WeeklyInsightsScreen';
 import { WorkoutsScreen } from '@/screens/WorkoutsScreen';
-import { SavedWorkoutsScreen } from '@/screens/SavedWorkoutsScreen';
-import { SavedRecipesScreen } from '@/screens/SavedRecipesScreen';
 import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive } from '@/utils';
 
 // Wrap screens with ErrorBoundary to prevent white screen crashes
