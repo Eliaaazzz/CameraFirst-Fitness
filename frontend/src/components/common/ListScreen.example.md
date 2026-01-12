@@ -1,118 +1,121 @@
-# ListScreen 使用指南
+# Navigation & ListScreen Guide
 
-## 问题背景
+## Problem Background
 
-在 Web 端，如果在 Tab 内嵌套 Stack Navigator，会破坏 flex 布局链，导致 FlatList 无法滚动。
+On Web platform, nesting Stack Navigator inside Tab Navigator **without proper styling** breaks the flex layout chain, causing FlatList/ScrollView to not scroll.
 
-**错误模式：**
-```
-Tab.Navigator
-  └── Stack.Navigator (额外嵌套 - 导致滚动失效!)
-        └── Screen
-              └── FlatList
-```
+## Industry Standard: Tab > Stack > Screen
 
-**正确模式：**
-```
-Tab.Navigator
-  └── Tab.Screen (直接挂载)
-        └── FlatList
-```
+**Tab > Stack > Screen is the correct architecture**. The issue is not the nesting itself, but missing Web platform style adaptation.
 
-## 快速使用
-
-### 1. 配置 Navigation（关键！）
+### Solution: Add `cardStyle: { flex: 1 }`
 
 ```tsx
-// AppNavigator.tsx
-
-// ❌ 错误：不要嵌套 Stack Navigator
-const ItemsStack = createStackNavigator();
-const ItemsStackScreen = () => (
-  <ItemsStack.Navigator>
-    <ItemsStack.Screen name="ItemsList" component={ItemsScreen} />
-    <ItemsStack.Screen name="ItemDetail" component={ItemDetailScreen} />
-  </ItemsStack.Navigator>
-);
-
-// ✅ 正确：直接作为 Tab.Screen
-const TAB_CONFIG = [
-  { name: 'Items', component: SafeItemsScreen, ... },
-];
-
-// Detail 页面放在隐藏的 Tab.Screen
-<Tab.Screen
-  name="ItemDetail"
-  component={SafeItemDetailScreen}
-  options={{
-    tabBarButton: () => null,
-    tabBarItemStyle: { display: 'none' },
-    tabBarStyle: { display: 'none' },
-  }}
-/>
-```
-
-### 2. 使用 ListScreen 组件
-
-```tsx
-import { ListScreen } from '@/components/common/ListScreen';
-
-export const MyItemsScreen = () => {
-  // ... hooks and state
-
-  return (
-    <ListScreen
-      title="Items"
-      subtitle="Your items and recommendations."
-      items={savedItems}
-      savedItemIds={savedItemIds}
-      recommendedItems={recommendedItems}
-      searchResults={searchResults}
-      isLoading={isLoading}
-      isError={isError}
-      isRefreshing={isRefreshing}
-      isSearching={isSearching}
-      searchQuery={searchQuery}
-      searchPlaceholder="Search items..."
-      searchSuggestions={ITEM_SUGGESTIONS}
-      onSearch={handleSearch}
-      onClearSearch={clearSearch}
-      onRefresh={handleRefresh}
-      onRetry={handleRetry}
-      tourZone={7}
-      tourText="Search for items here"
-      renderItem={(item) => <ItemCard item={item} />}
-      renderSearchResultItem={(item, isSaved) => <ItemCard item={item} isSaved={isSaved} />}
-      renderRecommendedItem={(item, isSaved) => <ItemCard item={item} isSaved={isSaved} />}
-      renderEmptyIcon={() => <Icon name="inbox" size={32} />}
-      renderErrorIcon={() => <Icon name="alert" size={32} />}
-      getItemId={(item) => item.id}
-      getSearchResultId={(item) => item.id}
-      getRecommendedId={(item) => item.id}
-      emptyTitle="Your saved items will appear here"
-      savedSectionTitle="Saved Items"
-    />
-  );
+// ✅ Correct: Web-compatible Stack Navigator configuration
+const webCompatibleStackScreenOptions = {
+  headerShown: false,
+  cardStyle: { flex: 1 }, // Critical! Ensures content area fills available space
 };
 ```
 
-### 3. 或者直接复制 WorkoutsScreen 结构
+### Why `cardStyle: { flex: 1 }` is needed?
 
-如果不想用封装组件，直接复制 `WorkoutsScreen.tsx` 的结构：
+In React Navigation's Stack Navigator:
+- **Native**: Content fills screen automatically
+- **Web**: Card container may collapse to height 0
+
+`cardStyle: { flex: 1 }` ensures the Stack's card container properly propagates flex layout.
+
+## Factory Function (Recommended)
+
+Use `createTabStackNavigator` factory function for consistent configuration:
 
 ```tsx
-// 1. styles 定义在组件外部
+// Already defined in AppNavigator.tsx
+const createTabStackNavigator = (screens: StackScreenConfig[]) => {
+  const TabStack = createStackNavigator();
+  return function TabStackScreen() {
+    return (
+      <TabStack.Navigator screenOptions={webCompatibleStackScreenOptions}>
+        {screens.map((screen) => (
+          <TabStack.Screen
+            key={screen.name}
+            name={screen.name}
+            component={screen.component}
+          />
+        ))}
+      </TabStack.Navigator>
+    );
+  };
+};
+
+// Usage examples:
+const RecipesStackScreen = createTabStackNavigator([
+  { name: 'RecipesList', component: SafeRecipesScreen },
+  { name: 'RecipeDetail', component: SafeRecipeDetailScreen },
+]);
+
+const ProfileStackScreen = createTabStackNavigator([
+  { name: 'ProfileMain', component: SafeProfileScreen },
+  { name: 'WeeklyInsights', component: SafeWeeklyInsightsScreen },
+  { name: 'MealHistory', component: SafeMealHistoryScreen },
+]);
+```
+
+## Complete Architecture
+
+```
+NavigationContainer
+  └── Stack.Navigator (Root)
+        └── Tab.Navigator (Main)
+              ├── Tab.Screen "Dashboard" → DashboardScreen
+              ├── Tab.Screen "Workouts" → WorkoutsScreen
+              ├── Tab.Screen "Recipes" → RecipesStackScreen
+              │     └── Stack.Navigator (cardStyle: { flex: 1 })
+              │           ├── "RecipesList" → RecipesScreen
+              │           └── "RecipeDetail" → RecipeDetailScreen
+              ├── Tab.Screen "Profile" → ProfileStackScreen
+              │     └── Stack.Navigator (cardStyle: { flex: 1 })
+              │           ├── "ProfileMain" → ProfileScreen
+              │           ├── "WeeklyInsights" → WeeklyInsightsScreen
+              │           └── "MealHistory" → MealHistoryScreen
+              └── Hidden Tab.Screens (Results, ReviewMeal, etc.)
+```
+
+## Quick Start
+
+### 1. Use the factory function
+
+```tsx
+// AppNavigator.tsx
+const MyStackScreen = createTabStackNavigator([
+  { name: 'MyList', component: MyListScreen },
+  { name: 'MyDetail', component: MyDetailScreen },
+]);
+```
+
+### 2. Add to TAB_CONFIG
+
+```tsx
+const TAB_CONFIG = [
+  { name: 'MyTab', component: MyStackScreen, ... },
+];
+```
+
+## Screen 组件结构
+
+```tsx
+// styles 定义在组件外部
 const styles = StyleSheet.create({
   container: { flex: 1 },
   listContent: { gap: spacing.md },
-  // ...
 });
 
-// 2. ItemSeparator 定义在组件外部
+// ItemSeparator 定义在组件外部
 const ItemSeparator = () => <View style={{ height: spacing.md }} />;
 
-// 3. 组件结构
-export const MyScreen = () => {
+// 组件结构
+export const ItemsScreen = () => {
   return (
     <SafeAreaWrapper>
       <Container style={styles.container}>
@@ -136,13 +139,13 @@ export const MyScreen = () => {
 
 ## 核心原则
 
-1. **不要在 Tab 内嵌套 Stack Navigator** - 会破坏 Web 端 flex 布局
-2. **styles 和 ItemSeparator 定义在组件外部** - 避免每次渲染重新创建
-3. **Detail 页面用隐藏的 Tab.Screen** - 设置 `tabBarButton: () => null`
+1. **Tab > Stack > Screen 是标准架构** - 不要为了避免嵌套而扁平化
+2. **Stack Navigator 必须添加 `cardStyle: { flex: 1 }`** - Web 端关键修复
+3. **styles 和 ItemSeparator 定义在组件外部** - 避免每次渲染重新创建
 4. **使用 SafeAreaWrapper > Container > FlatList 结构** - 保证正确的 flex 链
 
 ## 参考文件
 
+- Navigation 配置：`frontend/src/navigation/AppNavigator.tsx`
 - 成功案例：`frontend/src/screens/WorkoutsScreen.tsx`
 - 封装组件：`frontend/src/components/common/ListScreen.tsx`
-- Navigation 配置：`frontend/src/navigation/AppNavigator.tsx`

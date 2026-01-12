@@ -1157,14 +1157,13 @@ const ProfileScreen = () => {
             'dumbbell',
             'Saved Workouts',
             'Your bookmarked workouts',
-            () => navigation.navigate('Workouts'),
-            stats.data?.activeGoals
+            () => navigation.navigate('SavedWorkouts' as any)
           )}
           {renderMenuItem(
             'book-open-variant',
             'Saved Recipes',
             'Your favorite recipes',
-            () => navigation.navigate('Recipes')
+            () => navigation.navigate('SavedRecipes' as any)
           )}
           {/* Meal History - Tour Zone 4 */}
           <TourGuideZone

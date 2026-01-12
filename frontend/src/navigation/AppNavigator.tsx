@@ -20,6 +20,8 @@ import { ReviewMealScreen } from '@/screens/ReviewMealScreen';
 import SplashScreen from '@/screens/SplashScreen';
 import { WeeklyInsightsScreen } from '@/screens/WeeklyInsightsScreen';
 import { WorkoutsScreen } from '@/screens/WorkoutsScreen';
+import { SavedWorkoutsScreen } from '@/screens/SavedWorkoutsScreen';
+import { SavedRecipesScreen } from '@/screens/SavedRecipesScreen';
 import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive } from '@/utils';
 
 // Wrap screens with ErrorBoundary to prevent white screen crashes
@@ -42,6 +44,8 @@ const SafeResultsScreen = withErrorBoundary(ResultsScreen, 'Results');
 const SafeReviewMealScreen = withErrorBoundary(ReviewMealScreen, 'ReviewMeal');
 const SafeMealHistoryScreen = withErrorBoundary(MealHistoryScreen, 'MealHistory');
 const SafeWeeklyInsightsScreen = withErrorBoundary(WeeklyInsightsScreen, 'WeeklyInsights');
+const SafeSavedWorkoutsScreen = withErrorBoundary(SavedWorkoutsScreen, 'SavedWorkouts');
+const SafeSavedRecipesScreen = withErrorBoundary(SavedRecipesScreen, 'SavedRecipes');
 
 const Tab = createBottomTabNavigator();
 // Use createStackNavigator instead of createNativeStackNavigator for Web compatibility
@@ -98,6 +102,68 @@ const DarkNavigationTheme = {
   },
 };
 
+/**
+ * Web-compatible Stack screen options
+ *
+ * IMPORTANT: `cardStyle: { flex: 1 }` is critical for Web platform.
+ * Without this, the Stack Navigator's card container collapses to height 0,
+ * breaking FlatList/ScrollView scrolling.
+ *
+ * This is the industry standard pattern for Tab > Stack > Screen architecture.
+ * Native platforms handle this automatically, but Web requires explicit flex.
+ */
+const webCompatibleStackScreenOptions = {
+  headerShown: false,
+  cardStyle: { flex: 1 },
+};
+
+/**
+ * Creates a Stack Navigator wrapper for a tab with detail screens.
+ * Use this factory function to ensure consistent Web-compatible configuration.
+ *
+ * @example
+ * const RecipesStackScreen = createTabStackNavigator([
+ *   { name: 'RecipesList', component: RecipesScreen },
+ *   { name: 'RecipeDetail', component: RecipeDetailScreen },
+ * ]);
+ */
+type StackScreenConfig = {
+  name: string;
+  component: React.ComponentType<any>;
+};
+
+const createTabStackNavigator = (screens: StackScreenConfig[]) => {
+  const TabStack = createStackNavigator();
+  return function TabStackScreen() {
+    return (
+      <TabStack.Navigator screenOptions={webCompatibleStackScreenOptions}>
+        {screens.map((screen) => (
+          <TabStack.Screen
+            key={screen.name}
+            name={screen.name}
+            component={screen.component}
+          />
+        ))}
+      </TabStack.Navigator>
+    );
+  };
+};
+
+// Stack navigator for Recipes tab: RecipesList -> RecipeDetail
+const RecipesStackScreen = createTabStackNavigator([
+  { name: 'RecipesList', component: SafeRecipesScreen },
+  { name: 'RecipeDetail', component: SafeRecipeDetailScreen },
+]);
+
+// Stack navigator for Profile tab: Profile -> WeeklyInsights / MealHistory / SavedWorkouts / SavedRecipes
+const ProfileStackScreen = createTabStackNavigator([
+  { name: 'ProfileMain', component: SafeProfileScreen },
+  { name: 'WeeklyInsights', component: SafeWeeklyInsightsScreen },
+  { name: 'MealHistory', component: SafeMealHistoryScreen },
+  { name: 'SavedWorkouts', component: SafeSavedWorkoutsScreen },
+  { name: 'SavedRecipes', component: SafeSavedRecipesScreen },
+]);
+
 // Tab configuration for cleaner code
 const TAB_CONFIG = [
   {
@@ -118,7 +184,7 @@ const TAB_CONFIG = [
   },
   {
     name: 'Recipes',
-    component: SafeRecipesScreen,
+    component: RecipesStackScreen, // Use Stack navigator for proper navigation hierarchy
     label: 'Recipes',
     iconActive: 'book-open-variant',
     iconInactive: 'book-open-outline',
@@ -126,7 +192,7 @@ const TAB_CONFIG = [
   },
   {
     name: 'Profile',
-    component: SafeProfileScreen,
+    component: ProfileStackScreen, // Stack navigator for Profile -> WeeklyInsights / MealHistory
     label: 'Profile',
     iconActive: 'user',
     iconInactive: 'user',
@@ -249,36 +315,7 @@ const MainTabs = () => {
           tabBarStyle: { display: 'none' },
         }}
       />
-      <Tab.Screen
-        name="MealHistory"
-        component={SafeMealHistoryScreen}
-        options={{
-          title: 'Meal History',
-          tabBarButton: () => null,
-          tabBarItemStyle: { display: 'none' },
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-      <Tab.Screen
-        name="WeeklyInsights"
-        component={SafeWeeklyInsightsScreen}
-        options={{
-          title: 'Weekly Insights',
-          tabBarButton: () => null,
-          tabBarItemStyle: { display: 'none' },
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-      <Tab.Screen
-        name="RecipeDetail"
-        component={SafeRecipeDetailScreen}
-        options={{
-          title: 'Recipe Detail',
-          tabBarButton: () => null,
-          tabBarItemStyle: { display: 'none' },
-          tabBarStyle: { display: 'none' },
-        }}
-      />
+      {/* MealHistory and WeeklyInsights are now in ProfileStackScreen */}
     </Tab.Navigator>
   );
 };
