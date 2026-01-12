@@ -110,6 +110,7 @@ export const RecipesScreen = () => {
   const [searchResults, setSearchResults] = useState<RecipeSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [hasActiveSearch, setHasActiveSearch] = useState(false); // Track if user has initiated a search
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Calculate bottom padding for content using shared utility
@@ -158,11 +159,31 @@ export const RecipesScreen = () => {
     setSearchQuery('');
     setSearchResults([]);
     setIsSearching(false);
+    setHasActiveSearch(false);
   }, []);
 
-  const handleSuggestionSelect = useCallback((suggestion: SuggestionItem) => {
-    handleSearch(suggestion.label);
-  }, [handleSearch]);
+  const handleSuggestionSelect = useCallback(async (suggestion: SuggestionItem) => {
+    // Clear any pending debounce
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Set query and mark active search BEFORE async call to prevent UI from hiding
+    setSearchQuery(suggestion.label);
+    setHasActiveSearch(true);
+    setIsSearching(true);
+
+    // Immediately trigger search without debounce for suggestion clicks
+    try {
+      const results = await searchRecipes(suggestion.label, 20);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('[RecipesScreen] Search failed:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
 
   const handleRefresh = useCallback(() => {
     if (!saved.isLoading) {
@@ -245,8 +266,8 @@ export const RecipesScreen = () => {
   const recipes = savedRecipes;
   const isRefreshing = saved.isRefetching;
   const isSearchMode = searchQuery.trim().length > 0;
-  // Show search UI when focused or has query text
-  const showSearchUI = isSearchFocused || isSearchMode;
+  // Show search UI when focused, has query text, or has an active search in progress
+  const showSearchUI = isSearchFocused || isSearchMode || hasActiveSearch;
 
   const listHeaderComponent = (
     <View style={styles.header}>
@@ -363,13 +384,6 @@ export const RecipesScreen = () => {
           )}
         </View>
       )}
-
-      {/* Saved Recipes Header - hidden when search UI is active */}
-      {!showSearchUI && (
-        <Text variant="heading2" weight="semibold" style={[styles.savedHeader, { color: theme.colors.textPrimary }]}>
-          Saved Recipes
-        </Text>
-      )}
     </View>
   );
 
@@ -378,13 +392,13 @@ export const RecipesScreen = () => {
       <Container style={styles.container}>
         <FlatList
           ref={listRef}
-          data={showSearchUI ? [] : recipes}
+          data={[]} // Saved recipes moved to SavedRecipesScreen
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
           ItemSeparatorComponent={ItemSeparator}
           ListHeaderComponent={listHeaderComponent}
-          ListEmptyComponent={showSearchUI ? null : listEmptyComponent}
+          ListEmptyComponent={null}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}

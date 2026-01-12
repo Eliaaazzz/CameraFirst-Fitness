@@ -24,7 +24,7 @@ import { Card, SafeAreaWrapper, Text } from '@/components';
 import { WEEKLY_INSIGHTS_TOUR_STEP } from '@/config/tourSteps';
 import { useWeeklyInsights } from '@/hooks/useMealHistory';
 import { GeneratedGoals } from '@/services/geminiApi';
-import { BRAND_COLORS, spacing } from '@/utils';
+import { BRAND_COLORS, spacing, useContentBottomPadding } from '@/utils';
 
 // Storage key for generated goals (shared with ProfileScreen)
 const GENERATED_GOALS_KEY = '@generated_fitness_goals';
@@ -35,6 +35,7 @@ export const WeeklyInsightsScreen = () => {
   const { data, isLoading, error, refetch } = useWeeklyInsights();
   const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const contentBottomPadding = useContentBottomPadding(spacing.xl);
 
   // Load generated goals from AsyncStorage
   const loadGeneratedGoals = useCallback(async () => {
@@ -114,7 +115,7 @@ export const WeeklyInsightsScreen = () => {
     <SafeAreaWrapper>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

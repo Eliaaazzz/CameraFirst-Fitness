@@ -16,6 +16,7 @@ export interface ButtonProps {
   onPress?: () => void;
   style?: any;
   fullWidth?: boolean;
+  textColor?: string;
 }
 
 /**
@@ -32,6 +33,7 @@ export const Button = ({
   style,
   fullWidth,
   onPress,
+  textColor,
 }: ButtonProps) => {
   const [isPressed, setIsPressed] = useState(false);
 
@@ -62,7 +64,7 @@ export const Button = ({
     >
       <View style={styles.content}>
         {loading ? (
-          <ActivityIndicator size="small" color={variantStyle.textColor} />
+          <ActivityIndicator size="small" color={textColor || variantStyle.textColor} />
         ) : (
           <>
             {icon && <View style={styles.icon}>{icon}</View>}
@@ -71,7 +73,7 @@ export const Button = ({
                 styles.label,
                 {
                   fontSize: sizeConfig.fontSize,
-                  color: variantStyle.textColor,
+                  color: textColor || variantStyle.textColor,
                 },
               ]}
             >

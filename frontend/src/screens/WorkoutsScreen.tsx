@@ -158,6 +158,7 @@ export const WorkoutsScreen = () => {
   }, []);
 
   const handleSuggestionSelect = useCallback((suggestion: SuggestionItem) => {
+    setSearchQuery(suggestion.label);
     handleSearch(suggestion.label);
   }, [handleSearch]);
 
@@ -375,13 +376,6 @@ export const WorkoutsScreen = () => {
           )}
         </View>
       )}
-
-      {/* Saved Workouts Header - hidden when search UI is active */}
-      {!showSearchUI && (
-        <Text variant="heading2" weight="semibold" style={[styles.savedHeader, { color: theme.colors.textPrimary }]}>
-          Saved Workouts
-        </Text>
-      )}
     </View>
   );
 
@@ -390,13 +384,13 @@ export const WorkoutsScreen = () => {
       <Container style={styles.container}>
         <FlatList
           ref={listRef}
-          data={showSearchUI ? [] : workouts}
+          data={[]} // Saved workouts moved to SavedWorkoutsScreen
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
           ItemSeparatorComponent={ItemSeparator}
           ListHeaderComponent={listHeaderComponent}
-          ListEmptyComponent={showSearchUI ? null : listEmptyComponent}
+          ListEmptyComponent={null}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
