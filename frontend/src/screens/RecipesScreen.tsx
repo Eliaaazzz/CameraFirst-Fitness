@@ -11,8 +11,7 @@ import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedRecipes, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
 import { RecipeSearchResult, searchRecipes } from '@/services/searchApi';
 import type { SavedRecipe } from '@/types';
-import { spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
-import { getTheme } from '@/utils/theme';
+import { getTheme, spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
 
 // Recipe search suggestions with fun icons
 const RECIPE_SUGGESTIONS: SuggestionItem[] = [
@@ -26,11 +25,71 @@ const RECIPE_SUGGESTIONS: SuggestionItem[] = [
   { id: 'vegetarian', label: 'Vegetarian', icon: 'leaf', color: '#22C55E' },
 ];
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  card: {
+    gap: spacing.sm,
+  },
+  listContent: {
+    gap: spacing.md,
+  },
+  header: {
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  subtitle: {
+    opacity: 0.7,
+  },
+  searchContainer: {
+    marginTop: spacing.md,
+  },
+  suggestionsSection: {
+    marginTop: spacing.sm,
+  },
+  section: {
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  recommendedList: {
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  recommendedCard: {
+    width: 260,
+  },
+  recommendedNote: {
+    opacity: 0.7,
+  },
+  searchResults: {
+    gap: spacing.md,
+  },
+  searchResultCard: {
+    marginBottom: spacing.sm,
+  },
+  noResultsText: {
+    opacity: 0.6,
+  },
+  savedHeader: {
+    marginTop: spacing.lg,
+  },
+  savedAt: {
+    opacity: 0.68,
+    marginTop: spacing.xs,
+  },
+  fab: {
+    position: 'absolute',
+    right: spacing.lg,
+  },
+});
+
+// Moved outside component to prevent recreation on every render
+const ItemSeparator = () => <View style={{ height: spacing.md }} />;
+
 export const RecipesScreen = () => {
   // Always use light mode
   const theme = getTheme('light');
-
-  // All hooks must be called before any early returns
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const userGoal = currentUser.data?.profile?.fitnessGoal;
@@ -54,9 +113,17 @@ export const RecipesScreen = () => {
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Calculate bottom padding for content using shared utility
-  // These hooks MUST be called before any conditional returns
   const listBottomPadding = useContentBottomPadding(spacing.lg);
   const fabBottomPosition = useFABBottomPosition(spacing.md);
+
+  // Memoize empty component BEFORE any conditional returns
+  const listEmptyComponent = useMemo(() => (
+    <EmptyStateCard
+      icon={<Feather name="coffee" size={32} color={theme.colors.primary} />}
+      title="Your saved recipes will appear here"
+      variant="single"
+    />
+  ), [theme]);
 
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
@@ -105,7 +172,13 @@ export const RecipesScreen = () => {
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetY = event.nativeEvent.contentOffset.y;
-    setShowFab(offsetY > 240);
+    const shouldShow = offsetY > 240;
+    setShowFab(currentValue => {
+      if (currentValue !== shouldShow) {
+        return shouldShow;
+      }
+      return currentValue;
+    });
   }, []);
 
   const renderItem = useCallback(
@@ -129,14 +202,6 @@ export const RecipesScreen = () => {
     },
     [removeRecipe, theme],
   );
-
-  const listEmptyComponent = useMemo(() => (
-    <EmptyStateCard
-      icon={<Feather name="coffee" size={32} color={theme.colors.primary} />}
-      title="Your saved recipes will appear here"
-      variant="single"
-    />
-  ), [theme]);
 
   // Loading state
   if (currentUser.isLoading || saved.isLoading) {
@@ -179,7 +244,6 @@ export const RecipesScreen = () => {
 
   const recipes = savedRecipes;
   const isRefreshing = saved.isRefetching;
-
   const isSearchMode = searchQuery.trim().length > 0;
   // Show search UI when focused or has query text
   const showSearchUI = isSearchFocused || isSearchMode;
@@ -318,7 +382,7 @@ export const RecipesScreen = () => {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
-          ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
+          ItemSeparatorComponent={ItemSeparator}
           ListHeaderComponent={listHeaderComponent}
           ListEmptyComponent={showSearchUI ? null : listEmptyComponent}
           refreshControl={
@@ -343,63 +407,3 @@ export const RecipesScreen = () => {
     </SafeAreaWrapper>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  card: {
-    gap: spacing.sm,
-  },
-  listContent: {
-    flexGrow: 1,
-    gap: spacing.md,
-  },
-  header: {
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    opacity: 0.7,
-  },
-  searchContainer: {
-    marginTop: spacing.md,
-  },
-  suggestionsSection: {
-    marginTop: spacing.sm,
-  },
-  section: {
-    marginTop: spacing.lg,
-    gap: spacing.sm,
-  },
-  recommendedList: {
-    gap: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  recommendedCard: {
-    width: 260,
-  },
-  recommendedNote: {
-    opacity: 0.7,
-  },
-  searchResults: {
-    gap: spacing.md,
-  },
-  searchResultCard: {
-    marginBottom: spacing.sm,
-  },
-  noResultsText: {
-    opacity: 0.6,
-  },
-  savedHeader: {
-    marginTop: spacing.lg,
-  },
-  savedAt: {
-    opacity: 0.68,
-    marginTop: spacing.xs,
-  },
-  fab: {
-    position: 'absolute',
-    right: spacing.lg,
-  },
-});

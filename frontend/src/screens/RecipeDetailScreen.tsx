@@ -8,7 +8,13 @@ import { getTheme } from '@/utils/theme';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useMemo } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
+
+// ScrollView style for Web compatibility
+const scrollViewStyle: ViewStyle = {
+  flex: 1,
+  overflow: 'scroll' as any, // Required for Web scrolling
+};
 
 // Default food images for recipes without images (using reliable Unsplash source URLs)
 const DEFAULT_FOOD_IMAGES = [
@@ -126,8 +132,8 @@ export const RecipeDetailScreen = () => {
   return (
     <SafeAreaWrapper>
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 100, flexGrow: 1 }}
+        style={scrollViewStyle}
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={true}
         bounces={true}
         keyboardShouldPersistTaps="handled"
