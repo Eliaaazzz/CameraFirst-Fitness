@@ -128,11 +128,12 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
     return getPlaceholderImage(item.id, item.title);
   }, [item.image, item.imageUrl, item.id, item.title]);
 
+  // Responsive image height - same values as WorkoutCard for consistency
   const imageHeight = useResponsiveValue({
     mobile: 160,
     tablet: 180,
-    desktop: 200,
-    wide: 220,
+    desktop: 180,
+    wide: 180,
   });
 
   const handleBookmark = async () => {
@@ -182,7 +183,7 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
   };
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.surface }, cardDynamicStyle]} {...webHoverProps}>
+    <View style={[styles.card, { backgroundColor: '#FFFFFF' }, cardDynamicStyle]} {...webHoverProps}>
       {/* Image - Clickable area */}
       <Pressable
         onPressIn={Platform.OS !== 'web' ? handlePressIn : undefined}
@@ -281,6 +282,7 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.md,
     gap: spacing.xs,
+    minHeight: 120,
   },
   actions: {
     flexDirection: 'row',

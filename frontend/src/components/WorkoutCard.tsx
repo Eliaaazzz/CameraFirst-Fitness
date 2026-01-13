@@ -44,11 +44,12 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
   const duration = item.durationMinutes ? `${item.durationMinutes} min` : '—';
   const equipment = (item.equipment ?? []).slice(0, 2).join(' · ');
 
+  // Responsive image height - same values as RecipeCard for consistency
   const imageHeight = useResponsiveValue({
     mobile: 160,
     tablet: 180,
-    desktop: 200,
-    wide: 220,
+    desktop: 180,
+    wide: 180,
   });
 
   const handleBookmark = async () => {
@@ -89,7 +90,7 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
     <Pressable
       onPressIn={Platform.OS !== 'web' ? handlePressIn : undefined}
       onPressOut={Platform.OS !== 'web' ? handlePressOut : undefined}
-      style={[styles.card, { backgroundColor: theme.colors.surface }, cardDynamicStyle]}
+      style={[styles.card, { backgroundColor: '#FFFFFF' }, cardDynamicStyle]}
       {...webHoverProps}
     >
       {/* Image */}
@@ -190,6 +191,7 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.md,
     gap: spacing.xs,
+    minHeight: 120,
   },
   actions: {
     flexDirection: 'row',

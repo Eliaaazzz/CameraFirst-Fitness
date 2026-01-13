@@ -241,7 +241,11 @@ export const RecipeDetailScreen = () => {
               variant="primary"
               onPress={handleSaveToggle}
               loading={saveRecipe.isPending || removeRecipe.isPending}
-              style={isSaved ? { backgroundColor: '#EDE9FE' } : { backgroundColor: '#7C3AED' }}
+              style={
+                isSaved
+                  ? { backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#7C3AED' }
+                  : { backgroundColor: '#7C3AED' }
+              }
               textColor={isSaved ? '#7C3AED' : '#FFF'}
               icon={
                 isSaved ? (
@@ -420,6 +424,13 @@ const styles = StyleSheet.create({
   },
   nutritionCard: {
     marginBottom: spacing.md,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 0,
   },
   nutritionGrid: {
     flexDirection: 'row',
@@ -449,6 +460,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.lg,
     marginBottom: spacing.md,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 0,
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -458,6 +476,13 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     marginBottom: spacing.md,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 0,
   },
   sectionHeader: {
     flexDirection: 'row',
