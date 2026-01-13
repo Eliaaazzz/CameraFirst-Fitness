@@ -5,6 +5,7 @@ import { Text } from '../Text';
 // Design tokens
 const BULLET_SIZE = 8;
 const STEP_NUMBER_SIZE = 28;
+const INDICATOR_WIDTH = 28; // Unified width for both bullet and number badge for text alignment
 const ROW_GAP = 12;
 const PRIMARY_COLOR = '#7C3AED';
 
@@ -26,7 +27,10 @@ export const BulletListItem: React.FC<BulletListItemProps> = ({
 }) => {
   return (
     <View style={[styles.bulletRow, style]}>
-      <View style={[styles.bullet, { backgroundColor: bulletColor }]} />
+      {/* Wrapper to match number badge width for text alignment */}
+      <View style={styles.bulletWrapper}>
+        <View style={[styles.bullet, { backgroundColor: bulletColor }]} />
+      </View>
       <View style={styles.textContainer}>
         <Text style={styles.itemText} numberOfLines={3}>
           {text}
@@ -73,12 +77,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: ROW_GAP,
   },
+  bulletWrapper: {
+    width: INDICATOR_WIDTH, // Same width as number badge for text alignment
+    height: STEP_NUMBER_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
   bullet: {
     width: BULLET_SIZE,
     height: BULLET_SIZE,
     borderRadius: BULLET_SIZE / 2,
-    marginTop: 7, // Align with text baseline
-    flexShrink: 0, // Never shrink
   },
   
   // Numbered list item styles
