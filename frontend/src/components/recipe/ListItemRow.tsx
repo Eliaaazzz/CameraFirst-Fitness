@@ -3,9 +3,9 @@ import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Text } from '../Text';
 
 // Design tokens
-const BULLET_SIZE = 8;
+const BULLET_SIZE = 10; // Slightly larger for better visibility
 const STEP_NUMBER_SIZE = 28;
-const INDICATOR_WIDTH = 28; // Unified width for both bullet and number badge for text alignment
+const INDICATOR_WIDTH = STEP_NUMBER_SIZE; // Same as number badge for alignment
 const ROW_GAP = 12;
 const PRIMARY_COLOR = '#7C3AED';
 
@@ -78,11 +78,14 @@ const styles = StyleSheet.create({
     gap: ROW_GAP,
   },
   bulletWrapper: {
-    width: INDICATOR_WIDTH, // Same width as number badge for text alignment
+    width: INDICATOR_WIDTH,
     height: STEP_NUMBER_SIZE,
+    borderRadius: STEP_NUMBER_SIZE / 2, // Same shape as number badge
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    // Optional: add subtle background to match number badge style
+    // backgroundColor: 'rgba(124, 58, 237, 0.08)',
   },
   bullet: {
     width: BULLET_SIZE,
