@@ -25,6 +25,7 @@
     "expo-apple-authentication": "~8.0.8",
     "expo-auth-session": "~7.0.10",
     "expo-av": "~16.0.7",
+    "expo-blur": "~14.0.3",
     "expo-camera": "~17.0.10",
     "expo-crypto": "~15.0.8",
     "expo-file-system": "~19.0.17",

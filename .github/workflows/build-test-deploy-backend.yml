@@ -271,6 +271,23 @@ jobs:
             exit 1
           fi
 
+          # Clean up Docker to free disk space before pulling
+          echo "🧹 Cleaning up Docker to free disk space..."
+          # Check available disk space
+          echo "Current disk usage:"
+          df -h / | head -2
+          
+          # Remove stopped containers
+          docker container prune -f 2>/dev/null || true
+          # Remove unused images (not just dangling)
+          docker image prune -a -f 2>/dev/null || true
+          # Remove build cache
+          docker builder prune -a -f 2>/dev/null || true
+          # NOTE: NOT removing volumes to prevent any data loss
+          
+          echo "Disk usage after cleanup:"
+          df -h / | head -2
+
           # Pull latest image explicitly
           echo "📥 Pulling Docker image..."
           docker pull "$DOCKER_IMAGE" || {
