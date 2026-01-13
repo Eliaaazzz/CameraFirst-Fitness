@@ -9,4 +9,11 @@ module.exports = {
   transformIgnorePatterns: [
     'node_modules/(?!(expo|@expo|react-native|@react-native|@react-navigation|@tanstack|expo-modules-core)/)',
   ],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/**/__tests__/**',
+  ],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['lcov', 'text', 'text-summary'],
 };
