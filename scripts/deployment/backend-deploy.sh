@@ -142,14 +142,37 @@ EOF
 
 echo -e "${GREEN}Step 6: Pulling latest Docker image...${NC}"
 echo "Pulling image: ${DOCKER_IMAGE}"
-echo -e "${GREEN}Pre-clean: reclaiming unused Docker space (safe)${NC}"
-# By default run a safe prune to remove stopped containers, unused networks and dangling images.
+echo -e "${GREEN}Pre-clean: reclaiming unused Docker space${NC}"
+# By default run cleanup to remove stopped containers, unused networks and images.
 # Override by setting DOCKER_CLEANUP=false to skip this step (e.g., in CI where caching matters).
+# Set DOCKER_CLEANUP=aggressive for more thorough cleanup when disk space is critically low.
 if [ "${DOCKER_CLEANUP:-true}" = "true" ]; then
-  echo "Running docker system prune -f to remove stopped containers, unused networks & dangling images..."
-  # don't fail the deployment if prune fails for any reason
-  docker system prune -f || echo -e "${YELLOW}docker system prune failed or returned non-zero; continuing${NC}"
-else
+  # Check available disk space
+  AVAILABLE_SPACE=$(df -BG /var/lib/docker 2>/dev/null | awk 'NR==2 {print $4}' | tr -d 'G' || echo "0")
+  echo "Available disk space: ${AVAILABLE_SPACE}GB"
+  
+  if [ "${DOCKER_CLEANUP}" = "aggressive" ] || [ "${AVAILABLE_SPACE:-0}" -lt 5 ]; then
+    echo -e "${YELLOW}Running aggressive Docker cleanup (low disk space or DOCKER_CLEANUP=aggressive)...${NC}"
+    # Remove all stopped containers
+    docker container prune -f || true
+    # Remove all unused images (not just dangling)
+    docker image prune -a -f || true
+    # Remove build cache
+    docker builder prune -a -f || true
+    # NOTE: NOT removing volumes to prevent any data loss
+    # Final system prune (without volumes)
+    docker system prune -a -f || true
+    echo -e "${GREEN}Aggressive cleanup completed${NC}"
+  else
+    echo "Running docker system prune -f to remove stopped containers, unused networks & dangling images..."
+    # don't fail the deployment if prune fails for any reason
+    docker system prune -f || echo -e "${YELLOW}docker system prune failed or returned non-zero; continuing${NC}"
+  fi
+  
+  # Show disk space after cleanup
+  echo "Disk space after cleanup:"
+  df -h /var/lib/docker 2>/dev/null || df -h / 
+elif [ "${DOCKER_CLEANUP}" = "false" ]; then
   echo "DOCKER_CLEANUP is set to false; skipping docker space cleanup"
 fi
 
