@@ -17,6 +17,7 @@ export const Card = ({ children, style, onPress, elevation = 'light', ...rest }:
 
 const styles = StyleSheet.create({
   base: {
+    backgroundColor: '#FFFFFF',
     borderRadius: radii.lg,
     padding: spacing.lg,
   },
