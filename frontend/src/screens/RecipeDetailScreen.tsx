@@ -1,27 +1,43 @@
-import { Button, Card, Container, SafeAreaWrapper, Text } from '@/components';
+import { Button, Container, SafeAreaWrapper, Text } from '@/components';
 import { SmartRecipeImage } from '@/components/RecipeImage';
+import { BulletListItem, NumberedListItem, SaveButton, SectionCard } from '@/components/recipe';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecipeById, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
 import type { RecipeImageUrls } from '@/types';
-import { radii, spacing } from '@/utils';
 import { getTheme } from '@/utils/theme';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useMemo } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Layout constants
-const PAGE_PADDING_X = spacing.lg;
-const MAX_CONTENT_WIDTH = 760;
+// ============================================================================
+// DESIGN TOKENS - Single source of truth for layout
+// ============================================================================
+const PAGE_X = 20; // Global horizontal padding
+const MAX_CONTENT_WIDTH = 760; // Max width for large screens (web)
+const SECTION_GAP = 14; // Vertical gap between section cards
+const CARD_BORDER_RADIUS = 20;
+const IMAGE_BORDER_RADIUS = 16;
+const IMAGE_HEIGHT = 280;
 
-// ScrollView style for Web compatibility
-const scrollViewStyle: ViewStyle = {
-  flex: 1,
-  overflow: 'scroll' as any, // Required for Web scrolling
-};
+// Typography
+const TITLE_FONT_SIZE = 30;
+const SECTION_TITLE_SIZE = 18;
+const BODY_FONT_SIZE = 16;
+const BODY_LINE_HEIGHT = 22;
 
-// Default food images for recipes without images (using reliable Unsplash source URLs)
+// Colors
+const PRIMARY_COLOR = '#7C3AED';
+const TEXT_PRIMARY = '#1A1A2E';
+const TEXT_SECONDARY = '#6B6B7A';
+const SURFACE_BG = '#F8F8FA';
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+// Default food images for recipes without images
 const DEFAULT_FOOD_IMAGES = [
   'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
   'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=800&q=80',
@@ -30,9 +46,6 @@ const DEFAULT_FOOD_IMAGES = [
   'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
 ];
 
-/**
- * Get a placeholder image based on recipe ID
- */
 function getPlaceholderImageUrls(id: string, title: string): RecipeImageUrls {
   const seed = id || title;
   const hash = seed.split('').reduce((acc, char, idx) => acc + (char.codePointAt(0) || 0) * (idx + 1), 0);
@@ -40,9 +53,6 @@ function getPlaceholderImageUrls(id: string, title: string): RecipeImageUrls {
   return { thumb: url, medium: url, large: url };
 }
 
-/**
- * Format nutrition value with appropriate unit
- */
 const formatNutritionValue = (key: string, value: unknown): string => {
   const num = Number(value);
   if (isNaN(num)) return String(value);
@@ -65,6 +75,15 @@ const formatNutritionValue = (key: string, value: unknown): string => {
   }
 };
 
+// ScrollView style for Web compatibility
+const scrollViewStyle: ViewStyle = {
+  flex: 1,
+  overflow: 'scroll' as any,
+};
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 export const RecipeDetailScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation();
@@ -77,7 +96,7 @@ export const RecipeDetailScreen = () => {
   const saveRecipe = useSaveRecipe(userId);
   const removeRecipe = useRemoveRecipe(userId);
 
-  // Check if we need to fetch full recipe (missing ingredients or steps)
+  // Check if we need to fetch full recipe
   const needsFullRecipe = routeRecipe && (
     !routeRecipe.ingredients ||
     routeRecipe.ingredients.length === 0 ||
@@ -86,46 +105,35 @@ export const RecipeDetailScreen = () => {
     (typeof routeRecipe.steps === 'object' && Object.keys(routeRecipe.steps).length === 0)
   );
 
-  // Fetch full recipe details if needed
   const fullRecipeQuery = useRecipeById(needsFullRecipe ? routeRecipe?.id : undefined);
-
-  // Use full recipe if available, otherwise use route recipe
   const recipe = fullRecipeQuery.data || routeRecipe;
-
   const isSaved = savedRecipes.data?.some((r) => r.id === recipe?.id) ?? false;
+  const isLoadingFullRecipe = needsFullRecipe && fullRecipeQuery.isLoading;
 
   // Build image URLs with fallback
   const imageUrls = useMemo((): RecipeImageUrls => {
-    if (recipe?.image) {
-      return recipe.image;
-    }
+    if (recipe?.image) return recipe.image;
     if (recipe?.imageUrl) {
-      return {
-        thumb: recipe.imageUrl,
-        medium: recipe.imageUrl,
-        large: recipe.imageUrl,
-      };
+      return { thumb: recipe.imageUrl, medium: recipe.imageUrl, large: recipe.imageUrl };
     }
-    // Provide placeholder if no image available
     return getPlaceholderImageUrls(recipe?.id || '', recipe?.title || '');
   }, [recipe]);
 
+  // Not found state
   if (!routeRecipe) {
     return (
       <SafeAreaWrapper>
         <Container>
-          <Card>
+          <SectionCard>
             <Text variant="body">Recipe not found</Text>
             <Button title="Go Back" onPress={() => navigation.goBack()} />
-          </Card>
+          </SectionCard>
         </Container>
       </SafeAreaWrapper>
     );
   }
 
-  // Always use light mode
   const theme = getTheme('light');
-  const isLoadingFullRecipe = needsFullRecipe && fullRecipeQuery.isLoading;
 
   const handleSaveToggle = async () => {
     if (isSaved) {
@@ -135,19 +143,36 @@ export const RecipeDetailScreen = () => {
     }
   };
 
+  // Parse ingredient text
+  const getIngredientText = (ing: any): string => {
+    if (typeof ing === 'string') return ing;
+    const { name, quantity, unit } = ing;
+    return `${quantity ? `${quantity} ` : ''}${unit ? `${unit} ` : ''}${name}`;
+  };
+
+  // Parse step text
+  const getStepText = (step: any): string => {
+    if (typeof step === 'string') return step;
+    return step.instruction || step.description || step.text || JSON.stringify(step);
+  };
+
+  const getStepNumber = (step: any, index: number): number => {
+    return typeof step === 'object' && step.step ? step.step : index + 1;
+  };
+
   return (
     <SafeAreaWrapper>
       <ScrollView
         style={scrollViewStyle}
         contentContainerStyle={{
-          paddingTop: insets.top > 0 ? 0 : spacing.md,
+          // CRITICAL: All horizontal padding controlled here
+          paddingHorizontal: PAGE_X,
+          paddingTop: Math.max(insets.top, 12),
           paddingBottom: insets.bottom + 100,
-          paddingHorizontal: PAGE_PADDING_X,
         }}
         showsVerticalScrollIndicator={true}
         bounces={true}
         keyboardShouldPersistTaps="handled"
-        nestedScrollEnabled={true}
       >
         {/* Content wrapper for max-width centering on large screens */}
         <View style={styles.contentWrapper}>
@@ -158,10 +183,10 @@ export const RecipeDetailScreen = () => {
               variant="outline"
               size="small"
               onPress={() => navigation.goBack()}
-              icon={<Feather name="arrow-left" size={20} color={theme.colors.textPrimary} />}
+              icon={<Feather name="arrow-left" size={20} color={TEXT_PRIMARY} />}
             />
             <View style={styles.headerTitleContainer}>
-              <Text variant="heading3" weight="semibold" numberOfLines={1}>
+              <Text style={styles.headerTitle} numberOfLines={1}>
                 Recipe Details
               </Text>
             </View>
@@ -174,280 +199,195 @@ export const RecipeDetailScreen = () => {
               image={imageUrls}
               variant="large"
               style={styles.heroImage}
-              borderRadius={radii.lg}
+              borderRadius={IMAGE_BORDER_RADIUS}
               accessibilityLabel={`${recipe.title} hero image`}
             />
             <View style={styles.imageOverlay}>
-              <View style={[styles.badge, { backgroundColor: theme.colors.primary }]}>
-                <Text variant="label" style={{ color: '#FFF' }}>
+              <View style={styles.difficultyBadge}>
+                <Text style={styles.difficultyText}>
                   {recipe.difficulty?.toUpperCase() || 'EASY'}
                 </Text>
               </View>
             </View>
           </View>
 
-          {/* Main content area */}
-          <View style={styles.mainContent}>
-            {/* Title & Quick Info */}
-            <View style={styles.titleSection}>
-              <Text variant="heading1" weight="bold" style={{ color: theme.colors.textPrimary }}>
-                {recipe.title}
-              </Text>
-              <View style={styles.metaRow}>
+          {/* Title Section */}
+          <View style={styles.titleSection}>
+            <Text style={styles.recipeTitle}>{recipe.title}</Text>
+            <View style={styles.metaRow}>
+              <View style={styles.metaItem}>
+                <Feather name="clock" size={16} color={TEXT_SECONDARY} />
+                <Text style={styles.metaText}>{recipe.timeMinutes} min</Text>
+              </View>
+              {recipe.calories && (
                 <View style={styles.metaItem}>
-                  <Feather name="clock" size={16} color={theme.colors.textSecondary} />
-                  <Text variant="body" style={{ color: theme.colors.textSecondary, marginLeft: 4 }}>
-                    {recipe.timeMinutes} min
-                  </Text>
+                  <Feather name="zap" size={16} color={TEXT_SECONDARY} />
+                  <Text style={styles.metaText}>{recipe.calories} cal</Text>
                 </View>
-                {recipe.calories && (
-                  <View style={styles.metaItem}>
-                    <Feather name="zap" size={16} color={theme.colors.textSecondary} />
-                    <Text variant="body" style={{ color: theme.colors.textSecondary, marginLeft: 4 }}>
-                      {recipe.calories} cal
-                    </Text>
-                  </View>
-                )}
-              </View>
+              )}
             </View>
-
-            {/* Nutrition Summary */}
-            {(recipe.nutritionSummary || recipe.nutrition) && (
-              <Card style={styles.nutritionCard}>
-                <Text variant="heading3" weight="semibold" style={{ marginBottom: spacing.sm }}>
-                  Nutrition
-                </Text>
-                <View style={styles.nutritionGrid}>
-                  {Object.entries(recipe.nutritionSummary || recipe.nutrition || {}).map(([key, value]) => (
-                    <View key={key} style={styles.nutritionItem}>
-                      <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
-                        {key.charAt(0).toUpperCase() + key.slice(1)}
-                      </Text>
-                      <Text variant="body" weight="semibold">
-                        {formatNutritionValue(key, value)}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </Card>
-            )}
-
-            {/* Tags */}
-            {recipe.tags && recipe.tags.length > 0 && (
-              <View style={styles.tagsSection}>
-                <Text variant="heading3" weight="semibold" style={{ marginBottom: spacing.sm }}>
-                  Tags
-                </Text>
-                <View style={styles.tagsRow}>
-                  {recipe.tags.map((tag: string, index: number) => (
-                    <View key={index} style={[styles.tag, { backgroundColor: theme.colors.surfaceVariant }]}>
-                      <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
-                        {tag}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Action Buttons - Save button with consistent styling */}
-            <View style={styles.actions}>
-              <Pressable
-                onPress={handleSaveToggle}
-                disabled={saveRecipe.isPending || removeRecipe.isPending}
-                style={({ pressed }) => [
-                  styles.saveButton,
-                  {
-                    backgroundColor: 'rgba(124, 58, 237, 0.08)', // Constant light purple background
-                    opacity: pressed ? 0.7 : 1,
-                  },
-                ]}
-              >
-                {saveRecipe.isPending || removeRecipe.isPending ? (
-                  <ActivityIndicator size="small" color="#7C3AED" />
-                ) : (
-                  <>
-                    <Ionicons
-                      name={isSaved ? 'bookmark' : 'bookmark-outline'}
-                      size={20}
-                      color={isSaved ? '#7C3AED' : '#6B6B7A'}
-                    />
-                    <Text
-                      variant="body"
-                      weight="semibold"
-                      style={{ marginLeft: spacing.sm, color: isSaved ? '#7C3AED' : theme.colors.textPrimary }}
-                    >
-                      {isSaved ? 'Saved to Library' : 'Save to Library'}
-                    </Text>
-                  </>
-                )}
-              </Pressable>
-            </View>
-
-            {/* Ingredients Section */}
-            {isLoadingFullRecipe ? (
-              <Card style={styles.sectionCard}>
-                <View style={styles.sectionHeader}>
-                  <Feather name="list" size={20} color={theme.colors.primary} />
-                  <View style={styles.sectionHeaderTextContainer}>
-                    <Text variant="heading3" weight="semibold" numberOfLines={1}>
-                      Ingredients
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color={theme.colors.primary} />
-                  <Text variant="caption" style={{ color: theme.colors.textSecondary, marginLeft: spacing.sm }}>
-                    Loading ingredients...
-                  </Text>
-                </View>
-              </Card>
-            ) : recipe.ingredients && recipe.ingredients.length > 0 ? (
-              <Card style={styles.sectionCard}>
-                <View style={styles.sectionHeader}>
-                  <Feather name="list" size={20} color={theme.colors.primary} />
-                  <View style={styles.sectionHeaderTextContainer}>
-                    <Text variant="heading3" weight="semibold" numberOfLines={1}>
-                      Ingredients ({recipe.ingredients.length})
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.ingredientsList}>
-                  {recipe.ingredients.map((ing: any, index: number) => {
-                    // Handle both object format {name, quantity, unit} and string format
-                    const isString = typeof ing === 'string';
-                    const name = isString ? ing : ing.name;
-                    const quantity = isString ? null : ing.quantity;
-                    const unit = isString ? null : ing.unit;
-
-                    return (
-                      <View key={index} style={styles.ingredientItem}>
-                        <View style={[styles.ingredientBullet, { backgroundColor: theme.colors.primary }]} />
-                        <View style={styles.ingredientTextContainer}>
-                          <Text variant="body" numberOfLines={2}>
-                            {quantity ? `${quantity} ` : ''}
-                            {unit ? `${unit} ` : ''}
-                            {name}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              </Card>
-            ) : (
-              <Card style={styles.infoCard}>
-                <Feather name="info" size={20} color={theme.colors.textSecondary} style={{ marginBottom: spacing.xs }} />
-                <Text variant="body" style={{ color: theme.colors.textSecondary, textAlign: 'center' }}>
-                  Ingredients not available for this recipe.
-                </Text>
-              </Card>
-            )}
-
-            {/* Steps Section */}
-            {isLoadingFullRecipe ? (
-              <Card style={styles.sectionCard}>
-                <View style={styles.sectionHeader}>
-                  <Feather name="check-circle" size={20} color={theme.colors.primary} />
-                  <View style={styles.sectionHeaderTextContainer}>
-                    <Text variant="heading3" weight="semibold" numberOfLines={1}>
-                      Instructions
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color={theme.colors.primary} />
-                  <Text variant="caption" style={{ color: theme.colors.textSecondary, marginLeft: spacing.sm }}>
-                    Loading instructions...
-                  </Text>
-                </View>
-              </Card>
-            ) : recipe.steps && (Array.isArray(recipe.steps) ? recipe.steps.length > 0 : Object.keys(recipe.steps).length > 0) ? (
-              <Card style={styles.sectionCard}>
-                <View style={styles.sectionHeader}>
-                  <Feather name="check-circle" size={20} color={theme.colors.primary} />
-                  <View style={styles.sectionHeaderTextContainer}>
-                    <Text variant="heading3" weight="semibold" numberOfLines={1}>
-                      Instructions ({Array.isArray(recipe.steps) ? recipe.steps.length : Object.keys(recipe.steps).length} steps)
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.stepsList}>
-                  {(Array.isArray(recipe.steps) ? recipe.steps : Object.values(recipe.steps)).map((step: any, index: number) => {
-                    // Handle multiple formats: string, {instruction}, {description}, {step, instruction}
-                    let stepText = '';
-                    if (typeof step === 'string') {
-                      stepText = step;
-                    } else if (step.instruction) {
-                      stepText = step.instruction;
-                    } else if (step.description) {
-                      stepText = step.description;
-                    } else if (step.text) {
-                      stepText = step.text;
-                    } else {
-                      stepText = JSON.stringify(step);
-                    }
-
-                    // Use step number from object if available, otherwise use index
-                    const stepNumber = step.step || index + 1;
-
-                    return (
-                      <View key={index} style={styles.stepItem}>
-                        <View style={[styles.stepNumber, { backgroundColor: theme.colors.primary }]}>
-                          <Text variant="label" style={{ color: '#FFF' }}>{stepNumber}</Text>
-                        </View>
-                        <View style={styles.stepTextContainer}>
-                          <Text variant="body" style={{ lineHeight: 24 }}>
-                            {stepText}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              </Card>
-            ) : (
-              <Card style={styles.infoCard}>
-                <Feather name="info" size={20} color={theme.colors.textSecondary} style={{ marginBottom: spacing.xs }} />
-                <Text variant="body" style={{ color: theme.colors.textSecondary, textAlign: 'center' }}>
-                  Cooking steps not available for this recipe.
-                </Text>
-              </Card>
-            )}
-
-            <View style={{ height: spacing.xl }} />
           </View>
+
+          {/* Nutrition Card */}
+          {(recipe.nutritionSummary || recipe.nutrition) && (
+            <SectionCard title="Nutrition" style={styles.sectionCard}>
+              <View style={styles.nutritionGrid}>
+                {Object.entries(recipe.nutritionSummary || recipe.nutrition || {}).map(([key, value]) => (
+                  <View key={key} style={styles.nutritionItem}>
+                    <Text style={styles.nutritionLabel}>
+                      {key.charAt(0).toUpperCase() + key.slice(1)}
+                    </Text>
+                    <Text style={styles.nutritionValue}>
+                      {formatNutritionValue(key, value)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </SectionCard>
+          )}
+
+          {/* Tags */}
+          {recipe.tags && recipe.tags.length > 0 && (
+            <View style={styles.tagsSection}>
+              <Text style={styles.sectionTitle}>Tags</Text>
+              <View style={styles.tagsRow}>
+                {recipe.tags.map((tag: string, index: number) => (
+                  <View key={index} style={styles.tag}>
+                    <Text style={styles.tagText}>{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Save Button */}
+          <View style={styles.saveButtonContainer}>
+            <SaveButton
+              isSaved={isSaved}
+              isLoading={saveRecipe.isPending || removeRecipe.isPending}
+              onPress={handleSaveToggle}
+            />
+          </View>
+
+          {/* Ingredients Card */}
+          {isLoadingFullRecipe ? (
+            <SectionCard
+              title="Ingredients"
+              icon={<Feather name="list" size={20} color={PRIMARY_COLOR} />}
+              style={styles.sectionCard}
+            >
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={PRIMARY_COLOR} />
+                <Text style={styles.loadingText}>Loading ingredients...</Text>
+              </View>
+            </SectionCard>
+          ) : recipe.ingredients && recipe.ingredients.length > 0 ? (
+            <SectionCard
+              title={`Ingredients (${recipe.ingredients.length})`}
+              icon={<Feather name="list" size={20} color={PRIMARY_COLOR} />}
+              style={styles.sectionCard}
+            >
+              <View style={styles.listContainer}>
+                {recipe.ingredients.map((ing: any, index: number) => (
+                  <BulletListItem
+                    key={index}
+                    text={getIngredientText(ing)}
+                    bulletColor={PRIMARY_COLOR}
+                  />
+                ))}
+              </View>
+            </SectionCard>
+          ) : (
+            <SectionCard style={styles.sectionCard}>
+              <View style={styles.emptyState}>
+                <Feather name="info" size={20} color={TEXT_SECONDARY} />
+                <Text style={styles.emptyText}>Ingredients not available for this recipe.</Text>
+              </View>
+            </SectionCard>
+          )}
+
+          {/* Instructions Card */}
+          {isLoadingFullRecipe ? (
+            <SectionCard
+              title="Instructions"
+              icon={<Feather name="check-circle" size={20} color={PRIMARY_COLOR} />}
+              style={styles.sectionCard}
+            >
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={PRIMARY_COLOR} />
+                <Text style={styles.loadingText}>Loading instructions...</Text>
+              </View>
+            </SectionCard>
+          ) : recipe.steps && (Array.isArray(recipe.steps) ? recipe.steps.length > 0 : Object.keys(recipe.steps).length > 0) ? (
+            <SectionCard
+              title={`Instructions (${Array.isArray(recipe.steps) ? recipe.steps.length : Object.keys(recipe.steps).length} steps)`}
+              icon={<Feather name="check-circle" size={20} color={PRIMARY_COLOR} />}
+              style={styles.sectionCard}
+            >
+              <View style={styles.listContainer}>
+                {(Array.isArray(recipe.steps) ? recipe.steps : Object.values(recipe.steps)).map((step: any, index: number) => (
+                  <NumberedListItem
+                    key={index}
+                    number={getStepNumber(step, index)}
+                    text={getStepText(step)}
+                    numberColor={PRIMARY_COLOR}
+                  />
+                ))}
+              </View>
+            </SectionCard>
+          ) : (
+            <SectionCard style={styles.sectionCard}>
+              <View style={styles.emptyState}>
+                <Feather name="info" size={20} color={TEXT_SECONDARY} />
+                <Text style={styles.emptyText}>Cooking steps not available for this recipe.</Text>
+              </View>
+            </SectionCard>
+          )}
+
+          {/* Bottom spacer */}
+          <View style={{ height: 24 }} />
         </View>
       </ScrollView>
     </SafeAreaWrapper>
   );
 };
 
+// ============================================================================
+// STYLES
+// ============================================================================
 const styles = StyleSheet.create({
+  // Content wrapper - handles max-width for large screens
   contentWrapper: {
     alignSelf: 'center',
     width: '100%',
     maxWidth: MAX_CONTENT_WIDTH,
   },
+
+  // Header
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
+    paddingVertical: 12,
+    marginBottom: 8,
   },
   headerTitleContainer: {
     flex: 1,
-    minWidth: 0, // Critical for text truncation in flex row
+    minWidth: 0, // CRITICAL: Prevents text overflow in flex row
     alignItems: 'center',
   },
-  mainContent: {
-    // All content sections go here
+  headerTitle: {
+    fontSize: SECTION_TITLE_SIZE,
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
   },
+
+  // Hero Image
   imageContainer: {
     position: 'relative',
     width: '100%',
-    height: 280,
-    marginBottom: spacing.md,
-    borderRadius: radii.lg,
+    height: IMAGE_HEIGHT,
+    marginBottom: 16,
+    borderRadius: IMAGE_BORDER_RADIUS,
     overflow: 'hidden',
   },
   heroImage: {
@@ -456,122 +396,131 @@ const styles = StyleSheet.create({
   },
   imageOverlay: {
     position: 'absolute',
-    top: spacing.md,
-    right: spacing.md,
+    top: 12,
+    right: 12,
   },
-  badge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.sm,
+  difficultyBadge: {
+    backgroundColor: PRIMARY_COLOR,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
+  difficultyText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // Title Section
   titleSection: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
+    marginBottom: 16,
+  },
+  recipeTitle: {
+    fontSize: TITLE_FONT_SIZE,
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    lineHeight: 36,
   },
   metaRow: {
     flexDirection: 'row',
-    marginTop: spacing.sm,
-    gap: spacing.lg,
+    marginTop: 10,
+    gap: 20,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    minWidth: 0, // Prevent overflow
   },
-  nutritionCard: {
-    marginBottom: spacing.md,
+  metaText: {
+    fontSize: BODY_FONT_SIZE,
+    color: TEXT_SECONDARY,
+    marginLeft: 6,
   },
+
+  // Section Cards
+  sectionCard: {
+    marginBottom: SECTION_GAP,
+  },
+
+  // Nutrition Grid
   nutritionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.md,
+    gap: 16,
   },
   nutritionItem: {
     minWidth: 80,
   },
+  nutritionLabel: {
+    fontSize: 13,
+    color: TEXT_SECONDARY,
+    marginBottom: 2,
+  },
+  nutritionValue: {
+    fontSize: BODY_FONT_SIZE,
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+  },
+
+  // Tags
   tagsSection: {
-    marginBottom: spacing.md,
+    marginBottom: SECTION_GAP,
+  },
+  sectionTitle: {
+    fontSize: SECTION_TITLE_SIZE,
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginBottom: 10,
   },
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
+    gap: 8,
   },
   tag: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.full,
+    backgroundColor: SURFACE_BG,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  actions: {
-    marginVertical: spacing.lg,
+  tagText: {
+    fontSize: 14,
+    color: TEXT_SECONDARY,
   },
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radii.lg,
+
+  // Save Button
+  saveButtonContainer: {
+    marginVertical: 16,
   },
-  infoCard: {
-    alignItems: 'center',
-    padding: spacing.lg,
-    marginBottom: spacing.md,
+
+  // List containers
+  listContainer: {
+    gap: 12,
   },
+
+  // Loading state
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.md,
+    padding: 16,
   },
-  sectionCard: {
-    marginBottom: spacing.md,
+  loadingText: {
+    fontSize: 14,
+    color: TEXT_SECONDARY,
+    marginLeft: 10,
   },
-  sectionHeader: {
-    flexDirection: 'row',
+
+  // Empty state
+  emptyState: {
     alignItems: 'center',
-    marginBottom: spacing.md,
+    padding: 16,
+    gap: 8,
   },
-  sectionHeaderTextContainer: {
-    flex: 1,
-    minWidth: 0, // Critical for text truncation in flex row
-    marginLeft: spacing.sm,
-  },
-  ingredientsList: {
-    gap: spacing.sm,
-  },
-  ingredientItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  ingredientBullet: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginTop: 6, // Align with text baseline
-  },
-  ingredientTextContainer: {
-    flex: 1,
-    minWidth: 0, // Critical for text wrapping in flex row
-  },
-  stepsList: {
-    gap: spacing.md,
-  },
-  stepItem: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  stepNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0, // Prevent shrinking
-  },
-  stepTextContainer: {
-    flex: 1,
-    minWidth: 0, // Critical for text wrapping in flex row
+  emptyText: {
+    fontSize: 14,
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
   },
 });
 
