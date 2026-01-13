@@ -128,12 +128,6 @@ spring:
     validate-on-migrate: false
     repair-on-migrate: true
 
-# Dev profile: Relax cookie settings for localhost HTTP development
-app:
-  cookie:
-    secure: false
-    same-site: Lax
-
 management:
   endpoint:
     health:

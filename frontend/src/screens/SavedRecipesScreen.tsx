@@ -8,12 +8,12 @@ import React, { useCallback, useMemo } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 
 import {
-  Container,
-  EmptyStateCard,
-  ListSkeleton,
-  RecipeCard,
-  SafeAreaWrapper,
-  Text,
+    Container,
+    EmptyStateCard,
+    ListSkeleton,
+    RecipeCard,
+    SafeAreaWrapper,
+    Text,
 } from '@/components';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRemoveRecipe, useSavedRecipes } from '@/services';

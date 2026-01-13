@@ -137,7 +137,6 @@ export const RecipeDetailScreen = () => {
         showsVerticalScrollIndicator={true}
         bounces={true}
         keyboardShouldPersistTaps="handled"
-        nestedScrollEnabled={true}
       >
         {/* Header with Back Button */}
         <View style={styles.headerBar}>

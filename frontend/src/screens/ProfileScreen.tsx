@@ -8,32 +8,30 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, SafeAreaWrapper, Text, WheelPicker } from '@/components';
 import { StateView } from '@/components/common/StateView';
-import { TourGuideZone } from '@/components/tour/TourProvider';
-import { MEAL_HISTORY_TOUR_STEP, WEEKLY_INSIGHTS_TOUR_STEP } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import {
-  GeneratedGoals,
-  generateGoals,
-  GenerateGoalsRequest,
-  getActiveGoal,
-  GoalType,
-  saveGoal,
-  Sex,
+    GeneratedGoals,
+    generateGoals,
+    GenerateGoalsRequest,
+    getActiveGoal,
+    GoalType,
+    saveGoal,
+    Sex,
 } from '@/services/geminiApi';
 import { useGoalStatistics } from '@/services/goalsApi';
 import userApi from '@/services/userApi';
@@ -190,17 +188,17 @@ const ProfileScreen = () => {
       // Launch picker
       const result = source === 'camera'
         ? await ImagePicker.launchCameraAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 0.8,
-        })
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          })
         : await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 0.8,
-        });
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          });
 
       if (!result.canceled && result.assets[0]) {
         await uploadAvatar(result.assets[0].uri);
@@ -213,7 +211,7 @@ const ProfileScreen = () => {
 
   const uploadAvatar = async (imageUri: string) => {
     setIsUploadingAvatar(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
     try {
       // Step 1: Convert image URI to blob first to get the actual MIME type
@@ -222,7 +220,7 @@ const ProfileScreen = () => {
 
       // Determine content type dynamically
       let contentType = blob.type;
-
+      
       // Fallback if blob type is missing or generic (common on some Android versions)
       if (!contentType || contentType === 'application/octet-stream') {
         const ext = imageUri.split('.').pop()?.toLowerCase();
@@ -293,7 +291,7 @@ const ProfileScreen = () => {
       // even if refetch is delayed or the screen is not re-rendered yet.
       const newAvatarUrl = updatedProfile?.avatarUrl ?? presignResponse.publicUrl;
       console.log('[ProfileScreen] Setting new avatar URL:', newAvatarUrl);
-
+      
       queryClient.setQueryData<CurrentUserResponse>(['current-user'], (old) => {
         if (!old) return old as any;
         const newData = {
@@ -310,11 +308,11 @@ const ProfileScreen = () => {
       // Force refetch and clear all related caches
       queryClient.invalidateQueries({ queryKey: ['current-user'] });
       queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-
+      
       // Force immediate refetch
       await queryClient.refetchQueries({ queryKey: ['current-user'] });
       console.log('[ProfileScreen] Cache invalidated and refetched');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => { });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
 
     } catch (error) {
       console.error('[ProfileScreen] Avatar upload error:', error);
@@ -431,7 +429,7 @@ const ProfileScreen = () => {
     if (!selectedSex || !selectedGoalType || !userId) return;
 
     setStep('generating');
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
     try {
       const request: GenerateGoalsRequest = {
@@ -485,7 +483,7 @@ const ProfileScreen = () => {
       queryClient.invalidateQueries({ queryKey: ['active-goal'] });
 
       setStep('complete');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => { });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (error) {
       console.error('Failed to generate goals:', error);
       Alert.alert('Error', 'Failed to generate goals. Please try again.');
@@ -507,12 +505,12 @@ const ProfileScreen = () => {
   const handleSaveAndClose = () => {
     console.log('[ProfileScreen] handleSaveAndClose called');
     // Goals are already saved in handleGenerateGoals
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => { });
-
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    
     // Close modal immediately (synchronously)
     console.log('[ProfileScreen] Closing modal immediately');
     setShowGoalsModal(false);
-
+    
     // Reset modal state and navigate in next tick
     setTimeout(() => {
       console.log('[ProfileScreen] Resetting modal state');
@@ -521,7 +519,7 @@ const ProfileScreen = () => {
       setHeightCm(170);
       setWeightKg(70);
       setSelectedGoalType(null);
-
+      
       console.log('[ProfileScreen] Navigating to Dashboard');
       navigation.navigate('Dashboard');
     }, 0);
@@ -646,7 +644,7 @@ const ProfileScreen = () => {
                     ]}
                     onPress={() => {
                       setSelectedSex(option.value);
-                      Haptics.selectionAsync().catch(() => { });
+                      Haptics.selectionAsync().catch(() => {});
                     }}
                     accessibilityRole="button"
                     accessibilityLabel={option.label}
@@ -722,7 +720,7 @@ const ProfileScreen = () => {
                     ]}
                     onPress={() => {
                       setSelectedGoalType(option.value);
-                      Haptics.selectionAsync().catch(() => { });
+                      Haptics.selectionAsync().catch(() => {});
                     }}
                     accessibilityRole="button"
                     accessibilityLabel={`${option.label}: ${option.description}`}
@@ -1165,32 +1163,18 @@ const ProfileScreen = () => {
             'Your favorite recipes',
             () => navigation.navigate('SavedRecipes' as any)
           )}
-          {/* Meal History - Tour Zone 4 */}
-          <TourGuideZone
-            zone={MEAL_HISTORY_TOUR_STEP.zone}
-            text={MEAL_HISTORY_TOUR_STEP.text}
-            title={MEAL_HISTORY_TOUR_STEP.title}
-          >
-            {renderMenuItem(
-              'food-apple',
-              'Meal History',
-              'View your nutrition logs',
-              () => navigation.navigate('MealHistory' as any)
-            )}
-          </TourGuideZone>
-          {/* Weekly Insights - Tour Zone 5 */}
-          <TourGuideZone
-            zone={WEEKLY_INSIGHTS_TOUR_STEP.zone}
-            text={WEEKLY_INSIGHTS_TOUR_STEP.text}
-            title={WEEKLY_INSIGHTS_TOUR_STEP.title}
-          >
-            {renderMenuItem(
-              'chart-line',
-              'Weekly Insights',
-              'Analyze your nutrition trends',
-              () => navigation.navigate('WeeklyInsights' as any)
-            )}
-          </TourGuideZone>
+          {renderMenuItem(
+            'food-apple',
+            'Meal History',
+            'View your nutrition logs',
+            () => navigation.navigate('MealHistory' as any)
+          )}
+          {renderMenuItem(
+            'chart-line',
+            'Weekly Insights',
+            'Analyze your nutrition trends',
+            () => navigation.navigate('WeeklyInsights' as any)
+          )}
         </View>
 
         <View style={styles.menuSection}>
