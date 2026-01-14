@@ -17,6 +17,7 @@ import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
 import com.fitnessapp.backend.user.repository.UserRepository;
+import com.fitnessapp.backend.user.service.UserService;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -36,13 +37,24 @@ public class NutritionTrackingService {
   private final MealLogRepository mealLogRepository;
   private final UserProfileRepository userProfileRepository;
   private final UserRepository userRepository;
+  private final UserService userService;
 
   @Transactional
   public MealLog logMeal(MealLog payload) {
     if (payload.getConsumedAt() == null) {
       payload.setConsumedAt(OffsetDateTime.now());
     }
-    return mealLogRepository.save(payload);
+    MealLog saved = mealLogRepository.save(payload);
+
+    // Update user's activity streak when they log a meal
+    try {
+      userService.updateStreak(payload.getUserId());
+    } catch (Exception e) {
+      log.warn("Failed to update streak for user {}: {}", payload.getUserId(), e.getMessage());
+      // Don't fail the meal logging if streak update fails
+    }
+
+    return saved;
   }
 
   @Transactional(readOnly = true)

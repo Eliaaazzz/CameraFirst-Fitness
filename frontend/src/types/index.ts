@@ -90,6 +90,8 @@ export interface UserProfileResponse {
 export interface CurrentUserResponse {
   userId: string;
   email: string;
+  username: string;
+  currentStreak: number;
   level: string;
   timeBucket: number;
   profile?: UserProfileResponse | null;
