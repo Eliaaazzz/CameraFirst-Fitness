@@ -30,9 +30,14 @@ const deleteProfile = async (): Promise<void> => {
   await api.delete('/api/v1/me/profile');
 };
 
+const updateUsername = async (username: string): Promise<CurrentUserResponse> => {
+  return await api.put<CurrentUserResponse>('/api/v1/me/username', { username });
+};
+
 export default {
   getCurrentUser,
   getProfile,
   upsertProfile,
   deleteProfile,
+  updateUsername,
 };

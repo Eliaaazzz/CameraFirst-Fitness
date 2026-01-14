@@ -345,6 +345,8 @@ export default function LoginScreen() {
     await useAuthStore.getState().signIn(data.token, {
       userId: '', // Will be populated by /api/v1/me call in signIn
       email: data.email,
+      username: '', // Will be populated by /api/v1/me call
+      currentStreak: 0, // Will be populated by /api/v1/me call
       level: '',
       timeBucket: 0,
     });

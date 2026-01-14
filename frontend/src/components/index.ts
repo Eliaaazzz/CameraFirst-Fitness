@@ -5,6 +5,7 @@ export * from './CameraView';
 export * from './Card';
 export * from './Container';
 export * from './CreateGoalModal';
+export * from './EditNameModal';
 export * from './EmptyStateCard';
 export * from './ErrorBoundary';
 export * from './FilterModal';

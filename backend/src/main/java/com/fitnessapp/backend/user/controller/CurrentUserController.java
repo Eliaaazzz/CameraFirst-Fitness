@@ -22,6 +22,7 @@ import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserRepository;
 import com.fitnessapp.backend.user.service.UserProfileService;
+import com.fitnessapp.backend.user.service.UserService;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
@@ -36,6 +37,7 @@ public class CurrentUserController {
   private final CurrentUser currentUser;
   private final UserRepository userRepository;
   private final UserProfileService userProfileService;
+  private final UserService userService;
   private final SmartRecipeService smartRecipeService;
   private final NutritionInsightService nutritionInsightService;
 
@@ -45,9 +47,18 @@ public class CurrentUserController {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
     Optional<UserProfile> profile = userProfileService.getProfile(userId);
+
+    // Derive display name from username or email prefix
+    String displayName = user.getUsername();
+    if (displayName == null || displayName.isBlank()) {
+      displayName = user.getEmail().split("@")[0];
+    }
+
     return ResponseEntity.ok(new MeResponse(
         userId,
         user.getEmail(),
+        displayName,
+        user.getCurrentStreak(),
         user.getLevel(),
         user.getTimeBucket(),
         profile.map(UserProfileMapper::toResponse).orElse(null)
@@ -82,9 +93,35 @@ public class CurrentUserController {
     return ResponseEntity.noContent().build();
   }
 
+  @PutMapping("/username")
+  public ResponseEntity<MeResponse> updateUsername(@Valid @RequestBody UpdateUsernameRequest request) {
+    UUID userId = currentUser.requireUserId();
+    User user = userService.updateUsername(userId, request.username());
+    Optional<UserProfile> profile = userProfileService.getProfile(userId);
+
+    String displayName = user.getUsername();
+    if (displayName == null || displayName.isBlank()) {
+      displayName = user.getEmail().split("@")[0];
+    }
+
+    return ResponseEntity.ok(new MeResponse(
+        userId,
+        user.getEmail(),
+        displayName,
+        user.getCurrentStreak(),
+        user.getLevel(),
+        user.getTimeBucket(),
+        profile.map(UserProfileMapper::toResponse).orElse(null)
+    ));
+  }
+
+  public record UpdateUsernameRequest(String username) {}
+
   public record MeResponse(
       UUID userId,
       String email,
+      String username,
+      Integer currentStreak,
       String level,
       Integer timeBucket,
       UserProfileResponse profile

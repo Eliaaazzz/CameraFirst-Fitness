@@ -18,7 +18,10 @@ import {
 } from 'react-native';
 
 
-import { Card, SafeAreaWrapper, Text } from '@/components';
+import { useQueryClient } from '@tanstack/react-query';
+import { Ionicons } from '@expo/vector-icons';
+
+import { Card, EditNameModal, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
 import { MealImage } from '@/components/nutrition/MealImage';
 import WelcomeTourCard from '@/components/WelcomeTourCard';
@@ -28,6 +31,7 @@ import { useDailyNutrition } from '@/hooks/useDailyNutrition';
 import { useTourStatus } from '@/hooks/useTourStatus';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
 import { useGoals, useGoalStatistics } from '@/services/goalsApi';
+import userApi from '@/services/userApi';
 import { BRAND_COLORS, colors, spacing, useContentBottomPadding } from '@/utils';
 import { GENERATED_GOALS_KEY } from './ProfileScreen';
 
@@ -40,12 +44,17 @@ const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; icon: string; color: s
 
 const DashboardScreen = () => {
   const navigation = useNavigation<any>();
+  const queryClient = useQueryClient();
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId || '';
 
   const { data: nutritionData, refresh } = useDailyNutrition();
   const goals = useGoals(userId);
   const stats = useGoalStatistics(userId);
+
+  // Edit name modal state
+  const [showEditNameModal, setShowEditNameModal] = useState(false);
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
 
   // Tour guide controller and navigation
   const { canStart, start, eventEmitter } = useTourGuideController();
@@ -133,6 +142,32 @@ const DashboardScreen = () => {
       loadGeneratedGoals(),
     ]);
     setRefreshing(false);
+  };
+
+  // Handle username update with optimistic UI
+  const handleUpdateUsername = async (newUsername: string) => {
+    // Store previous data for rollback
+    const previousData = queryClient.getQueryData(['current-user']);
+
+    // Optimistic update
+    queryClient.setQueryData(['current-user'], (old: any) => ({
+      ...old,
+      username: newUsername,
+    }));
+
+    setIsUpdatingName(true);
+    try {
+      await userApi.updateUsername(newUsername);
+      setShowEditNameModal(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      // Rollback on error
+      queryClient.setQueryData(['current-user'], previousData);
+      Alert.alert('Error', 'Failed to update name. Please try again.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsUpdatingName(false);
+    }
   };
 
   const handleAddFood = async () => {
@@ -281,9 +316,22 @@ const DashboardScreen = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text variant="caption" style={styles.greeting}>Good day</Text>
-            <Text variant="heading1" weight="bold">Dashboard</Text>
+          <View style={styles.headerLeft}>
+            <Text variant="caption" style={styles.greeting}>Good day,</Text>
+            <Pressable
+              style={styles.nameRow}
+              onPress={() => setShowEditNameModal(true)}
+            >
+              <Text variant="heading1" weight="bold" style={styles.userName}>
+                {currentUser.data?.username || 'User'}
+              </Text>
+              <View style={styles.streakBadge}>
+                <Ionicons name="flame" size={16} color="#C2410C" />
+                <Text style={styles.streakText}>
+                  {currentUser.data?.currentStreak || 0}
+                </Text>
+              </View>
+            </Pressable>
           </View>
           <Pressable
             style={styles.profileButton}
@@ -398,27 +446,6 @@ const DashboardScreen = () => {
               <Feather name="chevron-right" size={24} color={BRAND_COLORS.primary} />
             </LinearGradient>
           </Pressable>
-        )}
-
-        {/* Quick Stats */}
-        {stats.data && (
-          <View style={styles.quickStats}>
-            <Card style={styles.statCard}>
-              <MaterialCommunityIcons name="fire" size={24} color="#EF4444" />
-              <Text variant="heading2" weight="bold">{stats.data.currentStreak}</Text>
-              <Text variant="caption" style={styles.statLabel}>Day Streak</Text>
-            </Card>
-            <Card style={styles.statCard}>
-              <MaterialCommunityIcons name="target" size={24} color="#10B981" />
-              <Text variant="heading2" weight="bold">{stats.data.activeGoals}</Text>
-              <Text variant="caption" style={styles.statLabel}>Active Goals</Text>
-            </Card>
-            <Card style={styles.statCard}>
-              <MaterialCommunityIcons name="check-circle" size={24} color="#A78BFA" />
-              <Text variant="heading2" weight="bold">{stats.data.completedGoals}</Text>
-              <Text variant="caption" style={styles.statLabel}>Completed</Text>
-            </Card>
-          </View>
         )}
 
         {/* Recommendations are now shown on their respective tabs (Workouts/Recipes) */}
@@ -561,6 +588,15 @@ const DashboardScreen = () => {
           </View>
         </TourGuideZone>
       </TourScrollView>
+
+      {/* Edit Name Modal */}
+      <EditNameModal
+        visible={showEditNameModal}
+        onDismiss={() => setShowEditNameModal(false)}
+        onSave={handleUpdateUsername}
+        currentName={currentUser.data?.username || ''}
+        isLoading={isUpdatingName}
+      />
     </SafeAreaWrapper>
   );
 };
@@ -579,9 +615,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.lg,
   },
+  headerLeft: {
+    flex: 1,
+  },
   greeting: {
     color: colors.light.textSecondary,
     marginBottom: spacing.xs,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  userName: {
+    color: BRAND_COLORS.textPrimary,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEDD5',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 20,
+    gap: 4,
+  },
+  streakText: {
+    color: '#C2410C',
+    fontWeight: '600',
+    fontSize: 14,
   },
   profileButton: {
     width: 44,
@@ -591,10 +652,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Goals card styles
+  // Goals card styles - Aura look
   goalsCard: {
     padding: spacing.lg,
-    marginBottom: spacing.lg,
+    marginBottom: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    shadowColor: '#5B21B6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   goalsHeader: {
     flexDirection: 'row',
@@ -647,11 +715,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
-  // Set goals prompt
+  // Set goals prompt - Aura look
   setGoalsPrompt: {
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: spacing.lg,
+    marginBottom: 24,
+    shadowColor: '#5B21B6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   setGoalsGradient: {
     flexDirection: 'row',
@@ -666,24 +739,17 @@ const styles = StyleSheet.create({
     color: colors.light.textSecondary,
     marginTop: 2,
   },
-  quickStats: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    padding: spacing.md,
-    gap: spacing.xs,
-  },
-  statLabel: {
-    color: colors.light.textSecondary,
-    textAlign: 'center',
-  },
+  // Calorie card - Aura look
   calorieCard: {
     padding: spacing.lg,
-    marginBottom: spacing.lg,
+    marginBottom: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    shadowColor: '#5B21B6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   calorieHeader: {
     flexDirection: 'row',

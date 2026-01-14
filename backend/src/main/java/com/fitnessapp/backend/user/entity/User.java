@@ -3,6 +3,7 @@ package com.fitnessapp.backend.user.entity;
 import com.fitnessapp.backend.auth.AuthProvider;
 import com.fitnessapp.backend.auth.AuthProviderConverter;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.*;
@@ -39,6 +40,16 @@ public class User {
 
   @Column(name = "diet_tilt", length = 50)
   private String dietTilt;
+
+  @Column(name = "username", length = 100)
+  private String username;
+
+  @Column(name = "current_streak", nullable = false)
+  @Builder.Default
+  private Integer currentStreak = 0;
+
+  @Column(name = "last_active_date")
+  private LocalDate lastActiveDate;
 
   @Column(name = "created_at", insertable = false, updatable = false)
   private OffsetDateTime createdAt;
