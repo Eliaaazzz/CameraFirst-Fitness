@@ -32,6 +32,7 @@ import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserRepository;
 import com.fitnessapp.backend.user.service.UserProfileService;
+import com.fitnessapp.backend.user.service.UserService;
 
 @ExtendWith(MockitoExtension.class)
 class CurrentUserControllerTest {
@@ -49,6 +50,9 @@ class CurrentUserControllerTest {
   private UserProfileService userProfileService;
 
   @Mock
+  private UserService userService;
+
+  @Mock
   private SmartRecipeService smartRecipeService;
 
   @Mock
@@ -58,7 +62,7 @@ class CurrentUserControllerTest {
   void setUp() {
     objectMapper = new ObjectMapper();
     objectMapper.findAndRegisterModules();
-    CurrentUserController controller = new CurrentUserController(currentUser, userRepository, userProfileService, smartRecipeService, nutritionInsightService);
+    CurrentUserController controller = new CurrentUserController(currentUser, userRepository, userProfileService, userService, smartRecipeService, nutritionInsightService);
     mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
   }
 

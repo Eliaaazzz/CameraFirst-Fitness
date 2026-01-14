@@ -22,6 +22,7 @@ import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
 import com.fitnessapp.backend.user.repository.UserRepository;
+import com.fitnessapp.backend.user.service.UserService;
 
 @ExtendWith(MockitoExtension.class)
 class NutritionTrackingServiceTest {
@@ -35,13 +36,16 @@ class NutritionTrackingServiceTest {
   @Mock
   private UserRepository userRepository;
 
+  @Mock
+  private UserService userService;
+
   private NutritionTrackingService service;
 
   private UUID userId;
 
   @BeforeEach
   void setUp() {
-    service = new NutritionTrackingService(mealLogRepository, userProfileRepository, userRepository);
+    service = new NutritionTrackingService(mealLogRepository, userProfileRepository, userRepository, userService);
     userId = UUID.randomUUID();
   }
 
