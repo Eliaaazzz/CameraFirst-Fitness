@@ -35,10 +35,10 @@ import userApi from '@/services/userApi';
 import { BRAND_COLORS, colors, spacing, useContentBottomPadding } from '@/utils';
 import { GENERATED_GOALS_KEY } from './ProfileScreen';
 
-// Goal type display config
+// Goal type display config - using target/flag icons to differentiate from streak's fire
 const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; icon: string; color: string }> = {
-  fat_loss: { label: 'Fat Loss', icon: 'fire', color: '#EF4444' },
-  muscle_gain: { label: 'Build Muscle', icon: 'arm-flex', color: '#10B981' },
+  fat_loss: { label: 'Fat Loss', icon: 'target', color: '#EF4444' },
+  muscle_gain: { label: 'Build Muscle', icon: 'flag-checkered', color: '#10B981' },
   diabetes_control: { label: 'Blood Sugar', icon: 'heart-pulse', color: '#3B82F6' },
 };
 
@@ -325,12 +325,17 @@ const DashboardScreen = () => {
               <Text variant="heading1" weight="bold" style={styles.userName}>
                 {currentUser.data?.username || 'User'}
               </Text>
-              <View style={styles.streakBadge}>
-                <Ionicons name="flame" size={16} color="#C2410C" />
+              <LinearGradient
+                colors={['#FCD34D', '#F97316']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.streakBadge}
+              >
+                <Ionicons name="flame" size={16} color="#FFFFFF" />
                 <Text style={styles.streakText}>
                   {currentUser.data?.currentStreak || 0}
                 </Text>
-              </View>
+              </LinearGradient>
             </Pressable>
           </View>
           <Pressable
@@ -352,22 +357,22 @@ const DashboardScreen = () => {
         {/* Generated Goals Card (if available) */}
         {generatedGoals && (
           <Card style={styles.goalsCard}>
-            {/* Goal Type Icon Badge */}
-            {goalTypeConfig && (
-              <View style={[styles.goalTypeBadge, { backgroundColor: `${goalTypeConfig.color}15` }]}>
-                <MaterialCommunityIcons
-                  name={goalTypeConfig.icon as any}
-                  size={28}
-                  color={goalTypeConfig.color}
-                />
-              </View>
-            )}
+            {/* Header: Top-left aligned with icon + title */}
             <View style={styles.goalsHeader}>
               <View style={styles.goalsHeaderLeft}>
+                {goalTypeConfig && (
+                  <View style={[styles.goalTypeIconSmall, { backgroundColor: `${goalTypeConfig.color}15` }]}>
+                    <MaterialCommunityIcons
+                      name={goalTypeConfig.icon as any}
+                      size={20}
+                      color={goalTypeConfig.color}
+                    />
+                  </View>
+                )}
                 <View>
-                  <Text variant="body" weight="bold">Your Goal</Text>
+                  <Text variant="caption" style={styles.goalLabel}>Your Goal</Text>
                   {goalTypeConfig && (
-                    <Text variant="caption" style={{ color: goalTypeConfig.color }}>
+                    <Text variant="body" weight="bold" style={{ color: goalTypeConfig.color }}>
                       {goalTypeConfig.label}
                     </Text>
                   )}
@@ -634,15 +639,14 @@ const styles = StyleSheet.create({
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFEDD5',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: 20,
     gap: 4,
   },
   streakText: {
-    color: '#C2410C',
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontWeight: '700',
     fontSize: 14,
   },
   profileButton: {
@@ -668,22 +672,24 @@ const styles = StyleSheet.create({
   goalsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
+    alignItems: 'flex-start',
+    marginBottom: spacing.lg,
   },
   goalsHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
   },
-  goalTypeBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+  goalTypeIconSmall: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: spacing.md,
+  },
+  goalLabel: {
+    color: BRAND_COLORS.textSecondary,
+    marginBottom: 2,
   },
   editGoalsButton: {
     width: 36,
