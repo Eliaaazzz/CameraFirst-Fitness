@@ -77,10 +77,12 @@ class CurrentUserControllerTest {
         .heightCm(172)
         .weightKg(new BigDecimal("70.0"))
         .build()));
+    when(userService.validateAndGetStreak(userId)).thenReturn(5);
 
     mockMvc.perform(get("/api/v1/me"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.userId").value(userId.toString()))
+        .andExpect(jsonPath("$.currentStreak").value(5))
         .andExpect(jsonPath("$.profile.heightCm").value(172));
   }
 
