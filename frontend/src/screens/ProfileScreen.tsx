@@ -1112,7 +1112,7 @@ const ProfileScreen = () => {
             </View>
             <Button
               title="Regenerate Goals"
-              variant="outline"
+              variant="primary"
               onPress={() => setShowGoalsModal(true)}
             />
           </Card>

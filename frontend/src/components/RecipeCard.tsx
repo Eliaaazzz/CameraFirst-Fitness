@@ -218,9 +218,11 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
 
       {/* Content */}
       <View style={styles.content}>
-        <Text variant="body" weight="semibold" numberOfLines={2} style={{ color: theme.colors.textPrimary }}>
-          {item.title}
-        </Text>
+        <View style={styles.titleContainer}>
+          <Text variant="body" weight="semibold" numberOfLines={2} style={{ color: theme.colors.textPrimary }}>
+            {item.title}
+          </Text>
+        </View>
 
         <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
           {time}{calories ? ` · ${calories}` : ''}
@@ -282,7 +284,10 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.md,
     gap: spacing.xs,
-    minHeight: 120,
+  },
+  titleContainer: {
+    height: 40, // Fixed height for 2 lines of text (body variant ~16px * 1.4 lineHeight * 2)
+    justifyContent: 'flex-start',
   },
   actions: {
     flexDirection: 'row',
