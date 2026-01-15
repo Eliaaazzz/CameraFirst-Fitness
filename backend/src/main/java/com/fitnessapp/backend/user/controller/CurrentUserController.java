@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService;
 import com.fitnessapp.backend.recipe.service.SmartRecipeService;
 import com.fitnessapp.backend.security.CurrentUser;
+import com.fitnessapp.backend.user.dto.StreakUpdateResult;
 import com.fitnessapp.backend.user.dto.UserProfileMapper;
 import com.fitnessapp.backend.user.dto.UserProfileRequest;
 import com.fitnessapp.backend.user.dto.UserProfileResponse;
@@ -48,6 +50,9 @@ public class CurrentUserController {
         .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
     Optional<UserProfile> profile = userProfileService.getProfile(userId);
 
+    // Validate streak (lazy reset if expired)
+    int validatedStreak = userService.validateAndGetStreak(userId);
+
     // Derive display name from username or email prefix
     String displayName = user.getUsername();
     if (displayName == null || displayName.isBlank()) {
@@ -58,11 +63,24 @@ public class CurrentUserController {
         userId,
         user.getEmail(),
         displayName,
-        user.getCurrentStreak(),
+        validatedStreak,
         user.getLevel(),
         user.getTimeBucket(),
         profile.map(UserProfileMapper::toResponse).orElse(null)
     ));
+  }
+
+  /**
+   * Records user activity and updates streak.
+   * Call this endpoint when user completes a meaningful action (e.g., post, workout).
+   *
+   * @return StreakUpdateResult with current streak and whether it was incremented
+   */
+  @PostMapping("/streak")
+  public ResponseEntity<StreakUpdateResult> recordActivity() {
+    UUID userId = currentUser.requireUserId();
+    StreakUpdateResult result = userService.updateStreak(userId);
+    return ResponseEntity.ok(result);
   }
 
   @GetMapping("/profile")

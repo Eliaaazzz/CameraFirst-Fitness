@@ -352,19 +352,20 @@ const DashboardScreen = () => {
         {/* Generated Goals Card (if available) */}
         {generatedGoals && (
           <Card style={styles.goalsCard}>
+            {/* Goal Type Icon Badge */}
+            {goalTypeConfig && (
+              <View style={[styles.goalTypeBadge, { backgroundColor: `${goalTypeConfig.color}15` }]}>
+                <MaterialCommunityIcons
+                  name={goalTypeConfig.icon as any}
+                  size={28}
+                  color={goalTypeConfig.color}
+                />
+              </View>
+            )}
             <View style={styles.goalsHeader}>
               <View style={styles.goalsHeaderLeft}>
-                {goalTypeConfig && (
-                  <View style={[styles.goalTypeIcon, { backgroundColor: `${goalTypeConfig.color}20` }]}>
-                    <MaterialCommunityIcons
-                      name={goalTypeConfig.icon as any}
-                      size={20}
-                      color={goalTypeConfig.color}
-                    />
-                  </View>
-                )}
                 <View>
-                  <Text variant="body" weight="bold">Your Goals</Text>
+                  <Text variant="body" weight="bold">Your Goal</Text>
                   {goalTypeConfig && (
                     <Text variant="caption" style={{ color: goalTypeConfig.color }}>
                       {goalTypeConfig.label}
@@ -675,12 +676,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  goalTypeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  goalTypeBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: spacing.md,
   },
   editGoalsButton: {
     width: 36,
