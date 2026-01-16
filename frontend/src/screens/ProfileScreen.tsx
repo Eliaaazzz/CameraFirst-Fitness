@@ -132,6 +132,7 @@ const ProfileScreen = () => {
 
   // Avatar upload state
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isAvatarLoading, setIsAvatarLoading] = useState(false);
   const [avatarCacheKey, setAvatarCacheKey] = useState(Date.now());
   const avatarUrl = currentUser.data?.profile?.avatarUrl;
 
@@ -274,6 +275,9 @@ const ProfileScreen = () => {
       const newCacheKey = Date.now();
       console.log('[ProfileScreen] Setting new avatar cache key:', newCacheKey);
       setAvatarCacheKey(newCacheKey);
+
+      // Keep showing loading indicator while image loads
+      setIsAvatarLoading(true);
 
       // Force clear React Native Image cache for this URL
       if (Platform.OS !== 'web' && avatarUrl) {
@@ -1048,16 +1052,24 @@ const ProfileScreen = () => {
               accessibilityRole="button"
               accessibilityLabel="Change profile photo"
             >
-              {isUploadingAvatar ? (
+              {(isUploadingAvatar || isAvatarLoading) ? (
                 <ActivityIndicator size="small" color={theme.colors.primary} />
               ) : avatarUrl ? (
                 <Image
                   key={avatarCacheKey}
                   source={{ uri: avatarUri }}
                   style={styles.avatarImage}
-                  onLoadStart={() => console.log('[ProfileScreen] Avatar load start:', avatarUri)}
-                  onLoadEnd={() => console.log('[ProfileScreen] Avatar load end')}
-                  onError={(event) => console.log('[ProfileScreen] Avatar load error:', event.nativeEvent.error)}
+                  onLoadStart={() => {
+                    console.log('[ProfileScreen] Avatar load start:', avatarUri);
+                  }}
+                  onLoadEnd={() => {
+                    console.log('[ProfileScreen] Avatar load end');
+                    setIsAvatarLoading(false);
+                  }}
+                  onError={(event) => {
+                    console.log('[ProfileScreen] Avatar load error:', event.nativeEvent.error);
+                    setIsAvatarLoading(false);
+                  }}
                 />
               ) : (
                 <Feather name="user" size={40} color={theme.colors.primary} />
@@ -1114,6 +1126,8 @@ const ProfileScreen = () => {
               title="Regenerate Goals"
               variant="primary"
               onPress={() => setShowGoalsModal(true)}
+              style={{ backgroundColor: '#7C3AED' }}
+              textColor="#FFFFFF"
             />
           </Card>
         ) : (
