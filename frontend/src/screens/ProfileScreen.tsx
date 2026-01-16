@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Card, SafeAreaWrapper, Text, WheelPicker } from '@/components';
+import { Button, Card, EditNameModal, SafeAreaWrapper, Text, WheelPicker } from '@/components';
 import { StateView } from '@/components/common/StateView';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import {
@@ -136,9 +136,14 @@ const ProfileScreen = () => {
   const [avatarCacheKey, setAvatarCacheKey] = useState(Date.now());
   const avatarUrl = currentUser.data?.profile?.avatarUrl;
 
+  // Edit name modal state
+  const [showEditNameModal, setShowEditNameModal] = useState(false);
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
+
+  // Helper to get the "Cache Busted" URL - ensures Image component treats it as a new resource
   const getAvatarUri = (url: string) => {
     const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}t=${avatarCacheKey}`;
+    return `${url}${separator}v=${avatarCacheKey}`;
   };
 
   // Profile input state
@@ -162,6 +167,32 @@ const ProfileScreen = () => {
   const loadUserEmail = async () => {
     const email = await getUserEmail();
     setUserEmail(email);
+  };
+
+  // Handle username update
+  const handleUpdateUsername = async (newUsername: string) => {
+    // Store previous data for rollback
+    const previousData = queryClient.getQueryData(['current-user']);
+
+    // Optimistic update
+    queryClient.setQueryData(['current-user'], (old: any) => ({
+      ...old,
+      username: newUsername,
+    }));
+
+    setIsUpdatingName(true);
+    try {
+      await userApi.updateUsername(newUsername);
+      setShowEditNameModal(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      // Rollback on error
+      queryClient.setQueryData(['current-user'], previousData);
+      Alert.alert('Error', 'Failed to update name. Please try again.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsUpdatingName(false);
+    }
   };
 
   const handleAvatarPress = async () => {
@@ -202,18 +233,24 @@ const ProfileScreen = () => {
           });
 
       if (!result.canceled && result.assets[0]) {
-        await uploadAvatar(result.assets[0].uri);
+        // FIX: Start loading IMMEDIATELY to show UI feedback instantly
+        setIsUploadingAvatar(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        
+        // Small timeout to allow UI to render the spinner before heavy work
+        setTimeout(() => {
+          uploadAvatar(result.assets[0].uri);
+        }, 50);
       }
     } catch (error) {
       console.error('[ProfileScreen] Image picker error:', error);
       Alert.alert('Error', 'Failed to pick image. Please try again.');
+      setIsUploadingAvatar(false);
     }
   };
 
   const uploadAvatar = async (imageUri: string) => {
-    setIsUploadingAvatar(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-
+    // Note: isUploadingAvatar is already set to true in pickImage for instant feedback
     try {
       // Step 1: Convert image URI to blob first to get the actual MIME type
       const imageResponse = await fetch(imageUri);
@@ -324,13 +361,15 @@ const ProfileScreen = () => {
       console.log('[ProfileScreen] Updated profile avatarUrl:', updatedProfile?.avatarUrl);
       console.log('[ProfileScreen] Presigned publicUrl:', presignResponse.publicUrl);
 
-      // Refresh user data and bust image cache
+      // FIX: Handover the baton (API done -> Image Loading starts)
+      // Set isAvatarLoading BEFORE clearing isUploadingAvatar for seamless transition
+      setIsAvatarLoading(true);
+      setIsUploadingAvatar(false);
+
+      // FIX: Update cache key to force Image component to re-fetch
       const newCacheKey = Date.now();
       console.log('[ProfileScreen] Setting new avatar cache key:', newCacheKey);
       setAvatarCacheKey(newCacheKey);
-
-      // Keep showing loading indicator while image loads
-      setIsAvatarLoading(true);
 
       // Force clear React Native Image cache for this URL
       if (Platform.OS !== 'web' && avatarUrl) {
@@ -374,8 +413,9 @@ const ProfileScreen = () => {
     } catch (error) {
       console.error('[ProfileScreen] Avatar upload error:', error);
       Alert.alert('Upload Failed', 'Failed to upload avatar. Please try again.');
-    } finally {
+      // Reset both loading states on error
       setIsUploadingAvatar(false);
+      setIsAvatarLoading(false);
     }
   };
 
@@ -1084,6 +1124,9 @@ const ProfileScreen = () => {
   // Calculate bottom padding to account for tab bar
   const contentBottomPadding = useContentBottomPadding(spacing.xl);
   const avatarUri = avatarUrl ? getAvatarUri(avatarUrl) : undefined;
+  
+  // Combined loading state for disabling interactions
+  const isAvatarWorking = isUploadingAvatar || isAvatarLoading;
 
   return (
     <SafeAreaWrapper>
@@ -1098,23 +1141,20 @@ const ProfileScreen = () => {
               style={({ pressed }) => [
                 styles.avatar,
                 { backgroundColor: theme.colors.surface },
-                pressed && { opacity: 0.7 },
+                pressed && !isAvatarWorking && { opacity: 0.7 },
               ]}
               onPress={handleAvatarPress}
-              disabled={isUploadingAvatar}
+              disabled={isAvatarWorking}
               accessibilityRole="button"
               accessibilityLabel="Change profile photo"
             >
-              {(isUploadingAvatar || isAvatarLoading) ? (
+              {isAvatarWorking ? (
                 <ActivityIndicator size="small" color={theme.colors.primary} />
               ) : avatarUrl ? (
                 <Image
                   key={avatarCacheKey}
                   source={{ uri: avatarUri }}
                   style={styles.avatarImage}
-                  onLoadStart={() => {
-                    console.log('[ProfileScreen] Avatar load start:', avatarUri);
-                  }}
                   onLoadEnd={() => {
                     console.log('[ProfileScreen] Avatar load end');
                     setIsAvatarLoading(false);
@@ -1132,10 +1172,11 @@ const ProfileScreen = () => {
               style={({ pressed }) => [
                 styles.editAvatarBtn,
                 { backgroundColor: theme.colors.primary },
-                pressed && { opacity: 0.85 },
+                pressed && !isAvatarWorking && { opacity: 0.85 },
+                isAvatarWorking && { opacity: 0.5 },
               ]}
               onPress={handleAvatarPress}
-              disabled={isUploadingAvatar}
+              disabled={isAvatarWorking}
               accessibilityRole="button"
               accessibilityLabel="Change profile photo"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -1249,17 +1290,16 @@ const ProfileScreen = () => {
             Settings
           </Text>
           {renderMenuItem(
+            'account-edit-outline',
+            'Account Details',
+            'Change name, email, password',
+            () => setShowEditNameModal(true)
+          )}
+          {renderMenuItem(
             'bell-outline',
             'Notifications',
             'Manage reminders',
             () => Alert.alert('Coming Soon', 'Notification settings will be available soon.')
-          )}
-          {renderMenuItem(
-            'account-cog-outline',
-            'Account',
-
-            'Manage your account',
-            () => Alert.alert('Coming Soon', 'Account settings will be available soon.')
           )}
         </View>
 
@@ -1283,6 +1323,15 @@ const ProfileScreen = () => {
 
       {/* Only render Modal when it should be visible */}
       {showGoalsModal && renderGoalsModal()}
+
+      {/* Edit Name Modal */}
+      <EditNameModal
+        visible={showEditNameModal}
+        onDismiss={() => setShowEditNameModal(false)}
+        onSave={handleUpdateUsername}
+        currentName={currentUser.data?.username || ''}
+        isLoading={isUpdatingName}
+      />
     </SafeAreaWrapper>
   );
 };
