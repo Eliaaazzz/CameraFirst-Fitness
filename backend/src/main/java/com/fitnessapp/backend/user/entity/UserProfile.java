@@ -107,20 +107,50 @@ public class UserProfile {
     updatedAt = OffsetDateTime.now();
   }
 
+  /**
+   * Applies non-null fields from source to this profile.
+   * Avatar fields (avatarUrl, avatarFileKey) are intentionally excluded
+   * to prevent accidental overwrites during goal regeneration or profile updates.
+   * Use updateAvatar() in UserProfileService for avatar updates.
+   */
   public void apply(UserProfile source) {
-    this.heightCm = source.getHeightCm();
-    this.weightKg = source.getWeightKg();
-    this.bmi = source.getBmi();
-    this.bodyFatPercentage = source.getBodyFatPercentage();
-    this.basalMetabolicRate = source.getBasalMetabolicRate();
-    this.fitnessGoal = source.getFitnessGoal();
-    this.dietaryPreference = source.getDietaryPreference();
-    this.healthMode = source.getHealthMode();
-    this.dailyCalorieTarget = source.getDailyCalorieTarget();
-    this.dailyProteinTarget = source.getDailyProteinTarget();
-    this.dailyCarbsTarget = source.getDailyCarbsTarget();
-    this.dailyFatTarget = source.getDailyFatTarget();
-    this.avatarUrl = source.getAvatarUrl();
-    this.avatarFileKey = source.getAvatarFileKey();
+    if (source.getHeightCm() != null) {
+      this.heightCm = source.getHeightCm();
+    }
+    if (source.getWeightKg() != null) {
+      this.weightKg = source.getWeightKg();
+    }
+    if (source.getBmi() != null) {
+      this.bmi = source.getBmi();
+    }
+    if (source.getBodyFatPercentage() != null) {
+      this.bodyFatPercentage = source.getBodyFatPercentage();
+    }
+    if (source.getBasalMetabolicRate() != null) {
+      this.basalMetabolicRate = source.getBasalMetabolicRate();
+    }
+    if (source.getFitnessGoal() != null) {
+      this.fitnessGoal = source.getFitnessGoal();
+    }
+    if (source.getDietaryPreference() != null) {
+      this.dietaryPreference = source.getDietaryPreference();
+    }
+    if (source.getHealthMode() != null) {
+      this.healthMode = source.getHealthMode();
+    }
+    if (source.getDailyCalorieTarget() != null) {
+      this.dailyCalorieTarget = source.getDailyCalorieTarget();
+    }
+    if (source.getDailyProteinTarget() != null) {
+      this.dailyProteinTarget = source.getDailyProteinTarget();
+    }
+    if (source.getDailyCarbsTarget() != null) {
+      this.dailyCarbsTarget = source.getDailyCarbsTarget();
+    }
+    if (source.getDailyFatTarget() != null) {
+      this.dailyFatTarget = source.getDailyFatTarget();
+    }
+    // Note: avatarUrl and avatarFileKey are NOT updated here.
+    // They should only be updated via UserProfileService.updateAvatar()
   }
 }
