@@ -230,7 +230,14 @@ const ProfileScreen = () => {
         else contentType = DEFAULT_AVATAR_CONTENT_TYPE;
       }
 
-      console.log('[ProfileScreen] Image blob type:', blob.type, 'Detected content type:', contentType);
+      console.log('[ProfileScreen] Image blob type:', blob.type, 'Detected content type:', contentType, 'Size:', blob.size);
+
+      // Check file size (max 5MB for avatars)
+      const MAX_AVATAR_SIZE = 5 * 1024 * 1024; // 5MB
+      if (blob.size > MAX_AVATAR_SIZE) {
+        Alert.alert('Image Too Large', 'Please select an image smaller than 5MB.');
+        return;
+      }
 
       // Step 2: Get presigned URL from backend with the correct content type
       const presignResponse = await api.post<{
@@ -243,25 +250,71 @@ const ProfileScreen = () => {
 
       console.log('[ProfileScreen] Got presigned URL:', presignResponse.uploadUrl.substring(0, 50) + '...');
 
-      // Step 3: Upload image to S3 using presigned URL
+      // Step 3: Upload image to R2 using presigned URL with timeout and retry
       // IMPORTANT: Use native fetch (not axios) to avoid Authorization header conflicts
-      const uploadResponse = await fetch(presignResponse.uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': contentType,
-        },
-        body: blob,
-      });
+      const uploadWithRetry = async (retries = 2): Promise<Response> => {
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          try {
+            // Create AbortController for timeout (60 seconds for upload)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+            const response = await fetch(presignResponse.uploadUrl, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': contentType,
+              },
+              body: blob,
+              signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+              return response;
+            }
+
+            // If not ok and we have retries left, try again
+            if (attempt < retries) {
+              console.warn(`[ProfileScreen] Upload attempt ${attempt + 1} failed with status ${response.status}, retrying...`);
+              await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // Exponential backoff
+              continue;
+            }
+
+            return response;
+          } catch (error: any) {
+            if (error.name === 'AbortError') {
+              console.error(`[ProfileScreen] Upload attempt ${attempt + 1} timed out`);
+              if (attempt < retries) {
+                await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                continue;
+              }
+              throw new Error('Upload timed out. Please check your network connection and try again.');
+            }
+            
+            // Network error - retry if we have attempts left
+            if (attempt < retries) {
+              console.warn(`[ProfileScreen] Upload attempt ${attempt + 1} failed:`, error.message, ', retrying...');
+              await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+              continue;
+            }
+            throw error;
+          }
+        }
+        throw new Error('Upload failed after all retries');
+      };
+
+      const uploadResponse = await uploadWithRetry();
 
       if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text().catch(() => '');
-        console.error('[ProfileScreen] S3 upload failed:', uploadResponse.status, errorText);
-        throw new Error(`S3 upload failed: ${uploadResponse.status}`);
+        console.error('[ProfileScreen] R2 upload failed:', uploadResponse.status, errorText);
+        throw new Error(`Upload failed: ${uploadResponse.status}. Please try again.`);
       }
 
-      console.log('[ProfileScreen] Image uploaded to S3');
+      console.log('[ProfileScreen] Image uploaded to R2');
 
-      // Step 3: Confirm upload with backend
+      // Step 4: Confirm upload with backend
       const updatedProfile = await api.post<UserProfileResponse>('/api/v1/user/avatar/confirm', {
         publicUrl: presignResponse.publicUrl,
         fileKey: presignResponse.fileKey,

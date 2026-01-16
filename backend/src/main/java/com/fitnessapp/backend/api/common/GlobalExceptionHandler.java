@@ -171,6 +171,33 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiEnvelope<Void>> handleIllegalState(
+            IllegalStateException ex,
+            HttpServletRequest request
+    ) {
+        // Check if this is an authentication-related error (from CurrentUser.requireUserId())
+        String message = ex.getMessage();
+        if (message != null && (message.contains("User context is missing") || message.contains("X-API-Key"))) {
+            log.warn("Authentication required: {} at {}", message, request.getRequestURI());
+            ApiEnvelope<Void> response = ApiEnvelope.error(
+                    ErrorCode.UNAUTHORIZED,
+                    "Authentication required",
+                    request.getRequestURI()
+            );
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+
+        // For other IllegalStateException cases, treat as bad request
+        log.warn("Illegal state: {}", message);
+        ApiEnvelope<Void> response = ApiEnvelope.error(
+                ErrorCode.INVALID_REQUEST,
+                message != null ? message : "Invalid operation state",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     // ========== Generic Exception (Catch-all) ==========
 
     @ExceptionHandler(Exception.class)

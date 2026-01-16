@@ -21,6 +21,10 @@ public enum ErrorCode {
     // Success
     SUCCESS(200, "Success", HttpStatus.OK),
 
+    // Authentication errors (1xxx)
+    UNAUTHORIZED(1001, "Authentication required", HttpStatus.UNAUTHORIZED),
+    FORBIDDEN(1002, "Access denied", HttpStatus.FORBIDDEN),
+
     // User/Entity errors (2xxx)
     USER_NOT_FOUND(2001, "User not found", HttpStatus.NOT_FOUND),
     MEAL_NOT_FOUND(2002, "Meal not found", HttpStatus.NOT_FOUND),
