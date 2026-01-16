@@ -21,7 +21,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Card, EditNameModal, SafeAreaWrapper, Text } from '@/components';
+import { Card, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
 import { MealImage } from '@/components/nutrition/MealImage';
 import WelcomeTourCard from '@/components/WelcomeTourCard';
@@ -31,7 +31,6 @@ import { useDailyNutrition } from '@/hooks/useDailyNutrition';
 import { useTourStatus } from '@/hooks/useTourStatus';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
 import { useGoals, useGoalStatistics } from '@/services/goalsApi';
-import userApi from '@/services/userApi';
 import { BRAND_COLORS, colors, spacing, useContentBottomPadding } from '@/utils';
 import { GENERATED_GOALS_KEY } from './ProfileScreen';
 
@@ -52,9 +51,6 @@ const DashboardScreen = () => {
   const goals = useGoals(userId);
   const stats = useGoalStatistics(userId);
 
-  // Edit name modal state
-  const [showEditNameModal, setShowEditNameModal] = useState(false);
-  const [isUpdatingName, setIsUpdatingName] = useState(false);
 
   // Tour guide controller and navigation
   const { canStart, start, eventEmitter } = useTourGuideController();
@@ -142,32 +138,6 @@ const DashboardScreen = () => {
       loadGeneratedGoals(),
     ]);
     setRefreshing(false);
-  };
-
-  // Handle username update with optimistic UI
-  const handleUpdateUsername = async (newUsername: string) => {
-    // Store previous data for rollback
-    const previousData = queryClient.getQueryData(['current-user']);
-
-    // Optimistic update
-    queryClient.setQueryData(['current-user'], (old: any) => ({
-      ...old,
-      username: newUsername,
-    }));
-
-    setIsUpdatingName(true);
-    try {
-      await userApi.updateUsername(newUsername);
-      setShowEditNameModal(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (error) {
-      // Rollback on error
-      queryClient.setQueryData(['current-user'], previousData);
-      Alert.alert('Error', 'Failed to update name. Please try again.');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setIsUpdatingName(false);
-    }
   };
 
   const handleAddFood = async () => {
@@ -318,10 +288,7 @@ const DashboardScreen = () => {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text variant="caption" style={styles.greeting}>Good day,</Text>
-            <Pressable
-              style={styles.nameRow}
-              onPress={() => setShowEditNameModal(true)}
-            >
+            <View style={styles.nameRow}>
               <Text variant="heading1" weight="bold" style={styles.userName}>
                 {currentUser.data?.username || 'User'}
               </Text>
@@ -336,7 +303,7 @@ const DashboardScreen = () => {
                   {currentUser.data?.currentStreak || 0}
                 </Text>
               </LinearGradient>
-            </Pressable>
+            </View>
           </View>
           <Pressable
             style={styles.profileButton}
@@ -595,14 +562,6 @@ const DashboardScreen = () => {
         </TourGuideZone>
       </TourScrollView>
 
-      {/* Edit Name Modal */}
-      <EditNameModal
-        visible={showEditNameModal}
-        onDismiss={() => setShowEditNameModal(false)}
-        onSave={handleUpdateUsername}
-        currentName={currentUser.data?.username || ''}
-        isLoading={isUpdatingName}
-      />
     </SafeAreaWrapper>
   );
 };
