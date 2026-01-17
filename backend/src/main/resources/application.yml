@@ -57,7 +57,8 @@ app:
     api-key: ${ANTHROPIC_API_KEY:}
   gemini:
     api-key: ${GEMINI_API_KEY:}
-    model: ${GEMINI_MODEL:gemini-2.0-flash}
+    model: ${GEMINI_MODEL:gemini-2.5-pro-preview-06-05}
+    enabled: ${GEMINI_ENABLED:true}
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
   apple:
@@ -240,4 +241,3 @@ logging:
 #   USDA_API_KEY=<from-secrets-manager>
 
 # R2 config inherited from default profile (see r2: section above)
-

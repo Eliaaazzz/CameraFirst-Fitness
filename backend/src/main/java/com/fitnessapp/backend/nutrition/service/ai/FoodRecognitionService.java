@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.nutrition.service.ai;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -16,32 +17,29 @@ import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
-import com.fitnessapp.backend.nutrition.service.core.NutritionEngine;
 
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Unified Food Recognition Service that supports multiple AI providers.
  * Handles provider selection, fallback, and async processing.
+ * 
+ * AI providers return nutrition data directly - no external calculation engine needed.
  */
 @Slf4j
 @Service
 public class FoodRecognitionService {
 
     private final List<FoodRecognitionProvider> providers;
-    private final NutritionEngine nutritionEngine;
     private final Executor asyncExecutor;
 
     public FoodRecognitionService(
             List<FoodRecognitionProvider> providers,
-            NutritionEngine nutritionEngine,
             @Qualifier("foodRecognitionExecutor") Executor foodRecognitionExecutor
     ) {
-        // Sort providers by priority (lower = higher priority)
         this.providers = providers.stream()
                 .sorted(Comparator.comparingInt(FoodRecognitionProvider::getPriority))
                 .toList();
-        this.nutritionEngine = nutritionEngine;
         this.asyncExecutor = foodRecognitionExecutor;
 
         log.info("Initialized FoodRecognitionService with {} providers: {}",
@@ -57,14 +55,9 @@ public class FoodRecognitionService {
     }
 
     /**
-     * Recognize foods using a chain of providers.
-     * Tries the preferred provider first (if specified), then falls back to others.
-     * 
-     * @param image The image to analyze
-     * @param preferredProvider The preferred provider name, or null for auto-select
+     * Recognize foods using a chain of providers with fallback.
      */
     public FoodRecognitionResult recognizeFoods(MultipartFile image, String preferredProvider) throws IOException {
-        // 1. Get list of candidate providers sorted by execution order
         List<FoodRecognitionProvider> candidates = getCandidateProviders(preferredProvider);
 
         if (candidates.isEmpty()) {
@@ -73,31 +66,55 @@ public class FoodRecognitionService {
 
         Exception lastException = null;
 
-        // 2. Iterate through candidates (Retry Pattern)
         for (FoodRecognitionProvider provider : candidates) {
-            log.info("Attempting food recognition with provider '{}' ({})", 
-                    provider.getProviderName(), provider.getModelName());
+            log.info("Trying provider '{}' ({})", provider.getProviderName(), provider.getModelName());
 
             try {
-                // Attempt recognition
                 FoodRecognitionResult result = provider.recognizeFoods(image);
-
-                // 3. Enrich with nutrition data (Logic is now centralized here)
-                enrichWithNutrition(result);
-
-                return result; // Success: return immediately
+                log.info("✅ Provider '{}' succeeded with {} items", 
+                        provider.getProviderName(), 
+                        result.getItems() != null ? result.getItems().size() : 0);
+                return result;
 
             } catch (Exception e) {
-                // Log failure and continue to the next provider
-                log.warn("Provider '{}' failed: {}. Trying next provider...", 
-                        provider.getProviderName(), e.getMessage());
+                log.warn("Provider '{}' failed: {}. Trying next...", provider.getProviderName(), e.getMessage());
                 lastException = e;
             }
         }
 
-        // 4. If loop finishes, all providers failed
-        throw new FoodRecognitionException("All providers failed. Last error: " + 
+        throw new FoodRecognitionException("All providers failed: " + 
                 (lastException != null ? lastException.getMessage() : "Unknown error"), lastException);
+    }
+
+    /**
+     * Calculate total nutrition for a list of recognized foods.
+     */
+    public NutritionInfo calculateTotalNutrition(List<RecognizedFood> foods) {
+        if (foods == null || foods.isEmpty()) {
+            return NutritionInfo.zero();
+        }
+
+        BigDecimal totalCalories = BigDecimal.ZERO;
+        BigDecimal totalProtein = BigDecimal.ZERO;
+        BigDecimal totalCarbs = BigDecimal.ZERO;
+        BigDecimal totalFat = BigDecimal.ZERO;
+
+        for (RecognizedFood food : foods) {
+            NutritionInfo n = food.getNutrition();
+            if (n != null) {
+                if (n.getCalories() != null) totalCalories = totalCalories.add(n.getCalories());
+                if (n.getProtein() != null) totalProtein = totalProtein.add(n.getProtein());
+                if (n.getCarbs() != null) totalCarbs = totalCarbs.add(n.getCarbs());
+                if (n.getFat() != null) totalFat = totalFat.add(n.getFat());
+            }
+        }
+
+        return NutritionInfo.builder()
+                .calories(totalCalories)
+                .protein(totalProtein)
+                .carbs(totalCarbs)
+                .fat(totalFat)
+                .build();
     }
 
     /**
@@ -107,13 +124,7 @@ public class FoodRecognitionService {
         return recognizeFoodsAsync(image, null);
     }
 
-    /**
-     * Recognize foods asynchronously with specific provider
-     */
-    public CompletableFuture<FoodRecognitionResult> recognizeFoodsAsync(
-            MultipartFile image,
-            String preferredProvider
-    ) {
+    public CompletableFuture<FoodRecognitionResult> recognizeFoodsAsync(MultipartFile image, String preferredProvider) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 return recognizeFoods(image, preferredProvider);
@@ -123,91 +134,37 @@ public class FoodRecognitionService {
         }, asyncExecutor);
     }
 
-    /**
-     * Recognize foods with timeout
-     */
-    public FoodRecognitionResult recognizeFoodsWithTimeout(
-            MultipartFile image,
-            long timeout,
-            TimeUnit unit
-    ) throws Exception {
-        CompletableFuture<FoodRecognitionResult> future = recognizeFoodsAsync(image);
-        return future.get(timeout, unit);
+    public FoodRecognitionResult recognizeFoodsWithTimeout(MultipartFile image, long timeout, TimeUnit unit) throws Exception {
+        return recognizeFoodsAsync(image).get(timeout, unit);
     }
 
-    /**
-     * Get list of available providers
-     */
     public List<ProviderInfo> getAvailableProviders() {
         return providers.stream()
-                .map(p -> new ProviderInfo(
-                        p.getProviderName(),
-                        p.getModelName(),
-                        p.isAvailable(),
-                        p.getPriority()))
+                .map(p -> new ProviderInfo(p.getProviderName(), p.getModelName(), p.isAvailable(), p.getPriority()))
                 .toList();
     }
 
-    /**
-     * Check if any provider is available
-     */
     public boolean isServiceAvailable() {
         return providers.stream().anyMatch(FoodRecognitionProvider::isAvailable);
     }
 
-    /**
-     * Helper: Get a list of available providers.
-     * If a preferred provider is requested, it moves to the top of the list.
-     */
     private List<FoodRecognitionProvider> getCandidateProviders(String preferredProvider) {
-        // Filter only available providers
         List<FoodRecognitionProvider> available = providers.stream()
                 .filter(FoodRecognitionProvider::isAvailable)
-                .collect(Collectors.toList()); // Use mutable list for sorting
+                .collect(Collectors.toList());
 
         if (preferredProvider != null && !preferredProvider.isBlank()) {
-            // Sort: Preferred provider comes first, others maintain relative order
             available.sort((p1, p2) -> {
                 boolean p1IsPref = p1.getProviderName().equalsIgnoreCase(preferredProvider);
                 boolean p2IsPref = p2.getProviderName().equalsIgnoreCase(preferredProvider);
-                
-                if (p1IsPref && !p2IsPref) return -1; // p1 goes first
-                if (!p1IsPref && p2IsPref) return 1;  // p2 goes first
-                return 0; // maintain original priority order
+                if (p1IsPref && !p2IsPref) return -1;
+                if (!p1IsPref && p2IsPref) return 1;
+                return 0;
             });
         }
         
         return available;
     }
 
-    /**
-     * Enrich recognition result with nutrition data
-     */
-    private void enrichWithNutrition(FoodRecognitionResult result) {
-        if (result == null || result.getItems() == null) {
-            return;
-        }
-
-        for (RecognizedFood food : result.getItems()) {
-            try {
-                nutritionEngine.enrichWithNutrition(food);
-            } catch (Exception e) {
-                log.error("Failed to enrich nutrition for {}: {}", food.getFoodKey(), e.getMessage(), e);
-                food.setNutrition(NutritionInfo.zero());
-                if (food.getEstimatedGrams() == null || food.getEstimatedGrams() <= 0) {
-                    food.setEstimatedGrams(100);
-                }
-            }
-        }
-    }
-
-    /**
-     * Provider info DTO
-     */
-    public record ProviderInfo(
-            String name,
-            String model,
-            boolean available,
-            int priority
-    ) {}
+    public record ProviderInfo(String name, String model, boolean available, int priority) {}
 }

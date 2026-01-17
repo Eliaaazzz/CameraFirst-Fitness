@@ -81,9 +81,12 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
 
     // CRITICAL: Always inject X-API-Key header in every request
     // This is the "Access Card"  - required for all endpoints
+    // Also include user's timezone for accurate date calculations (e.g., streak)
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'X-API-Key': APP_API_KEY,
+      'X-User-Timezone': userTimezone,
       ...config.headers,
     };
 

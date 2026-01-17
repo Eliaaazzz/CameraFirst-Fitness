@@ -32,19 +32,19 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-// Tour steps for other screens (shown when user navigates to them)
-export const MEAL_HISTORY_TOUR_STEP: TourStep = {
+// Tour steps for Profile screen menu items
+export const SAVED_WORKOUTS_TOUR_STEP: TourStep = {
   zone: 4,
-  screen: 'MealHistory',
-  title: 'Meal History',
-  text: 'View your complete meal history. Browse past meals and track your eating patterns over time.',
+  screen: 'Profile',
+  title: 'Saved Workouts',
+  text: 'Access your bookmarked workout videos here. Build your personal workout library for quick access.',
 };
 
-export const WEEKLY_INSIGHTS_TOUR_STEP: TourStep = {
+export const SAVED_RECIPES_TOUR_STEP: TourStep = {
   zone: 5,
-  screen: 'WeeklyInsights',
-  title: 'Weekly Insights',
-  text: 'Get weekly nutrition insights. See trends, averages, and your progress over time.',
+  screen: 'Profile',
+  title: 'Saved Recipes',
+  text: 'Find all your favorite recipes here. Save recipes from the search tab to build your personal cookbook.',
 };
 
 export const WORKOUTS_TOUR_STEP: TourStep = {
@@ -64,8 +64,8 @@ export const RECIPES_TOUR_STEP: TourStep = {
 // All tour steps in order
 export const ALL_TOUR_STEPS: TourStep[] = [
   ...DASHBOARD_TOUR_STEPS,
-  MEAL_HISTORY_TOUR_STEP,
-  WEEKLY_INSIGHTS_TOUR_STEP,
+  SAVED_WORKOUTS_TOUR_STEP,
+  SAVED_RECIPES_TOUR_STEP,
   WORKOUTS_TOUR_STEP,
   RECIPES_TOUR_STEP,
 ];

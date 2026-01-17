@@ -18,8 +18,8 @@ import {
 } from 'react-native';
 
 
-import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
@@ -125,6 +125,7 @@ const DashboardScreen = () => {
       loadGeneratedGoals();
       refresh();
       stats.refetch();
+      currentUser.refetch(); // Refresh user data (username, streak, etc.)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loadGeneratedGoals, refresh])
   );
@@ -136,6 +137,7 @@ const DashboardScreen = () => {
       goals.refetch(),
       stats.refetch(),
       loadGeneratedGoals(),
+      currentUser.refetch(),
     ]);
     setRefreshing(false);
   };
@@ -845,12 +847,14 @@ const styles = StyleSheet.create({
   mealName: {
     flex: 1,
     marginRight: spacing.sm,
+    paddingTop: spacing.lg
   },
   mealTime: {
     color: colors.light.textSecondary,
   },
   mealCalories: {
     color: BRAND_COLORS.primary,
+    paddingTop: spacing.lg
   },
   mealMacros: {
     flexDirection: 'row',

@@ -22,7 +22,6 @@ import com.fitnessapp.backend.common.service.R2StorageService;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.service.ai.FoodRecognitionService;
-import com.fitnessapp.backend.nutrition.service.core.NutritionEngine;
 import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService;
 import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService.NutritionInsight;
 import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService;
@@ -45,7 +44,6 @@ public class NutritionController {
   private final NutritionTrackingService trackingService;
   private final NutritionInsightService insightService;
   private final FoodRecognitionService foodRecognitionService;
-  private final NutritionEngine nutritionEngine;
   private final R2StorageService r2StorageService;
 
   @PostMapping(value = "/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -63,22 +61,21 @@ public class NutritionController {
       throw new IllegalArgumentException("Image file is too large (max 10MB)");
     }
 
-    // Upload to S3
-    String s3Url = null;
+    // Upload to R2
+    String r2Url = null;
     try {
-      s3Url = r2StorageService.uploadFile(image, PATH_PREFIX);
+      r2Url = r2StorageService.uploadFile(image, PATH_PREFIX);
     } catch (Exception e) {
-      log.warn("S3 upload failed; continuing without image URL", e);
+      log.warn("R2 upload failed; continuing without image URL", e);
     }
 
     FoodRecognitionResult recognitionResult = foodRecognitionService.recognizeFoods(image, provider);
-    NutritionInfo totalNutrition = nutritionEngine.calculateTotal(recognitionResult.getItems());
+    NutritionInfo totalNutrition = foodRecognitionService.calculateTotalNutrition(recognitionResult.getItems());
 
     FoodRecognitionResponse response = FoodRecognitionResponse.builder()
         .items(recognitionResult.getItems())
         .totalNutrition(totalNutrition)
-        .suggestedMealType(recognitionResult.getMealType())
-        .imageUrl(s3Url)
+        .imageUrl(r2Url)
         .build();
 
     return ResponseEntity.ok(response);
@@ -91,34 +88,31 @@ public class NutritionController {
 
   @GetMapping("/summary/daily")
   public ResponseEntity<NutritionSummaryResponse> dailySummary(
-      @RequestParam(required = false) String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
       @AuthenticationPrincipal AuthenticatedUser currentUser) {
     LocalDate targetDate = date != null ? date : LocalDate.now();
-    NutritionSummary summary = trackingService.dailySummary(resolveUserId(userId, currentUser), targetDate);
+    NutritionSummary summary = trackingService.dailySummary(resolveUserId(currentUser), targetDate);
     return ResponseEntity.ok(toSummaryResponse(summary));
   }
 
   @GetMapping("/summary/weekly")
   public ResponseEntity<NutritionSummaryResponse> weeklySummary(
-      @RequestParam(required = false) String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart,
       @AuthenticationPrincipal AuthenticatedUser currentUser) {
     LocalDate start = weekStart != null ? weekStart : LocalDate.now().with(java.time.DayOfWeek.MONDAY);
-    NutritionSummary summary = trackingService.weeklySummary(resolveUserId(userId, currentUser), start);
+    NutritionSummary summary = trackingService.weeklySummary(resolveUserId(currentUser), start);
     return ResponseEntity.ok(toSummaryResponse(summary));
   }
 
   @GetMapping("/insights/weekly")
   public ResponseEntity<NutritionInsightResponse> weeklyInsight(
-      @RequestParam(required = false) String userId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart,
       @AuthenticationPrincipal AuthenticatedUser currentUser) {
-    NutritionInsight insight = insightService.generateWeeklyInsight(resolveUserId(userId, currentUser), weekStart);
+    NutritionInsight insight = insightService.generateWeeklyInsight(resolveUserId(currentUser), weekStart);
     return ResponseEntity.ok(toInsightResponse(insight));
   }
 
-  private UUID resolveUserId(String userId, AuthenticatedUser currentUser) {
+  private UUID resolveUserId(AuthenticatedUser currentUser) {
     if (currentUser == null || currentUser.userId() == null) {
       throw new IllegalStateException("Authentication required");
     }
@@ -173,7 +167,6 @@ public class NutritionController {
   public static class FoodRecognitionResponse {
     private List<com.fitnessapp.backend.nutrition.dto.RecognizedFood> items;
     private NutritionInfo totalNutrition;
-    private String suggestedMealType;
     private String imageUrl;
   }
 }

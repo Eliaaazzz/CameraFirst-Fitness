@@ -23,7 +23,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, EditNameModal, SafeAreaWrapper, Text, WheelPicker } from '@/components';
 import { StateView } from '@/components/common/StateView';
+import { TourGuideZone } from '@/components/tour/TourProvider';
+import { SAVED_RECIPES_TOUR_STEP, SAVED_WORKOUTS_TOUR_STEP } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
+import useImageCompressor from '@/hooks/useImageCompressor';
 import {
     GeneratedGoals,
     generateGoals,
@@ -130,11 +133,24 @@ const ProfileScreen = () => {
   const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
-  // Avatar upload state
+  // Avatar upload state with high-performance compression
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [isAvatarLoading, setIsAvatarLoading] = useState(false);
   const [avatarCacheKey, setAvatarCacheKey] = useState(Date.now());
   const avatarUrl = currentUser.data?.profile?.avatarUrl;
+
+  // Use the image compressor hook for non-blocking compression
+  // - compressImage: Off-main-thread compression (Web Worker on web, expo-image-manipulator on native)
+  // - optimisticAvatarUri: Instant local preview for immediate UI feedback
+  const {
+    compress: compressImage,
+    previewUri: optimisticAvatarUri,
+    setPreviewUri: setOptimisticAvatarUri,
+  } = useImageCompressor({
+    defaultOptions: {
+      maxDimension: 512, // Avatar images don't need to be large
+      quality: 0.85,
+    },
+  });
 
   // Edit name modal state
   const [showEditNameModal, setShowEditNameModal] = useState(false);
@@ -174,7 +190,7 @@ const ProfileScreen = () => {
     // Store previous data for rollback
     const previousData = queryClient.getQueryData(['current-user']);
 
-    // Optimistic update
+    // Optimistic update for immediate UI feedback
     queryClient.setQueryData(['current-user'], (old: any) => ({
       ...old,
       username: newUsername,
@@ -182,9 +198,23 @@ const ProfileScreen = () => {
 
     setIsUpdatingName(true);
     try {
-      await userApi.updateUsername(newUsername);
+      const updatedUser = await userApi.updateUsername(newUsername);
+
+      // Update cache with server response to ensure consistency
+      queryClient.setQueryData(['current-user'], (old: any) => ({
+        ...old,
+        ...updatedUser,
+      }));
+
+      // Close modal FIRST before any query invalidation to prevent re-render interference
       setShowEditNameModal(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Invalidate queries AFTER modal is closed to ensure other screens get fresh data
+      // Use setTimeout to ensure modal close state is committed before refetch triggers re-render
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['current-user'] });
+      }, 0);
     } catch (error) {
       // Rollback on error
       queryClient.setQueryData(['current-user'], previousData);
@@ -233,24 +263,62 @@ const ProfileScreen = () => {
           });
 
       if (!result.canceled && result.assets[0]) {
-        // FIX: Start loading IMMEDIATELY to show UI feedback instantly
-        setIsUploadingAvatar(true);
+        const selectedUri = result.assets[0].uri;
+
+        // === Optimistic UI (方案 C) ===
+        // Show local preview IMMEDIATELY - user sees instant feedback
+        setOptimisticAvatarUri(selectedUri);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-        
-        // Small timeout to allow UI to render the spinner before heavy work
-        setTimeout(() => {
-          uploadAvatar(result.assets[0].uri);
-        }, 50);
+
+        // Set loading state for spinner overlay
+        setIsUploadingAvatar(true);
+
+        // === Double rAF (方案 B) ===
+        // Ensures loading spinner renders on screen BEFORE heavy work begins
+        // First rAF: browser prepares to paint the loading state
+        // Second rAF: previous frame committed to GPU, safe to start heavy work
+        requestAnimationFrame(() => {
+          requestAnimationFrame(async () => {
+            try {
+              // Step 1: Compress image off-main-thread (Web Worker on web, expo-image-manipulator on native)
+              // This keeps the UI at 60fps even for 4K/10MB images
+              console.log('[ProfileScreen] Starting off-thread compression...');
+              const compressed = await compressImage(selectedUri);
+              console.log('[ProfileScreen] Compression complete:', {
+                originalSize: compressed.originalSize,
+                compressedSize: compressed.size,
+                ratio: (compressed.ratio * 100).toFixed(1) + '%',
+                duration: compressed.duration.toFixed(0) + 'ms',
+              });
+
+              // Step 2: Upload the compressed image
+              // On native, we use the compressed URI; on web, we use the blob
+              if (compressed.uri) {
+                await uploadAvatar(compressed.uri);
+              } else if (compressed.blob) {
+                await uploadAvatarBlob(compressed.blob);
+              } else {
+                throw new Error('No compressed image data');
+              }
+            } catch (error) {
+              console.error('[ProfileScreen] Compression/upload error:', error);
+              Alert.alert('Error', 'Failed to process image. Please try again.');
+              setIsUploadingAvatar(false);
+              setOptimisticAvatarUri(null);
+            }
+          });
+        });
       }
     } catch (error) {
       console.error('[ProfileScreen] Image picker error:', error);
       Alert.alert('Error', 'Failed to pick image. Please try again.');
       setIsUploadingAvatar(false);
+      setOptimisticAvatarUri(null);
     }
   };
 
   const uploadAvatar = async (imageUri: string) => {
-    // Note: isUploadingAvatar is already set to true in pickImage for instant feedback
+    // Note: isUploadingAvatar and optimisticAvatarUri are already set in pickImage
     try {
       // Step 1: Convert image URI to blob first to get the actual MIME type
       const imageResponse = await fetch(imageUri);
@@ -258,7 +326,7 @@ const ProfileScreen = () => {
 
       // Determine content type dynamically
       let contentType = blob.type;
-      
+
       // Fallback if blob type is missing or generic (common on some Android versions)
       if (!contentType || contentType === 'application/octet-stream') {
         const ext = imageUri.split('.').pop()?.toLowerCase();
@@ -273,6 +341,9 @@ const ProfileScreen = () => {
       const MAX_AVATAR_SIZE = 5 * 1024 * 1024; // 5MB
       if (blob.size > MAX_AVATAR_SIZE) {
         Alert.alert('Image Too Large', 'Please select an image smaller than 5MB.');
+        // Rollback optimistic preview on validation error
+        setOptimisticAvatarUri(null);
+        setIsUploadingAvatar(false);
         return;
       }
 
@@ -328,7 +399,7 @@ const ProfileScreen = () => {
               }
               throw new Error('Upload timed out. Please check your network connection and try again.');
             }
-            
+
             // Network error - retry if we have attempts left
             if (attempt < retries) {
               console.warn(`[ProfileScreen] Upload attempt ${attempt + 1} failed:`, error.message, ', retrying...');
@@ -361,61 +432,122 @@ const ProfileScreen = () => {
       console.log('[ProfileScreen] Updated profile avatarUrl:', updatedProfile?.avatarUrl);
       console.log('[ProfileScreen] Presigned publicUrl:', presignResponse.publicUrl);
 
-      // FIX: Handover the baton (API done -> Image Loading starts)
-      // Set isAvatarLoading BEFORE clearing isUploadingAvatar for seamless transition
-      setIsAvatarLoading(true);
-      setIsUploadingAvatar(false);
-
-      // FIX: Update cache key to force Image component to re-fetch
-      const newCacheKey = Date.now();
-      console.log('[ProfileScreen] Setting new avatar cache key:', newCacheKey);
-      setAvatarCacheKey(newCacheKey);
-
-      // Force clear React Native Image cache for this URL
-      if (Platform.OS !== 'web' && avatarUrl) {
-        try {
-          const Image = require('react-native').Image;
-          Image.prefetch(avatarUrl).then(() => {
-            console.log('[ProfileScreen] Prefetched old avatar URL to clear cache');
-          });
-        } catch (e) {
-          console.warn('[ProfileScreen] Failed to clear Image cache:', e);
-        }
-      }
-
-      // Optimistically update the cached current user so the UI switches immediately
-      // even if refetch is delayed or the screen is not re-rendered yet.
+      // Update the cached current user so the UI switches to server URL
       const newAvatarUrl = updatedProfile?.avatarUrl ?? presignResponse.publicUrl;
       console.log('[ProfileScreen] Setting new avatar URL:', newAvatarUrl);
-      
+
       queryClient.setQueryData<CurrentUserResponse>(['current-user'], (old) => {
         if (!old) return old as any;
-        const newData = {
+        return {
           ...old,
           profile: {
             ...(old.profile ?? {}),
             avatarUrl: newAvatarUrl,
           },
         };
-        console.log('[ProfileScreen] Updated cache data:', newData);
-        return newData;
       });
 
-      // Force refetch and clear all related caches
+      // Update cache key to force Image component to re-fetch with new URL
+      const newCacheKey = Date.now();
+      setAvatarCacheKey(newCacheKey);
+
+      // === Success: Clear optimistic preview and loading state ===
+      // The Image component will now render with the server URL
+      setOptimisticAvatarUri(null);
+      setIsUploadingAvatar(false);
+
+      // Invalidate queries in background (no await) - cache update already applied
+      // This ensures other screens get fresh data on next access without causing a refresh
       queryClient.invalidateQueries({ queryKey: ['current-user'] });
       queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-      
-      // Force immediate refetch
-      await queryClient.refetchQueries({ queryKey: ['current-user'] });
-      console.log('[ProfileScreen] Cache invalidated and refetched');
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
 
     } catch (error) {
       console.error('[ProfileScreen] Avatar upload error:', error);
       Alert.alert('Upload Failed', 'Failed to upload avatar. Please try again.');
-      // Reset both loading states on error
+      // === Failure: Rollback optimistic preview ===
+      setOptimisticAvatarUri(null);
       setIsUploadingAvatar(false);
-      setIsAvatarLoading(false);
+    }
+  };
+
+  /**
+   * Upload avatar from a Blob (web platform after compression)
+   * Shares the same upload logic but skips the URI-to-blob conversion
+   */
+  const uploadAvatarBlob = async (blob: Blob) => {
+    try {
+      const contentType = blob.type || DEFAULT_AVATAR_CONTENT_TYPE;
+      console.log('[ProfileScreen] Uploading compressed blob:', contentType, 'Size:', blob.size);
+
+      // Check file size (max 5MB for avatars - should be well under after compression)
+      const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
+      if (blob.size > MAX_AVATAR_SIZE) {
+        Alert.alert('Image Too Large', 'Please select a smaller image.');
+        setOptimisticAvatarUri(null);
+        setIsUploadingAvatar(false);
+        return;
+      }
+
+      // Get presigned URL
+      const presignResponse = await api.post<{
+        uploadUrl: string;
+        publicUrl: string;
+        fileKey: string;
+      }>('/api/v1/user/avatar/presign', {
+        fileType: contentType,
+      });
+
+      // Upload to R2
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+      const uploadResponse = await fetch(presignResponse.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': contentType },
+        body: blob,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.status}`);
+      }
+
+      console.log('[ProfileScreen] Compressed image uploaded to R2');
+
+      // Confirm with backend
+      const updatedProfile = await api.post<UserProfileResponse>('/api/v1/user/avatar/confirm', {
+        publicUrl: presignResponse.publicUrl,
+        fileKey: presignResponse.fileKey,
+      });
+
+      // Update cache
+      const newAvatarUrl = updatedProfile?.avatarUrl ?? presignResponse.publicUrl;
+      queryClient.setQueryData<CurrentUserResponse>(['current-user'], (old) => {
+        if (!old) return old as any;
+        return {
+          ...old,
+          profile: { ...(old.profile ?? {}), avatarUrl: newAvatarUrl },
+        };
+      });
+
+      setAvatarCacheKey(Date.now());
+      setOptimisticAvatarUri(null);
+      setIsUploadingAvatar(false);
+
+      queryClient.invalidateQueries({ queryKey: ['current-user'] });
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+
+    } catch (error) {
+      console.error('[ProfileScreen] Blob upload error:', error);
+      Alert.alert('Upload Failed', 'Failed to upload avatar. Please try again.');
+      setOptimisticAvatarUri(null);
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -517,6 +649,48 @@ const ProfileScreen = () => {
           text: 'Logout',
           style: 'destructive',
           onPress: performLogout,
+        },
+      ]
+    );
+  };
+
+  const performDeleteAccount = async () => {
+    try {
+      await userApi.deleteAccount();
+      // Clear local data
+      await AsyncStorage.removeItem(GENERATED_GOALS_KEY);
+      queryClient.clear();
+      // Sign out and navigate to login
+      await useAuthStore.getState().signOut();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      Alert.alert('Error', 'Failed to delete account. Please try again.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  };
+
+  const handleCloseAccount = () => {
+    // On web, fall back to native confirm since Alert can be ignored by browsers
+    if (Platform.OS === 'web') {
+      const confirmed = typeof window !== 'undefined' 
+        ? window.confirm('Are you sure you want to permanently delete your account? This action cannot be undone and all your data will be lost.') 
+        : true;
+      if (confirmed) {
+        performDeleteAccount();
+      }
+      return;
+    }
+
+    Alert.alert(
+      'Close Account',
+      'Are you sure you want to permanently delete your account? This action cannot be undone and all your data will be lost.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: performDeleteAccount,
         },
       ]
     );
@@ -1116,17 +1290,19 @@ const ProfileScreen = () => {
     );
   }
 
-  const displayName = userEmail?.split('@')[0] || 'User';
+  const displayName = currentUser.data?.username || userEmail?.split('@')[0] || 'User';
   const goalTypeLabel = generatedGoals?.goalType
     ? GOAL_OPTIONS.find(g => g.value === generatedGoals.goalType)?.label
     : null;
 
   // Calculate bottom padding to account for tab bar
   const contentBottomPadding = useContentBottomPadding(spacing.xl);
-  const avatarUri = avatarUrl ? getAvatarUri(avatarUrl) : undefined;
-  
-  // Combined loading state for disabling interactions
-  const isAvatarWorking = isUploadingAvatar || isAvatarLoading;
+
+  // Determine which avatar to display:
+  // 1. Optimistic preview (local file) - shows immediately after selection
+  // 2. Server URL with cache busting - shows after upload completes
+  // 3. Default icon - when no avatar exists
+  const displayAvatarUri = optimisticAvatarUri || (avatarUrl ? getAvatarUri(avatarUrl) : undefined);
 
   return (
     <SafeAreaWrapper>
@@ -1136,54 +1312,51 @@ const ProfileScreen = () => {
       >
         {/* Profile Header */}
         <View style={styles.header}>
-          <View style={styles.avatarContainer}>
-            <Pressable
-              style={({ pressed }) => [
+          {/* Single Pressable for entire avatar area to avoid touch conflicts */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.avatarContainer,
+              pressed && !isUploadingAvatar && { opacity: 0.7 },
+            ]}
+            onPress={handleAvatarPress}
+            disabled={isUploadingAvatar}
+            accessibilityRole="button"
+            accessibilityLabel="Change profile photo"
+          >
+            <View
+              style={[
                 styles.avatar,
                 { backgroundColor: theme.colors.surface },
-                pressed && !isAvatarWorking && { opacity: 0.7 },
               ]}
-              onPress={handleAvatarPress}
-              disabled={isAvatarWorking}
-              accessibilityRole="button"
-              accessibilityLabel="Change profile photo"
             >
-              {isAvatarWorking ? (
-                <ActivityIndicator size="small" color={theme.colors.primary} />
-              ) : avatarUrl ? (
+              {/* Avatar content - prioritizes optimistic preview for instant feedback */}
+              {displayAvatarUri ? (
                 <Image
-                  key={avatarCacheKey}
-                  source={{ uri: avatarUri }}
+                  key={optimisticAvatarUri ? 'optimistic' : avatarCacheKey}
+                  source={{ uri: displayAvatarUri }}
                   style={styles.avatarImage}
-                  onLoadEnd={() => {
-                    console.log('[ProfileScreen] Avatar load end');
-                    setIsAvatarLoading(false);
-                  }}
-                  onError={(event) => {
-                    console.log('[ProfileScreen] Avatar load error:', event.nativeEvent.error);
-                    setIsAvatarLoading(false);
-                  }}
                 />
               ) : (
                 <Feather name="user" size={40} color={theme.colors.primary} />
               )}
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
+              {/* Loading overlay - shows spinner while uploading (optimistic preview visible underneath) */}
+              {isUploadingAvatar && (
+                <View style={styles.avatarLoadingOverlay}>
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                </View>
+              )}
+            </View>
+            <View
+              style={[
                 styles.editAvatarBtn,
                 { backgroundColor: theme.colors.primary },
-                pressed && !isAvatarWorking && { opacity: 0.85 },
-                isAvatarWorking && { opacity: 0.5 },
+                isUploadingAvatar && { opacity: 0.5 },
               ]}
-              onPress={handleAvatarPress}
-              disabled={isAvatarWorking}
-              accessibilityRole="button"
-              accessibilityLabel="Change profile photo"
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              pointerEvents="none"
             >
               <Feather name="camera" size={14} color="#FFF" />
-            </Pressable>
-          </View>
+            </View>
+          </Pressable>
           <Text variant="heading2" weight="bold" style={{ color: theme.colors.textPrimary }}>Hi, {displayName}</Text>
           <Text variant="caption" style={[styles.email, { color: theme.colors.textSecondary }]}>{userEmail}</Text>
         </View>
@@ -1259,18 +1432,30 @@ const ProfileScreen = () => {
           <Text variant="heading3" weight="semibold" style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
             Your Library
           </Text>
-          {renderMenuItem(
-            'dumbbell',
-            'Saved Workouts',
-            'Your bookmarked workouts',
-            () => navigation.navigate('SavedWorkouts' as any)
-          )}
-          {renderMenuItem(
-            'book-open-variant',
-            'Saved Recipes',
-            'Your favorite recipes',
-            () => navigation.navigate('SavedRecipes' as any)
-          )}
+          <TourGuideZone
+            zone={SAVED_WORKOUTS_TOUR_STEP.zone}
+            text={SAVED_WORKOUTS_TOUR_STEP.text}
+            title={SAVED_WORKOUTS_TOUR_STEP.title}
+          >
+            {renderMenuItem(
+              'dumbbell',
+              'Saved Workouts',
+              'Your bookmarked workouts',
+              () => navigation.navigate('SavedWorkouts' as any)
+            )}
+          </TourGuideZone>
+          <TourGuideZone
+            zone={SAVED_RECIPES_TOUR_STEP.zone}
+            text={SAVED_RECIPES_TOUR_STEP.text}
+            title={SAVED_RECIPES_TOUR_STEP.title}
+          >
+            {renderMenuItem(
+              'book-open-variant',
+              'Saved Recipes',
+              'Your favorite recipes',
+              () => navigation.navigate('SavedRecipes' as any)
+            )}
+          </TourGuideZone>
           {renderMenuItem(
             'food-apple',
             'Meal History',
@@ -1300,6 +1485,12 @@ const ProfileScreen = () => {
             'Notifications',
             'Manage reminders',
             () => Alert.alert('Coming Soon', 'Notification settings will be available soon.')
+          )}
+          {renderMenuItem(
+            'account-remove-outline',
+            'Close Account',
+            'Permanently delete your account',
+            handleCloseAccount
           )}
         </View>
 
@@ -1366,6 +1557,13 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
   },
+  avatarLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   editAvatarBtn: {
     position: 'absolute',
     bottom: 0,
@@ -1376,6 +1574,8 @@ const styles = StyleSheet.create({
     backgroundColor: BRAND_COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
+    elevation: 5, // Android shadow/z-index
   },
   email: {
     opacity: 0.6,

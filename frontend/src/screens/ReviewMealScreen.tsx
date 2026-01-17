@@ -1,5 +1,6 @@
 import { DetectedItemRow } from '@/components/nutrition/DetectedItemRow';
 import { NutritionSummaryCard } from '@/components/nutrition/NutritionSummaryCard';
+import useImageCompressor from '@/hooks/useImageCompressor';
 import nutritionApi, {
   DetectedFood,
   TotalNutrition,
@@ -7,7 +8,6 @@ import nutritionApi, {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
-import * as ImageManipulator from 'expo-image-manipulator';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import {
@@ -38,6 +38,18 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successAnim] = useState(new Animated.Value(0));
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
+
+  // High-performance image compression (Web Worker on web, expo-image-manipulator on native)
+  // Target size of 8MB to stay well under the 10MB backend limit
+  const { compress: compressImage } = useImageCompressor({
+    defaultOptions: {
+      maxDimension: 1920, // Higher resolution for better food recognition
+      quality: 0.85,
+      targetSize: 8 * 1024 * 1024, // 8MB max to stay under 10MB backend limit
+    },
+  });
 
   useEffect(() => {
     // Reset all state when imageUri changes (new photo taken)
@@ -59,21 +71,23 @@ export function ReviewMealScreen({ route, navigation }: any) {
       try {
         let uploadUri = imageUri;
 
-        // Compress the image before upload/analysis to reduce payload size
+        // Compress the image using off-main-thread processing
+        // This keeps the analyzing animation smooth at 60fps even for 4K photos
         try {
-          const manipulateResult = await ImageManipulator.manipulateAsync(
-            imageUri,
-            [
-              // Limit width to 800px while keeping aspect ratio for faster upload/render
-              { resize: { width: 800 } },
-            ],
-            {
-              compress: 0.7, // 70% quality
-              format: ImageManipulator.SaveFormat.JPEG,
-            },
-          );
-          uploadUri = manipulateResult.uri;
-          setProcessedImageUri(manipulateResult.uri);
+          console.log('[ReviewMealScreen] Starting off-thread compression...');
+          const compressed = await compressImage(imageUri);
+          console.log('[ReviewMealScreen] Compression complete:', {
+            originalSize: compressed.originalSize,
+            compressedSize: compressed.size,
+            ratio: (compressed.ratio * 100).toFixed(1) + '%',
+            duration: compressed.duration.toFixed(0) + 'ms',
+          });
+
+          // Use the compressed URI for upload
+          if (compressed.uri) {
+            uploadUri = compressed.uri;
+            setProcessedImageUri(compressed.uri);
+          }
         } catch (compressionError) {
           console.warn('Image compression failed, using original image', compressionError);
         }
@@ -82,15 +96,53 @@ export function ReviewMealScreen({ route, navigation }: any) {
         setItems(response.items);
         setTotal(response.totalNutrition);
         setServerImageUrl(response.imageUrl);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Food analysis failed:', error);
-        Alert.alert('Error', 'Failed to analyze the image. Please try again.');
-        // Navigate back if possible, otherwise go to Dashboard
-        if (navigation.canGoBack()) {
-          navigation.goBack();
-        } else {
-          navigation.navigate('Dashboard');
+        
+        // Parse error message for user-friendly display
+        let errorTitle = 'Analysis Failed';
+        let errorMessage = 'Failed to analyze the image. Please try again.';
+        
+        const errorString = error?.message || error?.data?.message || String(error);
+        
+        if (errorString.includes('too large') || errorString.includes('10MB')) {
+          errorTitle = 'Image Too Large';
+          errorMessage = 'The image is too large. Please take a photo with lower resolution or try a different image.';
+        } else if (errorString.includes('providers failed') || errorString.includes('recognize foods')) {
+          errorTitle = 'Recognition Failed';
+          errorMessage = 'Could not recognize food in this image. Please try:\n\n• Taking a clearer photo\n• Ensuring good lighting\n• Capturing the food from above\n• Making sure food is visible';
+        } else if (errorString.includes('Network') || errorString.includes('fetch') || errorString.includes('CONNECTION')) {
+          errorTitle = 'Connection Error';
+          errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+        } else if (errorString.includes('timeout') || errorString.includes('408')) {
+          errorTitle = 'Request Timeout';
+          errorMessage = 'The analysis is taking too long. Please try again with a smaller image.';
         }
+        
+        const canRetry = retryCount < MAX_RETRIES;
+        
+        Alert.alert(errorTitle, errorMessage, [
+          ...(canRetry ? [{
+            text: `Try Again (${MAX_RETRIES - retryCount} left)`,
+            onPress: () => {
+              // Reset and retry
+              setRetryCount(prev => prev + 1);
+              setLoading(true);
+              setPhase(1);
+            },
+          }] : []),
+          {
+            text: 'Go Back',
+            style: 'cancel',
+            onPress: () => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('Dashboard');
+              }
+            },
+          },
+        ]);
       } finally {
         setLoading(false);
         clearTimeout(timer1);
@@ -104,7 +156,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
-  }, [imageUri]);
+  }, [imageUri, retryCount]);
 
   const handleAmountChange = (id: string, delta: number) => {
     setItems((prev) =>
@@ -174,6 +226,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
       queryClient.invalidateQueries({ queryKey: ['dailyNutrition'] });
       queryClient.invalidateQueries({ queryKey: ['meal-history'] });
       queryClient.invalidateQueries({ queryKey: ['weekly-insights'] });
+      // Note: Streak is now updated on login (via /me endpoint), not on meal logging
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 

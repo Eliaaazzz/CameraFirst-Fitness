@@ -46,7 +46,7 @@ public class User {
 
   @Column(name = "current_streak", nullable = false)
   @Builder.Default
-  private Integer currentStreak = 0;
+  private Integer currentStreak = 1;
 
   @Column(name = "last_active_date")
   private LocalDate lastActiveDate;

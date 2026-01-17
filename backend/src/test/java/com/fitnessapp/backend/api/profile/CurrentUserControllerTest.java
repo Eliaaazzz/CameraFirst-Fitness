@@ -122,4 +122,17 @@ class CurrentUserControllerTest {
     verify(smartRecipeService).evictCache(userId);
     verify(nutritionInsightService).invalidate(userId);
   }
+
+  @Test
+  void deletesAccountForCurrentUser() throws Exception {
+    UUID userId = UUID.randomUUID();
+    when(currentUser.requireUserId()).thenReturn(userId);
+
+    mockMvc.perform(delete("/api/v1/me"))
+        .andExpect(status().isNoContent());
+
+    verify(userService).deleteUser(userId);
+    verify(smartRecipeService).evictCache(userId);
+    verify(nutritionInsightService).invalidate(userId);
+  }
 }
