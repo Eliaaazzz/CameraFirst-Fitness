@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -249,6 +250,67 @@ public class MealController {
     log.info("Deleted meal log {}", id);
 
     return ResponseEntity.noContent().build();
+  }
+
+  /**
+   * Update an existing meal log
+   * PUT /api/v1/meals/{id}
+   * Security: Validates that the meal belongs to the authenticated user
+   */
+  @PutMapping("/{id}")
+  public ResponseEntity<MealResponse> updateMeal(
+      @PathVariable Long id,
+      @Valid @RequestBody CreateMealRequest request,
+      @AuthenticationPrincipal com.fitnessapp.backend.security.AuthenticatedUser currentUser) {
+
+    if (currentUser == null || currentUser.userId() == null) {
+      log.warn("Meal update rejected: No authenticated user");
+      return ResponseEntity.status(401).build();
+    }
+
+    final UUID userId = currentUser.userId();
+    log.info("Updating meal log {} for user {}", id, userId);
+
+    // Find the meal and verify ownership
+    MealLog meal = mealLogRepository.findById(id)
+        .orElseThrow(() -> new EntityNotFoundException("Meal not found: " + id));
+
+    // Security check: ensure the meal belongs to the authenticated user
+    if (!meal.getUserId().equals(userId)) {
+      log.warn("User {} attempted to update meal {} owned by {}", userId, id, meal.getUserId());
+      return ResponseEntity.status(403).build();
+    }
+
+    // Calculate new totals
+    NutritionInfo totals = calculateTotals(request.getItems());
+
+    // Convert food items to JSON
+    String foodItemsJson;
+    try {
+      foodItemsJson = objectMapper.writeValueAsString(request.getItems());
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to serialize food items", e);
+    }
+
+    // Update meal fields
+    meal.setMealType(request.getMealType());
+    meal.setFoodItems(foodItemsJson);
+    meal.setTotalCalories(totals.getCalories().intValue());
+    meal.setTotalProtein(totals.getProtein());
+    meal.setTotalCarbs(totals.getCarbs());
+    meal.setTotalFat(totals.getFat());
+    if (request.getNote() != null) {
+      meal.setNotes(request.getNote());
+    }
+    if (request.getImageUrl() != null) {
+      meal.setImageUrl(request.getImageUrl());
+    }
+
+    MealLog saved = mealLogRepository.save(meal);
+
+    log.info("Updated meal log {} with total calories: {}", saved.getId(), saved.getTotalCalories());
+
+    return ResponseEntity.ok(toResponse(saved));
   }
 
   // Helper methods

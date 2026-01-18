@@ -26,19 +26,50 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 const SUCCESS_GRADIENT = ['#A78BFA', '#F472B6'] as const;
 
 export function ReviewMealScreen({ route, navigation }: any) {
-  const { imageUri } = route.params;
+  // Support both new image analysis and viewing/editing saved meals
+  const { imageUri, meal } = route.params;
+  const isViewingExisting = !!meal;
+
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isViewingExisting); // Don't show loading for existing meals
   const [phase, setPhase] = useState<1 | 2 | 3>(1);
-  const [items, setItems] = useState<DetectedFood[]>([]);
-  const [total, setTotal] = useState<TotalNutrition | null>(null);
-  const [processedImageUri, setProcessedImageUri] = useState<string>(imageUri);
-  const [serverImageUrl, setServerImageUrl] = useState<string | undefined>(undefined);
+  const [items, setItems] = useState<DetectedFood[]>(() => {
+    // Initialize with existing meal data if viewing
+    if (meal?.foodItems) {
+      return meal.foodItems.map((food: any, index: number) => ({
+        id: food.foodKey || `item-${index}`,
+        name: food.displayName,
+        amount: food.grams,
+        unit: 'g',
+        calories: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fat: food.fat,
+        confidence: food.confidence,
+      }));
+    }
+    return [];
+  });
+  const [total, setTotal] = useState<TotalNutrition | null>(() => {
+    // Initialize with existing meal totals if viewing
+    if (meal) {
+      return {
+        calories: meal.totalCalories || 0,
+        protein: meal.totalProtein || 0,
+        carbs: meal.totalCarbs || 0,
+        fat: meal.totalFat || 0,
+      };
+    }
+    return null;
+  });
+  const [processedImageUri, setProcessedImageUri] = useState<string>(imageUri || meal?.imageUrl || '');
+  const [serverImageUrl, setServerImageUrl] = useState<string | undefined>(meal?.imageUrl || undefined);
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successAnim] = useState(new Animated.Value(0));
   const [retryCount, setRetryCount] = useState(0);
+  const [mealId] = useState<number | undefined>(meal?.id);
   const MAX_RETRIES = 3;
 
   // High-performance image compression (Web Worker on web, expo-image-manipulator on native)
@@ -52,6 +83,11 @@ export function ReviewMealScreen({ route, navigation }: any) {
   });
 
   useEffect(() => {
+    // Skip analysis if viewing existing meal
+    if (isViewingExisting) {
+      return;
+    }
+
     // Reset all state when imageUri changes (new photo taken)
     setLoading(true);
     setPhase(1);
@@ -156,7 +192,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
-  }, [imageUri, retryCount]);
+  }, [imageUri, retryCount, isViewingExisting]);
 
   const handleAmountChange = (id: string, delta: number) => {
     setItems((prev) =>
@@ -214,6 +250,33 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
     setSaving(true);
     try {
+      if (isViewingExisting && mealId) {
+        // Update existing meal
+        await nutritionApi.updateMeal(mealId, {
+          imageUri: processedImageUri,
+          items: items,
+          totalNutrition: total,
+          imageUrl: serverImageUrl || processedImageUri,
+          mealType: meal?.mealType,
+        });
+
+        // Invalidate caches so data refreshes
+        queryClient.invalidateQueries({ queryKey: ['dailyNutrition'] });
+        queryClient.invalidateQueries({ queryKey: ['meal-history'] });
+        queryClient.invalidateQueries({ queryKey: ['weekly-insights'] });
+
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        // Navigate back immediately for updates (no success animation needed)
+        setSaving(false);
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate('Dashboard');
+        }
+        return;
+      }
+
       await nutritionApi.saveMealFromImage({
         imageUri: processedImageUri,
         items: items,
@@ -272,7 +335,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </Pressable>
-        <Text style={styles.headerTitle}>Review your meal</Text>
+        <Text style={styles.headerTitle}>{isViewingExisting ? 'Meal Details' : 'Review your meal'}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -288,9 +351,10 @@ export function ReviewMealScreen({ route, navigation }: any) {
         </View>
 
         {loading ? (
+          // Purple spinner loading UI
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#9C27B0" />
-            <Text style={styles.loadingText}>{loadingText}</Text>
+            <Text style={styles.loadingTitle}>{loadingText}</Text>
           </View>
         ) : (
           <>
@@ -319,7 +383,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
             {saving ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.saveButtonText}>Save to today</Text>
+              <Text style={styles.saveButtonText}>{isViewingExisting ? 'Update meal' : 'Save to today'}</Text>
             )}
           </Pressable>
         </View>
@@ -434,14 +498,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
+  // Loading styles - purple spinner
   loadingContainer: {
     alignItems: 'center',
     paddingVertical: 60,
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
+  loadingTitle: {
+    marginTop: 20,
+    fontSize: 17,
+    fontWeight: '500',
+    color: '#9C27B0',
   },
   sectionTitle: {
     fontSize: 20,

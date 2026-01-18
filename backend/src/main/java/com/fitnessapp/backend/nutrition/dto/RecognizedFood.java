@@ -7,7 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Represents a food item recognized from image by AI Vision
+ * Represents a food item recognized from image by AI Vision.
+ * Uses Smart Splitting with intuitive units (piece, bowl, serving).
  */
 @Data
 @Builder
@@ -23,6 +24,12 @@ public class RecognizedFood {
   @JsonProperty("estimated_grams")
   private Integer estimatedGrams;
 
+  /** Unit of measurement (e.g., "piece", "bowl", "serving") */
+  private String unit;
+
+  /** Quantity count (e.g., 2 for "2 pieces") */
+  private Integer quantity;
+
   @JsonProperty("cooking_method")
   private String cookingMethod;
 
@@ -31,6 +38,6 @@ public class RecognizedFood {
   // Structured metadata for RAG pipeline (optional, for enhanced search)
   private FoodMetadata metadata;
 
-  // Nutrition info will be calculated by NutritionEngine
+  // Nutrition info for this food item
   private NutritionInfo nutrition;
 }
