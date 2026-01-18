@@ -1,15 +1,14 @@
 package com.fitnessapp.backend.nutrition.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 /**
- * Result from Claude Vision API food recognition
+ * Result from AI food recognition
  */
 @Data
 @Builder
@@ -17,7 +16,4 @@ import java.util.List;
 @AllArgsConstructor
 public class FoodRecognitionResult {
   private List<RecognizedFood> items;
-
-  @JsonProperty("meal_type")
-  private String mealType;
 }

@@ -44,11 +44,12 @@ public class CorsConfig {
             "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
         ));
         
-        // Allow common headers including API key
+        // Allow common headers including API key and timezone
         configuration.setAllowedHeaders(Arrays.asList(
             "Authorization",
             "Content-Type",
             "X-API-Key",
+            "X-User-Timezone",
             "X-Requested-With",
             "Accept",
             "Origin",

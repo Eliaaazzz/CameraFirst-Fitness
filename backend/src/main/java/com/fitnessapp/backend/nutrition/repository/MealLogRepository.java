@@ -49,6 +49,11 @@ public interface MealLogRepository extends JpaRepository<MealLog, Long> {
   Page<MealLog> findByUserId(UUID userId, Pageable pageable);
 
   /**
+   * Delete all meal logs for a user (for account deletion)
+   */
+  void deleteByUserId(UUID userId);
+
+  /**
    * Paginated query for user's meal history with start date only
    */
   Page<MealLog> findByUserIdAndConsumedAtGreaterThanEqual(

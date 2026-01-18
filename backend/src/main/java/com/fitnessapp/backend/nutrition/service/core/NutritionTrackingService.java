@@ -46,13 +46,8 @@ public class NutritionTrackingService {
     }
     MealLog saved = mealLogRepository.save(payload);
 
-    // Update user's activity streak when they log a meal
-    try {
-      userService.updateStreak(payload.getUserId());
-    } catch (Exception e) {
-      log.warn("Failed to update streak for user {}: {}", payload.getUserId(), e.getMessage());
-      // Don't fail the meal logging if streak update fails
-    }
+    // Note: Streak is now updated on login (via /me endpoint), not on meal logging
+    // This ensures the streak reflects daily app usage, not just meal tracking activity
 
     return saved;
   }

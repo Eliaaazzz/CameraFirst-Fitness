@@ -170,7 +170,7 @@ const getWeeklyInsight = async (userId: string, weekStart?: string): Promise<Nut
   );
 };
 
-// Transform backend response to frontend format
+// Transform backend response to frontend format (legacy endpoint)
 const transformBackendResponse = (backendResponse: BackendFoodRecognitionResponse): FoodRecognitionResponse => {
   const items: DetectedFood[] = backendResponse.items.map((item, index) => ({
     id: item.food_key || `item-${index}`,
@@ -205,14 +205,16 @@ const transformBackendResponse = (backendResponse: BackendFoodRecognitionRespons
   };
 };
 
-// Analyze food image with Gemini AI
+// Analyze food image with Gemini 3 Pro AI (Elite Sports Nutritionist)
 const analyzeFoodImage = async (imageUri: string): Promise<FoodRecognitionResponse> => {
+  console.log('[NutritionApi] Analyzing with Gemini 3 Pro Elite Sports Nutritionist...');
+
   const backendResponse = await api.uploadImage<BackendFoodRecognitionResponse>(
     '/api/v1/nutrition/analyze',
     imageUri
   );
 
-  console.log('[NutritionApi] Backend response:', JSON.stringify(backendResponse, null, 2));
+  console.log('[NutritionApi] Gemini 3 Pro response:', JSON.stringify(backendResponse, null, 2));
 
   // Transform backend response to frontend format
   const transformedResponse = transformBackendResponse(backendResponse);

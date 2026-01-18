@@ -9,4 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserSavedRecipeRepository extends JpaRepository<UserSavedRecipe, Id> {
   Page<UserSavedRecipe> findByUser_Id(UUID userId, Pageable pageable);
+
+  void deleteByUser_Id(UUID userId);
 }

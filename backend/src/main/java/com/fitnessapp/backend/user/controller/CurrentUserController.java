@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -44,14 +45,15 @@ public class CurrentUserController {
   private final NutritionInsightService nutritionInsightService;
 
   @GetMapping
-  public ResponseEntity<MeResponse> currentUser() {
+  public ResponseEntity<MeResponse> currentUser(
+      @RequestHeader(value = "X-User-Timezone", required = false) String userTimezone) {
     UUID userId = currentUser.requireUserId();
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
     Optional<UserProfile> profile = userProfileService.getProfile(userId);
 
-    // Validate streak (lazy reset if expired)
-    int validatedStreak = userService.validateAndGetStreak(userId);
+    // Validate streak (lazy reset if expired) using user's timezone for accurate day calculation
+    int validatedStreak = userService.validateAndGetStreak(userId, userTimezone);
 
     // Derive display name from username or email prefix
     String displayName = user.getUsername();
@@ -131,6 +133,19 @@ public class CurrentUserController {
         user.getTimeBucket(),
         profile.map(UserProfileMapper::toResponse).orElse(null)
     ));
+  }
+
+  /**
+   * Permanently deletes the current user's account and all associated data.
+   * This operation cannot be undone.
+   */
+  @DeleteMapping
+  public ResponseEntity<Void> deleteAccount() {
+    UUID userId = currentUser.requireUserId();
+    userService.deleteUser(userId);
+    smartRecipeService.evictCache(userId);
+    nutritionInsightService.invalidate(userId);
+    return ResponseEntity.noContent().build();
   }
 
   public record UpdateUsernameRequest(String username) {}

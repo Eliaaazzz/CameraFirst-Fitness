@@ -14,11 +14,8 @@ import {
     StyleSheet,
     View,
 } from 'react-native';
-import { TourGuideZone } from '@/components/tour/TourProvider';
-
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { MealImage } from '@/components/nutrition/MealImage';
-import { MEAL_HISTORY_TOUR_STEP } from '@/config/tourSteps';
 import { useMealHistory } from '@/hooks/useMealHistory';
 import type { MealHistoryItem } from '@/types/mealHistory';
 import { BRAND_COLORS, spacing } from '@/utils';
@@ -242,39 +239,32 @@ export const MealHistoryScreen = () => {
   return (
     <SafeAreaWrapper>
       <View style={styles.container}>
-        {/* Header - Tour Zone 4 */}
-        <TourGuideZone
-          zone={MEAL_HISTORY_TOUR_STEP.zone}
-          text={MEAL_HISTORY_TOUR_STEP.text}
-          shape="rectangle"
-          borderRadius={8}
-        >
-          <View style={styles.header}>
-            <View style={styles.headerRow}>
-              <Pressable
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <MaterialCommunityIcons
-                  name="arrow-left"
-                  size={24}
-                  color={BRAND_COLORS.textPrimary}
-                />
-              </Pressable>
-              <View style={styles.headerTextContainer}>
-                <Text variant="heading2" weight="bold">
-                  Meal History
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <Pressable
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={24}
+                color={BRAND_COLORS.textPrimary}
+              />
+            </Pressable>
+            <View style={styles.headerTextContainer}>
+              <Text variant="heading2" weight="bold">
+                Meal History
+              </Text>
+              {data && (
+                <Text variant="caption" style={styles.totalCount}>
+                  {data.totalElements} meals logged
                 </Text>
-                {data && (
-                  <Text variant="caption" style={styles.totalCount}>
-                    {data.totalElements} meals logged
-                  </Text>
-                )}
-              </View>
+              )}
             </View>
           </View>
-        </TourGuideZone>
+        </View>
 
         {/* List */}
         <FlatList
