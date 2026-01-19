@@ -203,6 +203,86 @@ export const getTheme = (mode: 'light' | 'dark') => ({
 });
 
 /**
+ * SaaS-style Shadows - Premium dual-layer shadows with brand color glow
+ * Key: Uses brand purple (124, 58, 237) for a cohesive, premium look
+ */
+export const saasShadows = {
+  // Standard card shadow - dual layer for depth
+  card: Platform.select({
+    web: {
+      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 4px 12px 0 rgba(124, 58, 237, 0.08)',
+    } as any,
+    default: {
+      shadowColor: '#5B21B6',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+  }),
+  // Elevated card shadow - for hover states and emphasis
+  cardElevated: Platform.select({
+    web: {
+      boxShadow: '0 2px 4px 0 rgba(0, 0, 0, 0.06), 0 8px 24px 0 rgba(124, 58, 237, 0.12)',
+    } as any,
+    default: {
+      shadowColor: '#5B21B6',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.12,
+      shadowRadius: 20,
+      elevation: 8,
+    },
+  }),
+  // Subtle shadow - for less prominent elements
+  subtle: Platform.select({
+    web: {
+      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 2px 8px 0 rgba(124, 58, 237, 0.05)',
+    } as any,
+    default: {
+      shadowColor: '#5B21B6',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+  }),
+};
+
+/**
+ * Premium Card Styles - Combines shadow + ultra-thin border
+ * Use these presets for consistent SaaS-level polish
+ */
+export const cardStyles = {
+  // Standard card - white background with subtle border and shadow
+  standard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 231, 235, 0.6)', // Ultra-thin gray border
+    borderRadius: radii.xl,
+    ...saasShadows.card,
+  },
+  // Interactive card - with cursor pointer for web
+  interactive: Platform.select({
+    web: {
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: 'rgba(229, 231, 235, 0.6)',
+      borderRadius: radii.xl,
+      cursor: 'pointer' as const,
+      transition: 'all 0.2s ease-out',
+      ...saasShadows.card,
+    } as any,
+    default: {
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: 'rgba(229, 231, 235, 0.6)',
+      borderRadius: radii.xl,
+      ...saasShadows.card,
+    },
+  }),
+};
+
+/**
  * Premium Animation Timing
  * Smooth, not snappy - feels more luxurious
  */

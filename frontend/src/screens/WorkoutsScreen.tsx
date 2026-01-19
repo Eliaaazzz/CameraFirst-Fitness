@@ -5,12 +5,13 @@ import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, Scro
 import { FAB } from 'react-native-paper';
 
 import { Container, EmptyStateCard, ListSkeleton, SafeAreaWrapper, SearchBar, SearchSuggestions, Text, WorkoutCard, type SuggestionItem } from '@/components';
+import { ScreenLayout } from '@/components/layout';
 import { WORKOUTS_TOUR_STEP } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedWorkouts, useRemoveWorkout, useSavedWorkouts, useSaveWorkout } from '@/services';
 import { searchWorkouts, WorkoutSearchResult } from '@/services/searchApi';
 import type { SavedWorkout } from '@/types';
-import { getTheme, spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
+import { getTheme, spacing, useContentBottomPadding, useFABBottomPosition, useSidebarVisible } from '@/utils';
 
 // Workout search suggestions with fun icons
 const WORKOUT_SUGGESTIONS: SuggestionItem[] = [
@@ -106,6 +107,7 @@ export const WorkoutsScreen = () => {
   const theme = getTheme('light');
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
+  const showSidebar = useSidebarVisible();
   const saved = useSavedWorkouts(userId);
   const recommended = useRecommendedWorkouts(currentUser.data?.profile?.fitnessGoal, userId);
   const saveWorkout = useSaveWorkout(userId);
@@ -161,8 +163,9 @@ export const WorkoutsScreen = () => {
     handleSearch(suggestion.label);
   }, [handleSearch]);
 
-  // Calculate bottom padding using shared utility
-  const listBottomPadding = useContentBottomPadding(spacing.lg);
+  // Calculate bottom padding using shared utility (reduced on desktop with sidebar)
+  const mobileBottomPadding = useContentBottomPadding(spacing.lg);
+  const listBottomPadding = showSidebar ? spacing['2xl'] : mobileBottomPadding;
   const fabBottomPosition = useFABBottomPosition(spacing.md);
 
   // Memoize empty component BEFORE any conditional returns
@@ -380,35 +383,40 @@ export const WorkoutsScreen = () => {
 
   return (
     <SafeAreaWrapper>
-      <Container style={styles.container}>
-        <FlatList
-          ref={listRef}
-          data={[]} // Saved workouts moved to SavedWorkoutsScreen
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
-          ItemSeparatorComponent={ItemSeparator}
-          ListHeaderComponent={listHeaderComponent}
-          ListEmptyComponent={null}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={theme.colors.primary}
-            />
-          }
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-        />
-      </Container>
-      <FAB
-        icon="arrow-up"
-        style={[styles.fab, { bottom: fabBottomPosition, backgroundColor: theme.colors.primary }]}
-        color="#FFF"
-        mode="elevated"
-        onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
-        visible={showFab}
-      />
+      <ScreenLayout scrollable={false}>
+        <Container style={styles.container}>
+          <FlatList
+            ref={listRef}
+            data={[]} // Saved workouts moved to SavedWorkoutsScreen
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
+            ItemSeparatorComponent={ItemSeparator}
+            ListHeaderComponent={listHeaderComponent}
+            ListEmptyComponent={null}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={theme.colors.primary}
+              />
+            }
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+          />
+        </Container>
+        {/* Hide FAB on desktop (less needed with sidebar) */}
+        {!showSidebar && (
+          <FAB
+            icon="arrow-up"
+            style={[styles.fab, { bottom: fabBottomPosition, backgroundColor: theme.colors.primary }]}
+            color="#FFF"
+            mode="elevated"
+            onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+            visible={showFab}
+          />
+        )}
+      </ScreenLayout>
     </SafeAreaWrapper>
   );
 };

@@ -13,6 +13,23 @@ export const Breakpoints = {
   wide: 1440,     // 1440px+ (large desktops)
 } as const;
 
+/**
+ * Layout dimensions for desktop web design
+ * Used for sidebar navigation and three-column layouts
+ */
+export const LAYOUT_DIMENSIONS = {
+  sidebarWidth: 240,
+  rightPanelWidth: 320,
+  mainContentMaxWidth: 630,
+  sidebarBreakpoint: 1024,   // Show sidebar at this width
+  rightPanelBreakpoint: 1264, // Show right panel at this width
+} as const;
+
+/**
+ * Layout mode types for responsive design
+ */
+export type LayoutMode = 'mobile' | 'sidebar' | 'three-column';
+
 export type BreakpointKey = keyof typeof Breakpoints;
 
 /**
@@ -355,4 +372,43 @@ export function useContentBottomPadding(extraPadding: number = 0): number {
 export function useFABBottomPosition(extraMargin: number = 0): number {
   const insets = useSafeAreaInsets();
   return insets.bottom + TAB_BAR_HEIGHT + extraMargin;
+}
+
+/**
+ * Hook to determine the current layout mode based on screen width
+ * - 'mobile': Bottom tab navigation (< 1024px)
+ * - 'sidebar': Sidebar navigation only (1024px - 1263px)
+ * - 'three-column': Sidebar + main content + right panel (>= 1264px)
+ */
+export function useLayoutMode(): LayoutMode {
+  const { width } = useWindowDimensions();
+  const isWeb = Platform.OS === 'web';
+
+  return useMemo(() => {
+    if (!isWeb || width < LAYOUT_DIMENSIONS.sidebarBreakpoint) {
+      return 'mobile';
+    }
+    if (width < LAYOUT_DIMENSIONS.rightPanelBreakpoint) {
+      return 'sidebar';
+    }
+    return 'three-column';
+  }, [width, isWeb]);
+}
+
+/**
+ * Hook to determine if sidebar should be visible
+ * Returns true on desktop web (>= 1024px)
+ */
+export function useSidebarVisible(): boolean {
+  const layoutMode = useLayoutMode();
+  return layoutMode !== 'mobile';
+}
+
+/**
+ * Hook to determine if right panel should be visible
+ * Returns true on wide web screens (>= 1264px)
+ */
+export function useRightPanelVisible(): boolean {
+  const layoutMode = useLayoutMode();
+  return layoutMode === 'three-column';
 }
