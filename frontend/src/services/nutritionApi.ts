@@ -17,6 +17,7 @@ export interface LogMealPayload {
 }
 
 // Food recognition types (Frontend display format)
+
 export interface DetectedFood {
   id: string;
   name: string;
@@ -65,6 +66,8 @@ interface BackendRecognizedFood {
   food_key: string;
   display_name: string;
   estimated_grams: number;
+  unit?: string;
+  quantity?: number;  // Number of pieces/bowls/servings
   cooking_method?: string;
   confidence: number;
   nutrition?: BackendNutritionInfo;
@@ -172,19 +175,28 @@ const getWeeklyInsight = async (userId: string, weekStart?: string): Promise<Nut
 
 // Transform backend response to frontend format (legacy endpoint)
 const transformBackendResponse = (backendResponse: BackendFoodRecognitionResponse): FoodRecognitionResponse => {
-  const items: DetectedFood[] = backendResponse.items.map((item, index) => ({
-    id: item.food_key || `item-${index}`,
-    name: item.display_name || 'Unknown Food',
-    amount: item.estimated_grams || 100,
-    unit: 'g',
-    calories: item.nutrition?.calories || 0,
-    protein: item.nutrition?.protein || 0,
-    carbs: item.nutrition?.carbs || 0,
-    fat: item.nutrition?.fat || 0,
-    fiber: item.nutrition?.fiber,
-    sugar: item.nutrition?.sugar,
-    confidence: item.confidence,
-  }));
+  const items: DetectedFood[] = backendResponse.items.map((item, index) => {
+    // Use quantity for piece/bowl/serving units, grams for 'g' unit
+    const unit = item.unit || 'g';
+    const isCountableUnit = ['piece', 'bowl', 'serving', 'slice', 'cup'].includes(unit);
+    const amount = isCountableUnit 
+      ? (item.quantity || 1)      // Use quantity (1, 2, 3 pieces)
+      : (item.estimated_grams || 100);  // Use grams (40g, 100g)
+    
+    return {
+      id: item.food_key || `item-${index}`,
+      name: item.display_name || 'Unknown Food',
+      amount,
+      unit,
+      calories: item.nutrition?.calories || 0,
+      protein: item.nutrition?.protein || 0,
+      carbs: item.nutrition?.carbs || 0,
+      fat: item.nutrition?.fat || 0,
+      fiber: item.nutrition?.fiber,
+      sugar: item.nutrition?.sugar,
+      confidence: item.confidence,
+    };
+  });
 
   const totalNutrition: TotalNutrition = {
     calories: backendResponse.totalNutrition?.calories || 0,
@@ -264,6 +276,44 @@ const saveMealFromImage = async (payload: SaveMealPayload): Promise<MealLogRespo
   return await api.post<MealLogResponse>('/api/v1/meals', mealPayload);
 };
 
+// Update an existing meal with modified food items
+const updateMeal = async (mealId: number, payload: SaveMealPayload): Promise<MealLogResponse> => {
+  // Validate nutrition values - ensure they're valid numbers
+  const calories = Math.round(payload.totalNutrition.calories || 0);
+  const protein = Math.round(payload.totalNutrition.protein || 0);
+  const carbs = Math.round(payload.totalNutrition.carbs || 0);
+  const fat = Math.round(payload.totalNutrition.fat || 0);
+
+  // Validate that we have at least some nutrition data
+  if (calories === 0 && protein === 0 && carbs === 0 && fat === 0) {
+    throw new Error('No nutrition data available to save');
+  }
+
+  // Build food items in the format expected by backend (CreateMealRequest.FoodItemRequest)
+  const foodItems = payload.items.map((item, index) => ({
+    foodKey: `detected_${index}_${item.name.toLowerCase().replace(/\s+/g, '_')}`,
+    displayName: item.name,
+    grams: Math.round(item.amount),
+    calories: item.calories,
+    protein: item.protein,
+    fat: item.fat,
+    carbs: item.carbs,
+    confidence: item.confidence || 0.8,
+  }));
+
+  // Build the request payload
+  const mealPayload = {
+    mealType: payload.mealType || 'other',
+    items: foodItems,
+    notes: payload.notes || `Detected: ${payload.items.map(f => f.name).join(', ')}`.slice(0, 500),
+    imageUrl: payload.imageUrl || null,
+  };
+
+  console.log('[NutritionApi] Updating meal', mealId, 'with payload:', JSON.stringify(mealPayload, null, 2));
+
+  return await api.put<MealLogResponse>(`/api/v1/meals/${mealId}`, mealPayload);
+};
+
 export default {
   logMeal,
   getDailySummary,
@@ -271,4 +321,5 @@ export default {
   getWeeklyInsight,
   analyzeFoodImage,
   saveMealFromImage,
+  updateMeal,
 };

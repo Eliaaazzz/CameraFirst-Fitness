@@ -19,19 +19,21 @@ import {
 
 
 import { Ionicons } from '@expo/vector-icons';
-import { useQueryClient } from '@tanstack/react-query';
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
+import { DashboardWidgets, QuickLogBar } from '@/components/dashboard';
+import { ScreenLayout } from '@/components/layout';
 import { MealImage } from '@/components/nutrition/MealImage';
 import WelcomeTourCard from '@/components/WelcomeTourCard';
 import { DASHBOARD_TOUR_STEPS } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useDailyNutrition } from '@/hooks/useDailyNutrition';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useTourStatus } from '@/hooks/useTourStatus';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
 import { useGoals, useGoalStatistics } from '@/services/goalsApi';
-import { BRAND_COLORS, colors, spacing, useContentBottomPadding } from '@/utils';
+import { BRAND_COLORS, colors, saasShadows, spacing, useContentBottomPadding, useRightPanelVisible, useSidebarVisible } from '@/utils';
 import { GENERATED_GOALS_KEY } from './ProfileScreen';
 
 // Goal type display config - using target/flag icons to differentiate from streak's fire
@@ -43,9 +45,10 @@ const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; icon: string; color: s
 
 const DashboardScreen = () => {
   const navigation = useNavigation<any>();
-  const queryClient = useQueryClient();
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId || '';
+  const showRightPanel = useRightPanelVisible();
+  const showSidebar = useSidebarVisible(); // Desktop mode detection
 
   const { data: nutritionData, refresh } = useDailyNutrition();
   const goals = useGoals(userId);
@@ -228,6 +231,11 @@ const DashboardScreen = () => {
     }
   };
 
+  // Enable keyboard shortcuts on desktop
+  useKeyboardShortcuts({
+    onAddFood: handleAddFood,
+  });
+
   // Use generated goals for calorie target if available
   const calorieGoal = generatedGoals?.dailyCalories.target || nutritionData.goal;
   const proteinGoal = generatedGoals?.macros_grams.protein_g || nutritionData.protein.goal;
@@ -272,59 +280,80 @@ const DashboardScreen = () => {
     );
   }
 
+  // Render right panel widgets (only shown on wide screens)
+  const renderRightPanel = () => (
+    <DashboardWidgets
+      generatedGoals={generatedGoals}
+      currentStreak={currentUser.data?.currentStreak || 0}
+    />
+  );
+
   return (
     <SafeAreaWrapper>
-      <TourScrollView
-        style={styles.container}
-        contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
-        screenName="Dashboard"
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={BRAND_COLORS.primary}
-          />
-        }
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text variant="caption" style={styles.greeting}>Good day,</Text>
-            <View style={styles.nameRow}>
-              <Text variant="heading1" weight="bold" style={styles.userName}>
-                {currentUser.data?.username || 'User'}
-              </Text>
-              <LinearGradient
-                colors={['#FCD34D', '#F97316']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.streakBadge}
-              >
-                <Ionicons name="flame" size={16} color="#FFFFFF" />
-                <Text style={styles.streakText}>
-                  {currentUser.data?.currentStreak || 0}
+      <ScreenLayout rightPanel={renderRightPanel()} scrollable={false}>
+        <TourScrollView
+          style={styles.container}
+          contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
+          screenName="Dashboard"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={BRAND_COLORS.primary}
+            />
+          }
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text variant="caption" style={styles.greeting}>Good day,</Text>
+              <View style={styles.nameRow}>
+                <Text variant="heading1" weight="bold" style={styles.userName}>
+                  {currentUser.data?.username || 'User'}
                 </Text>
-              </LinearGradient>
+                <LinearGradient
+                  colors={['#FCD34D', '#F97316']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.streakBadge}
+                >
+                  <Ionicons name="flame" size={16} color="#FFFFFF" />
+                  <Text style={styles.streakText}>
+                    {currentUser.data?.currentStreak || 0}
+                  </Text>
+                </LinearGradient>
+              </View>
             </View>
+            {/* Hide profile button on desktop (use sidebar instead) */}
+            {!showRightPanel && (
+              <Pressable
+                style={styles.profileButton}
+                onPress={() => navigation.navigate('Profile')}
+              >
+                <Feather name="user" size={24} color={BRAND_COLORS.textPrimary} />
+              </Pressable>
+            )}
           </View>
-          <Pressable
-            style={styles.profileButton}
-            onPress={() => navigation.navigate('Profile')}
-          >
-            <Feather name="user" size={24} color={BRAND_COLORS.textPrimary} />
-          </Pressable>
-        </View>
 
-        {/* Welcome Tour Card for new users */}
-        {showWelcomeCard && (
-          <WelcomeTourCard
-            onStartTour={handleStartTour}
-            onSkip={handleSkipTour}
-          />
-        )}
+          {/* Quick Log Bar - Desktop only (replaces bottom button) */}
+          {showSidebar && (
+            <QuickLogBar
+              username={currentUser.data?.username}
+              onOpenGallery={handleChooseFromGallery}
+              onOpenCamera={Platform.OS !== 'web' ? handleTakePhoto : undefined}
+            />
+          )}
 
-        {/* Generated Goals Card (if available) */}
-        {generatedGoals && (
+          {/* Welcome Tour Card for new users */}
+          {showWelcomeCard && (
+            <WelcomeTourCard
+              onStartTour={handleStartTour}
+              onSkip={handleSkipTour}
+            />
+          )}
+
+          {/* Generated Goals Card - only show on mobile/tablet (shown in right panel on desktop) */}
+          {!showRightPanel && generatedGoals && (
           <Card style={styles.goalsCard}>
             {/* Header: Top-left aligned with icon + title */}
             <View style={styles.goalsHeader}>
@@ -396,32 +425,32 @@ const DashboardScreen = () => {
           </Card>
         )}
 
-        {/* Prompt to set goals if none exist */}
-        {!generatedGoals && (
-          <Pressable
-            style={({ pressed }) => [
-              styles.setGoalsPrompt,
-              pressed && { opacity: 0.9 },
-            ]}
-            onPress={() => navigation.navigate('Profile')}
-          >
-            <LinearGradient
-              colors={['rgba(167, 139, 250, 0.15)', 'rgba(244, 114, 182, 0.15)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.setGoalsGradient}
+          {/* Prompt to set goals if none exist - only on mobile/tablet */}
+          {!showRightPanel && !generatedGoals && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.setGoalsPrompt,
+                pressed && { opacity: 0.9 },
+              ]}
+              onPress={() => navigation.navigate('Profile')}
             >
-              <MaterialCommunityIcons name="target" size={32} color={BRAND_COLORS.primary} />
-              <View style={styles.setGoalsText}>
-                <Text variant="body" weight="bold">Set Your Fitness Goals</Text>
-                <Text variant="caption" style={styles.setGoalsSubtext}>
-                  Get personalized calorie & macro targets
-                </Text>
-              </View>
-              <Feather name="chevron-right" size={24} color={BRAND_COLORS.primary} />
-            </LinearGradient>
-          </Pressable>
-        )}
+              <LinearGradient
+                colors={['rgba(167, 139, 250, 0.15)', 'rgba(244, 114, 182, 0.15)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.setGoalsGradient}
+              >
+                <MaterialCommunityIcons name="target" size={32} color={BRAND_COLORS.primary} />
+                <View style={styles.setGoalsText}>
+                  <Text variant="body" weight="bold">Set Your Fitness Goals</Text>
+                  <Text variant="caption" style={styles.setGoalsSubtext}>
+                    Get personalized calorie & macro targets
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={24} color={BRAND_COLORS.primary} />
+              </LinearGradient>
+            </Pressable>
+          )}
 
         {/* Recommendations are now shown on their respective tabs (Workouts/Recipes) */}
 
@@ -469,39 +498,41 @@ const DashboardScreen = () => {
           </Card>
         </TourGuideZone>
 
-        {/* Add Food Button - Tour Zone 1 */}
-        <TourGuideZone
-          zone={DASHBOARD_TOUR_STEPS[0].zone}
-          text={DASHBOARD_TOUR_STEPS[0].text}
-          title={DASHBOARD_TOUR_STEPS[0].title}
-          icon="📸"
-        >
-          <Pressable
-            style={({ pressed }) => [
-              styles.addFoodButton,
-              pressed && styles.addFoodButtonPressed,
-            ]}
-            onPress={handleAddFood}
+        {/* Add Food Button - Tour Zone 1 (Mobile only - replaced by QuickLogBar on desktop) */}
+        {!showSidebar && (
+          <TourGuideZone
+            zone={DASHBOARD_TOUR_STEPS[0].zone}
+            text={DASHBOARD_TOUR_STEPS[0].text}
+            title={DASHBOARD_TOUR_STEPS[0].title}
+            icon="📸"
           >
-            <LinearGradient
-              colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.addFoodGradient}
+            <Pressable
+              style={({ pressed }) => [
+                styles.addFoodButton,
+                pressed && styles.addFoodButtonPressed,
+              ]}
+              onPress={handleAddFood}
             >
-              <MaterialCommunityIcons name="camera" size={28} color="#FFF" />
-              <View style={styles.addFoodTextContainer}>
-                <Text variant="body" weight="bold" style={styles.addFoodTitle}>
-                  Snap Your Meal
-                </Text>
-                <Text variant="caption" style={styles.addFoodSubtitle}>
-                  AI will analyze nutrition instantly
-                </Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" />
-            </LinearGradient>
-          </Pressable>
-        </TourGuideZone>
+              <LinearGradient
+                colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.addFoodGradient}
+              >
+                <MaterialCommunityIcons name="camera" size={28} color="#FFF" />
+                <View style={styles.addFoodTextContainer}>
+                  <Text variant="body" weight="bold" style={styles.addFoodTitle}>
+                    Snap Your Meal
+                  </Text>
+                  <Text variant="caption" style={styles.addFoodSubtitle}>
+                    AI will analyze nutrition instantly
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" />
+              </LinearGradient>
+            </Pressable>
+          </TourGuideZone>
+        )}
 
         {/* Today's Meals - Tour Zone 3 */}
         <TourGuideZone
@@ -562,8 +593,8 @@ const DashboardScreen = () => {
             )}
           </View>
         </TourGuideZone>
-      </TourScrollView>
-
+        </TourScrollView>
+      </ScreenLayout>
     </SafeAreaWrapper>
   );
 };
@@ -617,18 +648,20 @@ const styles = StyleSheet.create({
     backgroundColor: BRAND_COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'all 0.15s ease-out',
+    }),
   },
-  // Goals card styles - Aura look
+  // Goals card styles - Aura look with SaaS shadow
   goalsCard: {
     padding: spacing.lg,
     marginBottom: 24,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    shadowColor: '#5B21B6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 231, 235, 0.6)', // Ultra-thin border
+    ...saasShadows.card,
   },
   goalsHeader: {
     flexDirection: 'row',
@@ -659,6 +692,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(167, 139, 250, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'all 0.15s ease-out',
+    }),
   },
   goalsGrid: {
     flexDirection: 'row',
@@ -685,16 +722,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
-  // Set goals prompt - Aura look
+  // Set goals prompt - Aura look with SaaS shadow
   setGoalsPrompt: {
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 24,
-    shadowColor: '#5B21B6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    ...saasShadows.card,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'all 0.2s ease-out',
+    }),
   },
   setGoalsGradient: {
     flexDirection: 'row',
@@ -709,17 +746,15 @@ const styles = StyleSheet.create({
     color: colors.light.textSecondary,
     marginTop: 2,
   },
-  // Calorie card - Aura look
+  // Calorie card - Aura look with SaaS shadow
   calorieCard: {
     padding: spacing.lg,
     marginBottom: 24,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    shadowColor: '#5B21B6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 231, 235, 0.6)', // Ultra-thin border
+    ...saasShadows.card,
   },
   calorieHeader: {
     flexDirection: 'row',
@@ -791,6 +826,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: spacing.lg,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'all 0.2s ease-out',
+    }),
   },
   addFoodButtonPressed: {
     opacity: 0.9,

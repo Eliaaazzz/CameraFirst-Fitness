@@ -5,12 +5,13 @@ import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, Scro
 import { FAB } from 'react-native-paper';
 
 import { Container, EmptyStateCard, ListSkeleton, RecipeCard, SafeAreaWrapper, SearchBar, SearchSuggestions, Text, type SuggestionItem } from '@/components';
+import { ScreenLayout } from '@/components/layout';
 import { RECIPES_TOUR_STEP } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedRecipes, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
 import { RecipeSearchResult, searchRecipes } from '@/services/searchApi';
 import type { SavedRecipe } from '@/types';
-import { getTheme, spacing, useContentBottomPadding, useFABBottomPosition } from '@/utils';
+import { getTheme, spacing, useContentBottomPadding, useFABBottomPosition, useSidebarVisible } from '@/utils';
 
 // Recipe search suggestions with fun icons
 const RECIPE_SUGGESTIONS: SuggestionItem[] = [
@@ -92,6 +93,7 @@ export const RecipesScreen = () => {
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const userGoal = currentUser.data?.profile?.fitnessGoal;
+  const showSidebar = useSidebarVisible();
 
   const saved = useSavedRecipes(userId);
   // Use dedicated recipe recommendations API
@@ -112,8 +114,9 @@ export const RecipesScreen = () => {
   const [hasActiveSearch, setHasActiveSearch] = useState(false); // Track if user has initiated a search
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Calculate bottom padding for content using shared utility
-  const listBottomPadding = useContentBottomPadding(spacing.lg);
+  // Calculate bottom padding for content using shared utility (reduced on desktop)
+  const mobileBottomPadding = useContentBottomPadding(spacing.lg);
+  const listBottomPadding = showSidebar ? spacing['2xl'] : mobileBottomPadding;
   const fabBottomPosition = useFABBottomPosition(spacing.md);
 
   // Memoize empty component BEFORE any conditional returns
@@ -388,35 +391,40 @@ export const RecipesScreen = () => {
 
   return (
     <SafeAreaWrapper>
-      <Container style={styles.container}>
-        <FlatList
-          ref={listRef}
-          data={[]} // Saved recipes moved to SavedRecipesScreen
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
-          ItemSeparatorComponent={ItemSeparator}
-          ListHeaderComponent={listHeaderComponent}
-          ListEmptyComponent={null}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={theme.colors.primary}
-            />
-          }
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-        />
-      </Container>
-      <FAB
-        icon="arrow-up"
-        style={[styles.fab, { bottom: fabBottomPosition, backgroundColor: theme.colors.primary }]}
-        color="#FFFFFF"
-        mode="elevated"
-        onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
-        visible={showFab}
-      />
+      <ScreenLayout scrollable={false}>
+        <Container style={styles.container}>
+          <FlatList
+            ref={listRef}
+            data={[]} // Saved recipes moved to SavedRecipesScreen
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
+            ItemSeparatorComponent={ItemSeparator}
+            ListHeaderComponent={listHeaderComponent}
+            ListEmptyComponent={null}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={theme.colors.primary}
+              />
+            }
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+          />
+        </Container>
+        {/* Hide FAB on desktop */}
+        {!showSidebar && (
+          <FAB
+            icon="arrow-up"
+            style={[styles.fab, { bottom: fabBottomPosition, backgroundColor: theme.colors.primary }]}
+            color="#FFFFFF"
+            mode="elevated"
+            onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+            visible={showFab}
+          />
+        )}
+      </ScreenLayout>
     </SafeAreaWrapper>
   );
 };

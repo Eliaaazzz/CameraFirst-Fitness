@@ -8,7 +8,23 @@ interface DetectedItemRowProps {
   onDecrease: () => void;
 }
 
+/**
+ * Displays a detected food item with +/- controls for adjusting portion size.
+ * Uses intuitive units (piece, bowl, serving) from Smart Splitting AI.
+ */
 export function DetectedItemRow({ item, onIncrease, onDecrease }: DetectedItemRowProps) {
+  // Format display based on unit type
+  const getAmountDisplay = () => {
+    // For grams, show "100g" format
+    if (item.unit === 'g') {
+      return `${item.amount}g`;
+    }
+    // For countable units, show "2 piece" or just "1" if quantity is 1
+    return item.amount === 1 
+      ? `1 ${item.unit}` 
+      : `${item.amount} ${item.unit}s`;
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.info}>
@@ -16,15 +32,17 @@ export function DetectedItemRow({ item, onIncrease, onDecrease }: DetectedItemRo
         <Text style={styles.nutrition}>
           {Math.round(item.calories)} kcal · {Math.round(item.protein)}g protein
         </Text>
+        {item.unit && item.unit !== 'g' && (
+          <Text style={styles.unitHint}>{item.unit}</Text>
+        )}
       </View>
 
+      {/* +/- Amount Control */}
       <View style={styles.amountControl}>
         <Pressable onPress={onDecrease} style={styles.button}>
           <Text style={styles.buttonText}>-</Text>
         </Pressable>
-        <Text style={styles.amount}>
-          {item.amount} {item.unit}
-        </Text>
+        <Text style={styles.amount}>{getAmountDisplay()}</Text>
         <Pressable onPress={onIncrease} style={styles.button}>
           <Text style={styles.buttonText}>+</Text>
         </Pressable>
@@ -61,6 +79,12 @@ const styles = StyleSheet.create({
   nutrition: {
     fontSize: 13,
     color: '#999',
+  },
+  unitHint: {
+    fontSize: 11,
+    color: '#7C3AED',
+    marginTop: 2,
+    fontStyle: 'italic',
   },
   amountControl: {
     flexDirection: 'row',

@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { navigationRef } from './navigationService';
 
 import { ErrorBoundary } from '@/components';
+import { Sidebar } from '@/components/layout';
 import DashboardScreen from '@/screens/DashboardScreen';
 import LoginScreen from '@/screens/LoginScreen';
 import { MealHistoryScreen } from '@/screens/MealHistoryScreen';
@@ -22,7 +23,7 @@ import { SavedWorkoutsScreen } from '@/screens/SavedWorkoutsScreen';
 import SplashScreen from '@/screens/SplashScreen';
 import { WeeklyInsightsScreen } from '@/screens/WeeklyInsightsScreen';
 import { WorkoutsScreen } from '@/screens/WorkoutsScreen';
-import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive } from '@/utils';
+import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive, useSidebarVisible } from '@/utils';
 
 // Wrap screens with ErrorBoundary to prevent white screen crashes
 const withErrorBoundary = (Component: React.ComponentType<any>, _screenName: string) => {
@@ -73,6 +74,17 @@ const tabBarStyles = StyleSheet.create({
     right: 0,
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+});
+
+// Desktop layout styles
+const styles = StyleSheet.create({
+  desktopContainer: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  mainContent: {
+    flex: 1,
   },
 });
 
@@ -202,6 +214,7 @@ const TAB_CONFIG = [
 
 const MainTabs = () => {
   const { isDesktop, isTablet, isWeb } = useResponsive();
+  const showSidebar = useSidebarVisible();
   const insets = useSafeAreaInsets();
 
   // Calculate safe tab bar height with proper bottom inset
@@ -227,6 +240,46 @@ const MainTabs = () => {
     return <MaterialCommunityIcons name={iconName as any} size={size} color={color} />;
   };
 
+  // Desktop layout with sidebar
+  if (showSidebar) {
+    return (
+      <View style={styles.desktopContainer}>
+        <Sidebar />
+        <View style={styles.mainContent}>
+          <Tab.Navigator
+            initialRouteName="Dashboard"
+            screenOptions={{
+              headerShown: false,
+              tabBarStyle: { display: 'none' }, // Hide tab bar on desktop
+            }}
+          >
+            {TAB_CONFIG.map((tab) => (
+              <Tab.Screen
+                key={tab.name}
+                name={tab.name}
+                component={tab.component}
+                options={{ title: tab.label }}
+              />
+            ))}
+
+            {/* Hidden screens */}
+            <Tab.Screen
+              name="Results"
+              component={SafeResultsScreen}
+              options={{ tabBarButton: () => null }}
+            />
+            <Tab.Screen
+              name="ReviewMeal"
+              component={SafeReviewMealScreen}
+              options={{ tabBarButton: () => null }}
+            />
+          </Tab.Navigator>
+        </View>
+      </View>
+    );
+  }
+
+  // Mobile layout with bottom tabs
   return (
     <Tab.Navigator
       initialRouteName="Dashboard"

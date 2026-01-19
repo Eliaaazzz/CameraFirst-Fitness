@@ -77,8 +77,8 @@ export const MealHistoryScreen = () => {
     const dateStr = formatDate(item.consumedAt);
     const timeStr = formatTime(item.consumedAt);
 
-    // Get meal type icon
-    const getMealIcon = (type: string) => {
+    // Get meal type icon - returns null for unrecognized types
+    const getMealIcon = (type: string): string | null => {
       switch (type.toLowerCase()) {
         case 'breakfast':
           return 'coffee';
@@ -89,103 +89,122 @@ export const MealHistoryScreen = () => {
         case 'snack':
           return 'cookie';
         default:
-          return 'silverware-fork-knife';
+          return null;
       }
     };
 
+    // Check if meal type should be displayed
+    const isKnownMealType = ['breakfast', 'lunch', 'dinner', 'snack'].includes(
+      item.mealType.toLowerCase()
+    );
+    const mealIcon = getMealIcon(item.mealType);
+
+    const handleViewDetails = () => {
+      (navigation as any).navigate('ReviewMeal', { meal: item });
+    };
+
     return (
-      <Card style={styles.mealCard}>
-        <View style={styles.mealCardContent}>
-          {/* Image on the left */}
-          <MealImage
-            imageUrl={item.imageUrl}
-            size={100}
-            borderRadius={12}
-            fallbackIcon={getMealIcon(item.mealType)}
-            fallbackIconSize={40}
-          />
+      <Pressable onPress={handleViewDetails}>
+        <Card style={styles.mealCard}>
+          {/* Date & Time Header Row */}
+          <View style={styles.cardHeaderRow}>
+            <Text variant="caption" style={styles.dateTimeText}>
+              {dateStr} • {timeStr}
+            </Text>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={20}
+              color={BRAND_COLORS.textSecondary}
+            />
+          </View>
 
-          {/* Details on the right */}
-          <View style={styles.mealDetailsContainer}>
-            <View style={styles.mealHeader}>
-              <View style={styles.mealTypeRow}>
-                <MaterialCommunityIcons
-                  name={getMealIcon(item.mealType) as any}
-                  size={18}
-                  color={BRAND_COLORS.primary}
-                />
-                <Text variant="body" weight="semibold" style={styles.mealType}>
-                  {item.mealType.charAt(0).toUpperCase() + item.mealType.slice(1)}
-                </Text>
-              </View>
-              <View style={styles.dateTimeContainer}>
-                <Text variant="caption" style={styles.dateText}>
-                  {dateStr}
-                </Text>
-                <Text variant="caption" style={styles.timeText}>
-                  {timeStr}
-                </Text>
-              </View>
-            </View>
+          <View style={styles.mealCardRow}>
+            {/* Image on the left */}
+            <MealImage
+              imageUrl={item.imageUrl}
+              size={80}
+              borderRadius={12}
+              fallbackIcon={mealIcon || 'silverware-fork-knife'}
+              fallbackIconSize={36}
+            />
 
-            {/* Food Items */}
-            <View style={styles.foodItemsContainer}>
-              {item.foodItems?.slice(0, 2).map((food, index) => (
-                <View key={index} style={styles.foodItem}>
-                  <Text variant="caption" style={styles.foodName} numberOfLines={1}>
-                    {food.displayName}
-                  </Text>
-                  <Text variant="caption" style={styles.foodGrams}>
-                    {food.grams}g
+            {/* Details on the right */}
+            <View style={styles.mealDetailsContainer}>
+              {/* Meal Type - only show for known types */}
+              {isKnownMealType && (
+                <View style={styles.mealTypeRow}>
+                  {mealIcon && (
+                    <MaterialCommunityIcons
+                      name={mealIcon as any}
+                      size={16}
+                      color={BRAND_COLORS.primary}
+                    />
+                  )}
+                  <Text variant="body" weight="semibold" style={styles.mealType}>
+                    {item.mealType.charAt(0).toUpperCase() + item.mealType.slice(1)}
                   </Text>
                 </View>
-              ))}
-              {item.foodItems && item.foodItems.length > 2 && (
-                <Text variant="caption" style={styles.moreFoods}>
-                  +{item.foodItems.length - 2} more
-                </Text>
               )}
-            </View>
 
-            {/* Nutrition Summary */}
-            <View style={styles.nutritionRow}>
-              <View style={styles.nutritionItem}>
-                <MaterialCommunityIcons name="fire" size={14} color="#EF4444" />
-                <Text variant="caption" weight="semibold" style={styles.nutritionValue}>
-                  {item.totalCalories}
-                </Text>
+              {/* Food Items */}
+              <View style={styles.foodItemsContainer}>
+                {item.foodItems?.slice(0, 2).map((food, index) => (
+                  <View key={index} style={styles.foodItem}>
+                    <Text variant="caption" style={styles.foodName} numberOfLines={1}>
+                      {food.displayName}
+                    </Text>
+                    <Text variant="caption" style={styles.foodGrams}>
+                      {food.grams}g
+                    </Text>
+                  </View>
+                ))}
+                {item.foodItems && item.foodItems.length > 2 && (
+                  <Text variant="caption" style={styles.moreFoods}>
+                    +{item.foodItems.length - 2} more
+                  </Text>
+                )}
               </View>
 
-              <View style={styles.nutritionItem}>
-                <Text variant="caption" style={styles.nutritionValue}>
-                  P: {Math.round(item.totalProtein || 0)}g
-                </Text>
-              </View>
+              {/* Nutrition Summary */}
+              <View style={styles.nutritionRow}>
+                <View style={styles.nutritionItem}>
+                  <MaterialCommunityIcons name="fire" size={14} color="#EF4444" />
+                  <Text variant="caption" weight="semibold" style={styles.nutritionValue}>
+                    {item.totalCalories}
+                  </Text>
+                </View>
 
-              <View style={styles.nutritionItem}>
-                <Text variant="caption" style={styles.nutritionValue}>
-                  C: {Math.round(item.totalCarbs || 0)}g
-                </Text>
-              </View>
+                <View style={styles.nutritionItem}>
+                  <Text variant="caption" style={styles.nutritionValue}>
+                    P: {Math.round(item.totalProtein || 0)}g
+                  </Text>
+                </View>
 
-              <View style={styles.nutritionItem}>
-                <Text variant="caption" style={styles.nutritionValue}>
-                  F: {Math.round(item.totalFat || 0)}g
-                </Text>
+                <View style={styles.nutritionItem}>
+                  <Text variant="caption" style={styles.nutritionValue}>
+                    C: {Math.round(item.totalCarbs || 0)}g
+                  </Text>
+                </View>
+
+                <View style={styles.nutritionItem}>
+                  <Text variant="caption" style={styles.nutritionValue}>
+                    F: {Math.round(item.totalFat || 0)}g
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
-        </View>
 
-        {/* Notes if present */}
-        {item.notes && (
-          <View style={styles.notesContainer}>
-            <Text variant="caption" style={styles.notesText} numberOfLines={2}>
-              {item.notes}
-            </Text>
-          </View>
-        )}
-      </Card>
+          {/* Notes if present */}
+          {item.notes && (
+            <View style={styles.notesContainer}>
+              <Text variant="caption" style={styles.notesText} numberOfLines={2}>
+                {item.notes}
+              </Text>
+            </View>
+          )}
+        </Card>
+      </Pressable>
     );
   };
 
@@ -323,38 +342,35 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     padding: spacing.md,
   },
-  mealCardContent: {
+  cardHeaderRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  dateTimeText: {
+    color: BRAND_COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  mealCardRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: spacing.md,
   },
   mealDetailsContainer: {
     flex: 1,
     gap: spacing.xs,
   },
-  mealHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
   mealTypeRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 2,
   },
   mealType: {
     marginLeft: spacing.xs,
     color: BRAND_COLORS.textPrimary,
-  },
-  dateTimeContainer: {
-    alignItems: 'flex-end',
-  },
-  dateText: {
-    color: BRAND_COLORS.textSecondary,
-    fontSize: 11,
-  },
-  timeText: {
-    color: BRAND_COLORS.textSecondary,
-    fontSize: 11,
-    marginTop: 1,
+    fontSize: 14,
   },
   foodItemsContainer: {
     gap: 2,
