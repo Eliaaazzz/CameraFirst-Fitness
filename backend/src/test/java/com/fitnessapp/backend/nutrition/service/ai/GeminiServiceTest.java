@@ -29,7 +29,7 @@ class GeminiServiceTest {
     @Test
     void testServiceNotAvailableWithoutApiKey() {
         // Given: No API key configured
-        GeminiMealAnalysisService service = new GeminiMealAnalysisService(objectMapper, "", null);
+        GeminiMealAnalysisService service = new GeminiMealAnalysisService(objectMapper, "");
 
         // Then: Service should not be available
         assertThat(service.isAvailable()).isFalse();
@@ -38,7 +38,7 @@ class GeminiServiceTest {
     @Test
     void testServiceAvailableWithApiKey() {
         // Given: API key configured
-        GeminiMealAnalysisService service = new GeminiMealAnalysisService(objectMapper, "test-api-key", null);
+        GeminiMealAnalysisService service = new GeminiMealAnalysisService(objectMapper, "test-api-key");
 
         // Then: Service should be available
         assertThat(service.isAvailable()).isTrue();
@@ -47,7 +47,7 @@ class GeminiServiceTest {
     @Test
     void testProviderInterface() {
         // Given: Service with API key (uses default model)
-        GeminiMealAnalysisService service = new GeminiMealAnalysisService(objectMapper, "test-api-key", null);
+        GeminiMealAnalysisService service = new GeminiMealAnalysisService(objectMapper, "test-api-key");
 
         // Then: Provider interface methods work
         assertThat(service.getProviderName()).isEqualTo("gemini");
@@ -56,18 +56,18 @@ class GeminiServiceTest {
     }
 
     @Test
-    void testCustomModelConfiguration() {
-        // Given: Service with custom model
-        GeminiMealAnalysisService service = new GeminiMealAnalysisService(objectMapper, "test-api-key", "gemini-2.5-pro");
+    void testModelIsHardcoded() {
+        // Given: Service with API key
+        GeminiMealAnalysisService service = new GeminiMealAnalysisService(objectMapper, "test-api-key");
 
-        // Then: Custom model is used
-        assertThat(service.getModelName()).isEqualTo("gemini-2.5-pro");
+        // Then: Model is the hardcoded default (gemini-2.5-flash)
+        assertThat(service.getModelName()).isEqualTo(DEFAULT_MODEL);
     }
 
     @Test
     void testRecognizeFoodsThrowsWhenNotConfigured() {
         // Given: No API key configured
-        GeminiMealAnalysisService service = new GeminiMealAnalysisService(objectMapper, "", null);
+        GeminiMealAnalysisService service = new GeminiMealAnalysisService(objectMapper, "");
 
         // When/Then: Should throw exception
         assertThrows(FoodRecognitionException.class, () -> {
@@ -82,7 +82,7 @@ class GeminiServiceTest {
     @EnabledIfEnvironmentVariable(named = "GEMINI_API_KEY", matches = ".+")
     void testRealApiIntegration() {
         String apiKey = System.getenv("GEMINI_API_KEY");
-        GeminiMealAnalysisService service = new GeminiMealAnalysisService(objectMapper, apiKey, null);
+        GeminiMealAnalysisService service = new GeminiMealAnalysisService(objectMapper, apiKey);
 
         assertThat(service.isAvailable()).isTrue();
         assertThat(service.getProviderName()).isEqualTo("gemini");
