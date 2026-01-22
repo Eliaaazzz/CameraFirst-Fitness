@@ -5,6 +5,10 @@ spring:
     default: dev
   main:
     allow-bean-definition-overriding: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
   data:
     redis:
       repositories:

@@ -8,11 +8,11 @@ import { Card, Text } from '@/components';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
 import { BRAND_COLORS, colors, saasShadows, spacing } from '@/utils';
 
-// Goal type display config
+// Goal type display config - semantically appropriate icons
 const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; icon: string; color: string }> = {
   fat_loss: { label: 'Fat Loss', icon: 'target', color: '#EF4444' },
   muscle_gain: { label: 'Build Muscle', icon: 'flag-checkered', color: '#10B981' },
-  diabetes_control: { label: 'Blood Sugar', icon: 'heart-pulse', color: '#3B82F6' },
+  diabetes_control: { label: 'Glucose Control', icon: 'water', color: '#3B82F6' }, // Water drop for blood sugar
 };
 
 interface DashboardWidgetsProps {
@@ -90,7 +90,7 @@ export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: Dashboar
         </View>
       </Card>
 
-      {/* Quick Actions - Compact list style */}
+      {/* Quick Actions - Compact list style (unique actions not in main nav) */}
       <Card style={styles.actionsCard}>
         <Text variant="caption" weight="semibold" style={styles.sectionLabel}>
           QUICK ACTIONS
@@ -107,14 +107,14 @@ export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: Dashboar
             onPress={() => navigation.navigate('Profile', { screen: 'WeeklyInsights' })}
           />
           <QuickActionItem
-            icon="bookmark-outline"
-            label="Saved Recipes"
-            onPress={() => navigation.navigate('Profile', { screen: 'SavedRecipes' })}
+            icon="scale-bathroom"
+            label="Log Weight"
+            onPress={() => navigation.navigate('Profile', { screen: 'LogWeight' })}
           />
           <QuickActionItem
-            icon="dumbbell"
-            label="Saved Workouts"
-            onPress={() => navigation.navigate('Profile', { screen: 'SavedWorkouts' })}
+            icon="export"
+            label="Export Data"
+            onPress={() => navigation.navigate('Profile', { screen: 'ExportData' })}
           />
         </View>
       </Card>
@@ -190,7 +190,7 @@ function QuickActionItem({ icon, label, onPress }: QuickActionItemProps) {
 
 const styles = StyleSheet.create({
   container: {
-    gap: spacing.sm,
+    gap: spacing.md, // Increased from spacing.sm for better visual separation
   },
   card: {
     padding: spacing.md,
@@ -246,11 +246,11 @@ const styles = StyleSheet.create({
   },
   goalValue: {
     fontSize: 14,
-    color: colors.light.textPrimary,
+    color: '#1F2937', // Darker for WCAG AA compliance
   },
   goalLabel: {
     fontSize: 10,
-    color: colors.light.textMuted,
+    color: '#6B7280', // Medium gray for better readability
   },
   // Set goals prompt
   setGoalsPrompt: {

@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     color: BRAND_COLORS.textPrimary,
   },
   headerCalories: {
-    color: colors.light.textSecondary,
+    color: '#4B5563', // Darker for better readability
   },
   content: {
     flexDirection: 'row',
@@ -419,11 +419,11 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
   },
   legendCurrent: {
-    color: BRAND_COLORS.textPrimary,
+    color: '#1F2937', // Darker gray for better contrast (WCAG AA)
     fontSize: 14,
   },
   legendTarget: {
-    color: colors.light.textMuted,
+    color: '#6B7280', // Medium gray - still readable but secondary
     fontSize: 12,
     marginLeft: 2,
   },

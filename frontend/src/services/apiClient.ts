@@ -30,7 +30,8 @@ const normalizeBaseUrl = (url: string) => {
 };
 
 const BASE_URL = normalizeBaseUrl(RAW_API_BASE_URL);
-const TIMEOUT = 30000; // 30 seconds
+const TIMEOUT = 30000; // 30 seconds default
+const UPLOAD_TIMEOUT = 90000; // 90 seconds for image uploads (AI analysis can take time)
 
 console.log('[APIClient Init] Final BASE_URL:', BASE_URL);
 
@@ -249,6 +250,9 @@ export async function del<T>(endpoint: string): Promise<T> {
 
 /**
  * Upload image file
+ *
+ * IMPORTANT: On iOS, photos may be in HEIC format which Java ImageIO cannot read.
+ * This function automatically converts HEIC to JPEG before uploading.
  */
 export async function uploadImage<T>(
   endpoint: string,
@@ -264,12 +268,37 @@ export async function uploadImage<T>(
     const blob = await response.blob();
     formData.append('image', blob, 'image.jpg');
   } else {
-    // On mobile, use native file upload
-    const filename = imageUri.split('/').pop() || 'image.jpg';
+    // On mobile (iOS/Android): Convert HEIC to JPEG using expo-image-manipulator
+    // This is CRITICAL for iPhone users as iOS default format is HEIC
+    let processedUri = imageUri;
+
+    try {
+      // Dynamic import to avoid bundling on web
+      const { compressImage } = await import('../utils/imageHelpers');
+
+      // compressImage uses ImageManipulator with SaveFormat.JPEG
+      // This converts HEIC → JPEG and also compresses for faster upload
+      const result = await compressImage(imageUri, {
+        maxDimension: 1536,  // Good quality for AI analysis
+        quality: 0.85
+      });
+      processedUri = result.uri;
+
+      console.log('[APIClient] Image converted to JPEG:', {
+        original: imageUri.slice(-30),
+        processed: processedUri.slice(-30),
+        size: `${Math.round(result.size / 1024)}KB`
+      });
+    } catch (error) {
+      // If conversion fails, try with original (may fail on backend for HEIC)
+      console.warn('[APIClient] HEIC conversion failed, using original:', error);
+    }
+
+    const filename = 'image.jpg'; // Always use .jpg extension
     const type = 'image/jpeg';
 
     formData.append('image', {
-      uri: imageUri,
+      uri: processedUri,
       name: filename,
       type,
     } as any);
@@ -283,6 +312,7 @@ export async function uploadImage<T>(
   return request<T>(endpoint, {
     method: 'POST',
     body: formData,
+    timeout: UPLOAD_TIMEOUT, // Use longer timeout for AI image analysis
   });
 }
 
