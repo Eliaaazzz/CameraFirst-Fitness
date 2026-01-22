@@ -340,11 +340,11 @@ export function NutritionRingsCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(229, 231, 235, 0.6)',
+    borderColor: 'rgba(167, 139, 250, 0.2)', // Subtle primary color border
     padding: spacing.lg,
-    ...saasShadows.card,
+    ...saasShadows.cardElevated, // More prominent shadow for visual hierarchy
   },
   header: {
     flexDirection: 'row',

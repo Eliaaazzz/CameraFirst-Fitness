@@ -126,7 +126,11 @@ export const WeeklyInsightsScreen = () => {
           <View style={styles.headerRow}>
             <Pressable
               style={styles.backButton}
-              onPress={() => navigation.goBack()}
+              onPress={() => {
+                // Navigate explicitly to Profile to avoid incorrect back navigation
+                // This ensures consistent behavior regardless of navigation history
+                (navigation as any).navigate('ProfileMain');
+              }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <MaterialCommunityIcons

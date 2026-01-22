@@ -50,15 +50,15 @@ export const MealHistoryScreen = () => {
   });
 
   // Refetch data when screen comes into focus (for real-time sync after meal snap)
+  // Note: We only reset to page 0 on initial focus, not during scrolling
+  // The page dependency is intentionally excluded to prevent scroll bounce
   useFocusEffect(
     useCallback(() => {
-      // Reset to first page and refetch when screen is focused
-      if (page === 0) {
-        refetch();
-      } else {
-        setPage(0);
-      }
-    }, [refetch, page])
+      // Simply refetch current page data on focus - don't reset pagination
+      // This prevents the scroll bounce bug where changing page triggers re-render
+      refetch();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [refetch])
   );
 
   const handleLoadMore = () => {
