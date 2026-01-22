@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation, useNavigationState } from '@react-navigation/native';
+import { CommonActions, useNavigation, useNavigationState } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { Text } from '@/components/Text';
@@ -107,7 +107,13 @@ export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
   });
 
   const handleNavPress = (routeName: string) => {
-    navigation.navigate(routeName);
+    // Use CommonActions.navigate to properly navigate to tabs from outside the Tab Navigator
+    // This ensures the navigation works correctly when Sidebar is rendered as a sibling to tabs
+    navigation.dispatch(
+      CommonActions.navigate({
+        name: routeName,
+      })
+    );
   };
 
   return (

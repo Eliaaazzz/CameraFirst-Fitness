@@ -438,7 +438,7 @@ const DashboardScreen = () => {
           />
         </TourGuideZone>
 
-        {/* Upload Meal CTA Button - Compact when meals exist, expanded when empty */}
+        {/* Upload Meal CTA Button - Always compact style for cleaner UI */}
         {showSidebar ? (
           <TourGuideZone
             zone={DASHBOARD_TOUR_STEPS[0].zone}
@@ -446,43 +446,20 @@ const DashboardScreen = () => {
             title={DASHBOARD_TOUR_STEPS[0].title}
             icon="📸"
           >
-            {nutritionData.meals.length > 0 ? (
-              /* Compact upload bar when meals already logged */
-              <Pressable
-                style={({ pressed }) => [
-                  styles.uploadMealCompact,
-                  pressed && styles.uploadMealCompactPressed,
-                ]}
-                onPress={handleChooseFromGallery}
-              >
-                <MaterialCommunityIcons name="plus-circle" size={24} color={BRAND_COLORS.primary} />
-                <Text variant="body" weight="semibold" style={styles.uploadMealCompactText}>
-                  Add Another Meal
-                </Text>
-                <MaterialCommunityIcons name="camera" size={20} color={BRAND_COLORS.primary} style={{ marginLeft: 'auto' }} />
-              </Pressable>
-            ) : (
-              /* Full drop zone when no meals logged */
-              <Pressable
-                style={({ pressed }) => [
-                  styles.uploadMealCTA,
-                  pressed && styles.uploadMealCTAPressed,
-                ]}
-                onPress={handleChooseFromGallery}
-              >
-                <View style={styles.uploadMealContent}>
-                  <View style={styles.uploadIconContainer}>
-                    <MaterialCommunityIcons name="cloud-upload-outline" size={32} color={BRAND_COLORS.primary} />
-                  </View>
-                  <Text variant="body" weight="semibold" style={styles.uploadMealTitle}>
-                    Drop or Upload a Meal Photo
-                  </Text>
-                  <Text variant="caption" style={styles.uploadMealSubtitle}>
-                    AI will instantly analyze your nutrition
-                  </Text>
-                </View>
-              </Pressable>
-            )}
+            {/* Always show compact upload bar on desktop for cleaner UI */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.uploadMealCompact,
+                pressed && styles.uploadMealCompactPressed,
+              ]}
+              onPress={handleChooseFromGallery}
+            >
+              <MaterialCommunityIcons name="plus-circle" size={24} color={BRAND_COLORS.primary} />
+              <Text variant="body" weight="semibold" style={styles.uploadMealCompactText}>
+                {nutritionData.meals.length > 0 ? 'Add Another Meal' : 'Log Your First Meal'}
+              </Text>
+              <MaterialCommunityIcons name="camera" size={20} color={BRAND_COLORS.primary} style={{ marginLeft: 'auto' }} />
+            </Pressable>
           </TourGuideZone>
         ) : (
           /* Add Food Button - Tour Zone 1 (Mobile only) */
@@ -756,25 +733,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(229, 231, 235, 0.6)', // Ultra-thin border
     ...saasShadows.card,
   },
-  // Upload Meal CTA - Desktop drop zone style
-  uploadMealCTA: {
-    backgroundColor: colors.light.surface,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: `${BRAND_COLORS.primary}30`,
-    borderStyle: 'dashed',
-    marginBottom: spacing.lg,
-    ...saasShadows.card,
-    ...(Platform.OS === 'web' && {
-      cursor: 'pointer' as any,
-      transition: 'all 0.2s ease-out',
-    }),
-  },
-  uploadMealCTAPressed: {
-    backgroundColor: `${BRAND_COLORS.primary}08`,
-    borderColor: BRAND_COLORS.primary,
-    transform: [{ scale: 0.98 }],
-  },
   // Compact upload bar (when meals already logged)
   uploadMealCompact: {
     flexDirection: 'row',
@@ -799,29 +757,6 @@ const styles = StyleSheet.create({
   uploadMealCompactText: {
     color: BRAND_COLORS.textPrimary,
     fontSize: 14,
-  },
-  uploadMealContent: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-  },
-  uploadIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: `${BRAND_COLORS.primary}10`,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  uploadMealTitle: {
-    color: BRAND_COLORS.textPrimary,
-    fontSize: 16,
-  },
-  uploadMealSubtitle: {
-    color: colors.light.textSecondary,
-    fontSize: 13,
   },
   addFoodButton: {
     borderRadius: 16,
