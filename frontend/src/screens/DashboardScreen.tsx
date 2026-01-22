@@ -22,9 +22,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
-import { DashboardWidgets, QuickLogBar } from '@/components/dashboard';
+import { DashboardWidgets } from '@/components/dashboard';
 import { ScreenLayout } from '@/components/layout';
 import { MealImage } from '@/components/nutrition/MealImage';
+import { NutritionRingsCard } from '@/components/nutrition/NutritionRingsCard';
 import WelcomeTourCard from '@/components/WelcomeTourCard';
 import { DASHBOARD_TOUR_STEPS } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
@@ -241,32 +242,6 @@ const DashboardScreen = () => {
   const proteinGoal = generatedGoals?.macros_grams.protein_g || nutritionData.protein.goal;
   const carbsGoal = generatedGoals?.macros_grams.carbs_g || nutritionData.carbs.goal;
   const fatGoal = generatedGoals?.macros_grams.fat_g || nutritionData.fat.goal;
-  const netCarbsGoal = nutritionData.netCarbs?.goal || Math.max(0, carbsGoal - 25);
-  const normalizedFitnessGoal = generatedGoals?.goalType || currentUser.data?.profile?.fitnessGoal?.toString().toLowerCase();
-  const isBloodSugarGoal = normalizedFitnessGoal === 'blood_sugar_control'
-    || normalizedFitnessGoal === 'diabetes_control'
-    || normalizedFitnessGoal === 'maintain';
-
-
-  // Calculate progress percentage
-  const calorieProgress = calorieGoal > 0
-    ? Math.min((nutritionData.calories / calorieGoal) * 100, 100)
-    : 0;
-
-  const renderMacroBar = (label: string, current: number, goal: number, color: string) => {
-    const percentage = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
-    return (
-      <View style={styles.macroItem}>
-        <View style={styles.macroHeader}>
-          <Text variant="caption" style={styles.macroLabel}>{label}</Text>
-          <Text variant="caption" style={styles.macroValue}>{Math.round(current)}g / {goal}g</Text>
-        </View>
-        <View style={styles.macroBarBg}>
-          <View style={[styles.macroBarFill, { width: `${percentage}%`, backgroundColor: color }]} />
-        </View>
-      </View>
-    );
-  };
 
   const goalTypeConfig = generatedGoals?.goalType
     ? GOAL_TYPE_CONFIG[generatedGoals.goalType]
@@ -334,15 +309,6 @@ const DashboardScreen = () => {
               </Pressable>
             )}
           </View>
-
-          {/* Quick Log Bar - Desktop only (replaces bottom button) */}
-          {showSidebar && (
-            <QuickLogBar
-              username={currentUser.data?.username}
-              onOpenGallery={handleChooseFromGallery}
-              onOpenCamera={Platform.OS !== 'web' ? handleTakePhoto : undefined}
-            />
-          )}
 
           {/* Welcome Tour Card for new users */}
           {showWelcomeCard && (
@@ -461,45 +427,47 @@ const DashboardScreen = () => {
           title={DASHBOARD_TOUR_STEPS[1].title}
           icon="📊"
         >
-          <Card style={styles.calorieCard}>
-            <View style={styles.calorieHeader}>
-              <Text variant="heading3" weight="semibold">Today's Nutrition</Text>
-              <Text variant="caption" style={styles.calorieRatio}>
-                {Math.round(nutritionData.calories)} / {calorieGoal} kcal
-              </Text>
-            </View>
-
-            <View style={styles.circularProgress}>
-              <View style={styles.progressRing}>
-                <LinearGradient
-                  colors={['#A78BFA', '#F472B6']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={[styles.progressArc, {
-                    opacity: calorieProgress / 100,
-                  }]}
-                />
-                <View style={styles.progressInner}>
-                  <Text variant="heading1" weight="bold" style={styles.calorieText}>
-                    {Math.round(calorieProgress)}%
-                  </Text>
-                  <Text variant="caption" style={styles.calorieSubtext}>of daily goal</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Macros */}
-            <View style={styles.macrosContainer}>
-              {renderMacroBar('Protein', nutritionData.protein.current, proteinGoal, '#10B981')}
-              {renderMacroBar('Carbs', nutritionData.carbs.current, carbsGoal, '#F59E0B')}
-              {renderMacroBar('Fat', nutritionData.fat.current, fatGoal, '#EF4444')}
-              {isBloodSugarGoal && renderMacroBar('Net Carbs', nutritionData.netCarbs?.current || 0, netCarbsGoal, '#F59E0B')}
-            </View>
-          </Card>
+          <NutritionRingsCard
+            data={{
+              calories: { current: nutritionData.calories, target: calorieGoal },
+              protein: { current: nutritionData.protein.current, target: proteinGoal },
+              carbs: { current: nutritionData.carbs.current, target: carbsGoal },
+              fat: { current: nutritionData.fat.current, target: fatGoal },
+            }}
+            showFat={false}
+          />
         </TourGuideZone>
 
-        {/* Add Food Button - Tour Zone 1 (Mobile only - replaced by QuickLogBar on desktop) */}
-        {!showSidebar && (
+        {/* Upload Meal CTA Button - Desktop style drop zone */}
+        {showSidebar ? (
+          <TourGuideZone
+            zone={DASHBOARD_TOUR_STEPS[0].zone}
+            text={DASHBOARD_TOUR_STEPS[0].text}
+            title={DASHBOARD_TOUR_STEPS[0].title}
+            icon="📸"
+          >
+            <Pressable
+              style={({ pressed }) => [
+                styles.uploadMealCTA,
+                pressed && styles.uploadMealCTAPressed,
+              ]}
+              onPress={handleChooseFromGallery}
+            >
+              <View style={styles.uploadMealContent}>
+                <View style={styles.uploadIconContainer}>
+                  <MaterialCommunityIcons name="cloud-upload-outline" size={32} color={BRAND_COLORS.primary} />
+                </View>
+                <Text variant="body" weight="semibold" style={styles.uploadMealTitle}>
+                  Drop or Upload a Meal Photo
+                </Text>
+                <Text variant="caption" style={styles.uploadMealSubtitle}>
+                  AI will instantly analyze your nutrition
+                </Text>
+              </View>
+            </Pressable>
+          </TourGuideZone>
+        ) : (
+          /* Add Food Button - Tour Zone 1 (Mobile only) */
           <TourGuideZone
             zone={DASHBOARD_TOUR_STEPS[0].zone}
             text={DASHBOARD_TOUR_STEPS[0].text}
@@ -756,71 +724,47 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(229, 231, 235, 0.6)', // Ultra-thin border
     ...saasShadows.card,
   },
-  calorieHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  calorieRatio: {
-    color: colors.light.textSecondary,
-  },
-  circularProgress: {
-    alignItems: 'center',
+  // Upload Meal CTA - Desktop drop zone style
+  uploadMealCTA: {
+    backgroundColor: colors.light.surface,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: `${BRAND_COLORS.primary}30`,
+    borderStyle: 'dashed',
     marginBottom: spacing.lg,
+    ...saasShadows.card,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'all 0.2s ease-out',
+    }),
   },
-  progressRing: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(167, 139, 250, 0.1)',
-    justifyContent: 'center',
+  uploadMealCTAPressed: {
+    backgroundColor: `${BRAND_COLORS.primary}08`,
+    borderColor: BRAND_COLORS.primary,
+    transform: [{ scale: 0.98 }],
+  },
+  uploadMealContent: {
     alignItems: 'center',
-    position: 'relative',
-  },
-  progressArc: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 70,
-  },
-  progressInner: {
-    alignItems: 'center',
-  },
-  calorieText: {
-    fontSize: 32,
-    color: BRAND_COLORS.primary,
-  },
-  calorieSubtext: {
-    color: colors.light.textSecondary,
-  },
-  macrosContainer: {
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
     gap: spacing.sm,
   },
-  macroItem: {
-    gap: spacing.xs,
+  uploadIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: `${BRAND_COLORS.primary}10`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
   },
-  macroHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  uploadMealTitle: {
+    color: BRAND_COLORS.textPrimary,
+    fontSize: 16,
   },
-  macroLabel: {
-    fontWeight: '600',
-  },
-  macroValue: {
+  uploadMealSubtitle: {
     color: colors.light.textSecondary,
-  },
-  macroBarBg: {
-    height: 8,
-    backgroundColor: colors.light.border,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  macroBarFill: {
-    height: '100%',
-    borderRadius: 4,
+    fontSize: 13,
   },
   addFoodButton: {
     borderRadius: 16,

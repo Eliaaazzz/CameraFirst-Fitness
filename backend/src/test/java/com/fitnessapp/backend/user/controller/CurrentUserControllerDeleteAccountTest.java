@@ -4,6 +4,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.fitnessapp.backend.api.common.GlobalExceptionHandler;
 import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService;
 import com.fitnessapp.backend.recipe.service.SmartRecipeService;
 import com.fitnessapp.backend.security.CurrentUser;
@@ -63,7 +64,9 @@ class CurrentUserControllerDeleteAccountTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(currentUserController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(currentUserController)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
         testUserId = UUID.randomUUID();
     }
 
@@ -224,16 +227,24 @@ class CurrentUserControllerDeleteAccountTest {
     class HttpMethodValidation {
 
         @Test
-        @DisplayName("should only accept DELETE method")
-        void shouldOnlyAcceptDeleteMethod() throws Exception {
-            // GET should not be allowed for delete operation
-            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/me"))
-                    .andExpect(status().isOk()); // GET /me returns user info, not delete
-
-            // POST should not be allowed
+        @DisplayName("should reject POST method on /api/v1/me")
+        void shouldRejectPostMethod() throws Exception {
+            // POST should not be allowed on the base /api/v1/me endpoint
             mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/me")
                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isMethodNotAllowed());
+        }
+
+        @Test
+        @DisplayName("DELETE method should be accepted")
+        void shouldAcceptDeleteMethod() throws Exception {
+            // Given
+            when(currentUser.requireUserId()).thenReturn(testUserId);
+
+            // When/Then - DELETE should work
+            mockMvc.perform(delete("/api/v1/me")
+                    .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isNoContent());
         }
     }
 }
