@@ -52,7 +52,7 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
     
     // Increased from 1024 to 4096 to handle complex meals (e.g., sushi bento with many items)
     private static final int MAX_OUTPUT_TOKENS = 4096;
-    private static final int TIMEOUT_SECONDS = 60;
+    private static final int TIMEOUT_SECONDS = 75; // Increased from 60s to handle complex meals
     private static final int MAX_RETRIES = 2;
     private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;
     private static final Set<String> SUPPORTED_IMAGE_TYPES = Set.of(
@@ -252,34 +252,40 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
     }
 
     private String buildRequestBody(String base64Image, String mediaType) {
-        // Smart Splitting prompt with intuitive units, atomic naming, and cooking coefficient
+        // Adaptive granularity prompt: dish-level for multiple items, ingredient-level for single dish
         String prompt = """
             You are an expert nutritionist. Analyze the food image.
-            
+
             OBJECTIVE:
-            Identify foods with high precision. Handle restaurant-style cooking (hidden calories) and ensure unit logic is human-readable.
-            
-            1. NAMING RULE (CRITICAL - Do NOT include quantity in name):
+            Identify foods with appropriate granularity based on dish count.
+
+            CRITICAL GRANULARITY RULE:
+            - FIRST: Count how many DISTINCT dishes/items are visible.
+            - If 2+ DISHES → Return DISH-LEVEL nutrition only (faster, less data).
+            - If 1 DISH only → Break down into INGREDIENTS for detailed tracking.
+
+            NAMING RULE (CRITICAL - Do NOT include quantity in name):
                - ❌ WRONG: {"name": "Oysters (x12)", "quantity": 1}
                - ✅ CORRECT: {"name": "Fresh Oyster", "quantity": 12}
-               - The name should be a clean, singular noun. Put the count in "quantity"!
-            
-            2. GRANULARITY RULE:
-               - COMBO/PLATTER with distinct items (Sushi Platter, Burger+Fries) -> LIST SEPARATELY.
-               - MIXED dish (Fried Rice, Pizza, Salad Bowl) -> SINGLE ITEM.
-            
-            3. COOKING COEFFICIENT (The "Restaurant Factor"):
-               - Analyze visual cues: Is the food shiny/oily? Deep-fried? Likely from a restaurant?
-               - If YES -> Apply 1.1x to 1.3x to calories for hidden butter/oil.
-               - Set "is_restaurant_style": true if detected.
-            
-            4. UNIT SELECTION:
-               - Countable (Sushi, Dumplings, Wings, Oysters) -> unit: "piece". COUNT ACCURATELY!
-               - Volume (Rice, Soup) -> unit: "bowl" or "cup".
-               - Standard (Burger, Steak) -> unit: "serving".
-            
-            OUTPUT JSON FORMAT ONLY (no markdown):
-            {"foods":[{"name":"Fresh Oyster","quantity":12,"unit":"piece","calories":96,"weight_g":180,"protein_g":12,"carbs_g":4,"fat_g":3,"is_restaurant_style":false},{"name":"Grilled Lobster","quantity":1,"unit":"serving","calories":450,"weight_g":300,"protein_g":40,"carbs_g":2,"fat_g":25,"is_restaurant_style":true,"cooking_note":"Butter glaze detected"}]}
+               - Name = clean singular noun. Count goes in "quantity".
+
+            COOKING COEFFICIENT (Restaurant Factor):
+               - Visual cues: shiny/oily? Deep-fried? Restaurant?
+               - If YES → Apply 1.1x-1.3x to calories.
+               - Set "is_restaurant_style": true.
+
+            UNIT SELECTION:
+               - Countable (Sushi, Dumplings) → unit: "piece"
+               - Volume (Rice, Soup) → unit: "bowl"
+               - Standard (Burger, Steak) → unit: "serving"
+
+            OUTPUT FORMAT (JSON only, no markdown):
+
+            MULTI-DISH EXAMPLE (2+ dishes → dish-level only):
+            {"foods":[{"name":"Grilled Salmon","quantity":1,"unit":"serving","calories":450,"weight_g":200,"protein_g":40,"carbs_g":0,"fat_g":28,"is_restaurant_style":true},{"name":"Caesar Salad","quantity":1,"unit":"bowl","calories":320,"weight_g":180,"protein_g":8,"carbs_g":12,"fat_g":26,"is_restaurant_style":true}]}
+
+            SINGLE-DISH EXAMPLE (1 dish → ingredient breakdown):
+            {"foods":[{"name":"Chicken Breast","quantity":1,"unit":"serving","calories":165,"weight_g":100,"protein_g":31,"carbs_g":0,"fat_g":3.6,"is_restaurant_style":false},{"name":"Steamed Rice","quantity":1,"unit":"bowl","calories":206,"weight_g":158,"protein_g":4.3,"carbs_g":45,"fat_g":0.4,"is_restaurant_style":false},{"name":"Broccoli","quantity":1,"unit":"serving","calories":55,"weight_g":100,"protein_g":3.7,"carbs_g":11,"fat_g":0.6,"is_restaurant_style":false}]}
             """;
 
         // Using Gemini 2.5 Flash - fast and efficient for food recognition

@@ -41,7 +41,7 @@ import { GENERATED_GOALS_KEY } from './ProfileScreen';
 const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; icon: string; color: string }> = {
   fat_loss: { label: 'Fat Loss', icon: 'target', color: '#EF4444' },
   muscle_gain: { label: 'Build Muscle', icon: 'flag-checkered', color: '#10B981' },
-  diabetes_control: { label: 'Blood Sugar', icon: 'heart-pulse', color: '#3B82F6' },
+  diabetes_control: { label: 'Glucose Control', icon: 'water', color: '#3B82F6' }, // Changed from heart-pulse to water (blood drop)
 };
 
 const DashboardScreen = () => {
@@ -434,11 +434,11 @@ const DashboardScreen = () => {
               carbs: { current: nutritionData.carbs.current, target: carbsGoal },
               fat: { current: nutritionData.fat.current, target: fatGoal },
             }}
-            showFat={false}
+            showFat={true}
           />
         </TourGuideZone>
 
-        {/* Upload Meal CTA Button - Desktop style drop zone */}
+        {/* Upload Meal CTA Button - Compact when meals exist, expanded when empty */}
         {showSidebar ? (
           <TourGuideZone
             zone={DASHBOARD_TOUR_STEPS[0].zone}
@@ -446,25 +446,43 @@ const DashboardScreen = () => {
             title={DASHBOARD_TOUR_STEPS[0].title}
             icon="📸"
           >
-            <Pressable
-              style={({ pressed }) => [
-                styles.uploadMealCTA,
-                pressed && styles.uploadMealCTAPressed,
-              ]}
-              onPress={handleChooseFromGallery}
-            >
-              <View style={styles.uploadMealContent}>
-                <View style={styles.uploadIconContainer}>
-                  <MaterialCommunityIcons name="cloud-upload-outline" size={32} color={BRAND_COLORS.primary} />
+            {nutritionData.meals.length > 0 ? (
+              /* Compact upload bar when meals already logged */
+              <Pressable
+                style={({ pressed }) => [
+                  styles.uploadMealCompact,
+                  pressed && styles.uploadMealCompactPressed,
+                ]}
+                onPress={handleChooseFromGallery}
+              >
+                <MaterialCommunityIcons name="plus-circle" size={24} color={BRAND_COLORS.primary} />
+                <Text variant="body" weight="semibold" style={styles.uploadMealCompactText}>
+                  Add Another Meal
+                </Text>
+                <MaterialCommunityIcons name="camera" size={20} color={BRAND_COLORS.primary} style={{ marginLeft: 'auto' }} />
+              </Pressable>
+            ) : (
+              /* Full drop zone when no meals logged */
+              <Pressable
+                style={({ pressed }) => [
+                  styles.uploadMealCTA,
+                  pressed && styles.uploadMealCTAPressed,
+                ]}
+                onPress={handleChooseFromGallery}
+              >
+                <View style={styles.uploadMealContent}>
+                  <View style={styles.uploadIconContainer}>
+                    <MaterialCommunityIcons name="cloud-upload-outline" size={32} color={BRAND_COLORS.primary} />
+                  </View>
+                  <Text variant="body" weight="semibold" style={styles.uploadMealTitle}>
+                    Drop or Upload a Meal Photo
+                  </Text>
+                  <Text variant="caption" style={styles.uploadMealSubtitle}>
+                    AI will instantly analyze your nutrition
+                  </Text>
                 </View>
-                <Text variant="body" weight="semibold" style={styles.uploadMealTitle}>
-                  Drop or Upload a Meal Photo
-                </Text>
-                <Text variant="caption" style={styles.uploadMealSubtitle}>
-                  AI will instantly analyze your nutrition
-                </Text>
-              </View>
-            </Pressable>
+              </Pressable>
+            )}
           </TourGuideZone>
         ) : (
           /* Add Food Button - Tour Zone 1 (Mobile only) */
@@ -515,15 +533,29 @@ const DashboardScreen = () => {
             </Text>
 
             {nutritionData.meals.length === 0 ? (
-              <Card style={styles.emptyMeals}>
-                <MaterialCommunityIcons name="food-off" size={40} color="#6B7280" />
-                <Text variant="body" style={styles.emptyMealsText}>
-                  No meals logged yet today
+              <Pressable
+                style={({ pressed }) => [
+                  styles.emptyMealsCard,
+                  pressed && styles.emptyMealsCardPressed,
+                ]}
+                onPress={handleAddFood}
+              >
+                <View style={styles.emptyMealsIconContainer}>
+                  <MaterialCommunityIcons name="silverware-fork-knife" size={32} color={BRAND_COLORS.primary} />
+                </View>
+                <Text variant="body" weight="semibold" style={styles.emptyMealsTitle}>
+                  Time for your first meal?
                 </Text>
                 <Text variant="caption" style={styles.emptyMealsHint}>
-                  Tap the camera button above to log your first meal
+                  Snap a photo and let AI track your nutrition instantly
                 </Text>
-              </Card>
+                <View style={styles.emptyMealsCTA}>
+                  <MaterialCommunityIcons name="camera" size={16} color="#FFF" />
+                  <Text variant="caption" weight="semibold" style={styles.emptyMealsCTAText}>
+                    Add Meal
+                  </Text>
+                </View>
+              </Pressable>
             ) : (
               nutritionData.meals.map((meal) => (
                 <Card key={meal.id} style={styles.mealItem}>
@@ -743,6 +775,31 @@ const styles = StyleSheet.create({
     borderColor: BRAND_COLORS.primary,
     transform: [{ scale: 0.98 }],
   },
+  // Compact upload bar (when meals already logged)
+  uploadMealCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.light.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: `${BRAND_COLORS.primary}20`,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+    ...saasShadows.subtle,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'all 0.15s ease-out',
+    }),
+  },
+  uploadMealCompactPressed: {
+    backgroundColor: `${BRAND_COLORS.primary}08`,
+    transform: [{ scale: 0.98 }],
+  },
+  uploadMealCompactText: {
+    color: BRAND_COLORS.textPrimary,
+    fontSize: 14,
+  },
   uploadMealContent: {
     alignItems: 'center',
     paddingVertical: spacing.xl,
@@ -800,17 +857,54 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginBottom: spacing.xs,
   },
-  emptyMeals: {
+  // Empty state - actionable card
+  emptyMealsCard: {
     alignItems: 'center',
     padding: spacing.xl,
     gap: spacing.sm,
+    backgroundColor: colors.light.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 231, 235, 0.6)',
+    ...saasShadows.card,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'all 0.2s ease-out',
+    }),
   },
-  emptyMealsText: {
-    color: colors.light.textSecondary,
+  emptyMealsCardPressed: {
+    backgroundColor: `${BRAND_COLORS.primary}05`,
+    transform: [{ scale: 0.98 }],
+  },
+  emptyMealsIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: `${BRAND_COLORS.primary}10`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  emptyMealsTitle: {
+    color: BRAND_COLORS.textPrimary,
   },
   emptyMealsHint: {
-    color: colors.light.textMuted,
+    color: colors.light.textSecondary,
     textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  emptyMealsCTA: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BRAND_COLORS.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+    gap: spacing.xs,
+  },
+  emptyMealsCTAText: {
+    color: '#FFF',
+    fontSize: 13,
   },
   mealItem: {
     flexDirection: 'row',
