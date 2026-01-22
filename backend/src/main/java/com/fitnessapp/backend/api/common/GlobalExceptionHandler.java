@@ -1,22 +1,25 @@
 package com.fitnessapp.backend.api.common;
 
-import com.fitnessapp.backend.embedding.EmbeddingGenerationException;
-import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
-import com.fitnessapp.backend.recommendation.exception.RecommendationException;
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeoutException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeoutException;
+import com.fitnessapp.backend.embedding.EmbeddingGenerationException;
+import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
+import com.fitnessapp.backend.recommendation.exception.RecommendationException;
+
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Global exception handler for consistent API error responses.
@@ -196,6 +199,24 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    // ========== HTTP Method Exceptions ==========
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiEnvelope<Void>> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("Method not allowed: {} {} - Supported: {}", 
+                ex.getMethod(), request.getRequestURI(), ex.getSupportedHttpMethods());
+
+        ApiEnvelope<Void> response = ApiEnvelope.error(
+                ErrorCode.INVALID_REQUEST,
+                String.format("HTTP method '%s' is not supported for this endpoint", ex.getMethod()),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(response);
     }
 
     // ========== Generic Exception (Catch-all) ==========
