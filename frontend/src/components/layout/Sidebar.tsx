@@ -95,10 +95,9 @@ interface SidebarProps {
   onLogFood?: () => void;
 }
 
-export function Sidebar({ onLogFood }: SidebarProps) {
+export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
   const navigation = useNavigation<any>();
   const currentUser = useCurrentUser();
-  const [isLogButtonHovered, setIsLogButtonHovered] = useState(false);
 
   // Get the current route name from navigation state
   const currentRouteName = useNavigationState((state) => {
@@ -109,15 +108,6 @@ export function Sidebar({ onLogFood }: SidebarProps) {
 
   const handleNavPress = (routeName: string) => {
     navigation.navigate(routeName);
-  };
-
-  const handleLogFood = () => {
-    if (onLogFood) {
-      onLogFood();
-    } else {
-      // Default: navigate to Dashboard and trigger add food
-      navigation.navigate('Dashboard');
-    }
   };
 
   return (
@@ -136,31 +126,6 @@ export function Sidebar({ onLogFood }: SidebarProps) {
           AuraFitness
         </Text>
       </View>
-
-      {/* Global Log Food Button - Twitter/Instagram style */}
-      <Pressable
-        style={[
-          styles.logFoodButton,
-          isLogButtonHovered && styles.logFoodButtonHovered,
-        ]}
-        onPress={handleLogFood}
-        {...(Platform.OS === 'web' && {
-          onMouseEnter: () => setIsLogButtonHovered(true),
-          onMouseLeave: () => setIsLogButtonHovered(false),
-        })}
-      >
-        <LinearGradient
-          colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.logFoodGradient}
-        >
-          <MaterialCommunityIcons name="plus" size={22} color="#FFF" />
-          <Text variant="body" weight="bold" style={styles.logFoodText}>
-            Log Food
-          </Text>
-        </LinearGradient>
-      </Pressable>
 
       {/* Navigation Items */}
       <View style={styles.nav}>
@@ -200,12 +165,6 @@ export function Sidebar({ onLogFood }: SidebarProps) {
         </View>
       </Pressable>
 
-      {/* Keyboard shortcut hint */}
-      <View style={styles.shortcutHint}>
-        <Text variant="caption" style={styles.shortcutText}>
-          Press <Text style={styles.keyBadge}>C</Text> to log food
-        </Text>
-      </View>
     </View>
   );
 }
@@ -236,35 +195,6 @@ const styles = StyleSheet.create({
   logoText: {
     marginLeft: spacing.sm,
     color: BRAND_COLORS.textPrimary,
-  },
-  // Global Log Food Button
-  logFoodButton: {
-    marginBottom: spacing.xl,
-    borderRadius: 999,
-    overflow: 'hidden',
-    ...(Platform.OS === 'web' && {
-      cursor: 'pointer' as any,
-      transition: 'transform 0.15s ease-out, box-shadow 0.15s ease-out',
-      boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)',
-    }),
-  },
-  logFoodButtonHovered: {
-    ...(Platform.OS === 'web' && {
-      transform: [{ scale: 1.02 }],
-      boxShadow: '0 6px 16px rgba(124, 58, 237, 0.35)',
-    }),
-  },
-  logFoodGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-  },
-  logFoodText: {
-    color: '#FFFFFF',
-    fontSize: 15,
   },
   // Navigation
   nav: {
@@ -342,24 +272,6 @@ const styles = StyleSheet.create({
   streakText: {
     color: '#F97316',
     fontSize: 11,
-  },
-  // Keyboard shortcut hint
-  shortcutHint: {
-    alignItems: 'center',
-    paddingTop: spacing.md,
-  },
-  shortcutText: {
-    color: colors.light.textMuted,
-    fontSize: 11,
-  },
-  keyBadge: {
-    backgroundColor: colors.light.border,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    fontWeight: '600',
-    fontSize: 10,
-    color: colors.light.textSecondary,
   },
 });
 
