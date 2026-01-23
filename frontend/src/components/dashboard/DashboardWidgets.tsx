@@ -24,6 +24,7 @@ interface DashboardWidgetsProps {
  * DashboardWidgets - Right panel widgets for the dashboard
  * Displayed only on wide screens (>=1264px)
  * Optimized for desktop with compact, high-density layout
+ * Uses flex layout to fill available height
  */
 export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: DashboardWidgetsProps) {
   const navigation = useNavigation<any>();
@@ -34,90 +35,95 @@ export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: Dashboar
 
   return (
     <View style={styles.container}>
-      {/* Goals Summary Card */}
-      {generatedGoals ? (
-        <Card style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderLeft}>
-              {goalTypeConfig && (
-                <View style={[styles.goalTypeIcon, { backgroundColor: `${goalTypeConfig.color}15` }]}>
-                  <MaterialCommunityIcons
-                    name={goalTypeConfig.icon as any}
-                    size={16}
-                    color={goalTypeConfig.color}
-                  />
-                </View>
-              )}
-              <View>
-                <Text variant="caption" style={styles.cardLabel}>Your Goal</Text>
+      {/* Top section: Goal + Streak cards */}
+      <View style={styles.topSection}>
+        {/* Goals Summary Card */}
+        {generatedGoals ? (
+          <Card style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeaderLeft}>
                 {goalTypeConfig && (
-                  <Text variant="body" weight="semibold" style={{ color: goalTypeConfig.color }}>
-                    {goalTypeConfig.label}
-                  </Text>
+                  <View style={[styles.goalTypeIcon, { backgroundColor: `${goalTypeConfig.color}15` }]}>
+                    <MaterialCommunityIcons
+                      name={goalTypeConfig.icon as any}
+                      size={16}
+                      color={goalTypeConfig.color}
+                    />
+                  </View>
                 )}
+                <View>
+                  <Text variant="caption" style={styles.cardLabel}>Your Goal</Text>
+                  {goalTypeConfig && (
+                    <Text variant="body" weight="bold" style={{ color: goalTypeConfig.color }}>
+                      {goalTypeConfig.label}
+                    </Text>
+                  )}
+                </View>
               </View>
+              <Pressable
+                style={styles.editButton}
+                onPress={() => navigation.navigate('Profile')}
+              >
+                <Feather name="edit-2" size={12} color={BRAND_COLORS.primary} />
+              </Pressable>
             </View>
-            <Pressable
-              style={styles.editButton}
-              onPress={() => navigation.navigate('Profile')}
-            >
-              <Feather name="edit-2" size={12} color={BRAND_COLORS.primary} />
-            </Pressable>
-          </View>
 
-          {/* Compact macro grid */}
-          <View style={styles.goalsGrid}>
-            <GoalItem icon="fire" iconColor="#EF4444" value={generatedGoals.dailyCalories.target} label="kcal" />
-            <GoalItem icon="food-steak" iconColor="#10B981" value={`${generatedGoals.macros_grams.protein_g}g`} label="P" />
-            <GoalItem icon="barley" iconColor="#F59E0B" value={`${generatedGoals.macros_grams.carbs_g}g`} label="C" />
-            <GoalItem icon="oil" iconColor="#EF4444" value={`${generatedGoals.macros_grams.fat_g}g`} label="F" />
+            {/* Compact macro grid with improved typography */}
+            <View style={styles.goalsGrid}>
+              <GoalItem icon="fire" iconColor="#EF4444" value={generatedGoals.dailyCalories.target} label="kcal" />
+              <GoalItem icon="food-steak" iconColor="#10B981" value={`${generatedGoals.macros_grams.protein_g}g`} label="Protein" />
+              <GoalItem icon="barley" iconColor="#F59E0B" value={`${generatedGoals.macros_grams.carbs_g}g`} label="Carbs" />
+              <GoalItem icon="oil" iconColor="#EF4444" value={`${generatedGoals.macros_grams.fat_g}g`} label="Fat" />
+            </View>
+          </Card>
+        ) : (
+          <SetGoalsPrompt onPress={() => navigation.navigate('Profile')} />
+        )}
+
+        {/* Streak Card - Compact */}
+        <Card style={styles.streakCard}>
+          <View style={styles.streakIconSmall}>
+            <MaterialCommunityIcons name="fire" size={20} color="#F97316" />
+          </View>
+          <View style={styles.streakInfo}>
+            <Text variant="heading3" weight="bold" style={styles.streakNumber}>
+              {currentStreak}
+            </Text>
+            <Text variant="caption" style={styles.mutedText}>day streak</Text>
           </View>
         </Card>
-      ) : (
-        <SetGoalsPrompt onPress={() => navigation.navigate('Profile')} />
-      )}
+      </View>
 
-      {/* Streak Card - Compact */}
-      <Card style={styles.streakCard}>
-        <View style={styles.streakIconSmall}>
-          <MaterialCommunityIcons name="fire" size={20} color="#F97316" />
-        </View>
-        <View style={styles.streakInfo}>
-          <Text variant="heading3" weight="bold" style={styles.streakNumber}>
-            {currentStreak}
+      {/* Bottom section: Quick Actions - fills remaining space */}
+      <View style={styles.bottomSection}>
+        <Card style={styles.actionsCard}>
+          <Text variant="caption" weight="bold" style={styles.sectionLabel}>
+            QUICK ACTIONS
           </Text>
-          <Text variant="caption" style={styles.mutedText}>day streak</Text>
-        </View>
-      </Card>
-
-      {/* Quick Actions - Compact list style (unique actions not in main nav) */}
-      <Card style={styles.actionsCard}>
-        <Text variant="caption" weight="semibold" style={styles.sectionLabel}>
-          QUICK ACTIONS
-        </Text>
-        <View style={styles.actionsList}>
-          <QuickActionItem
-            icon="history"
-            label="Meal History"
-            onPress={() => navigation.navigate('Profile', { screen: 'MealHistory' })}
-          />
-          <QuickActionItem
-            icon="chart-line"
-            label="Weekly Insights"
-            onPress={() => navigation.navigate('Profile', { screen: 'WeeklyInsights' })}
-          />
-          <QuickActionItem
-            icon="scale-bathroom"
-            label="Log Weight"
-            onPress={() => navigation.navigate('Profile', { screen: 'LogWeight' })}
-          />
-          <QuickActionItem
-            icon="export"
-            label="Export Data"
-            onPress={() => navigation.navigate('Profile', { screen: 'ExportData' })}
-          />
-        </View>
-      </Card>
+          <View style={styles.actionsList}>
+            <QuickActionItem
+              icon="history"
+              label="Meal History"
+              onPress={() => navigation.navigate('Profile', { screen: 'MealHistory' })}
+            />
+            <QuickActionItem
+              icon="chart-line"
+              label="Weekly Insights"
+              onPress={() => navigation.navigate('Profile', { screen: 'WeeklyInsights' })}
+            />
+            <QuickActionItem
+              icon="scale-bathroom"
+              label="Log Weight"
+              onPress={() => navigation.navigate('Profile', { screen: 'LogWeight' })}
+            />
+            <QuickActionItem
+              icon="export"
+              label="Export Data"
+              onPress={() => navigation.navigate('Profile', { screen: 'ExportData' })}
+            />
+          </View>
+        </Card>
+      </View>
     </View>
   );
 }
@@ -132,9 +138,9 @@ interface GoalItemProps {
 function GoalItem({ icon, iconColor, value, label }: GoalItemProps) {
   return (
     <View style={styles.goalItem}>
-      <MaterialCommunityIcons name={icon as any} size={14} color={iconColor} />
+      <MaterialCommunityIcons name={icon as any} size={16} color={iconColor} />
       <Text variant="body" weight="bold" style={styles.goalValue}>{value}</Text>
-      <Text variant="caption" style={styles.goalLabel}>{label}</Text>
+      <Text variant="caption" weight="semibold" style={styles.goalLabel}>{label}</Text>
     </View>
   );
 }
@@ -190,7 +196,14 @@ function QuickActionItem({ icon, label, onPress }: QuickActionItemProps) {
 
 const styles = StyleSheet.create({
   container: {
-    gap: spacing.md, // Increased from spacing.sm for better visual separation
+    flex: 1, // Fill available height
+    gap: spacing.lg, // Consistent 24px gap (same as main content cards)
+  },
+  topSection: {
+    gap: spacing.md, // 16px between Goal and Streak cards
+  },
+  bottomSection: {
+    flex: 1, // Take remaining space
   },
   card: {
     padding: spacing.md,
@@ -245,12 +258,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   goalValue: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#1F2937', // Darker for WCAG AA compliance
+    letterSpacing: -0.3,
   },
   goalLabel: {
-    fontSize: 10,
-    color: '#6B7280', // Medium gray for better readability
+    fontSize: 11,
+    color: '#4B5563', // Darker for better readability (WCAG AA)
+    marginTop: 1,
   },
   // Set goals prompt
   setGoalsPrompt: {
@@ -305,8 +320,9 @@ const styles = StyleSheet.create({
     color: '#F97316',
     fontSize: 20,
   },
-  // Actions card
+  // Actions card - fills remaining space
   actionsCard: {
+    flex: 1, // Fill remaining height
     padding: spacing.sm,
     paddingTop: spacing.md,
     backgroundColor: colors.light.surface,

@@ -504,69 +504,79 @@ const DashboardScreen = () => {
           title={DASHBOARD_TOUR_STEPS[2].title}
           icon="🍽️"
         >
-          <View style={styles.mealsSection}>
-            <Text variant="heading3" weight="semibold" style={styles.sectionTitle}>
-              Today's Meals
-            </Text>
+          {/* Unified card wrapper matching NutritionRingsCard style */}
+          <View style={styles.mealsCard}>
+            {/* Header - matches NutritionRingsCard header */}
+            <View style={styles.mealsHeader}>
+              <Text variant="heading3" weight="bold" style={styles.mealsTitle}>
+                Today's Meals
+              </Text>
+              <Text variant="caption" style={styles.mealsSubtitle}>
+                {nutritionData.meals.length} {nutritionData.meals.length === 1 ? 'meal' : 'meals'} logged
+              </Text>
+            </View>
 
             {nutritionData.meals.length === 0 ? (
               <Pressable
                 style={({ pressed }) => [
-                  styles.emptyMealsCard,
-                  pressed && styles.emptyMealsCardPressed,
+                  styles.emptyMealsContent,
+                  pressed && styles.emptyMealsContentPressed,
                 ]}
                 onPress={handleAddFood}
               >
                 <View style={styles.emptyMealsIconContainer}>
-                  <MaterialCommunityIcons name="silverware-fork-knife" size={32} color={BRAND_COLORS.primary} />
+                  <MaterialCommunityIcons name="camera-plus" size={28} color={BRAND_COLORS.primary} />
                 </View>
-                <Text variant="body" weight="semibold" style={styles.emptyMealsTitle}>
-                  Time for your first meal?
-                </Text>
-                <Text variant="caption" style={styles.emptyMealsHint}>
-                  Snap a photo and let AI track your nutrition instantly
-                </Text>
-                <View style={styles.emptyMealsCTA}>
-                  <MaterialCommunityIcons name="camera" size={16} color="#FFF" />
-                  <Text variant="caption" weight="semibold" style={styles.emptyMealsCTAText}>
-                    Add Meal
+                <View style={styles.emptyMealsTextContainer}>
+                  <Text variant="body" weight="semibold" style={styles.emptyMealsTitle}>
+                    Upload a photo to get started
+                  </Text>
+                  <Text variant="caption" style={styles.emptyMealsHint}>
+                    AI will analyze your macros instantly
                   </Text>
                 </View>
+                <Feather name="chevron-right" size={20} color={BRAND_COLORS.primary} />
               </Pressable>
             ) : (
-              nutritionData.meals.map((meal) => (
-                <Card key={meal.id} style={styles.mealItem}>
-                  <MealImage
-                    imageUrl={meal.imageUrl}
-                    size={80}
-                    borderRadius={12}
-                  />
-                  <View style={styles.mealDetails}>
-                    <View style={styles.mealHeader}>
-                      <Text variant="body" weight="semibold" numberOfLines={1} style={styles.mealName}>
-                        {meal.name}
-                      </Text>
-                      <Text variant="body" weight="bold" style={styles.mealCalories}>
-                        {meal.calories} kcal
-                      </Text>
-                    </View>
-                    <Text variant="caption" style={styles.mealTime}>
-                      {new Date(meal.consumedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                    <View style={styles.mealMacros}>
-                      <Text variant="caption" style={styles.mealMacroText}>
-                        P: {Math.round(meal.protein || 0)}g
-                      </Text>
-                      <Text variant="caption" style={styles.mealMacroText}>
-                        C: {Math.round(meal.carbs || 0)}g
-                      </Text>
-                      <Text variant="caption" style={styles.mealMacroText}>
-                        F: {Math.round(meal.fat || 0)}g
-                      </Text>
+              <View style={styles.mealsList}>
+                {nutritionData.meals.map((meal) => (
+                  <View key={meal.id} style={styles.mealItem}>
+                    <MealImage
+                      imageUrl={meal.imageUrl}
+                      size={56}
+                      borderRadius={12}
+                    />
+                    <View style={styles.mealDetails}>
+                      <View style={styles.mealHeader}>
+                        <Text variant="body" weight="semibold" numberOfLines={1} style={styles.mealName}>
+                          {meal.name}
+                        </Text>
+                        <Text variant="body" weight="bold" style={styles.mealCalories}>
+                          {meal.calories} kcal
+                        </Text>
+                      </View>
+                      <View style={styles.mealMetaRow}>
+                        <Text variant="caption" style={styles.mealTime}>
+                          {new Date(meal.consumedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                        <View style={styles.mealMacros}>
+                          <Text variant="caption" style={styles.mealMacroText}>
+                            P {Math.round(meal.protein || 0)}g
+                          </Text>
+                          <Text variant="caption" style={styles.mealMacroDivider}>·</Text>
+                          <Text variant="caption" style={styles.mealMacroText}>
+                            C {Math.round(meal.carbs || 0)}g
+                          </Text>
+                          <Text variant="caption" style={styles.mealMacroDivider}>·</Text>
+                          <Text variant="caption" style={styles.mealMacroText}>
+                            F {Math.round(meal.fat || 0)}g
+                          </Text>
+                        </View>
+                      </View>
                     </View>
                   </View>
-                </Card>
-              ))
+                ))}
+              </View>
             )}
           </View>
         </TourGuideZone>
@@ -786,70 +796,81 @@ const styles = StyleSheet.create({
   addFoodSubtitle: {
     color: 'rgba(255,255,255,0.8)',
   },
-  mealsSection: {
-    gap: spacing.sm,
-  },
-  sectionTitle: {
-    marginBottom: spacing.xs,
-  },
-  // Empty state - actionable card
-  emptyMealsCard: {
-    alignItems: 'center',
-    padding: spacing.xl,
-    gap: spacing.sm,
-    backgroundColor: colors.light.surface,
-    borderRadius: 16,
+  // Unified meals card - matches NutritionRingsCard styling
+  mealsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(229, 231, 235, 0.6)',
-    ...saasShadows.card,
+    borderColor: 'rgba(167, 139, 250, 0.2)', // Subtle primary color border (same as NutritionRingsCard)
+    padding: spacing.lg,
+    ...saasShadows.cardElevated, // Same shadow as NutritionRingsCard
+  },
+  mealsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  mealsTitle: {
+    color: BRAND_COLORS.textPrimary,
+    fontWeight: '700',
+  },
+  mealsSubtitle: {
+    color: '#4B5563', // Same as NutritionRingsCard headerCalories
+  },
+  // Compact empty state - horizontal layout
+  emptyMealsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: `${BRAND_COLORS.primary}05`,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: `${BRAND_COLORS.primary}15`,
+    borderStyle: 'dashed',
+    gap: spacing.md,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'all 0.2s ease-out',
     }),
   },
-  emptyMealsCardPressed: {
-    backgroundColor: `${BRAND_COLORS.primary}05`,
-    transform: [{ scale: 0.98 }],
+  emptyMealsContentPressed: {
+    backgroundColor: `${BRAND_COLORS.primary}10`,
+    transform: [{ scale: 0.99 }],
   },
   emptyMealsIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     backgroundColor: `${BRAND_COLORS.primary}10`,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+  },
+  emptyMealsTextContainer: {
+    flex: 1,
   },
   emptyMealsTitle: {
     color: BRAND_COLORS.textPrimary,
   },
   emptyMealsHint: {
     color: colors.light.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
+    marginTop: 2,
   },
-  emptyMealsCTA: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: BRAND_COLORS.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
-    gap: spacing.xs,
-  },
-  emptyMealsCTAText: {
-    color: '#FFF',
-    fontSize: 13,
+  // Meals list
+  mealsList: {
+    gap: spacing.sm,
   },
   mealItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: spacing.md,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(229, 231, 235, 0.5)',
     gap: spacing.md,
   },
   mealDetails: {
     flex: 1,
-    gap: spacing.xs,
+    gap: 2,
   },
   mealHeader: {
     flexDirection: 'row',
@@ -859,22 +880,33 @@ const styles = StyleSheet.create({
   mealName: {
     flex: 1,
     marginRight: spacing.sm,
-    paddingTop: spacing.lg
-  },
-  mealTime: {
-    color: colors.light.textSecondary,
+    color: BRAND_COLORS.textPrimary,
   },
   mealCalories: {
     color: BRAND_COLORS.primary,
-    paddingTop: spacing.lg
+    fontSize: 14,
+  },
+  mealMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  mealTime: {
+    color: colors.light.textSecondary,
+    fontSize: 12,
   },
   mealMacros: {
     flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.xs,
+    alignItems: 'center',
+    gap: 4,
   },
   mealMacroText: {
     color: colors.light.textSecondary,
+    fontSize: 11,
+  },
+  mealMacroDivider: {
+    color: colors.light.textMuted,
+    fontSize: 11,
   },
 });
 
