@@ -69,13 +69,9 @@ export function ScreenLayout({
       {/* Right Panel (only on wide screens) */}
       {showRightPanel && rightPanel && (
         <View style={styles.rightPanel}>
-          <ScrollView
-            style={styles.rightPanelScroll}
-            contentContainerStyle={styles.rightPanelContent}
-            showsVerticalScrollIndicator={false}
-          >
+          <View style={styles.rightPanelContent}>
             {rightPanel}
-          </ScrollView>
+          </View>
         </View>
       )}
     </View>
@@ -119,10 +115,8 @@ const styles = StyleSheet.create({
     borderLeftColor: colors.light.border,
     backgroundColor: colors.light.surface,
   },
-  rightPanelScroll: {
-    flex: 1,
-  },
   rightPanelContent: {
+    flex: 1,
     padding: spacing.lg,
     paddingBottom: spacing['3xl'],
   },

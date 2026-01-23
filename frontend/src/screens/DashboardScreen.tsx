@@ -438,31 +438,8 @@ const DashboardScreen = () => {
           />
         </TourGuideZone>
 
-        {/* Upload Meal CTA Button - Always compact style for cleaner UI */}
-        {showSidebar ? (
-          <TourGuideZone
-            zone={DASHBOARD_TOUR_STEPS[0].zone}
-            text={DASHBOARD_TOUR_STEPS[0].text}
-            title={DASHBOARD_TOUR_STEPS[0].title}
-            icon="📸"
-          >
-            {/* Always show compact upload bar on desktop for cleaner UI */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.uploadMealCompact,
-                pressed && styles.uploadMealCompactPressed,
-              ]}
-              onPress={handleChooseFromGallery}
-            >
-              <MaterialCommunityIcons name="plus-circle" size={24} color={BRAND_COLORS.primary} />
-              <Text variant="body" weight="semibold" style={styles.uploadMealCompactText}>
-                {nutritionData.meals.length > 0 ? 'Add Another Meal' : 'Log Your First Meal'}
-              </Text>
-              <MaterialCommunityIcons name="camera" size={20} color={BRAND_COLORS.primary} style={{ marginLeft: 'auto' }} />
-            </Pressable>
-          </TourGuideZone>
-        ) : (
-          /* Add Food Button - Tour Zone 1 (Mobile only) */
+        {/* Add Food Button - Tour Zone 1 (Mobile only - hidden on desktop) */}
+        {!showSidebar && (
           <TourGuideZone
             zone={DASHBOARD_TOUR_STEPS[0].zone}
             text={DASHBOARD_TOUR_STEPS[0].text}
@@ -508,12 +485,26 @@ const DashboardScreen = () => {
           <View style={styles.mealsCard}>
             {/* Header - matches NutritionRingsCard header */}
             <View style={styles.mealsHeader}>
-              <Text variant="heading3" weight="bold" style={styles.mealsTitle}>
-                Today's Meals
-              </Text>
-              <Text variant="caption" style={styles.mealsSubtitle}>
-                {nutritionData.meals.length} {nutritionData.meals.length === 1 ? 'meal' : 'meals'} logged
-              </Text>
+              <View>
+                <Text variant="heading3" weight="bold" style={styles.mealsTitle}>
+                  Today's Meals
+                </Text>
+                <Text variant="caption" style={styles.mealsSubtitle}>
+                  {nutritionData.meals.length} {nutritionData.meals.length === 1 ? 'meal' : 'meals'} logged
+                </Text>
+              </View>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.logMealButton,
+                  pressed && styles.logMealButtonPressed,
+                ]}
+                onPress={handleAddFood}
+              >
+                <MaterialCommunityIcons name="plus" size={16} color="#FFFFFF" />
+                <Text variant="caption" weight="semibold" style={styles.logMealButtonText}>
+                  Log Meal
+                </Text>
+              </Pressable>
             </View>
 
             {nutritionData.meals.length === 0 ? (
@@ -743,30 +734,27 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(229, 231, 235, 0.6)', // Ultra-thin border
     ...saasShadows.card,
   },
-  // Compact upload bar (when meals already logged)
-  uploadMealCompact: {
+  // Log Meal button in card header
+  logMealButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.light.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: `${BRAND_COLORS.primary}20`,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
-    ...saasShadows.subtle,
+    backgroundColor: BRAND_COLORS.primary,
+    borderRadius: 8,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    gap: 4,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'all 0.15s ease-out',
     }),
   },
-  uploadMealCompactPressed: {
-    backgroundColor: `${BRAND_COLORS.primary}08`,
+  logMealButtonPressed: {
+    backgroundColor: BRAND_COLORS.secondary,
     transform: [{ scale: 0.98 }],
   },
-  uploadMealCompactText: {
-    color: BRAND_COLORS.textPrimary,
-    fontSize: 14,
+  logMealButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
   },
   addFoodButton: {
     borderRadius: 16,

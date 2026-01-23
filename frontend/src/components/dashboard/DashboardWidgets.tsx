@@ -35,8 +35,8 @@ export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: Dashboar
 
   return (
     <View style={styles.container}>
-      {/* Top section: Goal + Streak cards */}
-      <View style={styles.topSection}>
+      {/* Top section: Goal + Streak cards - fixed height */}
+      <View>
         {/* Goals Summary Card */}
         {generatedGoals ? (
           <Card style={styles.card}>
@@ -94,9 +94,8 @@ export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: Dashboar
         </Card>
       </View>
 
-      {/* Bottom section: Quick Actions - fills remaining space */}
-      <View style={styles.bottomSection}>
-        <Card style={styles.actionsCard}>
+      {/* Quick Actions - fills remaining space */}
+      <Card style={styles.actionsCard}>
           <Text variant="caption" weight="bold" style={styles.sectionLabel}>
             QUICK ACTIONS
           </Text>
@@ -123,7 +122,6 @@ export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: Dashboar
             />
           </View>
         </Card>
-      </View>
     </View>
   );
 }
@@ -197,13 +195,7 @@ function QuickActionItem({ icon, label, onPress }: QuickActionItemProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1, // Fill available height
-    gap: spacing.lg, // Consistent 24px gap (same as main content cards)
-  },
-  topSection: {
-    gap: spacing.md, // 16px between Goal and Streak cards
-  },
-  bottomSection: {
-    flex: 1, // Take remaining space
+    gap: spacing.md, // 16px gap between cards
   },
   card: {
     padding: spacing.md,
