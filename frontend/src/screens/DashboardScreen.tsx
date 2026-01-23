@@ -508,26 +508,28 @@ const DashboardScreen = () => {
             </View>
 
             {nutritionData.meals.length === 0 ? (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.emptyMealsContent,
-                  pressed && styles.emptyMealsContentPressed,
-                ]}
-                onPress={handleAddFood}
-              >
-                <View style={styles.emptyMealsIconContainer}>
-                  <MaterialCommunityIcons name="camera-plus" size={28} color={BRAND_COLORS.primary} />
-                </View>
-                <View style={styles.emptyMealsTextContainer}>
-                  <Text variant="body" weight="semibold" style={styles.emptyMealsTitle}>
-                    Upload a photo to get started
-                  </Text>
-                  <Text variant="caption" style={styles.emptyMealsHint}>
-                    AI will analyze your macros instantly
-                  </Text>
-                </View>
-                <Feather name="chevron-right" size={20} color={BRAND_COLORS.primary} />
-              </Pressable>
+              <View style={styles.emptyMealsWrapper}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.emptyMealsContent,
+                    pressed && styles.emptyMealsContentPressed,
+                  ]}
+                  onPress={handleAddFood}
+                >
+                  <View style={styles.emptyMealsIconContainer}>
+                    <MaterialCommunityIcons name="camera-plus" size={28} color={BRAND_COLORS.primary} />
+                  </View>
+                  <View style={styles.emptyMealsTextContainer}>
+                    <Text variant="body" weight="semibold" style={styles.emptyMealsTitle}>
+                      Upload a photo to get started
+                    </Text>
+                    <Text variant="caption" style={styles.emptyMealsHint}>
+                      AI will analyze your macros instantly
+                    </Text>
+                  </View>
+                  <Feather name="chevron-right" size={20} color={BRAND_COLORS.primary} />
+                </Pressable>
+              </View>
             ) : (
               <View style={styles.mealsList}>
                 {nutritionData.meals.map((meal) => (
@@ -806,7 +808,14 @@ const styles = StyleSheet.create({
   mealsSubtitle: {
     color: '#4B5563', // Same as NutritionRingsCard headerCalories
   },
-  // Compact empty state - horizontal layout
+  // Empty state container - centered vertically and horizontally
+  emptyMealsWrapper: {
+    flex: 1,
+    minHeight: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Empty state content - compact horizontal layout
   emptyMealsContent: {
     flexDirection: 'row',
     alignItems: 'center',
