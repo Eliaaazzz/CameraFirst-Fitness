@@ -250,15 +250,18 @@ export function NutritionRingsCard({
 
   const percentages = [caloriesPercentage, proteinPercentage, carbsPercentage];
 
+  // Format calorie subtitle for header
+  const calorieSubtitle = `${Math.round(data.calories.current)} / ${data.calories.target} kcal`;
+
   return (
     <View style={styles.card}>
       {/* Header */}
       <View style={styles.header}>
-        <Text variant="heading3" weight="semibold" style={styles.title}>
+        <Text variant="heading3" weight="bold" style={styles.title}>
           {title}
         </Text>
         <Text variant="caption" style={styles.headerCalories}>
-          {Math.round(data.calories.current)} / {data.calories.target} kcal
+          {calorieSubtitle}
         </Text>
       </View>
 
@@ -333,6 +336,13 @@ export function NutritionRingsCard({
   );
 }
 
+/**
+ * Get calorie subtitle string for use with DashboardCard
+ */
+export function getCalorieSubtitle(current: number, target: number): string {
+  return `${Math.round(current)} / ${target} kcal`;
+}
+
 // ============================================================================
 // STYLES
 // ============================================================================
@@ -354,6 +364,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: BRAND_COLORS.textPrimary,
+    fontWeight: '700', // Bold for visual hierarchy
   },
   headerCalories: {
     color: '#4B5563', // Darker for better readability
