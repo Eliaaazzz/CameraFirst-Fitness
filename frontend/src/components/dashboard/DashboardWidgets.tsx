@@ -94,34 +94,34 @@ export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: Dashboar
         </Card>
       </View>
 
-      {/* Quick Actions - fills remaining space */}
+      {/* Quick Actions - fills remaining space with evenly distributed items */}
       <Card style={styles.actionsCard}>
-          <Text variant="caption" weight="bold" style={styles.sectionLabel}>
-            QUICK ACTIONS
-          </Text>
-          <View style={styles.actionsList}>
-            <QuickActionItem
-              icon="history"
-              label="Meal History"
-              onPress={() => navigation.navigate('Profile', { screen: 'MealHistory' })}
-            />
-            <QuickActionItem
-              icon="chart-line"
-              label="Weekly Insights"
-              onPress={() => navigation.navigate('Profile', { screen: 'WeeklyInsights' })}
-            />
-            <QuickActionItem
-              icon="scale-bathroom"
-              label="Log Weight"
-              onPress={() => navigation.navigate('Profile', { screen: 'LogWeight' })}
-            />
-            <QuickActionItem
-              icon="export"
-              label="Export Data"
-              onPress={() => navigation.navigate('Profile', { screen: 'ExportData' })}
-            />
-          </View>
-        </Card>
+        <Text variant="caption" weight="bold" style={styles.sectionLabel}>
+          QUICK ACTIONS
+        </Text>
+        <View style={styles.actionsList}>
+          <QuickActionItem
+            icon="history"
+            label="Meal History"
+            onPress={() => navigation.navigate('Profile', { screen: 'MealHistory' })}
+          />
+          <QuickActionItem
+            icon="chart-line"
+            label="Weekly Insights"
+            onPress={() => navigation.navigate('Profile', { screen: 'WeeklyInsights' })}
+          />
+          <QuickActionItem
+            icon="scale-bathroom"
+            label="Log Weight"
+            onPress={() => navigation.navigate('Profile', { screen: 'LogWeight' })}
+          />
+          <QuickActionItem
+            icon="export"
+            label="Export Data"
+            onPress={() => navigation.navigate('Profile', { screen: 'ExportData' })}
+          />
+        </View>
+      </Card>
     </View>
   );
 }
@@ -315,8 +315,7 @@ const styles = StyleSheet.create({
   // Actions card - fills remaining space
   actionsCard: {
     flex: 1, // Fill remaining height
-    padding: spacing.sm,
-    paddingTop: spacing.md,
+    padding: spacing.md,
     backgroundColor: colors.light.surface,
     borderRadius: 12,
     borderWidth: 1,
@@ -327,29 +326,27 @@ const styles = StyleSheet.create({
     color: colors.light.textMuted,
     fontSize: 10,
     letterSpacing: 0.5,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
     marginLeft: spacing.xs,
   },
   actionsList: {
-    gap: 0,
+    flex: 1, // Fill remaining space in card
+    justifyContent: 'space-between', // Distribute items evenly from top to bottom
   },
   actionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(229, 231, 235, 0.5)', // Lighter divider for premium feel
+    borderRadius: 8,
     gap: spacing.sm,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'all 0.15s ease-out',
-      borderRadius: 6,
     }),
   },
   actionItemHovered: {
     backgroundColor: colors.light.background,
-    borderBottomColor: 'transparent',
   },
   actionIconBox: {
     width: 28,
