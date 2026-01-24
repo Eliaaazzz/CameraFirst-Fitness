@@ -1,18 +1,15 @@
 package com.fitnessapp.backend.user.controller;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fitnessapp.backend.api.common.GlobalExceptionHandler;
-import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService;
-import com.fitnessapp.backend.recipe.service.SmartRecipeService;
-import com.fitnessapp.backend.security.CurrentUser;
-import com.fitnessapp.backend.user.repository.UserRepository;
-import com.fitnessapp.backend.user.service.UserProfileService;
-import com.fitnessapp.backend.user.service.UserService;
-
-import jakarta.persistence.EntityNotFoundException;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,7 +23,15 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.UUID;
+import com.fitnessapp.backend.api.common.GlobalExceptionHandler;
+import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService;
+import com.fitnessapp.backend.recipe.service.SmartRecipeService;
+import com.fitnessapp.backend.security.CurrentUser;
+import com.fitnessapp.backend.user.repository.UserRepository;
+import com.fitnessapp.backend.user.service.UserProfileService;
+import com.fitnessapp.backend.user.service.UserService;
+
+import jakarta.persistence.EntityNotFoundException;
 
 /**
  * Unit tests for CurrentUserController.deleteAccount() endpoint.

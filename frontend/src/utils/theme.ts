@@ -1,41 +1,47 @@
 import { Platform } from 'react-native';
 
 /**
- * Material Design 3 Inspired Color Palette
- * Purple Color Scheme - Clean, Modern
+ * Premium SaaS Color Palette - Linear + Stripe Inspired
+ * Neutral background with purple primary accents
  */
 export const colors = {
   light: {
-    // Primary - Purple
-    primary: '#7C3AED',           // Violet-600
-    primaryDark: '#6D28D9',       // Violet-700
+    // Primary - Purple (kept as accent)
+    primary: '#8B5CF6',           // Violet-500
+    primaryDark: '#7C3AED',       // Violet-600 (pressed state)
     primaryLight: '#A78BFA',      // Violet-400
     primaryContainer: '#EDE9FE',  // Violet-100
-    
+    primaryTint: 'rgba(139, 92, 246, 0.10)', // 10% primary for hover backgrounds
+
     secondary: '#EC4899',         // Pink-500
     secondaryContainer: '#FCE7F3',
-    
-    // Surfaces
-    background: '#F3E8FF',        // Light lavender fallback
-    backgroundGradient: ['#F3E8FF', '#FFFFFF'], // Soft lavender gradient
+
+    // Surfaces - Neutral, premium feel (Linear/Stripe style)
+    background: '#F5F6FA',        // More gray, less purple (Stripe-like)
+    backgroundGradient: ['#F5F6FA', '#FAFBFC'],
     surface: '#FFFFFF',
-    surfaceVariant: '#F5F3FF',    // Very light violet
-    
-    // Text - Soft and readable on lavender background
-    textPrimary: '#3F3D56',       // Soft dark purple-gray (not harsh black)
-    textSecondary: '#6C6A7E',     // Medium purple-gray (softer than pure gray)
-    textMuted: '#9694A8',         // Light purple-gray (harmonizes with lavender)
-    
-    // States
-    error: '#EF4444',
-    success: '#10B981',
-    warning: '#F59E0B',
+    surfaceVariant: '#FAFBFC',    // Very light neutral
+
+    // Text - Strong hierarchy, readable on neutral background
+    // Using deeper grays for clarity - hierarchy via weight/size, not fading
+    textPrimary: '#111827',       // Gray-900 (titles, headings)
+    textSecondary: '#1F2937',     // Gray-800 (nav, descriptions) - deep, not faded
+    textMuted: '#374151',         // Gray-700 (hints, dates) - still readable
+    textDisabled: '#9CA3AF',      // Gray-400 (disabled states only)
+
+    // States - Playful accents only for streak/actions
+    error: '#EF4444',             // danger
+    success: '#10B981',           // protein color
+    warning: '#F59E0B',           // streak/carbs color
     info: '#3B82F6',
-    
-    // Borders
-    border: '#E5E7EB',
+
+    // Borders - Subtle, professional
+    border: '#E9E6F5',            // Slight purple tint for cohesion
     borderSubtle: '#F3F4F6',
-    
+
+    // Shadow color for consistency
+    shadow: 'rgba(17, 24, 39, 0.08)', // Gray-900 at 8%
+
     overlay: 'rgba(0, 0, 0, 0.5)',
   },
   dark: {
@@ -203,79 +209,79 @@ export const getTheme = (mode: 'light' | 'dark') => ({
 });
 
 /**
- * SaaS-style Shadows - Premium dual-layer shadows with brand color glow
- * Key: Uses brand purple (124, 58, 237) for a cohesive, premium look
+ * SaaS-style Shadows - Stripe/Linear inspired
+ * Key: Very subtle shadows + 1px border = professional "grounded" feel
  */
 export const saasShadows = {
-  // Standard card shadow - dual layer for depth
+  // Standard card shadow - very subtle, relies on border for definition
   card: Platform.select({
     web: {
-      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 4px 12px 0 rgba(124, 58, 237, 0.08)',
+      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 3px 0 rgba(0, 0, 0, 0.02)',
     } as any,
     default: {
-      shadowColor: '#5B21B6',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.08,
-      shadowRadius: 12,
-      elevation: 4,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.03,
+      shadowRadius: 3,
+      elevation: 1,
     },
   }),
-  // Elevated card shadow - for hover states and emphasis
+  // Elevated card shadow - slightly more visible for emphasis
   cardElevated: Platform.select({
     web: {
-      boxShadow: '0 2px 4px 0 rgba(0, 0, 0, 0.06), 0 8px 24px 0 rgba(124, 58, 237, 0.12)',
+      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 4px 8px 0 rgba(0, 0, 0, 0.04)',
     } as any,
     default: {
-      shadowColor: '#5B21B6',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.12,
-      shadowRadius: 20,
-      elevation: 8,
-    },
-  }),
-  // Subtle shadow - for less prominent elements
-  subtle: Platform.select({
-    web: {
-      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 2px 8px 0 rgba(124, 58, 237, 0.05)',
-    } as any,
-    default: {
-      shadowColor: '#5B21B6',
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
+      shadowOpacity: 0.04,
       shadowRadius: 8,
       elevation: 2,
+    },
+  }),
+  // Subtle shadow - barely visible
+  subtle: Platform.select({
+    web: {
+      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.02)',
+    } as any,
+    default: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.02,
+      shadowRadius: 2,
+      elevation: 1,
     },
   }),
 };
 
 /**
- * Premium Card Styles - Combines shadow + ultra-thin border
- * Use these presets for consistent SaaS-level polish
+ * Premium Card Styles - Stripe/Linear inspired
+ * Key: 1px border + minimal shadow = clean, grounded cards
  */
 export const cardStyles = {
-  // Standard card - white background with subtle border and shadow
+  // Standard card - white bg, 1px border, subtle shadow
   standard: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(229, 231, 235, 0.6)', // Ultra-thin gray border
+    borderColor: '#E9E6F5', // Subtle purple-gray border
     borderRadius: radii.xl,
     ...saasShadows.card,
   },
-  // Interactive card - with cursor pointer for web
+  // Interactive card - with hover states for web
   interactive: Platform.select({
     web: {
       backgroundColor: '#FFFFFF',
       borderWidth: 1,
-      borderColor: 'rgba(229, 231, 235, 0.6)',
+      borderColor: '#E9E6F5',
       borderRadius: radii.xl,
       cursor: 'pointer' as const,
-      transition: 'all 0.2s ease-out',
+      transition: 'border-color 0.15s ease-out, box-shadow 0.15s ease-out',
       ...saasShadows.card,
     } as any,
     default: {
       backgroundColor: '#FFFFFF',
       borderWidth: 1,
-      borderColor: 'rgba(229, 231, 235, 0.6)',
+      borderColor: '#E9E6F5',
       borderRadius: radii.xl,
       ...saasShadows.card,
     },

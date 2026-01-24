@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withDelay,
-  withTiming,
+    Easing,
+    useAnimatedProps,
+    useSharedValue,
+    withDelay,
+    withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle, Defs, G, LinearGradient, Stop } from 'react-native-svg';
 
@@ -52,33 +52,34 @@ interface RingConfig {
   strokeWidth: number;
 }
 
+// Premium ring config - thicker rings, dashboard-style (16-20px thickness)
 const RING_CONFIGS: RingConfig[] = [
   {
     key: 'calories',
     label: 'Calories',
-    color: '#A78BFA', // Violet-400
+    color: '#7C3AED', // Primary purple
     gradientStart: '#7C3AED', // Violet-600
-    gradientEnd: '#EC4899', // Pink-500
-    radius: 52,
-    strokeWidth: 12,
+    gradientEnd: '#A78BFA', // Violet-400
+    radius: 54,
+    strokeWidth: 18, // Thicker for premium feel
   },
   {
     key: 'protein',
     label: 'Protein',
-    color: '#10B981', // Emerald-500
+    color: '#10B981', // Success green
     gradientStart: '#059669', // Emerald-600
     gradientEnd: '#34D399', // Emerald-400
     radius: 38,
-    strokeWidth: 10,
+    strokeWidth: 14,
   },
   {
     key: 'carbs',
     label: 'Carbs',
-    color: '#F59E0B', // Amber-500
+    color: '#F59E0B', // Warning amber
     gradientStart: '#D97706', // Amber-600
     gradientEnd: '#FBBF24', // Amber-400
-    radius: 26,
-    strokeWidth: 8,
+    radius: 24,
+    strokeWidth: 12,
   },
 ];
 
@@ -116,11 +117,12 @@ function AnimatedRing({
 
   useEffect(() => {
     if (animated) {
+      // Premium 450ms animation with smooth easing
       progress.value = withDelay(
         delay,
         withTiming(clampedPercentage / 100, {
-          duration: 1200,
-          easing: Easing.out(Easing.cubic),
+          duration: 450,
+          easing: Easing.out(Easing.quad),
         })
       );
     } else {
@@ -232,8 +234,8 @@ export function NutritionRingsCard({
   showFat = false,
   animated = true,
 }: NutritionRingsCardProps) {
-  // SVG dimensions
-  const svgSize = 140;
+  // SVG dimensions - larger for premium look
+  const svgSize = 160;
   const centerX = svgSize / 2;
   const centerY = svgSize / 2;
 
@@ -350,11 +352,11 @@ export function getCalorieSubtitle(current: number, target: number): string {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(167, 139, 250, 0.2)', // Subtle primary color border
+    borderColor: colors.light.border, // #E9E6F5 - subtle purple-gray
     padding: spacing.lg,
-    ...saasShadows.cardElevated, // More prominent shadow for visual hierarchy
+    ...saasShadows.card, // Subtle shadow, relies on border
   },
   header: {
     flexDirection: 'row',
@@ -376,8 +378,8 @@ const styles = StyleSheet.create({
   },
   ringsContainer: {
     position: 'relative',
-    width: 140,
-    height: 140,
+    width: 160,
+    height: 160,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -388,12 +390,13 @@ const styles = StyleSheet.create({
   },
   centerPercentage: {
     color: BRAND_COLORS.primary,
-    fontSize: 24,
+    fontSize: 28,
+    fontWeight: '700',
   },
   centerSubtext: {
     color: colors.light.textSecondary,
-    fontSize: 11,
-    marginTop: -2,
+    fontSize: 12,
+    marginTop: 2,
   },
   legend: {
     flex: 1,
@@ -434,7 +437,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   legendTarget: {
-    color: '#6B7280', // Medium gray - still readable but secondary
+    color: '#374151', // Deep gray - readable secondary text
     fontSize: 12,
     marginLeft: 2,
   },
