@@ -1,10 +1,26 @@
 import React, { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Camera, Image as ImageIcon } from 'phosphor-react-native';
 
 import { Card, Text } from '@/components';
-import { BRAND_COLORS, colors, spacing } from '@/utils';
+import { BRAND_COLORS, spacing } from '@/utils';
+
+// Theme colors for quick actions (matches Sidebar style)
+const ACTION_COLORS = {
+  camera: '#10B981',   // Green - capture
+  gallery: '#7C3AED',  // Purple - brand
+  search: '#3B82F6',   // Blue - search
+};
+
+// Helper: create tinted background from hex color
+const tint = (hex: string, alpha = 0.12): string => {
+  const h = hex.replace('#', '');
+  const r = Number.parseInt(h.slice(0, 2), 16);
+  const g = Number.parseInt(h.slice(2, 4), 16);
+  const b = Number.parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+};
 
 interface QuickLogBarProps {
   username?: string;
@@ -58,14 +74,17 @@ export function QuickLogBar({
         </Text>
       </Pressable>
 
-      {/* Quick Action Icons */}
+      {/* Quick Action Icons - ✅ Phosphor icons with colored chips (alpha 0.10-0.16) */}
       <View style={styles.quickActions}>
         {/* Camera Button */}
         {onOpenCamera && (
           <Pressable
             style={[
               styles.iconButton,
-              isCameraHovered && styles.iconButtonHovered,
+              { 
+                backgroundColor: tint(ACTION_COLORS.camera, isCameraHovered ? 0.16 : 0.12),
+                borderColor: tint(ACTION_COLORS.camera, 0.2),
+              },
             ]}
             onPress={onOpenCamera}
             {...(Platform.OS === 'web' && {
@@ -73,10 +92,10 @@ export function QuickLogBar({
               onMouseLeave: () => setIsCameraHovered(false),
             })}
           >
-            <MaterialCommunityIcons
-              name="camera-outline"
-              size={22}
-              color={BRAND_COLORS.primary}
+            <Camera
+              size={20}
+              weight="regular"
+              color={ACTION_COLORS.camera}
             />
           </Pressable>
         )}
@@ -85,7 +104,10 @@ export function QuickLogBar({
         <Pressable
           style={[
             styles.iconButton,
-            isGalleryHovered && styles.iconButtonHovered,
+            { 
+              backgroundColor: tint(ACTION_COLORS.gallery, isGalleryHovered ? 0.16 : 0.12),
+              borderColor: tint(ACTION_COLORS.gallery, 0.2),
+            },
           ]}
           onPress={onOpenGallery}
           {...(Platform.OS === 'web' && {
@@ -93,10 +115,10 @@ export function QuickLogBar({
             onMouseLeave: () => setIsGalleryHovered(false),
           })}
         >
-          <Feather
-            name="image"
+          <ImageIcon
             size={20}
-            color={BRAND_COLORS.primary}
+            weight="regular"
+            color={ACTION_COLORS.gallery}
           />
         </Pressable>
       </View>
@@ -139,28 +161,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
   },
   placeholderText: {
-    color: '#9CA3AF',
+    color: '#374151',
     fontSize: 14,
   },
   quickActions: {
     flexDirection: 'row',
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   iconButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: `${BRAND_COLORS.primary}10`,
+    borderRadius: 12,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'all 0.15s ease-out',
     }),
-  },
-  iconButtonHovered: {
-    backgroundColor: `${BRAND_COLORS.primary}20`,
-    transform: [{ scale: 1.05 }],
   },
 });
 

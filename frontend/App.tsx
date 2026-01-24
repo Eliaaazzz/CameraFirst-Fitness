@@ -7,7 +7,7 @@ import { MD3LightTheme as PaperLightTheme, Provider as PaperProvider } from 'rea
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TourGuideProvider } from '@/components/tour/TourProvider';
 
-import { SnackbarProvider } from '@/components';
+import { SnackbarProvider, ToastProvider } from '@/components';
 import { useVersionCheck } from '@/hooks/useVersionCheck';
 import { AppNavigator } from '@/navigation/AppNavigator';
 import { queryClient } from '@/services';
@@ -100,14 +100,16 @@ const App = () => {
         <SafeAreaProvider>
           <PaperProvider theme={paperTheme}>
             <QueryClientProvider client={queryClient}>
-              <SnackbarProvider>
-                <TourGuideProvider
-                  backdropColor="rgba(0, 0, 0, 0.75)"
-                >
-                  <StatusBar style={barStyle} />
-                  <AppNavigator />
-                </TourGuideProvider>
-              </SnackbarProvider>
+              <ToastProvider>
+                <SnackbarProvider>
+                  <TourGuideProvider
+                    backdropColor="rgba(0, 0, 0, 0.75)"
+                  >
+                    <StatusBar style={barStyle} />
+                    <AppNavigator />
+                  </TourGuideProvider>
+                </SnackbarProvider>
+              </ToastProvider>
             </QueryClientProvider>
           </PaperProvider>
         </SafeAreaProvider>

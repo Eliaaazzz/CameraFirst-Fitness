@@ -19,12 +19,14 @@ import {
 
 
 import { Ionicons } from '@expo/vector-icons';
+import { Barbell, Drop, Fire, Grains } from 'phosphor-react-native';
 
-import { Card, SafeAreaWrapper, Text } from '@/components';
+import { Card, LogMealButton, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
 import { DashboardWidgets } from '@/components/dashboard';
 import { ScreenLayout } from '@/components/layout';
 import { MealImage } from '@/components/nutrition/MealImage';
+import { NutritionPieChart } from '@/components/nutrition/NutritionPieChart';
 import { NutritionRingsCard } from '@/components/nutrition/NutritionRingsCard';
 import WelcomeTourCard from '@/components/WelcomeTourCard';
 import { DASHBOARD_TOUR_STEPS } from '@/config/tourSteps';
@@ -50,6 +52,7 @@ const DashboardScreen = () => {
   const userId = currentUser.data?.userId || '';
   const showRightPanel = useRightPanelVisible();
   const showSidebar = useSidebarVisible(); // Desktop mode detection
+  const showInlineGoalsRow = showSidebar && !showRightPanel;
 
   const { data: nutritionData, refresh } = useDailyNutrition();
   const goals = useGoals(userId);
@@ -255,6 +258,144 @@ const DashboardScreen = () => {
     );
   }
 
+  const renderGoalsSection = (styleOverride?: object) => {
+    if (generatedGoals) {
+      return (
+        <Card style={[styles.goalsCard, styleOverride]}>
+          {/* Header: Top-left aligned with icon + title */}
+          <View style={styles.goalsHeader}>
+            <View style={styles.goalsHeaderLeft}>
+              {goalTypeConfig && (
+                <View style={[styles.goalTypeIconSmall, { backgroundColor: `${goalTypeConfig.color}15` }]}>
+                  <MaterialCommunityIcons
+                    name={goalTypeConfig.icon as any}
+                    size={20}
+                    color={goalTypeConfig.color}
+                  />
+                </View>
+              )}
+              <View>
+                <Text variant="caption" style={styles.goalLabel}>Your Goal</Text>
+                {goalTypeConfig && (
+                  <Text variant="body" weight="bold" style={{ color: goalTypeConfig.color }}>
+                    {goalTypeConfig.label}
+                  </Text>
+                )}
+              </View>
+            </View>
+            <Pressable
+              style={styles.editGoalsButton}
+              onPress={() => navigation.navigate('Profile')}
+            >
+              <Feather name="edit-2" size={16} color={BRAND_COLORS.primary} />
+            </Pressable>
+          </View>
+
+          <View style={styles.goalsGrid}>
+            <View style={styles.goalItem}>
+              <Fire size={20} weight="fill" color="#EF4444" />
+              <Text variant="heading3" weight="bold">{generatedGoals.dailyCalories.target}</Text>
+              <Text variant="caption" style={styles.goalItemLabel}>kcal/day</Text>
+            </View>
+            <View style={styles.goalItem}>
+              <Barbell size={20} weight="fill" color="#10B981" />
+              <Text variant="heading3" weight="bold">{generatedGoals.macros_grams.protein_g}g</Text>
+              <Text variant="caption" style={styles.goalItemLabel}>Protein</Text>
+            </View>
+            <View style={styles.goalItem}>
+              <Grains size={20} weight="fill" color="#F59E0B" />
+              <Text variant="heading3" weight="bold">{generatedGoals.macros_grams.carbs_g}g</Text>
+              <Text variant="caption" style={styles.goalItemLabel}>Carbs</Text>
+            </View>
+            <View style={styles.goalItem}>
+              <Drop size={20} weight="fill" color="#EF4444" />
+              <Text variant="heading3" weight="bold">{generatedGoals.macros_grams.fat_g}g</Text>
+              <Text variant="caption" style={styles.goalItemLabel}>Fat</Text>
+            </View>
+          </View>
+
+          {/* Activity targets row */}
+          <View style={styles.activityRow}>
+            <View style={styles.activityItem}>
+              <MaterialCommunityIcons name="run" size={16} color="#A78BFA" />
+              <Text variant="caption">
+                {generatedGoals.weeklyActivityPlan.cardio_minutes_per_week} min cardio/week
+              </Text>
+            </View>
+            <View style={styles.activityItem}>
+              <MaterialCommunityIcons name="shoe-print" size={16} color="#3B82F6" />
+              <Text variant="caption">
+                {generatedGoals.weeklyActivityPlan.steps_per_day_target.toLocaleString()} steps/day
+              </Text>
+            </View>
+          </View>
+        </Card>
+      );
+    }
+
+    return (
+      <Pressable
+        style={({ pressed }) => [
+          styles.setGoalsPrompt,
+          styleOverride,
+          pressed && { opacity: 0.9 },
+        ]}
+        onPress={() => navigation.navigate('Profile')}
+      >
+        <LinearGradient
+          colors={['rgba(139, 92, 246, 0.15)', 'rgba(236, 72, 153, 0.15)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.setGoalsGradient}
+        >
+          <MaterialCommunityIcons name="target" size={32} color={BRAND_COLORS.primary} />
+          <View style={styles.setGoalsText}>
+            <Text variant="body" weight="bold">Set Your Fitness Goals</Text>
+            <Text variant="caption" style={styles.setGoalsSubtext}>
+              Get personalized calorie & macro targets
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={24} color={BRAND_COLORS.primary} />
+        </LinearGradient>
+      </Pressable>
+    );
+  };
+
+  const renderNutritionCard = () => (
+    <TourGuideZone
+      zone={DASHBOARD_TOUR_STEPS[1].zone}
+      text={DASHBOARD_TOUR_STEPS[1].text}
+      title={DASHBOARD_TOUR_STEPS[1].title}
+      icon="📊"
+    >
+      {/* Use Recharts PieChart on web/desktop, NutritionRingsCard on mobile */}
+      {Platform.OS === 'web' && showSidebar ? (
+        <View style={styles.nutritionCardExpanded}>
+          <NutritionPieChart
+            data={{
+              calories: { current: nutritionData.calories, target: calorieGoal },
+              protein: { current: nutritionData.protein.current, target: proteinGoal },
+              carbs: { current: nutritionData.carbs.current, target: carbsGoal },
+              fat: { current: nutritionData.fat.current, target: fatGoal },
+            }}
+            showFat={true}
+            onLogMeal={handleAddFood}
+          />
+        </View>
+      ) : (
+        <NutritionRingsCard
+          data={{
+            calories: { current: nutritionData.calories, target: calorieGoal },
+            protein: { current: nutritionData.protein.current, target: proteinGoal },
+            carbs: { current: nutritionData.carbs.current, target: carbsGoal },
+            fat: { current: nutritionData.fat.current, target: fatGoal },
+          }}
+          showFat={true}
+        />
+      )}
+    </TourGuideZone>
+  );
+
   // Render right panel widgets (only shown on wide screens)
   const renderRightPanel = () => (
     <DashboardWidgets
@@ -318,171 +459,84 @@ const DashboardScreen = () => {
             />
           )}
 
-          {/* Generated Goals Card - only show on mobile/tablet (shown in right panel on desktop) */}
-          {!showRightPanel && generatedGoals && (
-          <Card style={styles.goalsCard}>
-            {/* Header: Top-left aligned with icon + title */}
-            <View style={styles.goalsHeader}>
-              <View style={styles.goalsHeaderLeft}>
-                {goalTypeConfig && (
-                  <View style={[styles.goalTypeIconSmall, { backgroundColor: `${goalTypeConfig.color}15` }]}>
-                    <MaterialCommunityIcons
-                      name={goalTypeConfig.icon as any}
-                      size={20}
-                      color={goalTypeConfig.color}
-                    />
-                  </View>
-                )}
-                <View>
-                  <Text variant="caption" style={styles.goalLabel}>Your Goal</Text>
-                  {goalTypeConfig && (
-                    <Text variant="body" weight="bold" style={{ color: goalTypeConfig.color }}>
-                      {goalTypeConfig.label}
-                    </Text>
-                  )}
-                </View>
-              </View>
-              <Pressable
-                style={styles.editGoalsButton}
-                onPress={() => navigation.navigate('Profile')}
-              >
-                <Feather name="edit-2" size={16} color={BRAND_COLORS.primary} />
-              </Pressable>
-            </View>
-
-            <View style={styles.goalsGrid}>
-              <View style={styles.goalItem}>
-                <MaterialCommunityIcons name="fire" size={20} color="#EF4444" />
-                <Text variant="heading3" weight="bold">{generatedGoals.dailyCalories.target}</Text>
-                <Text variant="caption" style={styles.goalItemLabel}>kcal/day</Text>
-              </View>
-              <View style={styles.goalItem}>
-                <MaterialCommunityIcons name="food-steak" size={20} color="#10B981" />
-                <Text variant="heading3" weight="bold">{generatedGoals.macros_grams.protein_g}g</Text>
-                <Text variant="caption" style={styles.goalItemLabel}>Protein</Text>
-              </View>
-              <View style={styles.goalItem}>
-                <MaterialCommunityIcons name="barley" size={20} color="#F59E0B" />
-                <Text variant="heading3" weight="bold">{generatedGoals.macros_grams.carbs_g}g</Text>
-                <Text variant="caption" style={styles.goalItemLabel}>Carbs</Text>
-              </View>
-              <View style={styles.goalItem}>
-                <MaterialCommunityIcons name="oil" size={20} color="#EF4444" />
-                <Text variant="heading3" weight="bold">{generatedGoals.macros_grams.fat_g}g</Text>
-                <Text variant="caption" style={styles.goalItemLabel}>Fat</Text>
-              </View>
-            </View>
-
-            {/* Activity targets row */}
-            <View style={styles.activityRow}>
-              <View style={styles.activityItem}>
-                <MaterialCommunityIcons name="run" size={16} color="#A78BFA" />
-                <Text variant="caption">
-                  {generatedGoals.weeklyActivityPlan.cardio_minutes_per_week} min cardio/week
-                </Text>
-              </View>
-              <View style={styles.activityItem}>
-                <MaterialCommunityIcons name="shoe-print" size={16} color="#3B82F6" />
-                <Text variant="caption">
-                  {generatedGoals.weeklyActivityPlan.steps_per_day_target.toLocaleString()} steps/day
-                </Text>
-              </View>
-            </View>
-          </Card>
-        )}
-
-          {/* Prompt to set goals if none exist - only on mobile/tablet */}
-          {!showRightPanel && !generatedGoals && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.setGoalsPrompt,
-                pressed && { opacity: 0.9 },
-              ]}
-              onPress={() => navigation.navigate('Profile')}
-            >
-              <LinearGradient
-                colors={['rgba(167, 139, 250, 0.15)', 'rgba(244, 114, 182, 0.15)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.setGoalsGradient}
-              >
-                <MaterialCommunityIcons name="target" size={32} color={BRAND_COLORS.primary} />
-                <View style={styles.setGoalsText}>
-                  <Text variant="body" weight="bold">Set Your Fitness Goals</Text>
-                  <Text variant="caption" style={styles.setGoalsSubtext}>
-                    Get personalized calorie & macro targets
-                  </Text>
-                </View>
-                <Feather name="chevron-right" size={24} color={BRAND_COLORS.primary} />
-              </LinearGradient>
-            </Pressable>
-          )}
+          {/* Goals card/prompt - only in main column when right panel is hidden */}
+          {!showRightPanel && !showInlineGoalsRow && renderGoalsSection()}
 
         {/* Recommendations are now shown on their respective tabs (Workouts/Recipes) */}
 
-        {/* Today's Nutrition Card - Tour Zone 2 */}
-        <TourGuideZone
-          zone={DASHBOARD_TOUR_STEPS[1].zone}
-          text={DASHBOARD_TOUR_STEPS[1].text}
-          title={DASHBOARD_TOUR_STEPS[1].title}
-          icon="📊"
+        {/* Main content wrapper - fills viewport on desktop */}
+        <View
+          style={
+            showSidebar
+              ? showRightPanel
+                ? styles.desktopContentWrapper
+                : styles.sidebarContentWrapper
+              : undefined
+          }
         >
-          <NutritionRingsCard
-            data={{
-              calories: { current: nutritionData.calories, target: calorieGoal },
-              protein: { current: nutritionData.protein.current, target: proteinGoal },
-              carbs: { current: nutritionData.carbs.current, target: carbsGoal },
-              fat: { current: nutritionData.fat.current, target: fatGoal },
-            }}
-            showFat={true}
-          />
-        </TourGuideZone>
+          {showInlineGoalsRow ? (
+            <View style={styles.inlineTopRow}>
+              <View style={styles.inlineColumn}>
+                {renderGoalsSection(styles.inlineCard)}
+              </View>
+              <View style={styles.inlineColumn}>
+                {renderNutritionCard()}
+              </View>
+            </View>
+          ) : (
+            renderNutritionCard()
+          )}
 
-        {/* Add Food Button - Tour Zone 1 (Mobile only - hidden on desktop) */}
-        {!showSidebar && (
-          <TourGuideZone
-            zone={DASHBOARD_TOUR_STEPS[0].zone}
-            text={DASHBOARD_TOUR_STEPS[0].text}
-            title={DASHBOARD_TOUR_STEPS[0].title}
-            icon="📸"
-          >
-            <Pressable
-              style={({ pressed }) => [
-                styles.addFoodButton,
-                pressed && styles.addFoodButtonPressed,
-              ]}
-              onPress={handleAddFood}
+          {/* Add Food Button - Tour Zone 1 (Mobile only - hidden on desktop) */}
+          {!showSidebar && (
+            <TourGuideZone
+              zone={DASHBOARD_TOUR_STEPS[0].zone}
+              text={DASHBOARD_TOUR_STEPS[0].text}
+              title={DASHBOARD_TOUR_STEPS[0].title}
+              icon="📸"
             >
-              <LinearGradient
-                colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.addFoodGradient}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.addFoodButton,
+                  pressed && styles.addFoodButtonPressed,
+                ]}
+                onPress={handleAddFood}
               >
-                <MaterialCommunityIcons name="camera" size={28} color="#FFF" />
-                <View style={styles.addFoodTextContainer}>
-                  <Text variant="body" weight="bold" style={styles.addFoodTitle}>
-                    Snap Your Meal
-                  </Text>
-                  <Text variant="caption" style={styles.addFoodSubtitle}>
-                    AI will analyze nutrition instantly
-                  </Text>
-                </View>
-                <MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" />
-              </LinearGradient>
-            </Pressable>
-          </TourGuideZone>
-        )}
+                <LinearGradient
+                  colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.addFoodGradient}
+                >
+                  <MaterialCommunityIcons name="camera" size={28} color="#FFF" />
+                  <View style={styles.addFoodTextContainer}>
+                    <Text variant="body" weight="bold" style={styles.addFoodTitle}>
+                      Snap Your Meal
+                    </Text>
+                    <Text variant="caption" style={styles.addFoodSubtitle}>
+                      AI will analyze nutrition instantly
+                    </Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" />
+                </LinearGradient>
+              </Pressable>
+            </TourGuideZone>
+          )}
 
-        {/* Today's Meals - Tour Zone 3 */}
+        {/* Today's Meals - Tour Zone 3 - positioned at bottom on desktop */}
         <TourGuideZone
           zone={DASHBOARD_TOUR_STEPS[2].zone}
           text={DASHBOARD_TOUR_STEPS[2].text}
           title={DASHBOARD_TOUR_STEPS[2].title}
           icon="🍽️"
         >
-          {/* Unified card wrapper matching NutritionRingsCard style */}
-          <View style={styles.mealsCard}>
+          {/* Unified card wrapper - fills remaining space on desktop */}
+          <View
+            style={[
+              styles.mealsCard,
+              showSidebar && (showRightPanel ? styles.mealsCardDesktop : styles.mealsCardSidebar),
+            ]}
+          >
             {/* Header - matches NutritionRingsCard header */}
             <View style={styles.mealsHeader}>
               <View>
@@ -493,18 +547,10 @@ const DashboardScreen = () => {
                   {nutritionData.meals.length} {nutritionData.meals.length === 1 ? 'meal' : 'meals'} logged
                 </Text>
               </View>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.logMealButton,
-                  pressed && styles.logMealButtonPressed,
-                ]}
+              <LogMealButton
                 onPress={handleAddFood}
-              >
-                <MaterialCommunityIcons name="plus" size={16} color="#FFFFFF" />
-                <Text variant="caption" weight="semibold" style={styles.logMealButtonText}>
-                  Log Meal
-                </Text>
-              </Pressable>
+                variant="compact"
+              />
             </View>
 
             {nutritionData.meals.length === 0 ? (
@@ -573,6 +619,7 @@ const DashboardScreen = () => {
             )}
           </View>
         </TourGuideZone>
+        </View>
         </TourScrollView>
       </ScreenLayout>
     </SafeAreaWrapper>
@@ -582,10 +629,42 @@ const DashboardScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.light.surface,
   },
   content: {
     padding: spacing.lg,
     // paddingBottom is set dynamically via useContentBottomPadding
+  },
+  // Desktop layout wrapper - fills viewport height
+  desktopContentWrapper: {
+    flex: 1,
+    flexDirection: 'column',
+    gap: spacing.lg,
+    minHeight: 'calc(100vh - 200px)' as any, // Account for header and padding
+  },
+  sidebarContentWrapper: {
+    flex: 1,
+    flexDirection: 'column',
+    gap: spacing.lg,
+  },
+  inlineTopRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'stretch',
+    gap: spacing.lg,
+  },
+  inlineColumn: {
+    flexBasis: '48%',
+    minWidth: 320,
+    flexGrow: 1,
+  },
+  inlineCard: {
+    marginBottom: 0,
+  },
+  // Expanded nutrition card for desktop - takes more vertical space
+  nutritionCardExpanded: {
+    flex: 1,
+    minHeight: 280,
   },
   header: {
     flexDirection: 'row',
@@ -633,14 +712,14 @@ const styles = StyleSheet.create({
       transition: 'all 0.15s ease-out',
     }),
   },
-  // Goals card styles - Aura look with SaaS shadow
+  // Goals card - Stripe/Linear style (border-focused)
   goalsCard: {
     padding: spacing.lg,
     marginBottom: 24,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(229, 231, 235, 0.6)', // Ultra-thin border
+    borderColor: '#E9E6F5', // Theme border
     ...saasShadows.card,
   },
   goalsHeader: {
@@ -726,14 +805,14 @@ const styles = StyleSheet.create({
     color: colors.light.textSecondary,
     marginTop: 2,
   },
-  // Calorie card - Aura look with SaaS shadow
+  // Calorie card - Stripe/Linear style
   calorieCard: {
     padding: spacing.lg,
     marginBottom: 24,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(229, 231, 235, 0.6)', // Ultra-thin border
+    borderColor: '#E9E6F5',
     ...saasShadows.card,
   },
   // Log Meal button in card header
@@ -786,14 +865,22 @@ const styles = StyleSheet.create({
   addFoodSubtitle: {
     color: 'rgba(255,255,255,0.8)',
   },
-  // Unified meals card - matches NutritionRingsCard styling
+  // Unified meals card - Stripe/Linear style
   mealsCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(167, 139, 250, 0.2)', // Subtle primary color border (same as NutritionRingsCard)
+    borderColor: '#E9E6F5',
     padding: spacing.lg,
-    ...saasShadows.cardElevated, // Same shadow as NutritionRingsCard
+    ...saasShadows.card,
+  },
+  // Desktop meals card - fills remaining space at the bottom
+  mealsCardDesktop: {
+    flex: 1,
+    minHeight: 200,
+  },
+  mealsCardSidebar: {
+    flex: 0,
   },
   mealsHeader: {
     flexDirection: 'row',

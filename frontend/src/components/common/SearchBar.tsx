@@ -1,11 +1,11 @@
 import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Pressable,
+    StyleSheet,
+    TextInput,
+    View,
 } from 'react-native';
 
 import { BRAND_COLORS, spacing } from '@/utils';
@@ -53,13 +53,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       <Feather
         name="search"
         size={18}
-        color={isFocused ? BRAND_COLORS.primary : '#6B7280'}
+        color={isFocused ? BRAND_COLORS.primary : '#374151'}
         style={styles.searchIcon}
       />
       <TextInput
         style={styles.input}
         placeholder={placeholder}
-        placeholderTextColor="#6B7280"
+        placeholderTextColor="#374151"
         value={value}
         onChangeText={onChangeText}
         onFocus={handleFocus}
@@ -70,17 +70,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         autoCorrect={false}
         autoFocus={autoFocus}
       />
-      {isLoading ? (
+      {isLoading && (
         <ActivityIndicator
           size="small"
           color={BRAND_COLORS.primary}
           style={styles.clearIcon}
         />
-      ) : value.length > 0 ? (
+      )}
+      {!isLoading && value.length > 0 && (
         <Pressable onPress={handleClear} style={styles.clearButton}>
-          <Feather name="x-circle" size={18} color="#6B7280" />
+          <Feather name="x-circle" size={18} color="#374151" />
         </Pressable>
-      ) : null}
+      )}
     </View>
   );
 };

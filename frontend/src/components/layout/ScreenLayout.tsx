@@ -94,10 +94,12 @@ const styles = StyleSheet.create({
   },
   mainScrollView: {
     flex: 1,
+    backgroundColor: colors.light.surface,
   },
   mainContentContainer: {
     padding: spacing.lg,
     paddingBottom: spacing['3xl'],
+    backgroundColor: colors.light.surface,
     // Center content with max width on very wide screens
     ...(Platform.OS === 'web' && {
       maxWidth: LAYOUT_DIMENSIONS.mainContentMaxWidth + spacing.lg * 2,
@@ -108,6 +110,12 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
     padding: spacing.lg,
+    backgroundColor: colors.light.surface,
+    ...(Platform.OS === 'web' && {
+      display: 'flex' as any,
+      flexDirection: 'column' as any,
+      height: '100%',
+    }),
   },
   rightPanel: {
     width: LAYOUT_DIMENSIONS.rightPanelWidth,

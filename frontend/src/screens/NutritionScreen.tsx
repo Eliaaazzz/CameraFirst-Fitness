@@ -1,20 +1,20 @@
-import React, { useCallback } from 'react';
-import {
-  ScrollView,
-  Text,
-  View,
-  StyleSheet,
-  ActionSheetIOS,
-  Platform,
-  Alert,
-} from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import * as ImagePicker from 'expo-image-picker';
-import { SummaryCard } from '@/components/nutrition/SummaryCard';
 import { AddFoodButton } from '@/components/nutrition/AddFoodButton';
 import { MealListItem } from '@/components/nutrition/MealListItem';
-import { useDailyNutrition } from '@/hooks/useDailyNutrition';
+import { SummaryCard } from '@/components/nutrition/SummaryCard';
 import { SafeAreaWrapper } from '@/components/SafeAreaWrapper';
+import { useDailyNutrition } from '@/hooks/useDailyNutrition';
+import { useFocusEffect } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
+import React, { useCallback } from 'react';
+import {
+    ActionSheetIOS,
+    Alert,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
 
 export function NutritionScreen({ navigation }: any) {
   const { data, refresh } = useDailyNutrition();
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    color: '#6B7280',
+    color: '#374151',
     marginTop: 20,
     fontSize: 16,
   },

@@ -1,95 +1,173 @@
-import React, { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+/**
+ * Sidebar - Premium desktop navigation (Linear/Stripe style)
+ *
+ * Features:
+ * - Phosphor icons with weight system (regular/bold)
+ * - Theme color per item (via chip tint, not full color)
+ * - 3px indicator bar for active state
+ * - Collapsible rail mode (72px)
+ * - 180ms open / 150ms close animations
+ */
 
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useCallback, useState } from 'react';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import {
+  HouseSimple,
+  Barbell,
+  BookOpenText,
+  UserCircle,
+  SidebarSimple,
+  Fire,
+  IconProps,
+} from 'phosphor-react-native';
+
 import { CommonActions, useNavigation, useNavigationState } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { Text } from '@/components/Text';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { BRAND_COLORS, LAYOUT_DIMENSIONS, colors, spacing } from '@/utils';
 
-interface NavItem {
-  name: string;
+// Animation config - fast & snappy
+const SIDEBAR_EASING = Easing.bezier(0.2, 0.8, 0.2, 1);
+const OPEN_DURATION = 180;
+const CLOSE_DURATION = 150;
+
+// Animated Pressable
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+// Nav item config with Phosphor icons and theme colors
+interface NavItemConfig {
+  key: string;
   label: string;
-  icon: string;
-  iconFamily: 'MaterialCommunityIcons' | 'Feather';
+  Icon: React.ComponentType<IconProps>;
+  color: string; // Theme color for this item
 }
 
-const NAV_ITEMS: NavItem[] = [
-  {
-    name: 'Dashboard',
-    label: 'Home',
-    icon: 'home',
-    iconFamily: 'MaterialCommunityIcons',
-  },
-  {
-    name: 'Workouts',
-    label: 'Workouts',
-    icon: 'dumbbell',
-    iconFamily: 'MaterialCommunityIcons',
-  },
-  {
-    name: 'Recipes',
-    label: 'Recipes',
-    icon: 'book-open-variant',
-    iconFamily: 'MaterialCommunityIcons',
-  },
-  {
-    name: 'Profile',
-    label: 'Profile',
-    icon: 'user',
-    iconFamily: 'Feather',
-  },
+const NAV_ITEMS: NavItemConfig[] = [
+  { key: 'Dashboard', label: 'Home', Icon: HouseSimple, color: BRAND_COLORS.primary }, // Violet - brand
+  { key: 'Workouts', label: 'Workouts', Icon: Barbell, color: colors.light.success }, // Emerald - energy
+  { key: 'Recipes', label: 'Recipes', Icon: BookOpenText, color: colors.light.warning }, // Amber - food
+  { key: 'Profile', label: 'Profile', Icon: UserCircle, color: colors.light.error }, // Red - personal
 ];
 
+// Helper: create tinted background from hex color
+const tint = (hex: string, alpha = 0.12): string => {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+};
+
+// ============================================================================
+// NAV ITEM COMPONENT
+// ============================================================================
+
 interface NavItemButtonProps {
-  item: NavItem;
+  item: NavItemConfig;
   isActive: boolean;
+  isCollapsed: boolean;
+  isHovered: boolean;
   onPress: () => void;
+  onHoverIn: () => void;
+  onHoverOut: () => void;
 }
 
-function NavItemButton({ item, isActive, onPress }: NavItemButtonProps) {
-  const [isHovered, setIsHovered] = useState(false);
+function NavItemButton({
+  item,
+  isActive,
+  isCollapsed,
+  isHovered,
+  onPress,
+  onHoverIn,
+  onHoverOut,
+}: NavItemButtonProps) {
+  const scale = useSharedValue(1);
 
-  const IconComponent =
-    item.iconFamily === 'Feather' ? Feather : MaterialCommunityIcons;
+  const handlePressIn = useCallback(() => {
+    scale.value = withTiming(0.97, { duration: 80 });
+  }, []);
+
+  const handlePressOut = useCallback(() => {
+    scale.value = withTiming(1, { duration: 120 });
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  // Keep icons dark for a crisp, premium look
+  const iconColor = colors.light.textPrimary;
+  const chipBg = isActive
+    ? tint(item.color, 0.17)
+    : isHovered
+      ? tint(item.color, 0.13)
+      : tint(item.color, 0.09);
+  const chipBorder = tint(item.color, isActive ? 0.24 : 0.18);
+  const rowBg = isActive
+    ? tint(colors.light.textPrimary, 0.05)
+    : isHovered
+      ? tint(colors.light.textPrimary, 0.03)
+      : 'transparent';
+  const labelColor = isActive ? colors.light.textPrimary : colors.light.textSecondary;
 
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       style={[
         styles.navItem,
-        isActive && styles.navItemActive,
-        isHovered && !isActive && styles.navItemHovered,
+        { backgroundColor: rowBg },
+        isCollapsed && styles.navItemCollapsed,
+        animatedStyle,
       ]}
       {...(Platform.OS === 'web' && {
-        onMouseEnter: () => setIsHovered(true),
-        onMouseLeave: () => setIsHovered(false),
+        onMouseEnter: onHoverIn,
+        onMouseLeave: onHoverOut,
       })}
     >
-      {/* Left accent bar for active state */}
+      {/* Left indicator bar - 3px, only visible when active */}
       <View
         style={[
-          styles.navItemAccent,
-          isActive && styles.navItemAccentActive,
+          styles.indicator,
+          { backgroundColor: item.color, opacity: isActive ? 1 : 0 },
         ]}
       />
-      <IconComponent
-        name={item.icon as any}
-        size={22}
-        color={isActive ? BRAND_COLORS.primary : colors.light.textSecondary}
-      />
-      <Text
-        variant="body"
-        weight={isActive ? 'bold' : 'regular'}
-        style={isActive ? [styles.navItemLabel, styles.navItemLabelActive] : styles.navItemLabel}
-      >
-        {item.label}
-      </Text>
-    </Pressable>
+
+      {/* Icon chip - ✅ ALWAYS has faint theme color (never dead gray) */}
+      <View style={[styles.chip, { backgroundColor: chipBg, borderColor: chipBorder }]}>
+        <item.Icon
+          size={20}
+          weight={isActive ? 'bold' : 'regular'}
+          color={iconColor}
+        />
+      </View>
+
+      {/* Label - hidden when collapsed */}
+      {!isCollapsed && (
+        <Text
+          variant="body"
+          weight={isActive ? 'semibold' : 'regular'}
+          style={[styles.navLabel, { color: labelColor }]}
+        >
+          {item.label}
+        </Text>
+      )}
+    </AnimatedPressable>
   );
 }
+
+// ============================================================================
+// MAIN SIDEBAR COMPONENT
+// ============================================================================
 
 interface SidebarProps {
   onLogFood?: () => void;
@@ -98,8 +176,13 @@ interface SidebarProps {
 export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
   const navigation = useNavigation<any>();
   const currentUser = useCurrentUser();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
-  // Get the current route name from navigation state
+  // Animation value for collapse
+  const collapseProgress = useSharedValue(0);
+
+  // Get current route
   const currentRouteName = useNavigationState((state) => {
     if (!state?.routes) return 'Dashboard';
     const route = state.routes[state.index];
@@ -107,40 +190,69 @@ export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
   });
 
   const handleNavPress = (routeName: string) => {
-    // Use CommonActions.navigate to properly navigate to tabs from outside the Tab Navigator
-    // This ensures the navigation works correctly when Sidebar is rendered as a sibling to tabs
     navigation.dispatch(
-      CommonActions.navigate({
-        name: routeName,
-      })
+      CommonActions.navigate({ name: routeName })
     );
   };
 
+  const toggleCollapse = useCallback(() => {
+    const newCollapsed = !isCollapsed;
+    setIsCollapsed(newCollapsed);
+    collapseProgress.value = withTiming(newCollapsed ? 1 : 0, {
+      duration: newCollapsed ? CLOSE_DURATION : OPEN_DURATION,
+      easing: SIDEBAR_EASING,
+    });
+  }, [isCollapsed]);
+
+  // Animated width
+  const containerStyle = useAnimatedStyle(() => ({
+    width: interpolate(
+      collapseProgress.value,
+      [0, 1],
+      [LAYOUT_DIMENSIONS.sidebarWidth, 72]
+    ),
+  }));
+
+  // Animated text opacity
+  const textStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(collapseProgress.value, [0, 0.3], [1, 0]),
+  }));
+
   return (
-    <View style={styles.container}>
-      {/* Logo Header */}
-      <View style={styles.header}>
-        <LinearGradient
-          colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.logoIcon}
-        >
-          <MaterialCommunityIcons name="lightning-bolt" size={20} color="#FFF" />
-        </LinearGradient>
-        <Text variant="heading3" weight="bold" style={styles.logoText}>
-          AuraFitness
-        </Text>
-      </View>
+    <Animated.View style={[styles.container, containerStyle]}>
+      {/* Header - Toggle collapse */}
+      <Pressable
+        onPress={toggleCollapse}
+        style={({ pressed }) => [
+          styles.header,
+          isCollapsed && styles.headerCollapsed,
+          pressed && styles.headerPressed,
+        ]}
+      >
+        <View style={styles.toggleIcon}>
+          <SidebarSimple size={22} weight="regular" color={colors.light.textPrimary} />
+        </View>
+        {!isCollapsed && (
+          <Animated.View style={[styles.brandContainer, textStyle]}>
+            <Text variant="heading3" weight="bold" style={styles.brandText}>
+              AuraFit
+            </Text>
+          </Animated.View>
+        )}
+      </Pressable>
 
       {/* Navigation Items */}
       <View style={styles.nav}>
         {NAV_ITEMS.map((item) => (
           <NavItemButton
-            key={item.name}
+            key={item.key}
             item={item}
-            isActive={currentRouteName === item.name}
-            onPress={() => handleNavPress(item.name)}
+            isActive={currentRouteName === item.key}
+            isCollapsed={isCollapsed}
+            isHovered={hoveredItem === item.key}
+            onPress={() => handleNavPress(item.key)}
+            onHoverIn={() => setHoveredItem(item.key)}
+            onHoverOut={() => setHoveredItem(null)}
           />
         ))}
       </View>
@@ -150,119 +262,164 @@ export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
 
       {/* User Footer */}
       <Pressable
-        style={styles.userFooter}
+        style={[styles.userFooter, isCollapsed && styles.userFooterCollapsed]}
         onPress={() => handleNavPress('Profile')}
       >
         <View style={styles.userAvatar}>
-          <Feather name="user" size={18} color={BRAND_COLORS.primary} />
+          <UserCircle size={24} weight="fill" color={BRAND_COLORS.primary} />
         </View>
-        <View style={styles.userInfo}>
-          <Text variant="body" weight="semibold" numberOfLines={1}>
-            {currentUser.data?.username || 'User'}
-          </Text>
-          {(currentUser.data?.currentStreak ?? 0) > 0 && (
-            <View style={styles.streakBadge}>
-              <MaterialCommunityIcons name="fire" size={12} color="#F97316" />
-              <Text variant="caption" style={styles.streakText}>
-                {currentUser.data?.currentStreak} day streak
-              </Text>
-            </View>
-          )}
-        </View>
+        {!isCollapsed && (
+          <Animated.View style={[styles.userInfo, textStyle]}>
+            <Text variant="body" weight="semibold" numberOfLines={1}>
+              {currentUser.data?.username || 'User'}
+            </Text>
+            {(currentUser.data?.currentStreak ?? 0) > 0 && (
+              <View style={styles.streakBadge}>
+                <Fire size={12} weight="fill" color="#F97316" />
+                <Text variant="caption" style={styles.streakText}>
+                  {currentUser.data?.currentStreak} day streak
+                </Text>
+              </View>
+            )}
+          </Animated.View>
+        )}
       </Pressable>
-
-    </View>
+    </Animated.View>
   );
 }
+
+// ============================================================================
+// STYLES
+// ============================================================================
 
 const styles = StyleSheet.create({
   container: {
     width: LAYOUT_DIMENSIONS.sidebarWidth,
     height: '100%',
-    backgroundColor: colors.light.surface,
+    backgroundColor: colors.light.background,
     borderRightWidth: 1,
     borderRightColor: colors.light.border,
     paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.sm,
     marginBottom: spacing.lg,
+    marginHorizontal: spacing.xs,
+    borderRadius: 12,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'background-color 0.15s ease-out',
+    }),
   },
-  logoIcon: {
-    width: 36,
-    height: 36,
+  headerCollapsed: {
+    justifyContent: 'center',
+    paddingHorizontal: 0,
+    marginHorizontal: 0,
+  },
+  headerPressed: {
+    backgroundColor: tint(BRAND_COLORS.primary, 0.06),
+  },
+  toggleIcon: {
+    width: 40,
+    height: 40,
     borderRadius: 10,
+    backgroundColor: colors.light.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoText: {
+  brandContainer: {
+    flex: 1,
     marginLeft: spacing.sm,
+  },
+  brandText: {
     color: BRAND_COLORS.textPrimary,
   },
+
   // Navigation
   nav: {
-    gap: spacing.xs,
+    gap: 0, // Items handle their own spacing via marginTop
   },
   navItem: {
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingLeft: spacing.sm, // Make room for accent bar
-    borderRadius: 12,
-    gap: spacing.md,
-    position: 'relative',
+    paddingHorizontal: spacing.sm,
+    marginHorizontal: spacing.xs,
+    marginTop: 8,
+    borderRadius: 14,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
-      transition: 'all 0.15s ease-out',
+      transition: 'background-color 0.12s ease-out',
     }),
   },
-  navItemAccent: {
+  navItemCollapsed: {
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xs,
+    marginHorizontal: spacing.xs,
+  },
+
+  // Left indicator bar (Linear style) - always rendered, opacity controlled
+  indicator: {
+    width: 3,
+    height: 18,
+    borderRadius: 3,
     position: 'absolute',
-    left: 0,
-    top: 8,
-    bottom: 8,
-    width: 4,
-    borderRadius: 2,
-    backgroundColor: 'transparent',
+    left: spacing.xs,
+    top: '50%',
+    transform: [{ translateY: -9 }],
   },
-  navItemAccentActive: {
-    backgroundColor: BRAND_COLORS.primary,
+
+  // Icon chip - ✅ always has faint theme tint (never dead gray)
+  chip: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  navItemActive: {
-    backgroundColor: '#F3E8FF', // Light purple background
-  },
-  navItemHovered: {
-    backgroundColor: colors.light.background,
-  },
-  navItemLabel: {
-    color: colors.light.textSecondary,
+
+  navLabel: {
+    marginLeft: 12,
     fontSize: 15,
+    fontWeight: '600',
   },
-  navItemLabelActive: {
-    color: BRAND_COLORS.primary,
-  },
+
   spacer: {
     flex: 1,
   },
+
+  // User Footer
   userFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.sm,
+    marginHorizontal: spacing.xs,
     borderTopWidth: 1,
     borderTopColor: colors.light.border,
     marginTop: spacing.md,
     gap: spacing.sm,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+    }),
+  },
+  userFooterCollapsed: {
+    justifyContent: 'center',
+    paddingHorizontal: 0,
+    marginHorizontal: 0,
   },
   userAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: `${BRAND_COLORS.primary}15`,
+    backgroundColor: tint(BRAND_COLORS.primary, 0.12),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -272,7 +429,7 @@ const styles = StyleSheet.create({
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
     marginTop: 2,
   },
   streakText: {

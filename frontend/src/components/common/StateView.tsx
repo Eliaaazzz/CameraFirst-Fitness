@@ -1,14 +1,14 @@
+import { Card } from '@/components/Card';
+import { Text } from '@/components/Text';
+import { spacing } from '@/utils';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    Pressable,
+    StyleSheet,
+    View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Text } from '@/components/Text';
-import { Card } from '@/components/Card';
-import { spacing } from '@/utils';
 
 interface StateViewProps {
   type: 'loading' | 'error' | 'empty';
@@ -56,14 +56,14 @@ export const StateView: React.FC<StateViewProps> = ({
           title: title || 'Nothing here yet',
           message: message || 'Start by adding some items',
           icon: icon || 'inbox-outline',
-          iconColor: iconColor || '#9CA3AF',
+          iconColor: iconColor || '#374151',
         };
       default:
         return {
           title: '',
           message: '',
           icon: 'help-circle-outline',
-          iconColor: '#9CA3AF',
+          iconColor: '#374151',
         };
     }
   };

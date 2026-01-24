@@ -1,19 +1,60 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+    interpolate,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withSpring,
+    withTiming,
+} from 'react-native-reanimated';
 
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import {
+    Barbell,
+    CaretRight,
+    ChartLine,
+    ClockCounterClockwise,
+    Drop,
+    Export,
+    Fire,
+    FlagCheckered,
+    Grains,
+    PencilSimple,
+    Scales,
+    Target,
+} from 'phosphor-react-native';
 
 import { Card, Text } from '@/components';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
 import { BRAND_COLORS, colors, saasShadows, spacing } from '@/utils';
 
-// Goal type display config - semantically appropriate icons
-const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; icon: string; color: string }> = {
-  fat_loss: { label: 'Fat Loss', icon: 'target', color: '#EF4444' },
-  muscle_gain: { label: 'Build Muscle', icon: 'flag-checkered', color: '#10B981' },
-  diabetes_control: { label: 'Glucose Control', icon: 'water', color: '#3B82F6' }, // Water drop for blood sugar
+// Animated components
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+// Helper: create tinted background from hex color
+const tint = (hex: string, alpha = 0.12): string => {
+  const h = hex.replace('#', '');
+  const r = Number.parseInt(h.slice(0, 2), 16);
+  const g = Number.parseInt(h.slice(2, 4), 16);
+  const b = Number.parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
 };
+
+// Goal type display config - semantically appropriate icons
+const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; Icon: React.ComponentType<any>; color: string }> = {
+  fat_loss: { label: 'Fat Loss', Icon: Target, color: '#EF4444' },
+  muscle_gain: { label: 'Build Muscle', Icon: FlagCheckered, color: '#10B981' },
+  diabetes_control: { label: 'Glucose Control', Icon: Drop, color: '#3B82F6' },
+};
+
+// Quick action config with Phosphor icons and theme colors
+const QUICK_ACTIONS = [
+  { key: 'history', label: 'Meal History', Icon: ClockCounterClockwise, color: '#8B5CF6', screen: 'MealHistory' },
+  { key: 'insights', label: 'Weekly Insights', Icon: ChartLine, color: '#3B82F6', screen: 'WeeklyInsights' },
+  { key: 'weight', label: 'Log Weight', Icon: Scales, color: '#10B981', screen: 'LogWeight' },
+  { key: 'export', label: 'Export Data', Icon: Export, color: '#F59E0B', screen: 'ExportData' },
+];
 
 interface DashboardWidgetsProps {
   generatedGoals: GeneratedGoals | null;
@@ -22,12 +63,42 @@ interface DashboardWidgetsProps {
 
 /**
  * DashboardWidgets - Right panel widgets for the dashboard
- * Displayed only on wide screens (>=1264px)
- * Optimized for desktop with compact, high-density layout
- * Uses flex layout to fill available height
+ * Enhanced with ghost button interactions and micro-animations
  */
 export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: DashboardWidgetsProps) {
   const navigation = useNavigation<any>();
+
+  // Staggered entrance animations
+  const cardProgress = useSharedValue(0);
+  const streakProgress = useSharedValue(0);
+  const actionsProgress = useSharedValue(0);
+
+  useEffect(() => {
+    cardProgress.value = withSpring(1, { damping: 18, stiffness: 100 });
+    streakProgress.value = withDelay(100, withSpring(1, { damping: 18, stiffness: 100 }));
+    actionsProgress.value = withDelay(200, withSpring(1, { damping: 18, stiffness: 100 }));
+  }, [cardProgress, streakProgress, actionsProgress]);
+
+  const cardAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: cardProgress.value,
+    transform: [
+      { translateY: interpolate(cardProgress.value, [0, 1], [15, 0]) },
+    ],
+  }));
+
+  const streakAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: streakProgress.value,
+    transform: [
+      { translateY: interpolate(streakProgress.value, [0, 1], [15, 0]) },
+    ],
+  }));
+
+  const actionsAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: actionsProgress.value,
+    transform: [
+      { translateY: interpolate(actionsProgress.value, [0, 1], [15, 0]) },
+    ],
+  }));
 
   const goalTypeConfig = generatedGoals?.goalType
     ? GOAL_TYPE_CONFIG[generatedGoals.goalType]
@@ -35,18 +106,17 @@ export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: Dashboar
 
   return (
     <View style={styles.container}>
-      {/* Top section: Goal + Streak cards - fixed height */}
-      <View>
-        {/* Goals Summary Card */}
-        {generatedGoals ? (
+      {/* Goals Summary Card */}
+      {generatedGoals ? (
+        <Animated.View style={cardAnimatedStyle}>
           <Card style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderLeft}>
                 {goalTypeConfig && (
-                  <View style={[styles.goalTypeIcon, { backgroundColor: `${goalTypeConfig.color}15` }]}>
-                    <MaterialCommunityIcons
-                      name={goalTypeConfig.icon as any}
+                  <View style={[styles.goalTypeIcon, { backgroundColor: tint(goalTypeConfig.color, 0.12) }]}>
+                    <goalTypeConfig.Icon
                       size={16}
+                      weight="fill"
                       color={goalTypeConfig.color}
                     />
                   </View>
@@ -60,30 +130,29 @@ export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: Dashboar
                   )}
                 </View>
               </View>
-              <Pressable
-                style={styles.editButton}
-                onPress={() => navigation.navigate('Profile')}
-              >
-                <Feather name="edit-2" size={12} color={BRAND_COLORS.primary} />
-              </Pressable>
+              <EditButton onPress={() => navigation.navigate('Profile')} />
             </View>
 
-            {/* Compact macro grid with improved typography */}
+            {/* Compact macro grid */}
             <View style={styles.goalsGrid}>
-              <GoalItem icon="fire" iconColor="#EF4444" value={generatedGoals.dailyCalories.target} label="kcal" />
-              <GoalItem icon="food-steak" iconColor="#10B981" value={`${generatedGoals.macros_grams.protein_g}g`} label="Protein" />
-              <GoalItem icon="barley" iconColor="#F59E0B" value={`${generatedGoals.macros_grams.carbs_g}g`} label="Carbs" />
-              <GoalItem icon="oil" iconColor="#EF4444" value={`${generatedGoals.macros_grams.fat_g}g`} label="Fat" />
+              <GoalItem Icon={Fire} iconColor="#EF4444" value={generatedGoals.dailyCalories.target} label="kcal" />
+              <GoalItem Icon={Barbell} iconColor="#10B981" value={`${generatedGoals.macros_grams.protein_g}g`} label="Protein" />
+              <GoalItem Icon={Grains} iconColor="#F59E0B" value={`${generatedGoals.macros_grams.carbs_g}g`} label="Carbs" />
+              <GoalItem Icon={Drop} iconColor="#EF4444" value={`${generatedGoals.macros_grams.fat_g}g`} label="Fat" />
             </View>
           </Card>
-        ) : (
+        </Animated.View>
+      ) : (
+        <Animated.View style={cardAnimatedStyle}>
           <SetGoalsPrompt onPress={() => navigation.navigate('Profile')} />
-        )}
+        </Animated.View>
+      )}
 
-        {/* Streak Card - Compact */}
+      {/* Streak Card - Compact */}
+      <Animated.View style={streakAnimatedStyle}>
         <Card style={styles.streakCard}>
           <View style={styles.streakIconSmall}>
-            <MaterialCommunityIcons name="fire" size={20} color="#F97316" />
+            <Fire size={20} weight="fill" color="#F97316" />
           </View>
           <View style={styles.streakInfo}>
             <Text variant="heading3" weight="bold" style={styles.streakNumber}>
@@ -92,117 +161,257 @@ export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: Dashboar
             <Text variant="caption" style={styles.mutedText}>day streak</Text>
           </View>
         </Card>
-      </View>
+      </Animated.View>
 
-      {/* Quick Actions - fills remaining space with evenly distributed items */}
-      <Card style={styles.actionsCard}>
-        <Text variant="caption" weight="bold" style={styles.sectionLabel}>
-          QUICK ACTIONS
-        </Text>
-        <View style={styles.actionsList}>
-          <QuickActionItem
-            icon="history"
-            label="Meal History"
-            onPress={() => navigation.navigate('Profile', { screen: 'MealHistory' })}
-          />
-          <QuickActionItem
-            icon="chart-line"
-            label="Weekly Insights"
-            onPress={() => navigation.navigate('Profile', { screen: 'WeeklyInsights' })}
-          />
-          <QuickActionItem
-            icon="scale-bathroom"
-            label="Log Weight"
-            onPress={() => navigation.navigate('Profile', { screen: 'LogWeight' })}
-          />
-          <QuickActionItem
-            icon="export"
-            label="Export Data"
-            onPress={() => navigation.navigate('Profile', { screen: 'ExportData' })}
-          />
-        </View>
-      </Card>
+      {/* Quick Actions */}
+      <Animated.View style={actionsAnimatedStyle}>
+        <Card style={styles.actionsCard}>
+          <Text variant="caption" weight="bold" style={styles.sectionLabel}>
+            QUICK ACTIONS
+          </Text>
+          <View style={styles.actionsList}>
+            {QUICK_ACTIONS.map((action, index) => (
+              <QuickActionButton
+                key={action.key}
+                Icon={action.Icon}
+                color={action.color}
+                label={action.label}
+                onPress={() => navigation.navigate('Profile', { screen: action.screen })}
+                delay={index * 50}
+              />
+            ))}
+          </View>
+        </Card>
+      </Animated.View>
     </View>
   );
 }
 
+// ============================================================================
+// EDIT BUTTON WITH TOOLTIP
+// ============================================================================
+
+function EditButton({ onPress }: { onPress: () => void }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const scale = useSharedValue(1);
+  const bgOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    bgOpacity.value = withTiming(isHovered ? 1 : 0, { duration: 150 });
+    if (isHovered) {
+      const timer = setTimeout(() => setShowTooltip(true), 500);
+      return () => clearTimeout(timer);
+    } else {
+      setShowTooltip(false);
+    }
+  }, [isHovered, bgOpacity]);
+
+  const handlePressIn = useCallback(() => {
+    scale.value = withSpring(0.9, { damping: 15, stiffness: 300 });
+  }, [scale]);
+
+  const handlePressOut = useCallback(() => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  }, [scale]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const bgAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: bgOpacity.value,
+  }));
+
+  return (
+    <View style={styles.editButtonWrapper}>
+      {/* Tooltip */}
+      {showTooltip && Platform.OS === 'web' && (
+        <View style={styles.tooltip}>
+          <Text variant="caption" style={styles.tooltipText}>Edit Goal</Text>
+        </View>
+      )}
+      <AnimatedPressable
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={[styles.editButton, animatedStyle]}
+        {...(Platform.OS === 'web' && {
+          onMouseEnter: () => setIsHovered(true),
+          onMouseLeave: () => setIsHovered(false),
+        })}
+      >
+        <Animated.View style={[styles.editButtonBg, bgAnimatedStyle]} />
+        <PencilSimple size={12} weight="bold" color={BRAND_COLORS.primary} />
+      </AnimatedPressable>
+    </View>
+  );
+}
+
+// ============================================================================
+// GOAL ITEM
+// ============================================================================
+
 interface GoalItemProps {
-  icon: string;
+  Icon: React.ComponentType<any>;
   iconColor: string;
   value: string | number;
   label: string;
 }
 
-function GoalItem({ icon, iconColor, value, label }: GoalItemProps) {
+function GoalItem({ Icon, iconColor, value, label }: GoalItemProps) {
   return (
     <View style={styles.goalItem}>
-      <MaterialCommunityIcons name={icon as any} size={16} color={iconColor} />
+      <Icon size={16} weight="fill" color={iconColor} />
       <Text variant="body" weight="bold" style={styles.goalValue}>{value}</Text>
       <Text variant="caption" weight="semibold" style={styles.goalLabel}>{label}</Text>
     </View>
   );
 }
 
+// ============================================================================
+// SET GOALS PROMPT
+// ============================================================================
+
 function SetGoalsPrompt({ onPress }: { onPress: () => void }) {
   const [isHovered, setIsHovered] = useState(false);
+  const scale = useSharedValue(1);
+
+  const handlePressIn = useCallback(() => {
+    scale.value = withSpring(0.98, { damping: 15, stiffness: 300 });
+  }, [scale]);
+
+  const handlePressOut = useCallback(() => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  }, [scale]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   return (
-    <Pressable
-      style={[styles.setGoalsPrompt, isHovered && styles.setGoalsPromptHovered]}
+    <AnimatedPressable
+      style={[styles.setGoalsPrompt, isHovered && styles.setGoalsPromptHovered, animatedStyle]}
       onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       {...(Platform.OS === 'web' && {
         onMouseEnter: () => setIsHovered(true),
         onMouseLeave: () => setIsHovered(false),
       })}
     >
-      <MaterialCommunityIcons name="target" size={20} color={BRAND_COLORS.primary} />
+      <Target size={20} weight="regular" color={BRAND_COLORS.primary} />
       <View style={styles.setGoalsText}>
         <Text variant="body" weight="semibold">Set Your Goals</Text>
         <Text variant="caption" style={styles.mutedText}>Get personalized targets</Text>
       </View>
-      <Feather name="chevron-right" size={16} color={BRAND_COLORS.primary} />
-    </Pressable>
+      <CaretRight size={16} weight="bold" color={BRAND_COLORS.primary} />
+    </AnimatedPressable>
   );
 }
 
-interface QuickActionItemProps {
-  icon: string;
+// ============================================================================
+// QUICK ACTION BUTTON (Ghost Button Style with Phosphor + Colored Chips)
+// ============================================================================
+
+interface QuickActionButtonProps {
+  Icon: React.ComponentType<any>;
+  color: string;
   label: string;
   onPress: () => void;
+  delay?: number;
 }
 
-function QuickActionItem({ icon, label, onPress }: QuickActionItemProps) {
+function QuickActionButton({ Icon, color, label, onPress, delay = 0 }: QuickActionButtonProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const scale = useSharedValue(1);
+  const bgOpacity = useSharedValue(0);
+
+  // Entrance animation
+  const itemProgress = useSharedValue(0);
+  useEffect(() => {
+    itemProgress.value = withDelay(delay + 300, withSpring(1, { damping: 18, stiffness: 100 }));
+  }, [delay, itemProgress]);
+
+  // Hover effects
+  useEffect(() => {
+    bgOpacity.value = withTiming(isHovered ? 1 : 0, { duration: 150 });
+  }, [isHovered, bgOpacity]);
+
+  const handlePressIn = useCallback(() => {
+    scale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
+  }, [scale]);
+
+  const handlePressOut = useCallback(() => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  }, [scale]);
+
+  const containerStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: itemProgress.value,
+  }));
+
+  const bgStyle = useAnimatedStyle(() => ({
+    opacity: bgOpacity.value,
+  }));
 
   return (
-    <Pressable
-      style={[styles.actionItem, isHovered && styles.actionItemHovered]}
+    <AnimatedPressable
       onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={[styles.actionItem, containerStyle]}
       {...(Platform.OS === 'web' && {
         onMouseEnter: () => setIsHovered(true),
         onMouseLeave: () => setIsHovered(false),
       })}
     >
-      <View style={styles.actionIconBox}>
-        <MaterialCommunityIcons name={icon as any} size={16} color={BRAND_COLORS.primary} />
+      {/* Button background */}
+      <Animated.View style={[styles.actionItemBg, bgStyle]} />
+
+      {/* Colored chip with Phosphor icon */}
+      <View style={[
+        styles.actionIconBox, 
+        { 
+          backgroundColor: tint(color, isHovered ? 0.16 : 0.1),
+          borderColor: tint(color, 0.18),
+        }
+      ]}>
+        <Icon
+          size={20}
+          weight={isHovered ? 'fill' : 'regular'}
+          color={color}
+        />
       </View>
-      <Text variant="body" style={styles.actionLabel}>{label}</Text>
-      <Feather name="chevron-right" size={14} color="#CCC" style={styles.actionChevron} />
-    </Pressable>
+      <Text
+        variant="caption"
+        weight={isHovered ? 'semibold' : 'medium'}
+        style={styles.actionLabel}
+        color={isHovered ? BRAND_COLORS.textPrimary : colors.light.textSecondary}
+      >
+        {label}
+      </Text>
+    </AnimatedPressable>
   );
 }
 
+// ============================================================================
+// STYLES
+// ============================================================================
+
 const styles = StyleSheet.create({
   container: {
-    flex: 1, // Fill available height
-    gap: spacing.md, // 16px gap between cards
+    flex: 1,
+    gap: spacing.xl,
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
   },
   card: {
     padding: spacing.md,
     backgroundColor: colors.light.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(229, 231, 235, 0.6)', // Ultra-thin border
+    borderColor: 'rgba(229, 231, 235, 0.6)',
     ...saasShadows.card,
   },
   cardHeader: {
@@ -228,18 +437,41 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginBottom: 1,
   },
+  // Edit button with tooltip
+  editButtonWrapper: {
+    position: 'relative',
+  },
   editButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: `${BRAND_COLORS.primary}10`,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
     }),
   },
-  // Compact goals grid - 4 items in a row
+  editButtonBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: `${BRAND_COLORS.primary}15`,
+    borderRadius: 14,
+  },
+  tooltip: {
+    position: 'absolute',
+    top: -32,
+    right: 0,
+    backgroundColor: '#1F2937',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    zIndex: 100,
+  },
+  tooltipText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+  },
+  // Goals grid
   goalsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -251,12 +483,12 @@ const styles = StyleSheet.create({
   },
   goalValue: {
     fontSize: 15,
-    color: '#1F2937', // Darker for WCAG AA compliance
+    color: '#1F2937',
     letterSpacing: -0.3,
   },
   goalLabel: {
     fontSize: 11,
-    color: '#4B5563', // Darker for better readability (WCAG AA)
+    color: '#4B5563',
     marginTop: 1,
   },
   // Set goals prompt
@@ -273,7 +505,6 @@ const styles = StyleSheet.create({
     ...saasShadows.subtle,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
-      transition: 'all 0.15s ease-out',
     }),
   },
   setGoalsPromptHovered: {
@@ -283,7 +514,7 @@ const styles = StyleSheet.create({
   setGoalsText: {
     flex: 1,
   },
-  // Compact streak card
+  // Streak card
   streakCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -312,9 +543,8 @@ const styles = StyleSheet.create({
     color: '#F97316',
     fontSize: 20,
   },
-  // Actions card - fills remaining space
+  // Actions card
   actionsCard: {
-    flex: 1, // Fill remaining height
     padding: spacing.md,
     backgroundColor: colors.light.surface,
     borderRadius: 12,
@@ -330,39 +560,58 @@ const styles = StyleSheet.create({
     marginLeft: spacing.xs,
   },
   actionsList: {
-    flex: 1, // Fill remaining space in card
-    justifyContent: 'space-between', // Distribute items evenly from top to bottom
-  },
-  actionItem: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    justifyContent: 'space-between',
+  },
+  // Ghost button action item
+  actionItem: {
+    flexBasis: '48%',
+    minHeight: 96,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexDirection: 'column',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xs,
-    borderRadius: 8,
-    gap: spacing.sm,
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 14,
+    gap: spacing.xs,
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: colors.light.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 231, 235, 0.8)',
+    ...saasShadows.subtle,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
+    }),
+  },
+  actionItemBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.light.background,
+    borderRadius: 14,
+    ...(Platform.OS === 'web' && {
       transition: 'all 0.15s ease-out',
     }),
   },
-  actionItemHovered: {
-    backgroundColor: colors.light.background,
-  },
   actionIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    backgroundColor: `${BRAND_COLORS.primary}10`,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1,
+    ...(Platform.OS === 'web' && {
+      transition: 'all 0.15s ease-out',
+    }),
   },
   actionLabel: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.light.textPrimary,
-  },
-  actionChevron: {
-    marginLeft: 'auto',
+    textAlign: 'center',
+    fontSize: 12,
+    zIndex: 1,
   },
   mutedText: {
     color: colors.light.textSecondary,
