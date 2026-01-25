@@ -43,9 +43,9 @@ interface AuthState {
  * Fetch current user info from backend.
  * Uses dynamic import to avoid circular dependency with apiClient.
  */
-async function fetchCurrentUser(): Promise<UserInfo> {
+async function fetchCurrentUser(timeoutMs = 8000): Promise<UserInfo> {
   const { api } = await import('@/services/apiClient');
-  return api.get<UserInfo>('/api/v1/me');
+  return api.get<UserInfo>('/api/v1/me', { timeout: timeoutMs });
 }
 
 /**

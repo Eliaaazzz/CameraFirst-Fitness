@@ -2,7 +2,7 @@ import { colors } from '@/utils';
 import React, { PropsWithChildren } from 'react';
 import { Platform, Text as RNText, TextStyle } from 'react-native';
 
-type TextVariant = 'hero' | 'heading1' | 'heading2' | 'heading3' | 'body' | 'caption' | 'label';
+type TextVariant = 'hero' | 'heading1' | 'heading2' | 'heading3' | 'heading4' | 'body' | 'caption' | 'label';
 type TextWeight = 'regular' | 'medium' | 'semibold' | 'bold';
 
 export interface TextProps {
@@ -21,6 +21,7 @@ const variantStyles: Record<TextVariant, { fontSize: number; lineHeight: number;
   heading1: { fontSize: 28, lineHeight: 36, defaultWeight: 'bold' },
   heading2: { fontSize: 22, lineHeight: 28, defaultWeight: 'semibold' },
   heading3: { fontSize: 18, lineHeight: 24, defaultWeight: 'semibold' },
+  heading4: { fontSize: 16, lineHeight: 22, defaultWeight: 'semibold' },
   body: { fontSize: 15, lineHeight: 22, defaultWeight: 'regular' },
   caption: { fontSize: 13, lineHeight: 18, defaultWeight: 'regular' },
   label: { fontSize: 12, lineHeight: 16, defaultWeight: 'medium' },

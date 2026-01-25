@@ -11,16 +11,15 @@ import Animated, {
 
 import { useNavigation } from '@react-navigation/native';
 import {
-    Barbell,
     CaretRight,
     ChartLine,
     ClockCounterClockwise,
     Drop,
     Export,
-    Fire,
     FlagCheckered,
-    Grains,
     PencilSimple,
+    CheckCircle,
+    Plus,
     Scales,
     Target,
 } from 'phosphor-react-native';
@@ -58,38 +57,28 @@ const QUICK_ACTIONS = [
 
 interface DashboardWidgetsProps {
   generatedGoals: GeneratedGoals | null;
-  currentStreak?: number;
 }
 
 /**
  * DashboardWidgets - Right panel widgets for the dashboard
  * Enhanced with ghost button interactions and micro-animations
  */
-export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: DashboardWidgetsProps) {
+export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
   const navigation = useNavigation<any>();
 
   // Staggered entrance animations
   const cardProgress = useSharedValue(0);
-  const streakProgress = useSharedValue(0);
   const actionsProgress = useSharedValue(0);
 
   useEffect(() => {
     cardProgress.value = withSpring(1, { damping: 18, stiffness: 100 });
-    streakProgress.value = withDelay(100, withSpring(1, { damping: 18, stiffness: 100 }));
-    actionsProgress.value = withDelay(200, withSpring(1, { damping: 18, stiffness: 100 }));
-  }, [cardProgress, streakProgress, actionsProgress]);
+    actionsProgress.value = withDelay(150, withSpring(1, { damping: 18, stiffness: 100 }));
+  }, [cardProgress, actionsProgress]);
 
   const cardAnimatedStyle = useAnimatedStyle(() => ({
     opacity: cardProgress.value,
     transform: [
       { translateY: interpolate(cardProgress.value, [0, 1], [15, 0]) },
-    ],
-  }));
-
-  const streakAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: streakProgress.value,
-    transform: [
-      { translateY: interpolate(streakProgress.value, [0, 1], [15, 0]) },
     ],
   }));
 
@@ -133,13 +122,6 @@ export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: Dashboar
               <EditButton onPress={() => navigation.navigate('Profile')} />
             </View>
 
-            {/* Compact macro grid */}
-            <View style={styles.goalsGrid}>
-              <GoalItem Icon={Fire} iconColor="#EF4444" value={generatedGoals.dailyCalories.target} label="kcal" />
-              <GoalItem Icon={Barbell} iconColor="#10B981" value={`${generatedGoals.macros_grams.protein_g}g`} label="Protein" />
-              <GoalItem Icon={Grains} iconColor="#F59E0B" value={`${generatedGoals.macros_grams.carbs_g}g`} label="Carbs" />
-              <GoalItem Icon={Drop} iconColor="#EF4444" value={`${generatedGoals.macros_grams.fat_g}g`} label="Fat" />
-            </View>
           </Card>
         </Animated.View>
       ) : (
@@ -147,21 +129,6 @@ export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: Dashboar
           <SetGoalsPrompt onPress={() => navigation.navigate('Profile')} />
         </Animated.View>
       )}
-
-      {/* Streak Card - Compact */}
-      <Animated.View style={streakAnimatedStyle}>
-        <Card style={styles.streakCard}>
-          <View style={styles.streakIconSmall}>
-            <Fire size={20} weight="fill" color="#F97316" />
-          </View>
-          <View style={styles.streakInfo}>
-            <Text variant="heading3" weight="bold" style={styles.streakNumber}>
-              {currentStreak}
-            </Text>
-            <Text variant="caption" style={styles.mutedText}>day streak</Text>
-          </View>
-        </Card>
-      </Animated.View>
 
       {/* Quick Actions */}
       <Animated.View style={actionsAnimatedStyle}>
@@ -181,6 +148,17 @@ export function DashboardWidgets({ generatedGoals, currentStreak = 0 }: Dashboar
               />
             ))}
           </View>
+        </Card>
+
+        {/* Hydration widget to fill right rail and add a common daily action */}
+        <Card style={styles.hydrationCard}>
+          <View style={styles.hydrationHeader}>
+            <View>
+              <Text variant="caption" style={styles.sectionLabel}>HYDRATION</Text>
+              <Text variant="body" weight="bold" style={styles.hydrationTitle}>Stay hydrated</Text>
+            </View>
+          </View>
+          <HydrationProgress />
         </Card>
       </Animated.View>
     </View>
@@ -244,27 +222,6 @@ function EditButton({ onPress }: { onPress: () => void }) {
         <Animated.View style={[styles.editButtonBg, bgAnimatedStyle]} />
         <PencilSimple size={12} weight="bold" color={BRAND_COLORS.primary} />
       </AnimatedPressable>
-    </View>
-  );
-}
-
-// ============================================================================
-// GOAL ITEM
-// ============================================================================
-
-interface GoalItemProps {
-  Icon: React.ComponentType<any>;
-  iconColor: string;
-  value: string | number;
-  label: string;
-}
-
-function GoalItem({ Icon, iconColor, value, label }: GoalItemProps) {
-  return (
-    <View style={styles.goalItem}>
-      <Icon size={16} weight="fill" color={iconColor} />
-      <Text variant="body" weight="bold" style={styles.goalValue}>{value}</Text>
-      <Text variant="caption" weight="semibold" style={styles.goalLabel}>{label}</Text>
     </View>
   );
 }
@@ -396,6 +353,65 @@ function QuickActionButton({ Icon, color, label, onPress, delay = 0 }: QuickActi
 }
 
 // ============================================================================
+// HYDRATION WIDGET
+// ============================================================================
+
+function HydrationProgress() {
+  const goal = 8;
+  const [current, setCurrent] = useState(3);
+  const progress = Math.min(current / goal, 1);
+
+  const addGlass = useCallback(() => {
+    setCurrent(prev => Math.min(goal, prev + 1));
+  }, [goal]);
+
+  const atGoal = current >= goal;
+
+  return (
+    <View style={styles.hydrationContent}>
+      <View style={styles.hydrationRow}>
+        <Text variant="heading4" weight="bold" style={styles.hydrationValue}>
+          {current}/{goal} cups
+        </Text>
+        <Pressable
+          onPress={!atGoal ? addGlass : undefined}
+          disabled={atGoal}
+          style={({ pressed }) => [
+            styles.hydrationPlus,
+            atGoal && styles.hydrationPlusDisabled,
+            pressed && !atGoal && { transform: [{ scale: 0.95 }] },
+          ]}
+        >
+          {atGoal ? (
+            <CheckCircle size={16} weight="bold" color={BRAND_COLORS.primary} />
+          ) : (
+            <Plus size={16} weight="bold" color={BRAND_COLORS.primary} />
+          )}
+        </Pressable>
+      </View>
+      <View style={styles.hydrationBar}>
+        <View style={[styles.hydrationBarFill, { width: `${progress * 100}%` }]} />
+      </View>
+    </View>
+  );
+}
+
+function HydrationAddButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.editButton,
+        { width: 28, height: 28, borderRadius: 10, backgroundColor: tint(BRAND_COLORS.primary, 0.08) },
+        pressed && { transform: [{ scale: 0.95 }] },
+      ]}
+    >
+      <Plus size={14} weight="bold" color={BRAND_COLORS.primary} />
+    </Pressable>
+  );
+}
+
+// ============================================================================
 // STYLES
 // ============================================================================
 
@@ -471,26 +487,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
   },
-  // Goals grid
-  goalsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  goalItem: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 2,
-  },
-  goalValue: {
-    fontSize: 15,
-    color: '#1F2937',
-    letterSpacing: -0.3,
-  },
-  goalLabel: {
-    fontSize: 11,
-    color: '#4B5563',
-    marginTop: 1,
-  },
   // Set goals prompt
   setGoalsPrompt: {
     flexDirection: 'row',
@@ -514,35 +510,6 @@ const styles = StyleSheet.create({
   setGoalsText: {
     flex: 1,
   },
-  // Streak card
-  streakCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    backgroundColor: colors.light.surface,
-    borderRadius: 12,
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(229, 231, 235, 0.6)',
-    ...saasShadows.card,
-  },
-  streakIconSmall: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FEF3C7',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  streakInfo: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing.xs,
-  },
-  streakNumber: {
-    color: '#F97316',
-    fontSize: 20,
-  },
   // Actions card
   actionsCard: {
     padding: spacing.md,
@@ -559,18 +526,22 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     marginLeft: spacing.xs,
   },
-  actionsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-    justifyContent: 'space-between',
-  },
+  actionsList: Platform.select({
+    web: {
+      display: 'grid' as any,
+      gridTemplateColumns: 'repeat(2, 1fr)' as any,
+      gap: spacing.md,
+    },
+    default: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: spacing.md,
+    },
+  }),
   // Ghost button action item
   actionItem: {
-    flexBasis: '48%',
-    minHeight: 96,
-    flexGrow: 0,
-    flexShrink: 0,
+    // Grid handles sizing on web, no need for flexBasis
+    minHeight: 100,
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
@@ -616,6 +587,59 @@ const styles = StyleSheet.create({
   mutedText: {
     color: colors.light.textSecondary,
     fontSize: 12,
+  },
+  // Hydration
+  hydrationCard: {
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.light.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 231, 235, 0.6)',
+    ...saasShadows.card,
+  },
+  hydrationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  hydrationTitle: {
+    color: colors.light.textPrimary,
+    marginTop: 2,
+  },
+  hydrationContent: {
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  hydrationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  hydrationValue: {
+    color: colors.light.textPrimary,
+  },
+  hydrationPlus: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: tint(BRAND_COLORS.primary, 0.08),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hydrationPlusDisabled: {
+    backgroundColor: tint(colors.light.textSecondary, 0.08),
+  },
+  hydrationBar: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: tint(BRAND_COLORS.primary, 0.12),
+    overflow: 'hidden',
+  },
+  hydrationBarFill: {
+    height: '100%',
+    backgroundColor: BRAND_COLORS.primary,
+    borderRadius: 999,
   },
 });
 
