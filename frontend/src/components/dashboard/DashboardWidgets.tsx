@@ -396,21 +396,6 @@ function HydrationProgress() {
   );
 }
 
-function HydrationAddButton({ onPress }: { onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.editButton,
-        { width: 28, height: 28, borderRadius: 10, backgroundColor: tint(BRAND_COLORS.primary, 0.08) },
-        pressed && { transform: [{ scale: 0.95 }] },
-      ]}
-    >
-      <Plus size={14} weight="bold" color={BRAND_COLORS.primary} />
-    </Pressable>
-  );
-}
-
 // ============================================================================
 // STYLES
 // ============================================================================
