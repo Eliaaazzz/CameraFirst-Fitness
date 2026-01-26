@@ -358,7 +358,7 @@ function QuickActionButton({ Icon, color, label, onPress, delay = 0 }: QuickActi
 
 function HydrationProgress() {
   const goal = 8;
-  const [current, setCurrent] = useState(3);
+  const [current, setCurrent] = useState(0);
   const progress = Math.min(current / goal, 1);
 
   const addGlass = useCallback(() => {
