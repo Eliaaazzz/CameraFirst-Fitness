@@ -18,8 +18,6 @@ import {
     Export,
     FlagCheckered,
     PencilSimple,
-    CheckCircle,
-    Plus,
     Scales,
     Target,
 } from 'phosphor-react-native';
@@ -148,17 +146,6 @@ export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
               />
             ))}
           </View>
-        </Card>
-
-        {/* Hydration widget to fill right rail and add a common daily action */}
-        <Card style={styles.hydrationCard}>
-          <View style={styles.hydrationHeader}>
-            <View>
-              <Text variant="caption" style={styles.sectionLabel}>HYDRATION</Text>
-              <Text variant="body" weight="bold" style={styles.hydrationTitle}>Stay hydrated</Text>
-            </View>
-          </View>
-          <HydrationProgress />
         </Card>
       </Animated.View>
     </View>
@@ -353,65 +340,6 @@ function QuickActionButton({ Icon, color, label, onPress, delay = 0 }: QuickActi
 }
 
 // ============================================================================
-// HYDRATION WIDGET
-// ============================================================================
-
-function HydrationProgress() {
-  const goal = 8;
-  const [current, setCurrent] = useState(0);
-  const progress = Math.min(current / goal, 1);
-
-  const addGlass = useCallback(() => {
-    setCurrent(prev => Math.min(goal, prev + 1));
-  }, [goal]);
-
-  const atGoal = current >= goal;
-
-  return (
-    <View style={styles.hydrationContent}>
-      <View style={styles.hydrationRow}>
-        <Text variant="heading4" weight="bold" style={styles.hydrationValue}>
-          {current}/{goal} cups
-        </Text>
-        <Pressable
-          onPress={!atGoal ? addGlass : undefined}
-          disabled={atGoal}
-          style={({ pressed }) => [
-            styles.hydrationPlus,
-            atGoal && styles.hydrationPlusDisabled,
-            pressed && !atGoal && { transform: [{ scale: 0.95 }] },
-          ]}
-        >
-          {atGoal ? (
-            <CheckCircle size={16} weight="bold" color={BRAND_COLORS.primary} />
-          ) : (
-            <Plus size={16} weight="bold" color={BRAND_COLORS.primary} />
-          )}
-        </Pressable>
-      </View>
-      <View style={styles.hydrationBar}>
-        <View style={[styles.hydrationBarFill, { width: `${progress * 100}%` }]} />
-      </View>
-    </View>
-  );
-}
-
-function HydrationAddButton({ onPress }: { onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.editButton,
-        { width: 28, height: 28, borderRadius: 10, backgroundColor: tint(BRAND_COLORS.primary, 0.08) },
-        pressed && { transform: [{ scale: 0.95 }] },
-      ]}
-    >
-      <Plus size={14} weight="bold" color={BRAND_COLORS.primary} />
-    </Pressable>
-  );
-}
-
-// ============================================================================
 // STYLES
 // ============================================================================
 
@@ -587,59 +515,6 @@ const styles = StyleSheet.create({
   mutedText: {
     color: colors.light.textSecondary,
     fontSize: 12,
-  },
-  // Hydration
-  hydrationCard: {
-    marginTop: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.light.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(229, 231, 235, 0.6)',
-    ...saasShadows.card,
-  },
-  hydrationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  hydrationTitle: {
-    color: colors.light.textPrimary,
-    marginTop: 2,
-  },
-  hydrationContent: {
-    marginTop: spacing.md,
-    gap: spacing.sm,
-  },
-  hydrationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  hydrationValue: {
-    color: colors.light.textPrimary,
-  },
-  hydrationPlus: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: tint(BRAND_COLORS.primary, 0.08),
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  hydrationPlusDisabled: {
-    backgroundColor: tint(colors.light.textSecondary, 0.08),
-  },
-  hydrationBar: {
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: tint(BRAND_COLORS.primary, 0.12),
-    overflow: 'hidden',
-  },
-  hydrationBarFill: {
-    height: '100%',
-    backgroundColor: BRAND_COLORS.primary,
-    borderRadius: 999,
   },
 });
 
