@@ -21,7 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Barbell, Drop, Fire, Grains } from 'phosphor-react-native';
 
-import { Card, LogMealButton, SafeAreaWrapper, Text } from '@/components';
+import { Card, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
 import { DashboardWidgets } from '@/components/dashboard';
 import { ScreenLayout } from '@/components/layout';
@@ -379,7 +379,6 @@ const DashboardScreen = () => {
               fat: { current: nutritionData.fat.current, target: fatGoal },
             }}
             showFat={true}
-            onLogMeal={handleAddFood}
           />
         </View>
       ) : (
@@ -400,7 +399,6 @@ const DashboardScreen = () => {
   const renderRightPanel = () => (
     <DashboardWidgets
       generatedGoals={generatedGoals}
-      currentStreak={currentUser.data?.currentStreak || 0}
     />
   );
 
@@ -440,15 +438,23 @@ const DashboardScreen = () => {
                 </LinearGradient>
               </View>
             </View>
-            {/* Hide profile button on desktop (use sidebar instead) */}
-            {!showRightPanel && (
+            <View style={styles.headerActions}>
               <Pressable
-                style={styles.profileButton}
-                onPress={() => navigation.navigate('Profile')}
+                style={styles.addMealButton}
+                onPress={handleAddFood}
               >
-                <Feather name="user" size={24} color={BRAND_COLORS.textPrimary} />
+                <Feather name="plus" size={20} color={BRAND_COLORS.textPrimary} />
               </Pressable>
-            )}
+              {/* Hide profile button on desktop (use sidebar instead) */}
+              {!showRightPanel && (
+                <Pressable
+                  style={styles.profileButton}
+                  onPress={() => navigation.navigate('Profile')}
+                >
+                  <Feather name="user" size={24} color={BRAND_COLORS.textPrimary} />
+                </Pressable>
+              )}
+            </View>
           </View>
 
           {/* Welcome Tour Card for new users */}
@@ -531,7 +537,7 @@ const DashboardScreen = () => {
           icon="🍽️"
         >
           {/* Unified card wrapper - fills remaining space on desktop */}
-          <View
+          <Card
             style={[
               styles.mealsCard,
               showSidebar && (showRightPanel ? styles.mealsCardDesktop : styles.mealsCardSidebar),
@@ -539,19 +545,15 @@ const DashboardScreen = () => {
           >
             {/* Header - matches NutritionRingsCard header */}
             <View style={styles.mealsHeader}>
-              <View>
-                <Text variant="heading3" weight="bold" style={styles.mealsTitle}>
-                  Today's Meals
-                </Text>
-                <Text variant="caption" style={styles.mealsSubtitle}>
-                  {nutritionData.meals.length} {nutritionData.meals.length === 1 ? 'meal' : 'meals'} logged
-                </Text>
-              </View>
-              <LogMealButton
-                onPress={handleAddFood}
-                variant="compact"
-              />
+            <View>
+              <Text variant="heading3" weight="bold" style={styles.mealsTitle}>
+                Today's Meals
+              </Text>
+              <Text variant="caption" style={styles.mealsSubtitle}>
+                {nutritionData.meals.length} {nutritionData.meals.length === 1 ? 'meal' : 'meals'} logged
+              </Text>
             </View>
+          </View>
 
             {nutritionData.meals.length === 0 ? (
               <View style={styles.emptyMealsWrapper}>
@@ -617,7 +619,7 @@ const DashboardScreen = () => {
                 ))}
               </View>
             )}
-          </View>
+          </Card>
         </TourGuideZone>
         </View>
         </TourScrollView>
@@ -686,6 +688,25 @@ const styles = StyleSheet.create({
   },
   userName: {
     color: BRAND_COLORS.textPrimary,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  addMealButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.light.background,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'all 0.15s ease-out',
+    }),
   },
   streakBadge: {
     flexDirection: 'row',
@@ -815,28 +836,6 @@ const styles = StyleSheet.create({
     borderColor: '#E9E6F5',
     ...saasShadows.card,
   },
-  // Log Meal button in card header
-  logMealButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: BRAND_COLORS.primary,
-    borderRadius: 8,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    gap: 4,
-    ...(Platform.OS === 'web' && {
-      cursor: 'pointer' as any,
-      transition: 'all 0.15s ease-out',
-    }),
-  },
-  logMealButtonPressed: {
-    backgroundColor: BRAND_COLORS.secondary,
-    transform: [{ scale: 0.98 }],
-  },
-  logMealButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-  },
   addFoodButton: {
     borderRadius: 16,
     overflow: 'hidden',
@@ -865,14 +864,9 @@ const styles = StyleSheet.create({
   addFoodSubtitle: {
     color: 'rgba(255,255,255,0.8)',
   },
-  // Unified meals card - Stripe/Linear style
+  // Unified meals card - uses Card component base styles
   mealsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E9E6F5',
     padding: spacing.lg,
-    ...saasShadows.card,
   },
   // Desktop meals card - fills remaining space at the bottom
   mealsCardDesktop: {

@@ -8,9 +8,12 @@ import Animated, {
     withSpring,
 } from 'react-native-reanimated';
 
-import { LogMealButton } from '@/components/LogMealButton';
+import { Card } from '@/components/Card';
 import { Text } from '@/components/Text';
-import { BRAND_COLORS, colors, saasShadows, spacing } from '@/utils';
+import { BRAND_COLORS, colors, spacing } from '@/utils';
+
+// Animated Card component
+const AnimatedCard = Animated.createAnimatedComponent(Card);
 
 // Only import Recharts on web platform
 let PieChart: any;
@@ -46,7 +49,6 @@ interface NutritionPieChartProps {
   readonly data: NutritionPieChartData;
   readonly title?: string;
   readonly showFat?: boolean;
-  readonly onLogMeal?: () => void;
 }
 
 // ============================================================================
@@ -69,7 +71,6 @@ export function NutritionPieChart({
   data,
   title = "Today's Nutrition",
   showFat = false,
-  onLogMeal,
 }: NutritionPieChartProps) {
   // Animation values
   const cardProgress = useSharedValue(0);
@@ -134,7 +135,6 @@ export function NutritionPieChart({
 
   // Ensure we have some value for the chart (avoid empty pie)
   const totalValue = pieData.reduce((sum, item) => sum + item.value, 0);
-  const isEmpty = totalValue <= 0;
   const chartData = totalValue > 0 ? pieData : pieData.map(item => ({ ...item, value: 1 }));
 
   // Format calorie subtitle for header
@@ -183,7 +183,7 @@ export function NutritionPieChart({
   if (Platform.OS !== 'web') {
     // Fallback for non-web platforms - simple text display
     return (
-      <View style={styles.card}>
+      <Card style={styles.card}>
         <View style={styles.header}>
           <Text variant="heading3" weight="bold" style={styles.title}>
             {title}
@@ -193,12 +193,12 @@ export function NutritionPieChart({
           </Text>
         </View>
         <Text variant="body">Charts only available on web</Text>
-      </View>
+      </Card>
     );
   }
 
   return (
-    <Animated.View style={[styles.card, cardAnimatedStyle]}>
+    <AnimatedCard style={[styles.card, cardAnimatedStyle]}>
       {/* Header */}
       <View style={styles.header}>
         <Text variant="heading3" weight="bold" style={styles.title}>
@@ -235,29 +235,20 @@ export function NutritionPieChart({
             </PieChart>
           </ResponsiveContainer>
 
-          {/* Center Label or CTA when empty */}
-            {isEmpty && onLogMeal ? (
-              <View style={styles.emptyCenter}>
-                <Text variant="heading2" weight="bold" style={styles.centerPercentage}>
-                  0 kcal
-                </Text>
-                <LogMealButton onPress={onLogMeal} variant="compact" />
-              </View>
-            ) : (
-              <View style={styles.centerLabel}>
-                <Text variant="heading2" weight="bold" style={styles.centerPercentage}>
-                  {Math.round(data.calories.current)} kcal
-                </Text>
-                <Text variant="caption" style={styles.centerSubtext}>
-                  of {data.calories.target} kcal
-                </Text>
-              </View>
-            )}
+          {/* Center Label */}
+            <View style={styles.centerLabel}>
+              <Text variant="heading2" weight="bold" style={styles.centerPercentage}>
+                {Math.round(data.calories.current)} kcal
+              </Text>
+              <Text variant="caption" style={styles.centerSubtext}>
+                / {data.calories.target} kcal
+              </Text>
+            </View>
           </Animated.View>
         </View>
 
-        {/* Right: 2x2 Stats Grid */}
-        <Animated.View style={[styles.statsGrid, legendAnimatedStyle]}>
+        {/* Right: 2x2 Stats Grid - use CSS Grid on web for strict layout */}
+        <Animated.View style={[styles.statsGrid, styles.statsGridWeb, legendAnimatedStyle]}>
           {macroItems.map((macro) => {
             return (
               <View key={macro.key} style={styles.statItem}>
@@ -278,7 +269,7 @@ export function NutritionPieChart({
           })}
         </Animated.View>
       </View>
-    </Animated.View>
+    </AnimatedCard>
   );
 }
 
@@ -289,12 +280,7 @@ export function NutritionPieChart({
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(167, 139, 250, 0.2)',
     padding: spacing.lg,
-    ...saasShadows.cardElevated,
   },
   header: {
     flexDirection: 'row',
@@ -314,10 +300,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xl,
+    overflow: 'hidden',
   },
   chartColumn: {
     flexBasis: '40%',
-    minWidth: 220,
+    flexShrink: 0,
+    minWidth: 180,
+    maxWidth: 220,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -342,23 +331,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: -2,
   },
-  emptyCenter: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-  },
   statsGrid: {
-    flexBasis: '60%',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
+    flex: 1,
   },
+  // Web-specific: CSS Grid for strict 2x2 layout
+  statsGridWeb: Platform.select({
+    web: {
+      display: 'grid' as any,
+      gridTemplateColumns: 'repeat(2, 1fr)' as any,
+      gap: spacing.md,
+    },
+    default: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: spacing.md,
+    },
+  }),
   statItem: {
-    flexBasis: '48%',
-    minWidth: 160,
     alignItems: 'flex-start',
+    padding: spacing.md,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 231, 235, 0.8)',
+    backgroundColor: colors.light.background,
   },
   statLabelRow: {
     flexDirection: 'row',
@@ -375,12 +370,13 @@ const styles = StyleSheet.create({
     color: colors.light.textSecondary,
   },
   statValue: {
-    color: BRAND_COLORS.textPrimary,
-    fontSize: 18,
+    color: '#111827',
+    fontSize: 20,
+    fontWeight: '800',
   },
   statTarget: {
     color: colors.light.textMuted,
-    fontSize: 11,
+    fontSize: 10,
   },
 });
 

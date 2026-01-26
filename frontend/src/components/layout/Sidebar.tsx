@@ -24,7 +24,6 @@ import {
   BookOpenText,
   UserCircle,
   SidebarSimple,
-  Fire,
   IconProps,
 } from 'phosphor-react-native';
 
@@ -56,6 +55,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { key: 'Recipes', label: 'Recipes', Icon: BookOpenText, color: colors.light.warning }, // Amber - food
   { key: 'Profile', label: 'Profile', Icon: UserCircle, color: colors.light.error }, // Red - personal
 ];
+const NAV_KEYS = NAV_ITEMS.map(item => item.key);
 
 // Helper: create tinted background from hex color
 const tint = (hex: string, alpha = 0.12): string => {
@@ -106,13 +106,13 @@ function NavItemButton({
   // Keep icons dark for a crisp, premium look
   const iconColor = colors.light.textPrimary;
   const chipBg = isActive
-    ? tint(item.color, 0.17)
+    ? tint(item.color, 0.2)
     : isHovered
       ? tint(item.color, 0.13)
       : tint(item.color, 0.09);
   const chipBorder = tint(item.color, isActive ? 0.24 : 0.18);
   const rowBg = isActive
-    ? tint(colors.light.textPrimary, 0.05)
+    ? tint(item.color, 0.12)
     : isHovered
       ? tint(colors.light.textPrimary, 0.03)
       : 'transparent';
@@ -155,7 +155,7 @@ function NavItemButton({
       {!isCollapsed && (
         <Text
           variant="body"
-          weight={isActive ? 'semibold' : 'regular'}
+          weight={isActive ? 'bold' : 'regular'}
           style={[styles.navLabel, { color: labelColor }]}
         >
           {item.label}
@@ -185,13 +185,33 @@ export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
   // Get current route
   const currentRouteName = useNavigationState((state) => {
     if (!state?.routes) return 'Dashboard';
-    const route = state.routes[state.index];
-    return route?.name || 'Dashboard';
+
+    const getActiveTab = (node: any): string | null => {
+      if (!node?.routes?.length) return null;
+      const active = node.routes[node.index ?? 0];
+      if (!active) return null;
+      if (NAV_KEYS.includes(active.name)) return active.name;
+      // Dive deeper into nested navigator states if present
+      return getActiveTab((active as any).state);
+    };
+
+    // Start from top-level (Stack: Splash/Login/Main)
+    const topRoute = state.routes[state.index];
+    if (!topRoute) return 'Dashboard';
+
+    // If we're on the Main stack entry, try to read its nested tab state
+    const nestedTab = getActiveTab((topRoute as any).state);
+    if (nestedTab) return nestedTab;
+
+    return NAV_KEYS.includes(topRoute.name) ? topRoute.name : 'Dashboard';
   });
 
   const handleNavPress = (routeName: string) => {
     navigation.dispatch(
-      CommonActions.navigate({ name: routeName })
+      CommonActions.navigate({
+        name: 'Main',
+        params: { screen: routeName },
+      })
     );
   };
 
@@ -273,14 +293,6 @@ export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
             <Text variant="body" weight="semibold" numberOfLines={1}>
               {currentUser.data?.username || 'User'}
             </Text>
-            {(currentUser.data?.currentStreak ?? 0) > 0 && (
-              <View style={styles.streakBadge}>
-                <Fire size={12} weight="fill" color="#F97316" />
-                <Text variant="caption" style={styles.streakText}>
-                  {currentUser.data?.currentStreak} day streak
-                </Text>
-              </View>
-            )}
           </Animated.View>
         )}
       </Pressable>
@@ -425,16 +437,6 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     flex: 1,
-  },
-  streakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  streakText: {
-    color: '#F97316',
-    fontSize: 11,
   },
 });
 

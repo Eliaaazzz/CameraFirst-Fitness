@@ -42,6 +42,12 @@ interface RequestConfig {
   timeout?: number;
 }
 
+/** Options for GET/DELETE requests - cannot override method or body */
+type GetDeleteOptions = Omit<RequestConfig, 'method' | 'body'>;
+
+/** Options for POST/PUT requests - cannot override method or body */
+type PostPutOptions = Omit<RequestConfig, 'method' | 'body'>;
+
 type ApiEnvelope<T> = {
   success: boolean;
   code?: number;
@@ -223,29 +229,29 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
 /**
  * GET request
  */
-export async function get<T>(endpoint: string): Promise<T> {
-  return request<T>(endpoint, { method: 'GET' });
+export async function get<T>(endpoint: string, options?: GetDeleteOptions): Promise<T> {
+  return request<T>(endpoint, { method: 'GET', ...options });
 }
 
 /**
  * POST request
  */
-export async function post<T>(endpoint: string, body?: any): Promise<T> {
-  return request<T>(endpoint, { method: 'POST', body });
+export async function post<T>(endpoint: string, body?: any, options?: PostPutOptions): Promise<T> {
+  return request<T>(endpoint, { method: 'POST', body, ...options });
 }
 
 /**
  * PUT request
  */
-export async function put<T>(endpoint: string, body?: any): Promise<T> {
-  return request<T>(endpoint, { method: 'PUT', body });
+export async function put<T>(endpoint: string, body?: any, options?: PostPutOptions): Promise<T> {
+  return request<T>(endpoint, { method: 'PUT', body, ...options });
 }
 
 /**
  * DELETE request
  */
-export async function del<T>(endpoint: string): Promise<T> {
-  return request<T>(endpoint, { method: 'DELETE' });
+export async function del<T>(endpoint: string, options?: GetDeleteOptions): Promise<T> {
+  return request<T>(endpoint, { method: 'DELETE', ...options });
 }
 
 /**
