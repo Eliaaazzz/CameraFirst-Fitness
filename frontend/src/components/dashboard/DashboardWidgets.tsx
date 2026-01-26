@@ -340,6 +340,50 @@ function QuickActionButton({ Icon, color, label, onPress, delay = 0 }: QuickActi
 }
 
 // ============================================================================
+// HYDRATION WIDGET
+// ============================================================================
+
+function HydrationProgress() {
+  const goal = 8;
+  const [current, setCurrent] = useState(0);
+  const progress = Math.min(current / goal, 1);
+
+  const addGlass = useCallback(() => {
+    setCurrent(prev => Math.min(goal, prev + 1));
+  }, [goal]);
+
+  const atGoal = current >= goal;
+
+  return (
+    <View style={styles.hydrationContent}>
+      <View style={styles.hydrationRow}>
+        <Text variant="heading4" weight="bold" style={styles.hydrationValue}>
+          {current}/{goal} cups
+        </Text>
+        <Pressable
+          onPress={!atGoal ? addGlass : undefined}
+          disabled={atGoal}
+          style={({ pressed }) => [
+            styles.hydrationPlus,
+            atGoal && styles.hydrationPlusDisabled,
+            pressed && !atGoal && { transform: [{ scale: 0.95 }] },
+          ]}
+        >
+          {atGoal ? (
+            <CheckCircle size={16} weight="bold" color={BRAND_COLORS.primary} />
+          ) : (
+            <Plus size={16} weight="bold" color={BRAND_COLORS.primary} />
+          )}
+        </Pressable>
+      </View>
+      <View style={styles.hydrationBar}>
+        <View style={[styles.hydrationBarFill, { width: `${progress * 100}%` }]} />
+      </View>
+    </View>
+  );
+}
+
+// ============================================================================
 // STYLES
 // ============================================================================
 
