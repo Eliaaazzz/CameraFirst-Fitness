@@ -21,6 +21,9 @@ RUN ./gradlew bootJar --no-daemon
 # Runtime stage
 FROM eclipse-temurin:21-jre-alpine
 
+# Install font libraries (required for PDFBox/AWT on Alpine)
+RUN apk add --no-cache fontconfig ttf-dejavu
+
 # Create non-root user
 RUN addgroup -S spring && adduser -S spring -G spring
 
@@ -39,7 +42,7 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
-# JVM options for containerized environments
-ENV JAVA_TOOL_OPTIONS="-Xms256m -Xmx512m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+# JVM options for containerized environments (Render free tier has 512MB RAM)
+ENV JAVA_TOOL_OPTIONS="-Xmx384m -XX:+UseContainerSupport"
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
