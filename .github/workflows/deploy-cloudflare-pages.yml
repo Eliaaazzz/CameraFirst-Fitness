@@ -1,0 +1,150 @@
+name: Deploy Frontend to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '!frontend/README.md'
+      - '.github/workflows/deploy-cloudflare-pages.yml'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+concurrency:
+  group: frontend-cloudflare-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ========================================
+  # LINT, TYPE CHECK & TEST
+  # ========================================
+  lint-and-test:
+    name: Lint, Type Check & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          echo "Installing dependencies..."
+          npm ci
+
+      - name: Run ESLint
+        run: |
+          echo "Running ESLint..."
+          npm run lint --workspace=frontend 2>&1 || {
+            echo "ESLint found issues (non-blocking for now)"
+            exit 0
+          }
+
+      - name: Run TypeScript type check
+        run: |
+          echo "Running TypeScript type check..."
+          npm run type-check --workspace=frontend || {
+            echo "TypeScript errors found"
+            exit 1
+          }
+
+      - name: Run Jest tests
+        run: |
+          echo "Running unit tests..."
+          npm run test --workspace=frontend -- --coverage --watchAll=false --passWithNoTests || {
+            echo "Some tests failed (non-blocking for PR)"
+            [ "${{ github.event_name }}" = "push" ] && exit 1
+            exit 0
+          }
+
+      - name: Upload coverage report
+        if: always()
+        uses: codecov/codecov-action@v3
+        with:
+          files: frontend/coverage/lcov.info
+          flags: frontend
+          fail_ci_if_error: false
+
+  # ========================================
+  # BUILD & DEPLOY TO CLOUDFLARE PAGES
+  # ========================================
+  deploy:
+    name: Build & Deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          echo "Installing dependencies..."
+          npm ci
+
+      - name: Build frontend
+        env:
+          NODE_ENV: production
+          # API URL pointing to Render backend
+          EXPO_PUBLIC_API_URL: ${{ secrets.API_BASE_URL }}
+        run: |
+          echo "Building frontend for web..."
+          npm run build --workspace=frontend
+          echo "Build completed"
+          ls -la frontend/dist/
+
+      - name: Generate build info
+        working-directory: frontend
+        run: |
+          cat > dist/.build-info.json << EOF
+          {
+            "buildTime": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+            "gitCommit": "${{ github.sha }}",
+            "gitBranch": "${{ github.ref_name }}",
+            "buildNumber": "${{ github.run_number }}"
+          }
+          EOF
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+          directory: frontend/dist
+          gitHubToken: ${{ github.token }}
+          # Enable wrangler v3 for latest features
+          wranglerVersion: '3'
+
+      - name: Deployment summary
+        run: |
+          echo "========================================"
+          echo "Cloudflare Pages Deployment Complete"
+          echo "========================================"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Build: ${{ github.run_number }}"
+          echo "Time: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          echo ""
+          echo "Your site should be available at:"
+          echo "  - https://<project-name>.pages.dev"
+          echo "  - Or your custom domain if configured"

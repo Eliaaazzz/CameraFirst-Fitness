@@ -1,0 +1,38 @@
+# ==========================================
+# SUPABASE + UPSTASH DOCKER COMPOSE
+# ==========================================
+# 免费方案: Supabase PostgreSQL + Upstash Redis
+# 用于本地测试 Supabase profile 或在任何 Docker 环境运行
+#
+# 使用方式:
+#   docker compose -f docker-compose.supabase.yml up -d
+#
+# 需要先创建 .env.supabase 文件，参考 .env.supabase.example
+
+services:
+  backend:
+    image: ${DOCKER_IMAGE:-fitnessdev/fitness-backend:latest}
+    container_name: fitness-app-supabase
+    restart: unless-stopped
+    env_file:
+      - ../.env.supabase
+    environment:
+      - SPRING_PROFILES_ACTIVE=supabase
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+# ==========================================
+# 说明
+# ==========================================
+# 这个配置用于连接云服务:
+#   - Supabase PostgreSQL (免费 500MB)
+#   - Upstash Redis (免费 10K commands/day)
+#   - Cloudflare R2 (免费 10GB)
+#
+# 不需要本地运行 PostgreSQL 或 Redis 容器
