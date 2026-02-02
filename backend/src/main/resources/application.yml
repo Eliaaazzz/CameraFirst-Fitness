@@ -140,120 +140,65 @@ management:
         enabled: true
 
 ---
+# ========================================
+# DISABLED: AWS PROD PROFILE (legacy)
+# ========================================
+# spring:
+#   config:
+#     activate:
+#       on-profile: prod-aws-disabled
+#   datasource:
+#     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:fitness_app}}
+#     username: ${SPRING_DATASOURCE_USERNAME:${POSTGRES_USER:fitnessuser}}
+#     password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:dev_password}}
+#     driver-class-name: org.postgresql.Driver
+#     hikari:
+#       maximum-pool-size: 10
+#       minimum-idle: 2
+#       connection-timeout: 30000
+#       idle-timeout: 600000
+#       max-lifetime: 1800000
+#   data:
+#     redis:
+#       host: ${SPRING_DATA_REDIS_HOST:}
+#       port: ${SPRING_DATA_REDIS_PORT:6379}
+#       password: ${SPRING_DATA_REDIS_PASSWORD:}
+#       timeout: 2000ms
+#       ssl:
+#         enabled: ${SPRING_DATA_REDIS_SSL:false}
+#       lettuce:
+#         pool:
+#           max-active: 8
+#           max-idle: 4
+#           min-idle: 2
+#   cache:
+#     type: redis
+#   jpa:
+#     hibernate:
+#       ddl-auto: validate
+#     properties:
+#       hibernate:
+#         format_sql: false
+#         jdbc:
+#           batch_size: 20
+#         order_inserts: true
+#         order_updates: true
+#     show-sql: false
+#   flyway:
+#     enabled: true
+#     locations: classpath:db/migration
+#     baseline-on-migrate: true
+#     validate-on-migrate: false
+#     repair-on-migrate: true
+
+---
+# ========================================
+# PROD PROFILE (Supabase on Render, no Redis)
+# ========================================
 spring:
   config:
     activate:
       on-profile: prod
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:fitness_app}}
-    username: ${SPRING_DATASOURCE_USERNAME:${POSTGRES_USER:fitnessuser}}
-    password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:dev_password}}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-  data:
-    redis:
-      host: ${SPRING_DATA_REDIS_HOST:}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
-      password: ${SPRING_DATA_REDIS_PASSWORD:}
-      timeout: 2000ms
-      ssl:
-        enabled: ${SPRING_DATA_REDIS_SSL:false}
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 4
-          min-idle: 2
-  cache:
-    type: redis
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        format_sql: false
-        jdbc:
-          batch_size: 20
-        order_inserts: true
-        order_updates: true
-    show-sql: false
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-    validate-on-migrate: false
-    repair-on-migrate: true
-
-management:
-  endpoint:
-    health:
-      show-details: never
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  metrics:
-    export:
-      cloudwatch:
-        enabled: ${CLOUDWATCH_METRICS_ENABLED:false}
-        namespace: FitnessApp
-        step: 1m
-
-server:
-  address: 0.0.0.0
-  port: ${SERVER_PORT:8080}
-  compression:
-    enabled: true
-    mime-types: application/json,application/xml,text/html,text/xml,text/plain
-  tomcat:
-    threads:
-      max: 200
-      min-spare: 10
-    connection-timeout: 20000
-
-logging:
-  level:
-    com.fitnessapp.backend: INFO
-    org.springframework.security: WARN
-    org.hibernate.SQL: WARN
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-
-# AWS Environment Variables (12-Factor App)
-# Set these in ECS Task Definition or via AWS Secrets Manager:
-#
-# Database:
-#   SPRING_DATASOURCE_URL=jdbc:postgresql://rds-endpoint:5432/fitness_mvp
-#   SPRING_DATASOURCE_USERNAME=fitnessuser
-#   SPRING_DATASOURCE_PASSWORD=<from-secrets-manager>
-#
-# Redis (ElastiCache):
-#   SPRING_DATA_REDIS_HOST=<elasticache-endpoint>
-#   SPRING_DATA_REDIS_PORT=6379
-#   SPRING_DATA_REDIS_PASSWORD=<from-secrets-manager>
-#   SPRING_DATA_REDIS_SSL=true
-#
-# API Keys:
-#   OPENAI_API_KEY=<from-secrets-manager>
-#   GEMINI_API_KEY=<from-secrets-manager>
-#   SPOONACULAR_API_KEY=<from-secrets-manager>
-#   YOUTUBE_API_KEY=<from-secrets-manager>
-#   USDA_API_KEY=<from-secrets-manager>
-
-# R2 config inherited from default profile (see r2: section above)
-
----
-# ========================================
-# SUPABASE PROFILE (Free tier PostgreSQL)
-# ========================================
-spring:
-  config:
-    activate:
-      on-profile: supabase
   datasource:
     # Supabase JDBC connection string format:
     # jdbc:postgresql://db.<project-ref>.supabase.co:5432/postgres
@@ -268,18 +213,12 @@ spring:
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
-  data:
-    redis:
-      # Use Upstash Redis (free tier)
-      # NOTE: No default values for secrets - app will fail fast if not configured
-      host: ${UPSTASH_REDIS_HOST}
-      port: ${UPSTASH_REDIS_PORT:6379}
-      password: ${UPSTASH_REDIS_PASSWORD}
-      timeout: 2000ms
-      ssl:
-        enabled: true  # Upstash requires SSL
   cache:
-    type: redis
+    type: none  # Disable caching (no Redis)
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
   jpa:
     hibernate:
       ddl-auto: validate  # Let Flyway manage schema, validate on startup
@@ -312,6 +251,9 @@ management:
     web:
       exposure:
         include: health,info
+  health:
+    redis:
+      enabled: false  # Disable Redis health check
 
 logging:
   level:
@@ -320,10 +262,9 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
-# Environment Variables for Supabase profile:
+# Environment Variables for prod profile (Render deployment):
+# SPRING_PROFILES_ACTIVE=prod
+# JAVA_TOOL_OPTIONS=-Xmx384m
 # SUPABASE_JDBC_URL=jdbc:postgresql://db.<project-ref>.supabase.co:5432/postgres
 # SUPABASE_DB_USER=postgres
 # SUPABASE_DB_PASSWORD=<your-supabase-password>
-# UPSTASH_REDIS_HOST=<your-upstash-endpoint>.upstash.io
-# UPSTASH_REDIS_PORT=6379
-# UPSTASH_REDIS_PASSWORD=<your-upstash-password>
