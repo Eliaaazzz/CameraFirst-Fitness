@@ -1,0 +1,112 @@
+# Render Blueprint - Infrastructure as Code
+# https://render.com/docs/blueprint-spec
+#
+# This file defines the backend service for deployment on Render.
+# Place this file in the root of your repository.
+
+services:
+  # ========================================
+  # BACKEND API SERVICE
+  # ========================================
+  - type: web
+    name: aurafitness-backend
+    runtime: docker
+    repo: https://github.com/YOUR_USERNAME/AuraFitness  # Update with your repo
+    branch: main
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: singapore  # or oregon, frankfurt, ohio
+    plan: free  # Free tier (750 hours/month, cold starts after 15 min inactivity)
+
+    # Health check endpoint
+    healthCheckPath: /actuator/health
+
+    # Auto-deploy on push to main
+    autoDeploy: true
+
+    # Environment variables
+    envVars:
+      # Spring Profile
+      - key: SPRING_PROFILES_ACTIVE
+        value: supabase
+
+      # Server config (Render injects PORT automatically)
+      - key: PORT
+        value: 8080
+
+      # Supabase Database
+      - key: SUPABASE_JDBC_URL
+        sync: false  # Set manually in dashboard
+      - key: SUPABASE_DB_USER
+        value: postgres
+      - key: SUPABASE_DB_PASSWORD
+        sync: false  # Set manually in dashboard
+
+      # Upstash Redis
+      - key: UPSTASH_REDIS_HOST
+        sync: false  # Set manually in dashboard
+      - key: UPSTASH_REDIS_PORT
+        value: 6379
+      - key: UPSTASH_REDIS_PASSWORD
+        sync: false  # Set manually in dashboard
+
+      # Cloudflare R2 Storage (already configured)
+      - key: R2_ENDPOINT
+        sync: false
+      - key: R2_ACCESS_KEY
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        value: aurafit
+      - key: R2_PUBLIC_URL
+        sync: false
+
+      # API Keys (set in Render dashboard)
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: YOUTUBE_API_KEY
+        sync: false
+      - key: SPOONACULAR_API_KEY
+        sync: false
+      - key: USDA_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+
+      # Security
+      - key: JWT_SECRET
+        generateValue: true  # Render auto-generates a secure value
+      - key: API_KEY
+        generateValue: true
+
+      # Cookie config for cross-origin
+      - key: APP_COOKIE_SECURE
+        value: "true"
+      - key: APP_COOKIE_SAME_SITE
+        value: "None"
+
+# ========================================
+# NOTES FOR SETUP
+# ========================================
+#
+# 1. Update the repo URL above with your GitHub repository
+#
+# 2. After deploying, go to Render Dashboard and set these secrets:
+#    - SUPABASE_JDBC_URL: jdbc:postgresql://db.xxx.supabase.co:5432/postgres
+#    - SUPABASE_DB_PASSWORD: (from Supabase dashboard)
+#    - UPSTASH_REDIS_HOST: xxx.upstash.io
+#    - UPSTASH_REDIS_PASSWORD: (from Upstash dashboard)
+#    - GEMINI_API_KEY: (your API key)
+#    - R2_ENDPOINT, R2_ACCESS_KEY, R2_SECRET_ACCESS_KEY: (from Cloudflare)
+#
+# 3. Free tier limitations:
+#    - 750 hours/month (enough for one service running 24/7)
+#    - Spins down after 15 minutes of inactivity
+#    - Cold start takes 30-60 seconds
+#    - 512MB RAM, 0.1 CPU
+#
+# 4. For production, upgrade to paid tier ($7/month) for:
+#    - No cold starts
+#    - More resources
+#    - Custom domains with SSL

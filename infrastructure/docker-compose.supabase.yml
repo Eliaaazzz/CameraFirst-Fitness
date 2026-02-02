@@ -1,0 +1,39 @@
+# ==========================================
+# SUPABASE + UPSTASH DOCKER COMPOSE
+# ==========================================
+# Free tier: Supabase PostgreSQL + Upstash Redis
+# For local testing with Supabase profile or any Docker environment
+#
+# Usage:
+#   docker compose -f docker-compose.supabase.yml up -d
+#
+# Requires .env.supabase file, see .env.supabase.example
+
+services:
+  backend:
+    image: ${DOCKER_IMAGE:-fitnessdev/fitness-backend:latest}
+    container_name: fitness-app-supabase
+    restart: unless-stopped
+    env_file:
+      - ../.env.supabase
+    environment:
+      - SPRING_PROFILES_ACTIVE=supabase
+    ports:
+      - "8080:8080"
+    healthcheck:
+      # Use busybox wget compatible flags for Alpine-based images
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+# ==========================================
+# NOTES
+# ==========================================
+# This config connects to cloud services:
+#   - Supabase PostgreSQL (free 500MB)
+#   - Upstash Redis (free 10K commands/day)
+#   - Cloudflare R2 (free 10GB)
+#
+# No need to run local PostgreSQL or Redis containers
