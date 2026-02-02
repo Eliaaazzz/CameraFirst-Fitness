@@ -202,10 +202,9 @@ spring:
   datasource:
     # Supabase JDBC connection string format:
     # jdbc:postgresql://db.<project-ref>.supabase.co:5432/postgres
-    # NOTE: No default values for secrets - app will fail fast if not configured
-    url: ${SUPABASE_JDBC_URL}
-    username: ${SUPABASE_DB_USER:postgres}
-    password: ${SUPABASE_DB_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5  # Supabase free tier has connection limits
@@ -264,7 +263,7 @@ logging:
 
 # Environment Variables for prod profile (Render deployment):
 # SPRING_PROFILES_ACTIVE=prod
-# JAVA_TOOL_OPTIONS=-Xmx384m
-# SUPABASE_JDBC_URL=jdbc:postgresql://db.<project-ref>.supabase.co:5432/postgres
-# SUPABASE_DB_USER=postgres
-# SUPABASE_DB_PASSWORD=<your-supabase-password>
+# JAVA_TOOL_OPTIONS=-Xmx384m -XX:+UseContainerSupport
+# SPRING_DATASOURCE_URL=jdbc:postgresql://db.<project-ref>.supabase.co:5432/postgres
+# SPRING_DATASOURCE_USERNAME=postgres
+# SPRING_DATASOURCE_PASSWORD=<your-supabase-password>
