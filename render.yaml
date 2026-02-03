@@ -38,12 +38,12 @@ services:
       - key: PORT
         value: 8080
 
-      # Supabase Database
-      - key: SUPABASE_JDBC_URL
-        sync: false  # Set manually in dashboard
-      - key: SUPABASE_DB_USER
-        value: postgres
-      - key: SUPABASE_DB_PASSWORD
+      # Database (Supabase Pooler)
+      - key: SPRING_DATASOURCE_URL
+        sync: false  # jdbc:postgresql://aws-0-<region>.pooler.supabase.com:5432/postgres
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false  # postgres.<project-ref>
+      - key: SPRING_DATASOURCE_PASSWORD
         sync: false  # Set manually in dashboard
 
       # Cloudflare R2 Storage (already configured)
