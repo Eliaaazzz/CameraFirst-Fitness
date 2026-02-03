@@ -1,5 +1,6 @@
 package com.fitnessapp.backend.recipe.repository;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -201,25 +202,25 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
    * Find high-protein recipes.
    * Uses idx_recipe_gen_protein B-tree index.
    */
-  List<Recipe> findByProteinGreaterThanEqualAndImageUrlIsNotNullOrderByProteinDesc(Double minProtein);
+  List<Recipe> findByProteinGreaterThanEqualAndImageUrlIsNotNullOrderByProteinDesc(BigDecimal minProtein);
 
   /**
    * Find high-protein recipes with limit.
    */
   @Query("SELECT r FROM Recipe r WHERE r.protein >= :minProtein AND r.imageUrl IS NOT NULL ORDER BY r.protein DESC")
-  List<Recipe> findHighProteinRecipes(@Param("minProtein") double minProtein, org.springframework.data.domain.Pageable pageable);
+  List<Recipe> findHighProteinRecipes(@Param("minProtein") BigDecimal minProtein, org.springframework.data.domain.Pageable pageable);
 
   /**
    * Find low-carb recipes.
    * Uses idx_recipe_gen_carbs B-tree index.
    */
-  List<Recipe> findByCarbsLessThanEqualAndImageUrlIsNotNullOrderByCarbsAsc(Double maxCarbs);
+  List<Recipe> findByCarbsLessThanEqualAndImageUrlIsNotNullOrderByCarbsAsc(BigDecimal maxCarbs);
 
   /**
    * Find low-carb recipes with limit.
    */
   @Query("SELECT r FROM Recipe r WHERE r.carbs <= :maxCarbs AND r.imageUrl IS NOT NULL ORDER BY r.carbs ASC")
-  List<Recipe> findLowCarbRecipes(@Param("maxCarbs") double maxCarbs, org.springframework.data.domain.Pageable pageable);
+  List<Recipe> findLowCarbRecipes(@Param("maxCarbs") BigDecimal maxCarbs, org.springframework.data.domain.Pageable pageable);
 
   /**
    * Find low-calorie recipes.
@@ -247,7 +248,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
    */
   @EntityGraph(attributePaths = {"ingredients", "ingredients.ingredient"})
   @Query("SELECT r FROM Recipe r WHERE r.protein >= :minProtein AND r.imageUrl IS NOT NULL ORDER BY r.protein DESC")
-  List<RecipeSummary> findHighProteinRecipesLightweight(@Param("minProtein") double minProtein, org.springframework.data.domain.Pageable pageable);
+  List<RecipeSummary> findHighProteinRecipesLightweight(@Param("minProtein") BigDecimal minProtein, org.springframework.data.domain.Pageable pageable);
 
   /**
    * LIGHTWEIGHT: Find recent recipes using projection.
@@ -262,7 +263,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
    * Uses idx_recipe_blood_sugar composite index.
    */
   @Query("SELECT r FROM Recipe r WHERE r.sugar <= :maxSugar AND r.fiber >= :minFiber AND r.imageUrl IS NOT NULL ORDER BY r.sugar ASC, r.fiber DESC")
-  List<Recipe> findBloodSugarFriendly(@Param("maxSugar") double maxSugar, @Param("minFiber") double minFiber, org.springframework.data.domain.Pageable pageable);
+  List<Recipe> findBloodSugarFriendly(@Param("maxSugar") BigDecimal maxSugar, @Param("minFiber") BigDecimal minFiber, org.springframework.data.domain.Pageable pageable);
 
   /**
    * LIGHTWEIGHT: Find recipes for blood sugar control using projection.
@@ -270,14 +271,14 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
    */
   @EntityGraph(attributePaths = {"ingredients", "ingredients.ingredient"})
   @Query("SELECT r FROM Recipe r WHERE r.sugar <= :maxSugar AND r.fiber >= :minFiber AND r.imageUrl IS NOT NULL ORDER BY r.sugar ASC, r.fiber DESC")
-  List<RecipeSummary> findBloodSugarFriendlyLightweight(@Param("maxSugar") double maxSugar, @Param("minFiber") double minFiber, org.springframework.data.domain.Pageable pageable);
+  List<RecipeSummary> findBloodSugarFriendlyLightweight(@Param("maxSugar") BigDecimal maxSugar, @Param("minFiber") BigDecimal minFiber, org.springframework.data.domain.Pageable pageable);
 
   /**
    * Find recipes for fat loss: low calories + high protein.
    * Uses idx_recipe_fat_loss composite index.
    */
   @Query("SELECT r FROM Recipe r WHERE r.calories <= :maxCalories AND r.protein >= :minProtein AND r.imageUrl IS NOT NULL ORDER BY r.calories ASC, r.protein DESC")
-  List<Recipe> findFatLossFriendly(@Param("maxCalories") int maxCalories, @Param("minProtein") double minProtein, org.springframework.data.domain.Pageable pageable);
+  List<Recipe> findFatLossFriendly(@Param("maxCalories") int maxCalories, @Param("minProtein") BigDecimal minProtein, org.springframework.data.domain.Pageable pageable);
 
   /**
    * LIGHTWEIGHT: Find recipes for fat loss using projection.
@@ -285,14 +286,14 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
    */
   @EntityGraph(attributePaths = {"ingredients", "ingredients.ingredient"})
   @Query("SELECT r FROM Recipe r WHERE r.calories <= :maxCalories AND r.protein >= :minProtein AND r.imageUrl IS NOT NULL ORDER BY r.calories ASC, r.protein DESC")
-  List<RecipeSummary> findFatLossFriendlyLightweight(@Param("maxCalories") int maxCalories, @Param("minProtein") double minProtein, org.springframework.data.domain.Pageable pageable);
+  List<RecipeSummary> findFatLossFriendlyLightweight(@Param("maxCalories") int maxCalories, @Param("minProtein") BigDecimal minProtein, org.springframework.data.domain.Pageable pageable);
 
   /**
    * Find recipes for muscle building: high protein.
    * Uses idx_recipe_muscle_gain composite index.
    */
   @Query("SELECT r FROM Recipe r WHERE r.protein >= :minProtein AND r.imageUrl IS NOT NULL ORDER BY r.protein DESC, r.calories ASC")
-  List<Recipe> findMuscleGainFriendly(@Param("minProtein") double minProtein, org.springframework.data.domain.Pageable pageable);
+  List<Recipe> findMuscleGainFriendly(@Param("minProtein") BigDecimal minProtein, org.springframework.data.domain.Pageable pageable);
 
   /**
    * LIGHTWEIGHT: Find recipes for muscle building using projection.
@@ -300,7 +301,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
    */
   @EntityGraph(attributePaths = {"ingredients", "ingredients.ingredient"})
   @Query("SELECT r FROM Recipe r WHERE r.protein >= :minProtein AND r.imageUrl IS NOT NULL ORDER BY r.protein DESC, r.calories ASC")
-  List<RecipeSummary> findMuscleGainFriendlyLightweight(@Param("minProtein") double minProtein, org.springframework.data.domain.Pageable pageable);
+  List<RecipeSummary> findMuscleGainFriendlyLightweight(@Param("minProtein") BigDecimal minProtein, org.springframework.data.domain.Pageable pageable);
 
   /**
    * Find recipes for maintenance: calories within range.
@@ -339,14 +340,14 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
   List<Recipe> findByNutritionCriteria(
           @Param("minCalories") Integer minCalories,
           @Param("maxCalories") Integer maxCalories,
-          @Param("minProtein") Double minProtein,
-          @Param("maxProtein") Double maxProtein,
-          @Param("minCarbs") Double minCarbs,
-          @Param("maxCarbs") Double maxCarbs,
-          @Param("minFat") Double minFat,
-          @Param("maxFat") Double maxFat,
-          @Param("maxSugar") Double maxSugar,
-          @Param("minFiber") Double minFiber,
+          @Param("minProtein") BigDecimal minProtein,
+          @Param("maxProtein") BigDecimal maxProtein,
+          @Param("minCarbs") BigDecimal minCarbs,
+          @Param("maxCarbs") BigDecimal maxCarbs,
+          @Param("minFat") BigDecimal minFat,
+          @Param("maxFat") BigDecimal maxFat,
+          @Param("maxSugar") BigDecimal maxSugar,
+          @Param("minFiber") BigDecimal minFiber,
           @Param("maxTime") Integer maxTime,
           org.springframework.data.domain.Pageable pageable
   );

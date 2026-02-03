@@ -1,5 +1,6 @@
 package com.fitnessapp.backend.retrieval;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -63,12 +64,12 @@ public class RecipeSearchService {
         List<Recipe> results = repository.findByNutritionCriteria(
                 nutrition != null ? nutrition.getMinCalories() : null,
                 nutrition != null ? nutrition.getMaxCalories() : null,
-                nutrition != null ? toDouble(nutrition.getMinProtein()) : null,
-                nutrition != null ? toDouble(nutrition.getMaxProtein()) : null,
-                nutrition != null ? toDouble(nutrition.getMinCarbs()) : null,
-                nutrition != null ? toDouble(nutrition.getMaxCarbs()) : null,
-                nutrition != null ? toDouble(nutrition.getMinFat()) : null,
-                nutrition != null ? toDouble(nutrition.getMaxFat()) : null,
+                nutrition != null ? toBigDecimal(nutrition.getMinProtein()) : null,
+                nutrition != null ? toBigDecimal(nutrition.getMaxProtein()) : null,
+                nutrition != null ? toBigDecimal(nutrition.getMinCarbs()) : null,
+                nutrition != null ? toBigDecimal(nutrition.getMaxCarbs()) : null,
+                nutrition != null ? toBigDecimal(nutrition.getMinFat()) : null,
+                nutrition != null ? toBigDecimal(nutrition.getMaxFat()) : null,
                 null, // maxSugar
                 null, // minFiber
                 request.getMaxTimeMinutes(),
@@ -92,7 +93,7 @@ public class RecipeSearchService {
         log.info("Finding high-protein recipes, maxTime={}", maxTime);
 
         Pageable pageable = PageRequest.of(0, DEFAULT_LIMIT);
-        List<Recipe> recipes = repository.findHighProteinRecipes(30.0, pageable);
+        List<Recipe> recipes = repository.findHighProteinRecipes(BigDecimal.valueOf(30.0), pageable);
 
         // Apply time filter if specified
         if (maxTime != null && maxTime > 0) {
@@ -116,7 +117,7 @@ public class RecipeSearchService {
         log.info("Finding low-carb recipes, maxTime={}", maxTime);
 
         Pageable pageable = PageRequest.of(0, DEFAULT_LIMIT);
-        List<Recipe> recipes = repository.findLowCarbRecipes(20.0, pageable);
+        List<Recipe> recipes = repository.findLowCarbRecipes(BigDecimal.valueOf(20.0), pageable);
 
         // Apply time filter if specified
         if (maxTime != null && maxTime > 0) {
@@ -187,10 +188,10 @@ public class RecipeSearchService {
     }
 
     /**
-     * Helper to convert Integer to Double (for nutrition values)
+     * Helper to convert Integer to BigDecimal (for nutrition values)
      */
-    private Double toDouble(Integer value) {
-        return value != null ? value.doubleValue() : null;
+    private BigDecimal toBigDecimal(Integer value) {
+        return value != null ? BigDecimal.valueOf(value) : null;
     }
 
     /**
