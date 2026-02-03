@@ -1,67 +1,183 @@
-import React, { useEffect } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
-import Animated, {
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withDelay,
-    withSpring,
-} from 'react-native-reanimated';
-
-import { Card } from '@/components/Card';
-import { Text } from '@/components/Text';
-import { BRAND_COLORS, colors, spacing } from '@/utils';
-
-// Animated Card component
-const AnimatedCard = Animated.createAnimatedComponent(Card);
-
-// Only import Recharts on web platform
-let PieChart: any;
-let Pie: any;
-let Cell: any;
-let ResponsiveContainer: any;
-
-if (Platform.OS === 'web') {
-  const recharts = require('recharts');
-  PieChart = recharts.PieChart;
-  Pie = recharts.Pie;
-  Cell = recharts.Cell;
-  ResponsiveContainer = recharts.ResponsiveContainer;
-}
-
 // ============================================================================
-// TYPES
+// APPLE WATCH NEON COLORS - Vibrant & Bold
 // ============================================================================
 
-interface MacroData {
-  current: number;
-  target: number;
-}
+const RING_COLORS = {
+  // Outer Ring: Calories - Neon Orange-Red
+  calories: '#FF3B30',
 
-export interface NutritionPieChartData {
-  calories: MacroData;
-  protein: MacroData;
-  carbs: MacroData;
-  fat?: MacroData;
-}
+  // Second Ring: Protein - Neon Green
+  protein: '#34C759',
 
-interface NutritionPieChartProps {
-  readonly data: NutritionPieChartData;
-  readonly title?: string;
-  readonly showFat?: boolean;
-}
+  // Third Ring: Fat - Neon Yellow/Gold
+  fat: '#FFD60A',
 
-// ============================================================================
-// MACRO COLORS CONFIG
-// ============================================================================
-
-const MACRO_COLORS = {
-  calories: '#8b5cf6', // Purple - primary brand color
-  protein: '#10B981', // Emerald green
-  carbs: '#F59E0B', // Amber/Orange
-  fat: '#EF4444', // Red
-  background: '#f3f4f6', // Light gray for unfilled portion
+  // Inner Ring: Carbs - Electric Blue
+  carbs: '#007AFF',
 };
+
+// Ring configuration with proper spacing
+const STROKE_WIDTH = 18;  // Sleek and modern
+
+interface RingConfig {
+  key: 'calories' | 'protein' | 'fat' | 'carbs';
+  label: string;
+  color: string;
+  radius: number;
+}
+
+// Balanced Geometry (The Sweet Spot) - EXPANDED CENTER
+const RING_CONFIGS: RingConfig[] = [
+  {
+    key: 'calories',
+    label: 'Calories',
+    color: RING_COLORS.calories,
+    radius: 145, // Pushed outward
+  },
+  {
+    key: 'protein',
+    label: 'Protein',
+    color: RING_COLORS.protein,
+    radius: 120,
+  },
+  {
+    key: 'fat',
+    label: 'Fat',
+    color: RING_COLORS.fat,
+    radius: 95,
+  },
+  {
+    key: 'carbs',
+    label: 'Carbs',
+    color: RING_COLORS.carbs,
+    radius: 70, // Inner hole diameter ~122px
+  },
+];
+
+// ============================================================================
+// ANIMATED RING COMPONENT - Raw SVG Circle
+// ============================================================================
+
+interface AnimatedRingProps {
+  readonly color: string;
+  readonly radius: number;
+  readonly percentage: number;
+  readonly centerX: number;
+  readonly centerY: number;
+  readonly delay: number;
+}
+
+function AnimatedRing({
+  color,
+  radius,
+  percentage,
+  centerX,
+  centerY,
+  delay,
+}: AnimatedRingProps) {
+  // Calculate circumference
+  const circumference = 2 * Math.PI * radius;
+
+  // Clamp percentage to 100% for visual
+  const clampedPercentage = Math.min(percentage, 100);
+
+  // Animated progress value
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withDelay(
+      delay,
+      withTiming(clampedPercentage / 100, {
+        duration: 900,
+        easing: Easing.out(Easing.cubic),
+      })
+    );
+  }, [clampedPercentage, delay]);
+
+  // Animated props for the progress circle
+  const animatedProps = useAnimatedProps(() => {
+    const strokeDashoffset = circumference * (1 - progress.value);
+    return {
+      strokeDashoffset,
+    };
+  });
+
+  return (
+    <>
+      {/* Background Track - Same color at 15% opacity */}
+      <Circle
+        cx={centerX}
+        cy={centerY}
+        r={radius}
+        stroke={color}
+        strokeWidth={STROKE_WIDTH}
+        fill="none"
+        opacity={0.15}
+        strokeLinecap="round"
+      />
+
+      {/* Progress Ring - Rotated -90deg to start from top */}
+      <G transform={`rotate(-90, ${centerX}, ${centerY})`}>
+        <AnimatedCircle
+          cx={centerX}
+          cy={centerY}
+          r={radius}
+          stroke={color}
+          strokeWidth={STROKE_WIDTH}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          animatedProps={animatedProps}
+        />
+      </G>
+    </>
+  );
+}
+
+// ============================================================================
+// LEGEND ITEM COMPONENT
+// ============================================================================
+
+interface LegendItemProps {
+  readonly color: string;
+  readonly label: string;
+  readonly current: number;
+  readonly target: number;
+  readonly unit: string;
+}
+
+function LegendItem({ color, label, current, target, unit }: LegendItemProps) {
+  const percentage = target > 0 ? Math.round((current / target) * 100) : 0;
+
+  return (
+    <View style={styles.legendItem}>
+      {/* Colored dot indicator */}
+      <View style={[styles.legendDot, { backgroundColor: color }]} />
+
+      {/* Label and values */}
+      <View style={styles.legendContent}>
+        <Text variant="caption" style={styles.legendLabel}>
+          {label}
+        </Text>
+        <View style={styles.legendValues}>
+          <Text variant="body" weight="bold" style={styles.legendCurrent}>
+            {Math.round(current)}
+          </Text>
+          <Text variant="caption" style={styles.legendTarget}>
+            / {target}{unit}
+          </Text>
+        </View>
+      </View>
+
+      {/* Percentage badge */}
+      <View style={[styles.percentBadge, { backgroundColor: `${color}20` }]}>
+        <Text style={[styles.percentText, { color }]}>
+          {percentage}%
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 // ============================================================================
 // MAIN COMPONENT
@@ -69,314 +185,229 @@ const MACRO_COLORS = {
 
 export function NutritionPieChart({
   data,
-  title = "Today's Nutrition",
-  showFat = false,
+  showFat = true,
 }: NutritionPieChartProps) {
-  // Animation values
-  const cardProgress = useSharedValue(0);
-  const chartProgress = useSharedValue(0);
-  const legendProgress = useSharedValue(0);
+  const { t } = useLanguageStore();
 
-  // Staggered entrance animation
-  useEffect(() => {
-    cardProgress.value = withSpring(1, { damping: 18, stiffness: 100 });
-    chartProgress.value = withDelay(150, withSpring(1, { damping: 20, stiffness: 80 }));
-    legendProgress.value = withDelay(300, withSpring(1, { damping: 18, stiffness: 100 }));
-  }, []);
+  // SVG dimensions - Balanced
+  const svgSize = 320;
+  const centerX = 160;
+  const centerY = 160;
 
-  // Animated styles
-  const cardAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: cardProgress.value,
-    transform: [
-      { translateY: interpolate(cardProgress.value, [0, 1], [20, 0]) },
-      { scale: interpolate(cardProgress.value, [0, 1], [0.95, 1]) },
-    ],
-  }));
-
-  const chartAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: chartProgress.value,
-    transform: [
-      { scale: interpolate(chartProgress.value, [0, 1], [0.8, 1]) },
-      { rotate: `${interpolate(chartProgress.value, [0, 1], [-10, 0])}deg` },
-    ],
-  }));
-
-  const legendAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: legendProgress.value,
-    transform: [{ translateY: interpolate(legendProgress.value, [0, 1], [12, 0]) }],
-  }));
-
-  // Prepare pie chart data - each macro as a segment
-  const pieData = [
-    {
-      name: 'Calories',
-      value: data.calories.current,
-      fill: MACRO_COLORS.calories,
-    },
-    {
-      name: 'Protein',
-      value: data.protein.current,
-      fill: MACRO_COLORS.protein,
-    },
-    {
-      name: 'Carbs',
-      value: data.carbs.current,
-      fill: MACRO_COLORS.carbs,
-    },
-  ];
-
-  if (showFat && data.fat) {
-    pieData.push({
-      name: 'Fat',
-      value: data.fat.current,
-      fill: MACRO_COLORS.fat,
-    });
-  }
-
-  // Ensure we have some value for the chart (avoid empty pie)
-  const totalValue = pieData.reduce((sum, item) => sum + item.value, 0);
-  const chartData = totalValue > 0 ? pieData : pieData.map(item => ({ ...item, value: 1 }));
-
-  // Format calorie subtitle for header
-  const calorieSubtitle = `${Math.round(data.calories.current)} / ${data.calories.target} kcal`;
-
-  // Macro items for the legend
-  const macroItems = [
-    {
-      key: 'calories',
-      label: 'Calories',
-      current: data.calories.current,
-      target: data.calories.target,
-      unit: ' kcal',
-      color: MACRO_COLORS.calories,
-    },
-    {
-      key: 'protein',
-      label: 'Protein',
-      current: data.protein.current,
-      target: data.protein.target,
-      unit: 'g',
-      color: MACRO_COLORS.protein,
-    },
-    {
-      key: 'carbs',
-      label: 'Carbs',
-      current: data.carbs.current,
-      target: data.carbs.target,
-      unit: 'g',
-      color: MACRO_COLORS.carbs,
-    },
-  ];
-
-  if (showFat && data.fat) {
-    macroItems.push({
-      key: 'fat',
-      label: 'Fat',
-      current: data.fat.current,
-      target: data.fat.target,
-      unit: 'g',
-      color: MACRO_COLORS.fat,
-    });
-  }
-
-  // Web-only Recharts implementation
-  if (Platform.OS !== 'web') {
-    // Fallback for non-web platforms - simple text display
-    return (
-      <Card style={styles.card}>
-        <View style={styles.header}>
-          <Text variant="heading3" weight="bold" style={styles.title}>
-            {title}
-          </Text>
-          <Text variant="caption" style={styles.headerCalories}>
-            {calorieSubtitle}
-          </Text>
-        </View>
-        <Text variant="body">Charts only available on web</Text>
-      </Card>
-    );
-  }
+  // Calculate percentages
+  const percentages: Record<string, number> = {
+    calories: data.calories.target > 0
+      ? (data.calories.current / data.calories.target) * 100
+      : 0,
+    protein: data.protein.target > 0
+      ? (data.protein.current / data.protein.target) * 100
+      : 0,
+    fat: data.fat && data.fat.target > 0
+      ? (data.fat.current / data.fat.target) * 100
+      : 0,
+    carbs: data.carbs.target > 0
+      ? (data.carbs.current / data.carbs.target) * 100
+      : 0,
+  };
 
   return (
-    <AnimatedCard style={[styles.card, cardAnimatedStyle]}>
+    <View style={[styles.card, webCardShadow as any]}>
       {/* Header */}
       <View style={styles.header}>
         <Text variant="heading3" weight="bold" style={styles.title}>
-          {title}
+          {t.todaysNutrition}
         </Text>
-        <Text variant="caption" style={styles.headerCalories}>
-          {calorieSubtitle}
+        <Text variant="caption" style={styles.headerSubtitle}>
+          {Math.round(data.calories.current)} / {data.calories.target} kcal
         </Text>
       </View>
 
-      {/* Content: Chart + Stats */}
+      {/* Content: Rings + Legend */}
       <View style={styles.content}>
-        {/* Left: Pie Chart */}
-        <View style={styles.chartColumn}>
-          <Animated.View style={[styles.chartContainer, chartAnimatedStyle]}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                innerRadius="70%"
-                outerRadius="100%"
-                cornerRadius="50%"
-                paddingAngle={5}
-                dataKey="value"
-                isAnimationActive={true}
-                animationBegin={0}
-                animationDuration={1200}
-                animationEasing="ease-out"
-              >
-                {chartData.map((entry: any) => (
-                  <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
+        {/* Rings Container */}
+        <View style={styles.ringsContainer}>
+          <Svg
+            width="100%"
+            height="100%"
+            viewBox={`0 0 ${svgSize} ${svgSize}`}
+            style={{ aspectRatio: 1 }}
+          >
+            {RING_CONFIGS.map((config, index) => (
+              <AnimatedRing
+                key={config.key}
+                color={config.color}
+                radius={config.radius}
+                percentage={percentages[config.key]}
+                centerX={centerX}
+                centerY={centerY}
+                delay={index * 120}
+              />
+            ))}
+          </Svg>
 
-          {/* Center Label */}
-            <View style={styles.centerLabel}>
-              <Text variant="heading2" weight="bold" style={styles.centerPercentage}>
-                {Math.round(data.calories.current)} kcal
-              </Text>
-              <Text variant="caption" style={styles.centerSubtext}>
-                / {data.calories.target} kcal
-              </Text>
-            </View>
-          </Animated.View>
+          {/* Center content - Fits inside r=70 (Diameter 140) */}
+          <View style={styles.centerContent}>
+            <Flame
+              size={32}
+              weight="fill"
+              color={RING_COLORS.calories}
+            />
+            <Text style={styles.centerCalories}>
+              {Math.round(data.calories.current)}
+            </Text>
+            <Text style={styles.centerSubtext}>
+              kcal
+            </Text>
+          </View>
         </View>
 
-        {/* Right: 2x2 Stats Grid - use CSS Grid on web for strict layout */}
-        <Animated.View style={[styles.statsGrid, styles.statsGridWeb, legendAnimatedStyle]}>
-          {macroItems.map((macro) => {
-            return (
-              <View key={macro.key} style={styles.statItem}>
-                <View style={styles.statLabelRow}>
-                  <View style={[styles.statDot, { backgroundColor: macro.color }]} />
-                  <Text variant="caption" style={styles.statLabel}>
-                    {macro.label}
-                  </Text>
-                </View>
-                <Text variant="heading3" weight="bold" style={styles.statValue}>
-                  {Math.round(macro.current)}{macro.unit}
-                </Text>
-                <Text variant="caption" style={styles.statTarget}>
-                  / {macro.target}{macro.unit}
-                </Text>
-              </View>
-            );
-          })}
-        </Animated.View>
+        {/* Vertical Legend */}
+        <View style={styles.legend}>
+          <LegendItem
+            color={RING_COLORS.calories}
+            label="Calories"
+            current={data.calories.current}
+            target={data.calories.target}
+            unit=""
+          />
+          <LegendItem
+            color={RING_COLORS.protein}
+            label="Protein"
+            current={data.protein.current}
+            target={data.protein.target}
+            unit="g"
+          />
+          <LegendItem
+            color={RING_COLORS.fat}
+            label="Fat"
+            current={data.fat?.current || 0}
+            target={data.fat?.target || 0}
+            unit="g"
+          />
+          <LegendItem
+            color={RING_COLORS.carbs}
+            label="Carbs"
+            current={data.carbs.current}
+            target={data.carbs.target}
+            unit="g"
+          />
+        </View>
       </View>
-    </AnimatedCard>
+    </View>
   );
 }
 
-// ============================================================================
-// STYLES
-// ============================================================================
+// Web-specific shadow
+const webCardShadow = Platform.OS === 'web' ? { boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' } : {};
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
-    padding: spacing.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
   title: {
-    color: BRAND_COLORS.textPrimary,
+    color: '#111827',
     fontWeight: '700',
   },
-  headerCalories: {
-    color: '#4B5563',
+  headerSubtitle: {
+    color: '#6B7280',
   },
   content: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xl,
-    overflow: 'hidden',
-  },
-  chartColumn: {
-    flexBasis: '40%',
-    flexShrink: 0,
-    minWidth: 180,
-    maxWidth: 220,
-    alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing['2xl'],
   },
-  chartContainer: {
+  ringsContainer: {
     position: 'relative',
-    width: 180,
-    height: 180,
+    width: 320,
+    height: 320,
     justifyContent: 'center',
     alignItems: 'center',
+    flex: 1.5,
   },
-  centerLabel: {
+  centerContent: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+    width: 100, // Expanded to fit larger text within inner hole
   },
-  centerPercentage: {
-    color: BRAND_COLORS.primary,
-    fontSize: 28,
+  centerCalories: {
+    color: '#111827',
+    fontSize: 48, // Text-5xl
+    fontWeight: '700',
+    marginTop: 4,
+    textAlign: 'center',
   },
   centerSubtext: {
-    color: colors.light.textSecondary,
-    fontSize: 12,
-    marginTop: -2,
+    color: '#6B7280',
+    fontSize: 14, // Text-sm
+    fontWeight: '500',
+    marginTop: 2,
+    textAlign: 'center',
   },
-  statsGrid: {
+  // Vertical legend
+  legend: {
+    gap: spacing.xl, // Balanced spacing
+    minWidth: 160,
+    justifyContent: 'center',
     flex: 1,
   },
-  // Web-specific: CSS Grid for strict 2x2 layout
-  statsGridWeb: Platform.select({
-    web: {
-      display: 'grid' as any,
-      gridTemplateColumns: 'repeat(2, 1fr)' as any,
-      gap: spacing.md,
-    },
-    default: {
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
-      gap: spacing.md,
-    },
-  }),
-  statItem: {
-    alignItems: 'flex-start',
-    padding: spacing.md,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(229, 231, 235, 0.8)',
-    backgroundColor: colors.light.background,
-  },
-  statLabelRow: {
+  legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  legendContent: {
+    flex: 1,
+  },
+  legendLabel: {
+    color: '#6B7280',
+    fontSize: 13,
+    fontWeight: '500',
     marginBottom: 2,
   },
-  statDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  legendValues: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
-  statLabel: {
-    color: colors.light.textSecondary,
-  },
-  statValue: {
+  legendCurrent: {
     color: '#111827',
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '700',
   },
-  statTarget: {
-    color: colors.light.textMuted,
-    fontSize: 10,
+  legendTarget: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    marginLeft: 3,
+  },
+  percentBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  percentText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

@@ -33,9 +33,11 @@ else
     echo -e "${RED}❌ Application is NOT running${NC}"
     echo ""
     echo "Please start the application first:"
-    echo "  export SPOONACULAR_API_KEY=\"c06acb6339d6428aa8715889da7ce962\""
-    echo "  export YOUTUBE_API_KEY=\"AIzaSyCvugM8by8scvZcdLbGR9owMLt1HUTfPyY\""
-    echo "  java -jar build/libs/fitness-app-0.0.1-SNAPSHOT.jar"
+    echo "  1. Set API keys in .env.local file:"
+    echo "     SPOONACULAR_API_KEY=your_key"
+    echo "     YOUTUBE_API_KEY=your_key"
+    echo "  2. Run: source scripts/setup/set-api-keys.sh"
+    echo "  3. Run: java -jar build/libs/fitness-app-0.0.1-SNAPSHOT.jar"
     exit 1
 fi
 

@@ -1,5 +1,6 @@
+import { Flame } from 'phosphor-react-native';
 import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import Animated, {
     Easing,
     useAnimatedProps,
@@ -7,10 +8,11 @@ import Animated, {
     withDelay,
     withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Defs, G, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, G } from 'react-native-svg';
 
 import { Text } from '@/components/Text';
-import { BRAND_COLORS, colors, saasShadows, spacing } from '@/utils';
+import { useLanguageStore } from '@/stores';
+import { BRAND_COLORS, spacing } from '@/utils';
 
 // Create animated circle component
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -39,435 +41,857 @@ interface NutritionRingsCardProps {
 }
 
 // ============================================================================
-// RING CONFIGURATION
-// ============================================================================
 
-interface RingConfig {
-  key: string;
-  label: string;
-  color: string;
-  gradientStart: string;
-  gradientEnd: string;
-  radius: number;
-  strokeWidth: number;
-}
-
-// Premium ring config - thicker rings, dashboard-style (16-20px thickness)
-const RING_CONFIGS: RingConfig[] = [
-  {
-    key: 'calories',
-    label: 'Calories',
-    color: '#7C3AED', // Primary purple
-    gradientStart: '#7C3AED', // Violet-600
-    gradientEnd: '#A78BFA', // Violet-400
-    radius: 54,
-    strokeWidth: 18, // Thicker for premium feel
-  },
-  {
-    key: 'protein',
-    label: 'Protein',
-    color: '#10B981', // Success green
-    gradientStart: '#059669', // Emerald-600
-    gradientEnd: '#34D399', // Emerald-400
-    radius: 38,
-    strokeWidth: 14,
-  },
-  {
-    key: 'carbs',
-    label: 'Carbs',
-    color: '#F59E0B', // Warning amber
-    gradientStart: '#D97706', // Amber-600
-    gradientEnd: '#FBBF24', // Amber-400
-    radius: 24,
-    strokeWidth: 12,
-  },
-];
+// APPLE WATCH NEON COLORS - Vibrant & Bold
 
 // ============================================================================
-// ANIMATED RING COMPONENT
-// ============================================================================
 
-interface AnimatedRingProps {
-  config: RingConfig;
-  percentage: number;
-  centerX: number;
-  centerY: number;
-  animated: boolean;
-  delay: number;
-}
 
-function AnimatedRing({
-  config,
-  percentage,
-  centerX,
-  centerY,
-  animated,
-  delay,
-}: AnimatedRingProps) {
-  const { radius, strokeWidth, gradientStart, gradientEnd } = config;
 
-  // Calculate circumference
-  const circumference = 2 * Math.PI * radius;
+const RING_COLORS = {
 
-  // Clamp percentage to 100% for visual (can show > 100% in legend)
-  const clampedPercentage = Math.min(percentage, 100);
+  // Outer Ring: Calories - Neon Orange-Red
 
-  // Animated progress value
-  const progress = useSharedValue(0);
+  calories: '#FF3B30',
 
-  useEffect(() => {
-    if (animated) {
-      // Premium 450ms animation with smooth easing
-      progress.value = withDelay(
-        delay,
-        withTiming(clampedPercentage / 100, {
-          duration: 450,
-          easing: Easing.out(Easing.quad),
-        })
-      );
-    } else {
-      progress.value = clampedPercentage / 100;
-    }
-  }, [clampedPercentage, animated, delay]);
 
-  // Animated props for the progress circle
-  const animatedProps = useAnimatedProps(() => {
-    const strokeDashoffset = circumference * (1 - progress.value);
-    return {
-      strokeDashoffset,
-    };
-  });
 
-  const gradientId = `gradient-${config.key}`;
+  // Second Ring: Protein - Neon Green
 
-  return (
-    <>
-      {/* Gradient definition */}
-      <Defs>
-        <LinearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-          <Stop offset="0%" stopColor={gradientStart} />
-          <Stop offset="100%" stopColor={gradientEnd} />
-        </LinearGradient>
-      </Defs>
+  protein: '#34C759',
 
-      {/* Background track */}
-      <Circle
-        cx={centerX}
-        cy={centerY}
-        r={radius}
-        stroke={config.color}
-        strokeWidth={strokeWidth}
-        fill="none"
-        opacity={0.15}
-      />
 
-      {/* Progress ring - rotated -90deg to start from top */}
-      <G transform={`rotate(-90, ${centerX}, ${centerY})`}>
-        <AnimatedCircle
-          cx={centerX}
-          cy={centerY}
-          r={radius}
-          stroke={`url(#${gradientId})`}
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          animatedProps={animatedProps}
-        />
-      </G>
-    </>
-  );
-}
 
-// ============================================================================
-// LEGEND ITEM COMPONENT
-// ============================================================================
+  // Third Ring: Fat - Neon Yellow/Gold
 
-interface LegendItemProps {
-  config: RingConfig;
-  current: number;
-  target: number;
-  unit: string;
-}
+  fat: '#FFD60A',
 
-function LegendItem({ config, current, target, unit }: LegendItemProps) {
-  const percentage = target > 0 ? Math.round((current / target) * 100) : 0;
 
-  return (
-    <View style={styles.legendItem}>
-      <View style={styles.legendDot}>
-        <View style={[styles.legendDotInner, { backgroundColor: config.color }]} />
-      </View>
-      <View style={styles.legendContent}>
-        <Text variant="caption" style={styles.legendLabel}>
-          {config.label}
-        </Text>
-        <View style={styles.legendValues}>
-          <Text variant="body" weight="semibold" style={styles.legendCurrent}>
-            {Math.round(current)}{unit}
-          </Text>
-          <Text variant="caption" style={styles.legendTarget}>
-            / {target}{unit}
-          </Text>
-        </View>
-      </View>
-      <View style={[styles.legendPercentage, percentage >= 100 && styles.legendPercentageComplete]}>
-        <Text
-          variant="caption"
-          weight="semibold"
-          style={percentage >= 100 ? styles.legendPercentageTextComplete : styles.legendPercentageText}
-        >
-          {percentage}%
-        </Text>
-      </View>
-    </View>
-  );
-}
 
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
+  // Inner Ring: Carbs - Electric Blue
 
-export function NutritionRingsCard({
-  data,
-  title = "Today's Nutrition",
-  showFat = false,
-  animated = true,
-}: NutritionRingsCardProps) {
-  // SVG dimensions - larger for premium look
-  const svgSize = 160;
-  const centerX = svgSize / 2;
-  const centerY = svgSize / 2;
+  carbs: '#007AFF',
 
-  // Calculate percentages
-  const caloriesPercentage = data.calories.target > 0
-    ? (data.calories.current / data.calories.target) * 100
-    : 0;
-  const proteinPercentage = data.protein.target > 0
-    ? (data.protein.current / data.protein.target) * 100
-    : 0;
-  const carbsPercentage = data.carbs.target > 0
-    ? (data.carbs.current / data.carbs.target) * 100
-    : 0;
-
-  const percentages = [caloriesPercentage, proteinPercentage, carbsPercentage];
-
-  // Format calorie subtitle for header
-  const calorieSubtitle = `${Math.round(data.calories.current)} / ${data.calories.target} kcal`;
-
-  return (
-    <View style={styles.card}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text variant="heading3" weight="bold" style={styles.title}>
-          {title}
-        </Text>
-        <Text variant="caption" style={styles.headerCalories}>
-          {calorieSubtitle}
-        </Text>
-      </View>
-
-      {/* Content: Rings + Legend */}
-      <View style={styles.content}>
-        {/* Rings Container */}
-        <View style={styles.ringsContainer}>
-          <Svg width={svgSize} height={svgSize}>
-            {RING_CONFIGS.map((config, index) => (
-              <AnimatedRing
-                key={config.key}
-                config={config}
-                percentage={percentages[index]}
-                centerX={centerX}
-                centerY={centerY}
-                animated={animated}
-                delay={index * 150}
-              />
-            ))}
-          </Svg>
-
-          {/* Center percentage */}
-          <View style={styles.centerLabel}>
-            <Text variant="heading2" weight="bold" style={styles.centerPercentage}>
-              {Math.round(caloriesPercentage)}%
-            </Text>
-            <Text variant="caption" style={styles.centerSubtext}>
-              of goal
-            </Text>
-          </View>
-        </View>
-
-        {/* Legend */}
-        <View style={styles.legend}>
-          <LegendItem
-            config={RING_CONFIGS[0]}
-            current={data.calories.current}
-            target={data.calories.target}
-            unit=" kcal"
-          />
-          <LegendItem
-            config={RING_CONFIGS[1]}
-            current={data.protein.current}
-            target={data.protein.target}
-            unit="g"
-          />
-          <LegendItem
-            config={RING_CONFIGS[2]}
-            current={data.carbs.current}
-            target={data.carbs.target}
-            unit="g"
-          />
-          {showFat && data.fat && (
-            <LegendItem
-              config={{
-                key: 'fat',
-                label: 'Fat',
-                color: '#EF4444',
-                gradientStart: '#DC2626',
-                gradientEnd: '#F87171',
-                radius: 14,
-                strokeWidth: 6,
-              }}
-              current={data.fat.current}
-              target={data.fat.target}
-              unit="g"
-            />
-          )}
-        </View>
-      </View>
-    </View>
-  );
-}
-
-/**
- * Get calorie subtitle string for use with DashboardCard
- */
-export function getCalorieSubtitle(current: number, target: number): string {
-  return `${Math.round(current)} / ${target} kcal`;
-}
-
-// ============================================================================
-// STYLES
-// ============================================================================
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.light.border, // #E9E6F5 - subtle purple-gray
-    padding: spacing.lg,
-    ...saasShadows.card, // Subtle shadow, relies on border
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  title: {
-    color: BRAND_COLORS.textPrimary,
-    fontWeight: '700', // Bold for visual hierarchy
-  },
-  headerCalories: {
-    color: '#4B5563', // Darker for better readability
-  },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-  },
-  ringsContainer: {
-    position: 'relative',
-    width: 160,
-    height: 160,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  centerLabel: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  centerPercentage: {
-    color: BRAND_COLORS.primary,
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  centerSubtext: {
-    color: colors.light.textSecondary,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  legend: {
-    flex: 1,
-    gap: spacing.sm,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  legendDotInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendContent: {
-    flex: 1,
-  },
-  legendLabel: {
-    color: colors.light.textSecondary,
-    fontSize: 11,
-    marginBottom: 1,
-  },
-  legendValues: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  legendCurrent: {
-    color: '#1F2937', // Darker gray for better contrast (WCAG AA)
-    fontSize: 14,
-  },
-  legendTarget: {
-    color: '#374151', // Deep gray - readable secondary text
-    fontSize: 12,
-    marginLeft: 2,
-  },
-  legendPercentage: {
-    backgroundColor: 'rgba(167, 139, 250, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  legendPercentageComplete: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-  },
-  legendPercentageText: {
-    color: BRAND_COLORS.primary,
-    fontSize: 11,
-  },
-  legendPercentageTextComplete: {
-    color: '#10B981',
-  },
-});
-
-// ============================================================================
-// MOCK DATA FOR TESTING
-// ============================================================================
-
-export const MOCK_NUTRITION_DATA: NutritionRingsData = {
-  calories: { current: 465, target: 1900 },
-  protein: { current: 98, target: 105 },
-  carbs: { current: 45, target: 171 },
-  fat: { current: 7, target: 74 },
 };
 
+
+
+// Ring configuration with proper spacing
+
+const STROKE_WIDTH = 18;  // Sleek and modern
+
+
+
+interface RingConfig {
+
+  key: 'calories' | 'protein' | 'fat' | 'carbs';
+
+  label: string;
+
+  color: string;
+
+  radius: number;
+
+}
+
+
+
+// Balanced Geometry (The Sweet Spot) - EXPANDED CENTER
+
+const RING_CONFIGS: RingConfig[] = [
+
+  {
+
+    key: 'calories',
+
+    label: 'Calories',
+
+    color: RING_COLORS.calories,
+
+    radius: 145, // Pushed outward
+
+  },
+
+  {
+
+    key: 'protein',
+
+    label: 'Protein',
+
+    color: RING_COLORS.protein,
+
+    radius: 120,
+
+  },
+
+  {
+
+    key: 'fat',
+
+    label: 'Fat',
+
+    color: RING_COLORS.fat,
+
+    radius: 95,
+
+  },
+
+  {
+
+    key: 'carbs',
+
+    label: 'Carbs',
+
+    color: RING_COLORS.carbs,
+
+    radius: 70, // Inner hole diameter ~122px
+
+  },
+
+];
+
+
+
+// ============================================================================
+
+// ANIMATED RING COMPONENT - Raw SVG Circle
+
+// ============================================================================
+
+
+
+interface AnimatedRingProps {
+
+  readonly color: string;
+
+  readonly radius: number;
+
+  readonly percentage: number;
+
+  readonly centerX: number;
+
+  readonly centerY: number;
+
+  readonly animated: boolean;
+
+  readonly delay: number;
+
+}
+
+
+
+function AnimatedRing({
+
+  color,
+
+  radius,
+
+  percentage,
+
+  centerX,
+
+  centerY,
+
+  animated,
+
+  delay,
+
+}: AnimatedRingProps) {
+
+  // Calculate circumference
+
+  const circumference = 2 * Math.PI * radius;
+
+
+
+  // Clamp percentage to 100% for visual
+
+  const clampedPercentage = Math.min(percentage, 100);
+
+
+
+  // Animated progress value
+
+  const progress = useSharedValue(0);
+
+
+
+  useEffect(() => {
+
+    if (animated) {
+
+      progress.value = withDelay(
+
+        delay,
+
+        withTiming(clampedPercentage / 100, {
+
+          duration: 800,
+
+          easing: Easing.out(Easing.cubic),
+
+        })
+
+      );
+
+    } else {
+
+      progress.value = clampedPercentage / 100;
+
+    }
+
+  }, [clampedPercentage, animated, delay]);
+
+
+
+  // Animated props for the progress circle
+
+  const animatedProps = useAnimatedProps(() => {
+
+    const strokeDashoffset = circumference * (1 - progress.value);
+
+    return {
+
+      strokeDashoffset,
+
+    };
+
+  });
+
+
+
+  return (
+
+    <>
+
+      {/* Background Track - Same color at 15% opacity */}
+
+      <Circle
+
+        cx={centerX}
+
+        cy={centerY}
+
+        r={radius}
+
+        stroke={color}
+
+        strokeWidth={STROKE_WIDTH}
+
+        fill="none"
+
+        opacity={0.15}
+
+        strokeLinecap="round"
+
+      />
+
+
+
+      {/* Progress Ring - Rotated -90deg to start from top */}
+
+      <G transform={`rotate(-90, ${centerX}, ${centerY})`}>
+
+        <AnimatedCircle
+
+          cx={centerX}
+
+          cy={centerY}
+
+          r={radius}
+
+          stroke={color}
+
+          strokeWidth={STROKE_WIDTH}
+
+          fill="none"
+
+          strokeLinecap="round"
+
+          strokeDasharray={circumference}
+
+          animatedProps={animatedProps}
+
+        />
+
+      </G>
+
+    </>
+
+  );
+
+}
+
+
+
+// ============================================================================
+
+// LEGEND ITEM COMPONENT
+
+// ============================================================================
+
+
+
+interface LegendItemProps {
+
+  readonly color: string;
+
+  readonly label: string;
+
+  readonly current: number;
+
+  readonly target: number;
+
+  readonly unit: string;
+
+}
+
+
+
+function LegendItem({ color, label, current, target, unit }: LegendItemProps) {
+
+  const percentage = target > 0 ? Math.round((current / target) * 100) : 0;
+
+
+
+  return (
+
+    <View style={styles.legendItem}>
+
+      {/* Colored dot indicator */}
+
+      <View style={[styles.legendDot, { backgroundColor: color }]} />
+
+
+
+      {/* Label and values */}
+
+      <View style={styles.legendContent}>
+
+        <Text variant="caption" style={styles.legendLabel}>
+
+          {label}
+
+        </Text>
+
+        <View style={styles.legendValues}>
+
+          <Text variant="body" weight="bold" style={styles.legendCurrent}>
+
+            {Math.round(current)}
+
+          </Text>
+
+          <Text variant="caption" style={styles.legendTarget}>
+
+            / {target}{unit}
+
+          </Text>
+
+        </View>
+
+      </View>
+
+
+
+      {/* Percentage badge */}
+
+      <View style={[styles.percentBadge, { backgroundColor: `${color}20` }]}>
+
+        <Text style={[styles.percentText, { color }]}>
+
+          {percentage}%
+
+        </Text>
+
+      </View>
+
+    </View>
+
+  );
+
+}
+
+
+
+// ============================================================================
+
+// MAIN COMPONENT
+
+// ============================================================================
+
+
+
+export function NutritionRingsCard({
+
+  data,
+
+  title,
+
+  showFat = true, // Default to true now as we force render 4 rings
+
+  animated = true,
+
+}: NutritionRingsCardProps) {
+
+  const { t } = useLanguageStore();
+
+  const displayTitle = title || t.todaysNutrition;
+
+
+
+  // SVG dimensions - Balanced
+
+  const svgSize = 320;
+
+  const centerX = 160;
+
+  const centerY = 160;
+
+
+
+  // Calculate percentages
+
+  const percentages: Record<string, number> = {
+
+    calories: data.calories.target > 0
+
+      ? (data.calories.current / data.calories.target) * 100
+
+      : 0,
+
+    protein: data.protein.target > 0
+
+      ? (data.protein.current / data.protein.target) * 100
+
+      : 0,
+
+    fat: data.fat && data.fat.target > 0
+
+      ? (data.fat.current / data.fat.target) * 100
+
+      : 0,
+
+    carbs: data.carbs.target > 0
+
+      ? (data.carbs.current / data.carbs.target) * 100
+
+      : 0,
+
+  };
+
+
+
+  return (
+
+    <View style={[styles.card, webCardShadow as any]}>
+
+      {/* Header */}
+
+      <View style={styles.header}>
+
+        <Text variant="heading3" weight="bold" style={styles.title}>
+
+          {displayTitle}
+
+        </Text>
+
+        <Text variant="caption" style={styles.headerSubtitle}>
+
+          {Math.round(data.calories.current)} / {data.calories.target} kcal
+
+        </Text>
+
+      </View>
+
+
+
+      {/* Content: Rings + Legend */}
+
+      <View style={styles.content}>
+
+        {/* Rings Container */}
+
+        <View style={styles.ringsContainer}>
+
+          <Svg width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
+
+            {RING_CONFIGS.map((config, index) => (
+
+              <AnimatedRing
+
+                key={config.key}
+
+                color={config.color}
+
+                radius={config.radius}
+
+                percentage={percentages[config.key]}
+
+                centerX={centerX}
+
+                centerY={centerY}
+
+                animated={animated}
+
+                delay={index * 100}
+
+              />
+
+            ))}
+
+          </Svg>
+
+
+
+          {/* Center content - Fits inside r=70 (Diameter 140) */}
+
+          <View style={styles.centerContent}>
+
+            <Flame
+
+              size={32}
+
+              weight="fill"
+
+              color={RING_COLORS.calories}
+
+            />
+
+            <Text style={styles.centerCalories}>
+
+              {Math.round(data.calories.current)}
+
+            </Text>
+
+            <Text style={styles.centerSubtext}>
+
+              of {data.calories.target} kcal
+
+            </Text>
+
+          </View>
+
+        </View>
+
+
+
+        {/* Vertical Legend */}
+
+        <View style={styles.legend}>
+
+          <LegendItem
+
+            color={RING_COLORS.calories}
+
+            label="Calories"
+
+            current={data.calories.current}
+
+            target={data.calories.target}
+
+            unit=""
+
+          />
+
+          <LegendItem
+
+            color={RING_COLORS.protein}
+
+            label="Protein"
+
+            current={data.protein.current}
+
+            target={data.protein.target}
+
+            unit="g"
+
+          />
+
+          <LegendItem
+
+            color={RING_COLORS.fat}
+
+            label="Fat"
+
+            current={data.fat?.current || 0}
+
+            target={data.fat?.target || 0}
+
+            unit="g"
+
+          />
+
+          <LegendItem
+
+            color={RING_COLORS.carbs}
+
+            label="Carbs"
+
+            current={data.carbs.current}
+
+            target={data.carbs.target}
+
+            unit="g"
+
+          />
+
+        </View>
+
+      </View>
+
+    </View>
+
+  );
+
+}
+
+
+
+/**
+
+ * Get calorie subtitle string for use with DashboardCard
+
+ */
+
+export function getCalorieSubtitle(current: number, target: number): string {
+
+  return `${Math.round(current)} / ${target} kcal`;
+
+}
+
+
+
+// ============================================================================
+
+// STYLES
+
+// ============================================================================
+
+
+
+const webCardShadow = Platform.OS === 'web' ? { boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' } : {};
+
+
+
+const styles = StyleSheet.create({
+
+  card: {
+
+    backgroundColor: '#FFFFFF',
+
+    borderRadius: 16,
+
+    borderWidth: 1,
+
+    borderColor: '#E5E7EB',
+
+    padding: spacing.lg,
+
+    shadowColor: '#000000',
+
+    shadowOffset: { width: 0, height: 2 },
+
+    shadowOpacity: 0.08,
+
+    shadowRadius: 4,
+
+    elevation: 2,
+
+  },
+
+  header: {
+
+    flexDirection: 'row',
+
+    justifyContent: 'space-between',
+
+    alignItems: 'center',
+
+    marginBottom: spacing.lg,
+
+  },
+
+  title: {
+
+    color: BRAND_COLORS.textPrimary,
+
+    fontWeight: '700',
+
+  },
+
+  headerSubtitle: {
+
+    color: '#6B7280',
+
+  },
+
+  content: {
+
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    gap: spacing.xl,
+
+  },
+
+  ringsContainer: {
+
+    position: 'relative',
+
+    width: 320,
+
+    height: 320,
+
+    justifyContent: 'center',
+
+    alignItems: 'center',
+
+  },
+
+  centerContent: {
+
+    position: 'absolute',
+
+    alignItems: 'center',
+
+    justifyContent: 'center',
+
+    width: 100, // Expanded to fit more text
+
+  },
+
+  centerCalories: {
+
+    color: '#111827',
+
+    fontSize: 48, // Text-5xl
+
+    fontWeight: '700',
+
+    marginTop: 4,
+
+    textAlign: 'center',
+
+  },
+
+  centerSubtext: {
+
+    color: '#6B7280',
+
+    fontSize: 14, // Text-sm
+
+    fontWeight: '500',
+
+    marginTop: 2,
+
+    textAlign: 'center',
+
+  },
+
+  // Vertical legend
+
+  legend: {
+
+    flex: 1,
+
+    gap: spacing.xl, // Balanced spacing
+
+    justifyContent: 'center',
+
+  },
+
+  legendItem: {
+
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    gap: spacing.sm,
+
+  },
+
+  legendDot: {
+
+    width: 10,
+
+    height: 10,
+
+    borderRadius: 5,
+
+  },
+
+  legendContent: {
+
+    flex: 1,
+
+  },
+
+  legendLabel: {
+
+    color: '#6B7280',
+
+    fontSize: 13,
+
+    fontWeight: '500',
+
+    marginBottom: 1,
+
+  },
+
+  legendValues: {
+
+    flexDirection: 'row',
+
+    alignItems: 'baseline',
+
+  },
+
+  legendCurrent: {
+
+    color: '#111827',
+
+    fontSize: 16,
+
+    fontWeight: '700',
+
+  },
+
+  legendTarget: {
+
+    color: '#9CA3AF',
+
+    fontSize: 13,
+
+    fontWeight: '400',
+
+    marginLeft: 2,
+
+  },
+
+  percentBadge: {
+
+    paddingHorizontal: 8,
+
+    paddingVertical: 3,
+
+    borderRadius: 10,
+
+  },
+
+  percentText: {
+
+    fontSize: 11,
+
+    fontWeight: '600',
+
+  },
+
+});
+
+
+
 export default NutritionRingsCard;
+
+

@@ -15,9 +15,15 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        // 2. 你的私有配置
-        const API_URL = "https://api.242243.xyz/v1/chat/completions";
-        const API_KEY = "sk-4G4fZvHLI65r7DYA1EgT99rn4EdaEBsoftD1q5PszMrWbXXd"; // ⚠️ 替换这里 ⚠️
+        // 2. 你的私有配置 - 从 VS Code 设置中读取
+        const config = vscode.workspace.getConfiguration('myPrivateAI');
+        const API_URL = config.get<string>('apiUrl') || process.env.MY_PRIVATE_AI_URL || "";
+        const API_KEY = config.get<string>('apiKey') || process.env.MY_PRIVATE_AI_KEY || "";
+
+        if (!API_URL || !API_KEY) {
+            vscode.window.showErrorMessage("请先配置 API: 设置 -> myPrivateAI.apiUrl 和 myPrivateAI.apiKey");
+            return;
+        }
 
         // 显示进度条
         vscode.window.withProgress({

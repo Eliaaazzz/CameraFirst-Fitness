@@ -29,7 +29,14 @@ export * from './Toast';
 export * from './WorkoutCard';
 export * from './YouTubePlayerModal';
 
+// Nutrition components
+export { NutritionCard, SAMPLE_NUTRITION_DATA, type NutritionCardData } from './nutrition/NutritionCard';
+
+// Weight components
+export { WeightLogModal, WeightTrendChart } from './weight';
+
 // Common components
+export { BentoCard, BENTO_CARD_STYLES } from './common/BentoCard';
 export { ListScreen, type ListScreenProps } from './common/ListScreen';
 export { SearchBar } from './common/SearchBar';
 export { SearchSuggestions, type SuggestionItem } from './common/SearchSuggestions';

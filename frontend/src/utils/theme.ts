@@ -6,12 +6,12 @@ import { Platform } from 'react-native';
  */
 export const colors = {
   light: {
-    // Primary - Purple (kept as accent)
-    primary: '#8B5CF6',           // Violet-500
-    primaryDark: '#7C3AED',       // Violet-600 (pressed state)
-    primaryLight: '#A78BFA',      // Violet-400
-    primaryContainer: '#EDE9FE',  // Violet-100
-    primaryTint: 'rgba(139, 92, 246, 0.10)', // 10% primary for hover backgrounds
+    // Primary - Orange (Vibrant, Fitness-focused)
+    primary: '#F97316',           // Orange-500
+    primaryDark: '#EA580C',       // Orange-600 (pressed state, text)
+    primaryLight: '#FDBA74',      // Orange-300
+    primaryContainer: '#FFF7ED',  // Orange-50
+    primaryTint: 'rgba(249, 115, 22, 0.10)', // 10% primary for hover backgrounds
 
     secondary: '#EC4899',         // Pink-500
     secondaryContainer: '#FCE7F3',
@@ -123,10 +123,10 @@ export const spacing = {
 
 export const radii = {
   sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
-  '2xl': 20,
+  md: 6,
+  lg: 8,
+  xl: 10,  // Reduced from 16
+  '2xl': 12, // Reduced from 20
   pill: 24,
   full: 9999,
 };
@@ -139,24 +139,24 @@ export const shadows = {
   light: {
     light: {
       shadowColor: '#18181B',
-      shadowOffset: { width: 0, height: 4 },
-      shadowRadius: 16,
-      shadowOpacity: 0.04,
-      elevation: 4,
+      shadowOffset: { width: 0, height: 2 },
+      shadowRadius: 8,
+      shadowOpacity: 0.02,
+      elevation: 2,
     },
     medium: {
       shadowColor: '#18181B',
-      shadowOffset: { width: 0, height: 8 },
-      shadowRadius: 24,
-      shadowOpacity: 0.06,
-      elevation: 8,
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 12,
+      shadowOpacity: 0.04,
+      elevation: 4,
     },
     heavy: {
       shadowColor: '#18181B',
-      shadowOffset: { width: 0, height: 12 },
-      shadowRadius: 32,
-      shadowOpacity: 0.08,
-      elevation: 12,
+      shadowOffset: { width: 0, height: 8 },
+      shadowRadius: 16,
+      shadowOpacity: 0.06,
+      elevation: 8,
     },
     // Premium glow effect for cards
     glow: {
@@ -213,36 +213,10 @@ export const getTheme = (mode: 'light' | 'dark') => ({
  * Key: Very subtle shadows + 1px border = professional "grounded" feel
  */
 export const saasShadows = {
-  // Standard card shadow - very subtle, relies on border for definition
+  // Standard card shadow - minimal, almost flat
   card: Platform.select({
     web: {
-      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 3px 0 rgba(0, 0, 0, 0.02)',
-    } as any,
-    default: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.03,
-      shadowRadius: 3,
-      elevation: 1,
-    },
-  }),
-  // Elevated card shadow - slightly more visible for emphasis
-  cardElevated: Platform.select({
-    web: {
-      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 4px 8px 0 rgba(0, 0, 0, 0.04)',
-    } as any,
-    default: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.04,
-      shadowRadius: 8,
-      elevation: 2,
-    },
-  }),
-  // Subtle shadow - barely visible
-  subtle: Platform.select({
-    web: {
-      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.02)',
+      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.02)', // Very subtle
     } as any,
     default: {
       shadowColor: '#000000',
@@ -250,6 +224,29 @@ export const saasShadows = {
       shadowOpacity: 0.02,
       shadowRadius: 2,
       elevation: 1,
+    },
+  }),
+  // Elevated card shadow
+  cardElevated: Platform.select({
+    web: {
+      boxShadow: '0 2px 4px 0 rgba(0, 0, 0, 0.04)',
+    } as any,
+    default: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+  }),
+  // Subtle shadow
+  subtle: Platform.select({
+    web: {
+      boxShadow: 'none', // Removed for cleaner look
+    } as any,
+    default: {
+      shadowOpacity: 0,
+      elevation: 0,
     },
   }),
 };
@@ -263,7 +260,7 @@ export const cardStyles = {
   standard: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E9E6F5', // Subtle purple-gray border
+    borderColor: '#E2E8F0', // Sharper Gray-200 border
     borderRadius: radii.xl,
     ...saasShadows.card,
   },
@@ -272,7 +269,7 @@ export const cardStyles = {
     web: {
       backgroundColor: '#FFFFFF',
       borderWidth: 1,
-      borderColor: '#E9E6F5',
+      borderColor: '#E2E8F0',
       borderRadius: radii.xl,
       cursor: 'pointer' as const,
       transition: 'border-color 0.15s ease-out, box-shadow 0.15s ease-out',
@@ -281,7 +278,7 @@ export const cardStyles = {
     default: {
       backgroundColor: '#FFFFFF',
       borderWidth: 1,
-      borderColor: '#E9E6F5',
+      borderColor: '#E2E8F0',
       borderRadius: radii.xl,
       ...saasShadows.card,
     },

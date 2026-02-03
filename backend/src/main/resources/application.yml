@@ -106,9 +106,10 @@ spring:
     restart:
       enabled: false
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://database-1.cdq2m4iswpu8.ap-southeast-2.rds.amazonaws.com:5432/fitness_mvp}
-    username: ${SPRING_DATASOURCE_USERNAME:fitnessuser}
-    password: ${SPRING_DATASOURCE_PASSWORD:dev_password}
+    # Dev: Try SUPABASE_JDBC_URL first, fallback to localhost
+    url: ${SPRING_DATASOURCE_URL:${SUPABASE_JDBC_URL:jdbc:postgresql://localhost:5432/fitness_mvp}}
+    username: ${SPRING_DATASOURCE_USERNAME:${SUPABASE_DB_USER:fitnessuser}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${SUPABASE_DB_PASSWORD:dev_password}}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -202,9 +203,9 @@ spring:
   datasource:
     # Supabase connection via Spring standard properties
     # SPRING_DATASOURCE_URL must start with jdbc:postgresql://
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:}
+    url: ${SPRING_DATASOURCE_URL:${SUPABASE_JDBC_URL}}
+    username: ${SPRING_DATASOURCE_USERNAME:${SUPABASE_DB_USER:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${SUPABASE_DB_PASSWORD}}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5  # Supabase free tier has connection limits

@@ -42,10 +42,17 @@ echo "📹 Videos:"
 docker compose exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COUNT(*) as video_count FROM workout_video;" 2>/dev/null | grep -A1 "video_count" | tail -1
 echo ""
 
-# Step 5: Set API keys (replace with your actual keys)
-echo "5️⃣ Setting API keys..."
-export SPOONACULAR_API_KEY="${SPOONACULAR_API_KEY:-c06acb6339d6428aa8715889da7ce962}"
-export YOUTUBE_API_KEY="${YOUTUBE_API_KEY:-AIzaSyCvugM8by8scvZcdLbGR9owMLt1HUTfPyY}"
+# Step 5: Check API keys from environment
+echo "5️⃣ Checking API keys..."
+if [ -z "$SPOONACULAR_API_KEY" ] || [ -z "$YOUTUBE_API_KEY" ]; then
+    echo "⚠️  API keys not found in environment!"
+    echo "   Please set the following environment variables:"
+    echo "   export SPOONACULAR_API_KEY=your_key"
+    echo "   export YOUTUBE_API_KEY=your_key"
+    echo ""
+    echo "   Or create a .env file in the project root."
+    exit 1
+fi
 echo "✅ API keys configured"
 echo ""
 
