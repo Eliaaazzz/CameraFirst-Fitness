@@ -55,33 +55,33 @@ public class Recipe {
   /**
    * Protein in grams - generated from nutrition_summary.
    */
-  @Column(name = "protein", insertable = false, updatable = false)
+  @Column(name = "protein", insertable = false, updatable = false, precision = 8, scale = 2)
   private BigDecimal protein;
 
   /**
    * Carbohydrates in grams - generated from nutrition_summary.
    */
-  @Column(name = "carbs", insertable = false, updatable = false)
+  @Column(name = "carbs", insertable = false, updatable = false, precision = 8, scale = 2)
   private BigDecimal carbs;
 
   /**
    * Fat in grams - generated from nutrition_summary.
    */
-  @Column(name = "fat", insertable = false, updatable = false)
+  @Column(name = "fat", insertable = false, updatable = false, precision = 8, scale = 2)
   private BigDecimal fat;
 
   /**
    * Sugar in grams - generated from nutrition_summary.
    * Important for blood sugar control goals.
    */
-  @Column(name = "sugar", insertable = false, updatable = false)
+  @Column(name = "sugar", insertable = false, updatable = false, precision = 8, scale = 2)
   private BigDecimal sugar;
 
   /**
    * Fiber in grams - generated from nutrition_summary.
    * Important for blood sugar control and digestive health.
    */
-  @Column(name = "fiber", insertable = false, updatable = false)
+  @Column(name = "fiber", insertable = false, updatable = false, precision = 8, scale = 2)
   private BigDecimal fiber;
 
   @Column(name = "steps", columnDefinition = "jsonb")
