@@ -26,9 +26,9 @@ services:
 
     # Environment variables
     envVars:
-      # Spring Profile
+      # Spring Profile - Use 'supabase' profile for Render deployment
       - key: SPRING_PROFILES_ACTIVE
-        value: prod
+        value: supabase
 
       # JVM Memory (Render free tier has 512MB RAM)
       - key: JAVA_TOOL_OPTIONS
@@ -39,12 +39,20 @@ services:
         value: 8080
 
       # Database (Supabase Pooler)
-      - key: SPRING_DATASOURCE_URL
+      - key: SUPABASE_JDBC_URL
         sync: false  # jdbc:postgresql://aws-0-<region>.pooler.supabase.com:5432/postgres
-      - key: SPRING_DATASOURCE_USERNAME
+      - key: SUPABASE_DB_USER
         sync: false  # postgres.<project-ref>
-      - key: SPRING_DATASOURCE_PASSWORD
+      - key: SUPABASE_DB_PASSWORD
         sync: false  # Set manually in dashboard
+
+      # Redis (Upstash)
+      - key: UPSTASH_REDIS_HOST
+        sync: false
+      - key: UPSTASH_REDIS_PORT
+        value: "6379"
+      - key: UPSTASH_REDIS_PASSWORD
+        sync: false
 
       # Cloudflare R2 Storage (already configured)
       - key: R2_ENDPOINT
@@ -90,7 +98,9 @@ services:
 #
 # 2. After deploying, go to Render Dashboard and set these secrets:
 #    - SUPABASE_JDBC_URL: jdbc:postgresql://db.xxx.supabase.co:5432/postgres
+#    - SUPABASE_DB_USER: postgres.<project-ref>
 #    - SUPABASE_DB_PASSWORD: (from Supabase dashboard)
+#    - UPSTASH_REDIS_HOST, UPSTASH_REDIS_PASSWORD: (from Upstash)
 #    - GEMINI_API_KEY: (your API key)
 #    - R2_ENDPOINT, R2_ACCESS_KEY, R2_SECRET_ACCESS_KEY: (from Cloudflare)
 #

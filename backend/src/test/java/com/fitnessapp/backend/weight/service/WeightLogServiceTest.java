@@ -297,6 +297,7 @@ class WeightLogServiceTest {
             UserProfile profile = UserProfile.builder()
                 .userId(userId)
                 .heightCm(180)
+                .weightKg(new BigDecimal("80.0")) // Target weight
                 .fitnessGoal(FitnessGoal.GAIN_MUSCLE)
                 .build();
 

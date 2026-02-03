@@ -15,8 +15,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -31,8 +35,21 @@ import com.fitnessapp.backend.weight.entity.WeightLog;
     "app.seed.enabled=false"
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ContextConfiguration(classes = WeightLogRepositoryTest.TestConfig.class)
 @DisplayName("WeightLogRepository Integration Tests")
 class WeightLogRepositoryTest {
+
+    @Configuration
+    @EnableJpaRepositories(basePackages = {
+        "com.fitnessapp.backend.weight.repository",
+        "com.fitnessapp.backend.user.repository"
+    })
+    @EntityScan(basePackages = {
+        "com.fitnessapp.backend.weight.entity",
+        "com.fitnessapp.backend.user.entity"
+    })
+    static class TestConfig {
+    }
 
     private static PostgreSQLContainer<?> postgres;
 
