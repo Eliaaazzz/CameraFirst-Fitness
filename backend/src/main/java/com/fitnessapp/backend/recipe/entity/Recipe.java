@@ -2,6 +2,7 @@ package com.fitnessapp.backend.recipe.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -55,33 +56,33 @@ public class Recipe {
    * Protein in grams - generated from nutrition_summary.
    */
   @Column(name = "protein", insertable = false, updatable = false)
-  private Double protein;
+  private BigDecimal protein;
 
   /**
    * Carbohydrates in grams - generated from nutrition_summary.
    */
   @Column(name = "carbs", insertable = false, updatable = false)
-  private Double carbs;
+  private BigDecimal carbs;
 
   /**
    * Fat in grams - generated from nutrition_summary.
    */
   @Column(name = "fat", insertable = false, updatable = false)
-  private Double fat;
+  private BigDecimal fat;
 
   /**
    * Sugar in grams - generated from nutrition_summary.
    * Important for blood sugar control goals.
    */
   @Column(name = "sugar", insertable = false, updatable = false)
-  private Double sugar;
+  private BigDecimal sugar;
 
   /**
    * Fiber in grams - generated from nutrition_summary.
    * Important for blood sugar control and digestive health.
    */
   @Column(name = "fiber", insertable = false, updatable = false)
-  private Double fiber;
+  private BigDecimal fiber;
 
   @Column(name = "steps", columnDefinition = "jsonb")
   @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)

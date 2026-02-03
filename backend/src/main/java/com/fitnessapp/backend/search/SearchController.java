@@ -1,5 +1,6 @@
 package com.fitnessapp.backend.search;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -111,7 +112,7 @@ public class SearchController {
         Integer timeMinutes,
         String difficulty,
         Integer calories,
-        Double protein,
+        BigDecimal protein,
         List<String> targetGoal
     ) {
         public static RecipeSearchResult fromEntity(Recipe recipe) {

@@ -1,5 +1,6 @@
 package com.fitnessapp.backend.recommendation;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -240,7 +241,7 @@ public class ContentRecommendationService {
 
         log.debug("Fat loss query (lightweight): calories <= {}, protein >= {}", maxCalories, minProtein);
 
-        List<RecipeSummary> results = recipeRepository.findFatLossFriendlyLightweight(maxCalories, minProtein, pageable);
+        List<RecipeSummary> results = recipeRepository.findFatLossFriendlyLightweight(maxCalories, BigDecimal.valueOf(minProtein), pageable);
 
         // Fallback: relax constraints if too few results
         if (results.size() < 20) {
@@ -261,12 +262,12 @@ public class ContentRecommendationService {
 
         log.debug("Muscle gain query (lightweight): protein >= {}", minProtein);
 
-        List<RecipeSummary> results = recipeRepository.findMuscleGainFriendlyLightweight(minProtein, pageable);
+        List<RecipeSummary> results = recipeRepository.findMuscleGainFriendlyLightweight(BigDecimal.valueOf(minProtein), pageable);
 
         // Fallback: lower protein threshold
         if (results.size() < 20) {
             log.warn("Too few muscle gain candidates ({}), lowering threshold", results.size());
-            results = recipeRepository.findHighProteinRecipesLightweight(15.0, pageable);
+            results = recipeRepository.findHighProteinRecipesLightweight(BigDecimal.valueOf(15.0), pageable);
         }
 
         return results;
@@ -282,12 +283,12 @@ public class ContentRecommendationService {
 
         log.debug("Blood sugar query (lightweight): sugar <= {}, fiber >= {}", maxSugar, minFiber);
 
-        List<RecipeSummary> results = recipeRepository.findBloodSugarFriendlyLightweight(maxSugar, minFiber, pageable);
+        List<RecipeSummary> results = recipeRepository.findBloodSugarFriendlyLightweight(BigDecimal.valueOf(maxSugar), BigDecimal.valueOf(minFiber), pageable);
 
         // Fallback: relax fiber requirement
         if (results.size() < 20) {
             log.warn("Too few blood sugar candidates ({}), relaxing fiber", results.size());
-            results = recipeRepository.findBloodSugarFriendlyLightweight(maxSugar * 1.5, minFiber * 0.5, pageable);
+            results = recipeRepository.findBloodSugarFriendlyLightweight(BigDecimal.valueOf(maxSugar * 1.5), BigDecimal.valueOf(minFiber * 0.5), pageable);
         }
 
         return results;
