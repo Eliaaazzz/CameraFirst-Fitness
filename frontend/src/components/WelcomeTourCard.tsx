@@ -8,18 +8,18 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  Easing,
-  interpolate,
-  runOnJS,
+    Easing,
+    interpolate,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
 } from 'react-native-reanimated';
 
 import { Card, Text } from '@/components';
-import { BRAND_COLORS, spacing } from '@/utils';
+import { BRAND_COLORS, saasShadows, spacing } from '@/utils';
 
 // Animated Card component
 const AnimatedCard = Animated.createAnimatedComponent(Card);
@@ -136,62 +136,80 @@ export const WelcomeTourCard: React.FC<WelcomeTourCardProps> = ({
         style={[styles.container, cardAnimatedStyle]}
         onLayout={handleLayout}
       >
-        {/* Header with icon */}
-        <View style={styles.header}>
-          <Animated.View style={[styles.iconContainer, waveIconStyle]}>
-            <MaterialCommunityIcons
-              name="hand-wave"
-              size={28}
-              color={BRAND_COLORS.primary}
-            />
-          </Animated.View>
-          <Pressable onPress={handleSkip} style={styles.closeButton} hitSlop={8}>
-            <Feather name="x" size={20} color={BRAND_COLORS.textSecondary} />
-          </Pressable>
-        </View>
-
-        {/* Welcome text */}
-        <Text variant="heading3" weight="bold" style={styles.title}>
-          Welcome to AuraFitness!
-        </Text>
-        <Text variant="body" style={styles.subtitle}>
-          Take a quick tour to learn how to track your meals, discover workouts, and reach your fitness goals.
-        </Text>
-
-        {/* Action buttons */}
-        <View style={styles.buttonContainer}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.tourButton,
-              pressed && styles.tourButtonPressed,
-            ]}
-            onPress={handleStartTour}
-          >
-            <LinearGradient
-              colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.tourButtonGradient}
-            >
-              <MaterialCommunityIcons name="compass" size={20} color="#FFF" />
-              <Text variant="body" weight="semibold" style={styles.tourButtonText}>
-                Take a Tour
+        {/* Bento Layout Container */}
+        <View style={styles.bentoContainer}>
+          {/* Left Column: Content & Actions */}
+          <View style={styles.contentColumn}>
+            <View style={styles.textContainer}>
+              <Text variant="heading3" weight="bold" style={styles.title}>
+                Welcome to Aura!
               </Text>
-            </LinearGradient>
-          </Pressable>
+              <Text variant="body" style={styles.subtitle} numberOfLines={3}>
+                Track meals with our AI camera, discover workouts, and hit your goals.
+              </Text>
+            </View>
 
-          <Pressable
-            onPress={handleSkip}
-            style={({ pressed }) => [
-              styles.skipButton,
-              pressed && styles.skipButtonPressed,
-            ]}
-          >
-            <Text variant="body" style={styles.skipButtonText}>
-              Skip for now
-            </Text>
-          </Pressable>
+            {/* Compact Action Buttons */}
+            <View style={styles.buttonRow}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.tourButtonCompact,
+                  pressed && styles.tourButtonPressed,
+                ]}
+                onPress={handleStartTour}
+              >
+                            <LinearGradient
+                              colors={['#FFFFFF', '#FFFFFF']} // White background for outline style
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 0 }}
+                              style={styles.tourButtonGradientCompact}
+                            >                  <MaterialCommunityIcons name="play-circle-outline" size={16} color="#111827" />
+                  <Text variant="caption" weight="bold" style={styles.tourButtonTextCompact}>
+                    Take Tour
+                  </Text>
+                </LinearGradient>
+              </Pressable>
+
+              <Pressable
+                onPress={handleSkip}
+                style={({ pressed }) => [
+                  styles.skipButtonCompact,
+                  pressed && styles.skipButtonPressed,
+                ]}
+                hitSlop={12}
+              >
+                <Text variant="caption" weight="semibold" style={styles.skipButtonTextCompact}>
+                  Skip
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Right Column: Visual (Camera Icon) */}
+          <View style={styles.visualColumn}>
+            <Animated.View style={[styles.cameraBentoBox, waveIconStyle]}>
+              <LinearGradient
+                colors={['rgba(249, 115, 22, 0.1)', 'rgba(249, 115, 22, 0.2)']} // Light orange tints
+                style={styles.cameraIconBackground}
+              >
+                <MaterialCommunityIcons
+                  name="camera"
+                  size={36}
+                  color={BRAND_COLORS.primary}
+                />
+              </LinearGradient>
+            </Animated.View>
+          </View>
         </View>
+
+        {/* Absolute Close Button */}
+        <Pressable 
+          onPress={handleSkip} 
+          style={styles.absoluteCloseButton} 
+          hitSlop={12}
+        >
+          <Feather name="x" size={18} color={BRAND_COLORS.textSecondary} />
+        </Pressable>
       </AnimatedCard>
     </Animated.View>
   );
@@ -199,69 +217,133 @@ export const WelcomeTourCard: React.FC<WelcomeTourCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: spacing.lg,
-    // marginBottom handled by container animated style
-    borderWidth: 1,
-    borderColor: 'rgba(229, 231, 235, 0.6)',
+    padding: 0,
     backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // Golden Standard
+    // Golden Standard Shadow
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' } : {}),
+    overflow: 'hidden',
   },
-  header: {
+  bentoContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
+    alignItems: 'stretch',
+    minHeight: 130,
   },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: `${BRAND_COLORS.primary}12`,
+  contentColumn: {
+    flex: 1,
+    padding: spacing.lg,
+    paddingRight: spacing.sm,
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  textContainer: {
+    gap: 4,
+  },
+  visualColumn: {
+    width: 110,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFA', // Subtle contrast
+  },
+  cameraBentoBox: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    ...saasShadows.card,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 231, 235, 0.5)',
+  },
+  cameraIconBackground: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  absoluteCloseButton: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    padding: 4,
+    zIndex: 10,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 12,
+  },
+  header: {
+    // Legacy style, removed
+  },
+  iconContainer: {
+     // Legacy style, removed
+  },
   closeButton: {
-    padding: spacing.xs,
+     // Legacy style, removed
   },
   title: {
     color: BRAND_COLORS.textPrimary,
-    marginBottom: spacing.xs,
+    fontSize: 17,
   },
   subtitle: {
     color: BRAND_COLORS.textSecondary,
-    lineHeight: 22,
-    marginBottom: spacing.lg,
+    fontSize: 13,
+    lineHeight: 18,
   },
   buttonContainer: {
-    gap: spacing.sm,
+     // Legacy style, removed
   },
-  tourButton: {
-    borderRadius: 12,
+  // Compact Button Styles
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  tourButtonCompact: {
+    borderRadius: 10,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // Gray-200 border
   },
   tourButtonPressed: {
     opacity: 0.9,
     transform: [{ scale: 0.98 }],
+    backgroundColor: '#F9FAFB', // Slight highlight on press
   },
-  tourButtonGradient: {
+  tourButtonGradientCompact: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
+    paddingVertical: 7, // Reduced by 1px to account for border
+    paddingHorizontal: 13,
+    gap: 6,
   },
-  tourButtonText: {
-    color: '#FFF',
+  tourButtonTextCompact: {
+    color: '#111827', // Dark text
+    fontSize: 13,
   },
-  skipButton: {
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
+  skipButtonCompact: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   skipButtonPressed: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
-  skipButtonText: {
+  skipButtonTextCompact: {
     color: BRAND_COLORS.textSecondary,
+    fontSize: 13,
   },
+  // Keep legacy styles just in case to avoid crash if referenced elsewhere (unlikely)
+  tourButton: {},
+  tourButtonGradient: {},
+  tourButtonText: {},
+  skipButton: {},
+  skipButtonText: {},
 });
 
 export default WelcomeTourCard;

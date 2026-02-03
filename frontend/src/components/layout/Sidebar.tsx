@@ -50,10 +50,10 @@ interface NavItemConfig {
 }
 
 const NAV_ITEMS: NavItemConfig[] = [
-  { key: 'Dashboard', label: 'Home', Icon: HouseSimple, color: BRAND_COLORS.primary }, // Violet - brand
+  { key: 'Dashboard', label: 'Home', Icon: HouseSimple, color: BRAND_COLORS.primary }, // Orange (Main)
   { key: 'Workouts', label: 'Workouts', Icon: Barbell, color: colors.light.success }, // Emerald - energy
   { key: 'Recipes', label: 'Recipes', Icon: BookOpenText, color: colors.light.warning }, // Amber - food
-  { key: 'Profile', label: 'Profile', Icon: UserCircle, color: colors.light.error }, // Red - personal
+  { key: 'Profile', label: 'Profile', Icon: UserCircle, color: '#4B5563' }, // Neutral Gray (Removes violet conflict)
 ];
 const NAV_KEYS = NAV_ITEMS.map(item => item.key);
 
@@ -103,20 +103,35 @@ function NavItemButton({
     transform: [{ scale: scale.value }],
   }));
 
-  // Keep icons dark for a crisp, premium look
-  const iconColor = colors.light.textPrimary;
-  const chipBg = isActive
-    ? tint(item.color, 0.2)
-    : isHovered
-      ? tint(item.color, 0.13)
-      : tint(item.color, 0.09);
-  const chipBorder = tint(item.color, isActive ? 0.24 : 0.18);
+  // Interaction Colors - Tinted Style (SaaS Trend)
+  // Active: Light Orange Tint Background + Dark Orange Text/Icon
+  // Inactive: Transparent + Gray Text/Icon
+  // Hover: Light Orange Tint + Orange Text/Icon
+  
+  const iconColor = isActive 
+    ? BRAND_COLORS.primaryDark // Dark Orange
+    : isHovered 
+      ? BRAND_COLORS.primary 
+      : colors.light.textSecondary;
+
+  const labelColor = isActive 
+    ? BRAND_COLORS.primaryDark // Dark Orange
+    : isHovered 
+      ? BRAND_COLORS.primary 
+      : colors.light.textSecondary;
+
   const rowBg = isActive
-    ? tint(item.color, 0.12)
+    ? tint(BRAND_COLORS.primary, 0.12) // Light Orange Tint
     : isHovered
-      ? tint(colors.light.textPrimary, 0.03)
+      ? tint(BRAND_COLORS.primary, 0.08)
       : 'transparent';
-  const labelColor = isActive ? colors.light.textPrimary : colors.light.textSecondary;
+
+  // Chip background - Subtle on inactive, transparent white on active
+  const chipBg = isActive
+    ? 'rgba(255, 255, 255, 0.2)'
+    : isHovered
+      ? 'rgba(249, 115, 22, 0.1)'
+      : 'transparent'; // Clean look for inactive
 
   return (
     <AnimatedPressable
@@ -134,19 +149,11 @@ function NavItemButton({
         onMouseLeave: onHoverOut,
       })}
     >
-      {/* Left indicator bar - 3px, only visible when active */}
-      <View
-        style={[
-          styles.indicator,
-          { backgroundColor: item.color, opacity: isActive ? 1 : 0 },
-        ]}
-      />
-
-      {/* Icon chip - ✅ ALWAYS has faint theme color (never dead gray) */}
-      <View style={[styles.chip, { backgroundColor: chipBg, borderColor: chipBorder }]}>
+      {/* Icon chip */}
+      <View style={[styles.chip, { backgroundColor: chipBg, borderColor: 'transparent' }]}>
         <item.Icon
           size={20}
-          weight={isActive ? 'bold' : 'regular'}
+          weight={isActive ? 'fill' : 'regular'} // Filled icon for active state
           color={iconColor}
         />
       </View>
@@ -155,7 +162,7 @@ function NavItemButton({
       {!isCollapsed && (
         <Text
           variant="body"
-          weight={isActive ? 'bold' : 'regular'}
+          weight={isActive ? 'bold' : 'medium'}
           style={[styles.navLabel, { color: labelColor }]}
         >
           {item.label}
@@ -250,7 +257,7 @@ export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
         ]}
       >
         <View style={styles.toggleIcon}>
-          <SidebarSimple size={22} weight="regular" color={colors.light.textPrimary} />
+          <SidebarSimple size={22} weight="regular" color={BRAND_COLORS.primary} />
         </View>
         {!isCollapsed && (
           <Animated.View style={[styles.brandContainer, textStyle]}>
@@ -374,17 +381,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.xs,
     marginHorizontal: spacing.xs,
-  },
-
-  // Left indicator bar (Linear style) - always rendered, opacity controlled
-  indicator: {
-    width: 3,
-    height: 18,
-    borderRadius: 3,
-    position: 'absolute',
-    left: spacing.xs,
-    top: '50%',
-    transform: [{ translateY: -9 }],
   },
 
   // Icon chip - ✅ always has faint theme tint (never dead gray)

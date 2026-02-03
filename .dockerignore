@@ -1,0 +1,19 @@
+# 忽略巨大的前端依赖 (460MB)
+node_modules/
+frontend/node_modules/
+
+# 忽略整个前端目录 (435MB) - Java后端构建不需要它
+frontend/
+
+# 忽略 Git 历史 (119MB)
+.git/
+
+# 忽略 Java 构建缓存
+.gradle/
+build/
+backend/build/
+
+# 其他杂项
+.DS_Store
+.idea/
+.vscode/

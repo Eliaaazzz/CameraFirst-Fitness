@@ -3,8 +3,9 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { navigationRef } from './navigationService';
 
@@ -195,6 +196,15 @@ const TAB_CONFIG = [
     iconFamily: 'MaterialCommunityIcons',
   },
   {
+    name: 'Capture',
+    component: SafeDashboardScreen, // Placeholder - actual action handled by custom button
+    label: '',
+    iconActive: 'camera',
+    iconInactive: 'camera',
+    iconFamily: 'MaterialCommunityIcons',
+    isCamera: true, // Special flag for camera button
+  },
+  {
     name: 'Recipes',
     component: RecipesStackScreen, // Use Stack navigator for proper navigation hierarchy
     label: 'Recipes',
@@ -211,6 +221,56 @@ const TAB_CONFIG = [
     iconFamily: 'Feather',
   },
 ];
+
+// Custom camera button component for bottom tab
+interface CameraTabButtonProps {
+  onPress: () => void;
+}
+
+const CameraTabButton = ({ onPress }: CameraTabButtonProps) => (
+  <Pressable
+    onPress={onPress}
+    style={({ pressed }) => [
+      cameraButtonStyles.container,
+      pressed && cameraButtonStyles.pressed,
+    ]}
+  >
+    <LinearGradient
+      colors={[BRAND_COLORS.primary, '#A78BFA']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={cameraButtonStyles.gradient}
+    >
+      <MaterialCommunityIcons name="camera" size={28} color="#FFFFFF" />
+    </LinearGradient>
+  </Pressable>
+);
+
+const cameraButtonStyles = StyleSheet.create({
+  container: {
+    position: 'relative',
+    top: -20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: BRAND_COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  pressed: {
+    transform: [{ scale: 0.95 }],
+  },
+  gradient: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+  },
+});
 
 const MainTabs = () => {
   const { isDesktop, isTablet, isWeb } = useResponsive();
@@ -230,6 +290,12 @@ const MainTabs = () => {
   const getTabBarIcon = (routeName: string, focused: boolean, color: string) => {
     const config = TAB_CONFIG.find(t => t.name === routeName);
     if (!config) return null;
+
+    // Camera button has custom rendering
+    if ((config as any).isCamera) {
+      return null;
+    }
+
     const iconName = focused ? config.iconActive : config.iconInactive;
     const size = focused ? TAB_ICON_SIZE.focused : TAB_ICON_SIZE.default;
 
@@ -240,7 +306,9 @@ const MainTabs = () => {
     return <MaterialCommunityIcons name={iconName as any} size={size} color={color} />;
   };
 
-  // Desktop layout with sidebar
+  // Desktop layout with sidebar - filter out the Capture tab
+  const desktopTabs = TAB_CONFIG.filter(tab => !(tab as any).isCamera);
+
   if (showSidebar) {
     return (
       <View style={styles.desktopContainer}>
@@ -253,7 +321,7 @@ const MainTabs = () => {
               tabBarStyle: { display: 'none' }, // Hide tab bar on desktop
             }}
           >
-            {TAB_CONFIG.map((tab) => (
+            {desktopTabs.map((tab) => (
               <Tab.Screen
                 key={tab.name}
                 name={tab.name}
@@ -338,14 +406,35 @@ const MainTabs = () => {
         tabBarIcon: ({ focused, color }) => getTabBarIcon(route.name, focused, color),
       })}
     >
-      {TAB_CONFIG.map((tab) => (
-        <Tab.Screen
-          key={tab.name}
-          name={tab.name}
-          component={tab.component}
-          options={{ title: tab.label }}
-        />
-      ))}
+      {TAB_CONFIG.map((tab) => {
+        const isCamera = (tab as any).isCamera;
+        return (
+          <Tab.Screen
+            key={tab.name}
+            name={tab.name}
+            component={tab.component}
+            options={({ navigation }) => ({
+              title: tab.label,
+              tabBarLabel: isCamera ? () => null : tab.label,
+              tabBarButton: isCamera
+                ? () => (
+                    <CameraTabButton
+                      onPress={() => navigation.navigate('ReviewMeal', { openCamera: true })}
+                    />
+                  )
+                : undefined,
+            })}
+            listeners={({ navigation }) => ({
+              tabPress: (e) => {
+                if (isCamera) {
+                  e.preventDefault();
+                  navigation.navigate('ReviewMeal', { openCamera: true });
+                }
+              },
+            })}
+          />
+        );
+      })}
 
       {/* Hidden screens - accessible via navigation but not shown in tab bar */}
       <Tab.Screen

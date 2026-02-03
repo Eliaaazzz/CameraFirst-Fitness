@@ -10,7 +10,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # Bind Mount: 数据存放在项目目录下，删除 Docker 也不会丢失数据
+      - ./postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fitnessuser -d fitness_mvp"]
       interval: 10s
@@ -24,7 +25,8 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      # Bind Mount: Redis 数据也存放在项目目录下
+      - ./redis_data:/data
 
   backend:
     # Use local image for development
@@ -39,12 +41,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    # Adjust environment variables as needed
     env_file:
       - ../.env
     ports:
       - "8080:8080"
 
-volumes:
-  postgres_data:
-  redis_data:
+# 不再使用 named volumes，改用 bind mounts
+# volumes:
+#   postgres_data:  # 删除 - 数据会藏在 Docker 深处
+#   redis_data:     # 删除 - 同上

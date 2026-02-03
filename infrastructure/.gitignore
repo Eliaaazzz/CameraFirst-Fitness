@@ -1,0 +1,7 @@
+# Database data (Bind Mounts)
+# 这些是你的宝贵数据，存在本地但不提交到 Git
+postgres_data/
+redis_data/
+
+# Backup files (if any in this directory)
+*.sql

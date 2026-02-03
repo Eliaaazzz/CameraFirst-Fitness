@@ -8,20 +8,20 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  ActionSheetIOS,
-  Alert,
-  Platform,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  View
+    ActionSheetIOS,
+    Alert,
+    Platform,
+    Pressable,
+    RefreshControl,
+    StyleSheet,
+    View
 } from 'react-native';
 
 
 import { Ionicons } from '@expo/vector-icons';
 import { Barbell, Drop, Fire, Grains } from 'phosphor-react-native';
 
-import { Card, SafeAreaWrapper, Text } from '@/components';
+import { BentoCard, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
 import { DashboardWidgets } from '@/components/dashboard';
 import { ScreenLayout } from '@/components/layout';
@@ -36,6 +36,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useTourStatus } from '@/hooks/useTourStatus';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
 import { useGoals, useGoalStatistics } from '@/services/goalsApi';
+import { useLanguageStore } from '@/stores';
 import { BRAND_COLORS, colors, saasShadows, spacing, useContentBottomPadding, useRightPanelVisible, useSidebarVisible } from '@/utils';
 import { GENERATED_GOALS_KEY } from './ProfileScreen';
 
@@ -46,6 +47,15 @@ const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; icon: string; color: s
   diabetes_control: { label: 'Glucose Control', icon: 'water', color: '#3B82F6' }, // Changed from heart-pulse to water (blood drop)
 };
 
+// Helper to determine meal type from time
+const getMealType = (date: Date): string => {
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 11) return 'Breakfast';
+  if (hour >= 11 && hour < 16) return 'Lunch'; // Extended lunch to 4pm
+  if (hour >= 16 && hour < 22) return 'Dinner';
+  return 'Snack';
+};
+
 const DashboardScreen = () => {
   const navigation = useNavigation<any>();
   const currentUser = useCurrentUser();
@@ -53,6 +63,9 @@ const DashboardScreen = () => {
   const showRightPanel = useRightPanelVisible();
   const showSidebar = useSidebarVisible(); // Desktop mode detection
   const showInlineGoalsRow = showSidebar && !showRightPanel;
+
+  // Language support
+  const { language, t, toggleLanguage } = useLanguageStore();
 
   const { data: nutritionData, refresh } = useDailyNutrition();
   const goals = useGoals(userId);
@@ -261,7 +274,7 @@ const DashboardScreen = () => {
   const renderGoalsSection = (styleOverride?: object) => {
     if (generatedGoals) {
       return (
-        <Card style={[styles.goalsCard, styleOverride]}>
+        <BentoCard style={[styles.goalsCard, styleOverride]}>
           {/* Header: Top-left aligned with icon + title */}
           <View style={styles.goalsHeader}>
             <View style={styles.goalsHeaderLeft}>
@@ -329,7 +342,7 @@ const DashboardScreen = () => {
               </Text>
             </View>
           </View>
-        </Card>
+        </BentoCard>
       );
     }
 
@@ -420,7 +433,7 @@ const DashboardScreen = () => {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Text variant="caption" style={styles.greeting}>Good day,</Text>
+              <Text variant="caption" style={styles.greeting}>{t.goodDay}</Text>
               <View style={styles.nameRow}>
                 <Text variant="heading1" weight="bold" style={styles.userName}>
                   {currentUser.data?.username || 'User'}
@@ -439,11 +452,14 @@ const DashboardScreen = () => {
               </View>
             </View>
             <View style={styles.headerActions}>
+              {/* Language toggle button */}
               <Pressable
-                style={styles.addMealButton}
-                onPress={handleAddFood}
+                style={styles.languageButton}
+                onPress={toggleLanguage}
               >
-                <Feather name="plus" size={20} color={BRAND_COLORS.textPrimary} />
+                <Text variant="caption" weight="semibold" style={styles.languageButtonText}>
+                  {language === 'en' ? '中文' : 'EN'}
+                </Text>
               </Pressable>
               {/* Hide profile button on desktop (use sidebar instead) */}
               {!showRightPanel && (
@@ -470,90 +486,65 @@ const DashboardScreen = () => {
 
         {/* Recommendations are now shown on their respective tabs (Workouts/Recipes) */}
 
-        {/* Main content wrapper - fills viewport on desktop */}
-        <View
-          style={
-            showSidebar
-              ? showRightPanel
-                ? styles.desktopContentWrapper
-                : styles.sidebarContentWrapper
-              : undefined
-          }
-        >
-          {showInlineGoalsRow ? (
-            <View style={styles.inlineTopRow}>
-              <View style={styles.inlineColumn}>
-                {renderGoalsSection(styles.inlineCard)}
-              </View>
-              <View style={styles.inlineColumn}>
-                {renderNutritionCard()}
-              </View>
-            </View>
-          ) : (
-            renderNutritionCard()
-          )}
-
-          {/* Add Food Button - Tour Zone 1 (Mobile only - hidden on desktop) */}
-          {!showSidebar && (
-            <TourGuideZone
-              zone={DASHBOARD_TOUR_STEPS[0].zone}
-              text={DASHBOARD_TOUR_STEPS[0].text}
-              title={DASHBOARD_TOUR_STEPS[0].title}
-              icon="📸"
-            >
-              <Pressable
-                style={({ pressed }) => [
-                  styles.addFoodButton,
-                  pressed && styles.addFoodButtonPressed,
-                ]}
-                onPress={handleAddFood}
-              >
-                <LinearGradient
-                  colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.addFoodGradient}
+                  {/* Main content wrapper - fills viewport on desktop */}
+                <View
+                  style={
+                    showSidebar
+                      ? showRightPanel
+                        ? styles.desktopContentWrapper
+                        : styles.sidebarContentWrapper
+                      : undefined
+                  }
                 >
-                  <MaterialCommunityIcons name="camera" size={28} color="#FFF" />
-                  <View style={styles.addFoodTextContainer}>
-                    <Text variant="body" weight="bold" style={styles.addFoodTitle}>
-                      Snap Your Meal
-                    </Text>
-                    <Text variant="caption" style={styles.addFoodSubtitle}>
-                      AI will analyze nutrition instantly
-                    </Text>
-                  </View>
-                  <MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" />
-                </LinearGradient>
-              </Pressable>
-            </TourGuideZone>
-          )}
-
-        {/* Today's Meals - Tour Zone 3 - positioned at bottom on desktop */}
-        <TourGuideZone
-          zone={DASHBOARD_TOUR_STEPS[2].zone}
-          text={DASHBOARD_TOUR_STEPS[2].text}
-          title={DASHBOARD_TOUR_STEPS[2].title}
-          icon="🍽️"
-        >
-          {/* Unified card wrapper - fills remaining space on desktop */}
-          <Card
-            style={[
-              styles.mealsCard,
-              showSidebar && (showRightPanel ? styles.mealsCardDesktop : styles.mealsCardSidebar),
-            ]}
-          >
-            {/* Header - matches NutritionRingsCard header */}
-            <View style={styles.mealsHeader}>
-            <View>
-              <Text variant="heading3" weight="bold" style={styles.mealsTitle}>
-                Today's Meals
-              </Text>
-              <Text variant="caption" style={styles.mealsSubtitle}>
-                {nutritionData.meals.length} {nutritionData.meals.length === 1 ? 'meal' : 'meals'} logged
-              </Text>
-            </View>
-          </View>
+                  {showInlineGoalsRow ? (
+                    <View style={styles.inlineTopRow}>
+                      <View style={styles.inlineColumn}>
+                        {renderGoalsSection(styles.inlineCard)}
+                      </View>
+                      <View style={styles.inlineColumn}>
+                        {renderNutritionCard()}
+                      </View>
+                    </View>
+                  ) : (
+                    renderNutritionCard()
+                  )}
+        
+                {/* Today's Meals - Tour Zone 3 - positioned at bottom on desktop */}
+                <TourGuideZone
+                  zone={DASHBOARD_TOUR_STEPS[2].zone}
+                  text={DASHBOARD_TOUR_STEPS[2].text}
+                  title={DASHBOARD_TOUR_STEPS[2].title}
+                  icon="🍽️"
+                >
+                  {/* Unified card wrapper - fills remaining space on desktop */}
+                  <BentoCard
+                    style={[
+                      styles.mealsCard,
+                      showSidebar && (showRightPanel ? styles.mealsCardDesktop : styles.mealsCardSidebar),
+                    ]}
+                  >
+                    {/* Header - matches NutritionRingsCard header */}
+                    <View style={styles.mealsHeader}>
+                      <View>
+                        <Text variant="heading3" weight="bold" style={styles.mealsTitle}>
+                          {t.todaysMeals}
+                        </Text>
+                        {nutritionData.meals.length > 0 && (
+                          <Text variant="caption" style={styles.mealsSubtitle}>
+                            {nutritionData.meals.length} {nutritionData.meals.length === 1 ? t.mealLogged : t.mealsLogged}
+                          </Text>
+                        )}
+                      </View>
+                      
+                      {/* Compact Snap Button */}
+                      <Pressable 
+                        onPress={handleAddFood}
+                        style={({pressed}) => [styles.compactSnapBtn, pressed && styles.compactSnapBtnPressed]}
+                      >
+                         <MaterialCommunityIcons name="camera" size={16} color="#FFFFFF" />
+                         <Text style={styles.compactSnapBtnText}>Snap Meal</Text>
+                      </Pressable>
+                    </View>
 
             {nutritionData.meals.length === 0 ? (
               <View style={styles.emptyMealsWrapper}>
@@ -565,17 +556,16 @@ const DashboardScreen = () => {
                   onPress={handleAddFood}
                 >
                   <View style={styles.emptyMealsIconContainer}>
-                    <MaterialCommunityIcons name="camera-plus" size={28} color={BRAND_COLORS.primary} />
+                    <MaterialCommunityIcons name="camera-plus" size={24} color={BRAND_COLORS.primary} />
                   </View>
                   <View style={styles.emptyMealsTextContainer}>
                     <Text variant="body" weight="semibold" style={styles.emptyMealsTitle}>
-                      Upload a photo to get started
+                      No meals logged yet.
                     </Text>
                     <Text variant="caption" style={styles.emptyMealsHint}>
-                      AI will analyze your macros instantly
+                      Snap a photo to start tracking
                     </Text>
                   </View>
-                  <Feather name="chevron-right" size={20} color={BRAND_COLORS.primary} />
                 </Pressable>
               </View>
             ) : (
@@ -589,9 +579,14 @@ const DashboardScreen = () => {
                     />
                     <View style={styles.mealDetails}>
                       <View style={styles.mealHeader}>
-                        <Text variant="body" weight="semibold" numberOfLines={1} style={styles.mealName}>
-                          {meal.name}
-                        </Text>
+                        <View style={{ flex: 1, marginRight: spacing.sm }}>
+                          <Text variant="body" weight="bold" style={{ color: BRAND_COLORS.textPrimary }}>
+                            {getMealType(new Date(meal.consumedAt))}
+                          </Text>
+                          <Text variant="caption" numberOfLines={1} style={{ color: colors.light.textSecondary }}>
+                            {meal.name}
+                          </Text>
+                        </View>
                         <Text variant="body" weight="bold" style={styles.mealCalories}>
                           {meal.calories} kcal
                         </Text>
@@ -619,7 +614,7 @@ const DashboardScreen = () => {
                 ))}
               </View>
             )}
-          </Card>
+          </BentoCard>
         </TourGuideZone>
         </View>
         </TourScrollView>
@@ -672,7 +667,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: 32, // Increased spacing for breathing room
   },
   headerLeft: {
     flex: 1,
@@ -694,19 +689,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  addMealButton: {
-    width: 40,
-    height: 40,
+  languageButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: colors.light.background,
     borderWidth: 1,
-    borderColor: colors.light.border,
+    borderColor: BRAND_COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'all 0.15s ease-out',
     }),
+  },
+  languageButtonText: {
+    color: BRAND_COLORS.primary,
+    fontSize: 12,
   },
   streakBadge: {
     flexDirection: 'row',
@@ -733,15 +732,9 @@ const styles = StyleSheet.create({
       transition: 'all 0.15s ease-out',
     }),
   },
-  // Goals card - Stripe/Linear style (border-focused)
+  // Goals card - extends BentoCard with margin
   goalsCard: {
-    padding: spacing.lg,
     marginBottom: 24,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E9E6F5', // Theme border
-    ...saasShadows.card,
   },
   goalsHeader: {
     flexDirection: 'row',
@@ -864,11 +857,32 @@ const styles = StyleSheet.create({
   addFoodSubtitle: {
     color: 'rgba(255,255,255,0.8)',
   },
-  // Unified meals card - uses Card component base styles
-  mealsCard: {
-    padding: spacing.lg,
+  // Compact Snap Button
+  compactSnapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BRAND_COLORS.primary,
+    paddingVertical: 4, // Reduced from 6
+    paddingHorizontal: 10, // Reduced from 12
+    borderRadius: 8,
+    gap: 6,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'opacity 0.2s',
+    }),
   },
-  // Desktop meals card - fills remaining space at the bottom
+  compactSnapBtnPressed: {
+    opacity: 0.8,
+  },
+  compactSnapBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  // Meals card - extends BentoCard
+  mealsCard: {
+    // BentoCard handles base styles
+  },
   mealsCardDesktop: {
     flex: 1,
     minHeight: 200,
@@ -887,54 +901,52 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   mealsSubtitle: {
-    color: '#4B5563', // Same as NutritionRingsCard headerCalories
+    color: '#4B5563',
   },
-  // Empty state container - centered vertically and horizontally
   emptyMealsWrapper: {
     flex: 1,
     minHeight: 120,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Empty state content - compact horizontal layout
   emptyMealsContent: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    padding: spacing.md,
-    backgroundColor: `${BRAND_COLORS.primary}05`,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: `${BRAND_COLORS.primary}15`,
+    justifyContent: 'center',
+    padding: spacing.xl,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
     borderStyle: 'dashed',
-    gap: spacing.md,
-    ...(Platform.OS === 'web' && {
-      cursor: 'pointer' as any,
-      transition: 'all 0.2s ease-out',
-    }),
+    gap: spacing.sm,
+    width: '100%',
   },
   emptyMealsContentPressed: {
-    backgroundColor: `${BRAND_COLORS.primary}10`,
+    backgroundColor: '#F3F4F6',
     transform: [{ scale: 0.99 }],
   },
   emptyMealsIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 12,
-    backgroundColor: `${BRAND_COLORS.primary}10`,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 4,
   },
   emptyMealsTextContainer: {
-    flex: 1,
+    alignItems: 'center',
   },
   emptyMealsTitle: {
-    color: BRAND_COLORS.textPrimary,
+    color: colors.light.textSecondary,
+    textAlign: 'center',
   },
   emptyMealsHint: {
-    color: colors.light.textSecondary,
+    color: colors.light.textMuted,
     marginTop: 2,
+    textAlign: 'center',
   },
-  // Meals list
   mealsList: {
     gap: spacing.sm,
   },
@@ -954,11 +966,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  mealName: {
-    flex: 1,
-    marginRight: spacing.sm,
-    color: BRAND_COLORS.textPrimary,
   },
   mealCalories: {
     color: BRAND_COLORS.primary,
@@ -986,6 +993,7 @@ const styles = StyleSheet.create({
     color: colors.light.textMuted,
     fontSize: 11,
   },
+
 });
 
 export default DashboardScreen;

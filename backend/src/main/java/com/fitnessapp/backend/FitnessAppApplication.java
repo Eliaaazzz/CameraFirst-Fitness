@@ -30,6 +30,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
     "com.fitnessapp.backend.goals.repository",
     "com.fitnessapp.backend.repository",
     "com.fitnessapp.backend.goals.repository",
+    "com.fitnessapp.backend.weight.repository",
     "com.aura.repository"
 })
 public class FitnessAppApplication {

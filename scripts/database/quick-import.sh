@@ -3,9 +3,22 @@
 echo "🚀 Quick Recipe Import Script"
 echo "================================"
 
-# Set API keys
-export SPOONACULAR_API_KEY="c06acb6339d6428aa8715889da7ce962"
-export YOUTUBE_API_KEY="AIzaSyCvugM8by8scvZcdLbGR9owMLt1HUTfPyY"
+# Load API keys from environment or .env file
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+if [ -f "$PROJECT_ROOT/.env.local" ]; then
+    set -a; source "$PROJECT_ROOT/.env.local"; set +a
+elif [ -f "$PROJECT_ROOT/.env" ]; then
+    set -a; source "$PROJECT_ROOT/.env"; set +a
+fi
+
+# Validate API keys
+if [ -z "$SPOONACULAR_API_KEY" ] || [ -z "$YOUTUBE_API_KEY" ]; then
+    echo "❌ API keys not configured!"
+    echo "   Please set SPOONACULAR_API_KEY and YOUTUBE_API_KEY in .env.local"
+    exit 1
+fi
 
 # Stop any existing processes
 echo "1️⃣ Stopping existing Java processes..."

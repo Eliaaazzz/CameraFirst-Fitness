@@ -5,10 +5,10 @@ export const APP_NAME = 'FitnessMVP';
  * Neutral background with purple primary accents
  */
 export const BRAND_COLORS = {
-  // Primary - Violet (accent color)
-  primary: '#8B5CF6',        // Violet-500
-  primaryDark: '#7C3AED',    // Violet-600 (pressed)
-  primaryTint: 'rgba(139, 92, 246, 0.10)', // 10% for hover states
+  // Primary - Orange (Vibrant, Fitness-focused)
+  primary: '#F97316',        // Orange-500
+  primaryDark: '#EA580C',    // Orange-600 (pressed)
+  primaryTint: 'rgba(249, 115, 22, 0.10)', // 10% for hover states
 
   // Secondary - Pink
   secondary: '#EC4899',      // Pink-500
@@ -33,7 +33,7 @@ export const BRAND_COLORS = {
   danger: '#EF4444',
 
   // Tab bar
-  tabActive: '#8B5CF6',
+  tabActive: '#F97316',       // Orange
   tabInactive: '#374151',     // Deeper gray for readability
 };
 
