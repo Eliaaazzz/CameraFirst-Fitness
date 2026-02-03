@@ -28,30 +28,30 @@ public class UsdaFoodNutrition {
     @JoinColumn(name = "food_id", nullable = false, unique = true)
     private UsdaFood food;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal calories;
 
-    @Column(name = "protein_g")
+    @Column(name = "protein_g", precision = 10, scale = 2)
     private BigDecimal proteinG;
 
-    @Column(name = "fat_g")
+    @Column(name = "fat_g", precision = 10, scale = 2)
     private BigDecimal fatG;
 
-    @Column(name = "carbs_g")
+    @Column(name = "carbs_g", precision = 10, scale = 2)
     private BigDecimal carbsG;
 
-    @Column(name = "fiber_g")
+    @Column(name = "fiber_g", precision = 10, scale = 2)
     private BigDecimal fiberG;
 
-    @Column(name = "sugar_g")
+    @Column(name = "sugar_g", precision = 10, scale = 2)
     private BigDecimal sugarG;
 
-    @Column(name = "sodium_mg")
+    @Column(name = "sodium_mg", precision = 10, scale = 2)
     private BigDecimal sodiumMg;
 
-    @Column(name = "saturated_fat_g")
+    @Column(name = "saturated_fat_g", precision = 10, scale = 2)
     private BigDecimal saturatedFatG;
 
-    @Column(name = "quality_score")
+    @Column(name = "quality_score", precision = 3, scale = 2)
     private BigDecimal qualityScore;
 }

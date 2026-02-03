@@ -26,9 +26,9 @@ services:
 
     # Environment variables
     envVars:
-      # Spring Profile - Use 'supabase' profile for Render deployment
+      # Spring Profile - must match profile defined in application.yml
       - key: SPRING_PROFILES_ACTIVE
-        value: supabase
+        value: prod
 
       # JVM Memory (Render free tier has 512MB RAM)
       - key: JAVA_TOOL_OPTIONS
@@ -38,23 +38,16 @@ services:
       - key: PORT
         value: 8080
 
-      # Database (Supabase Pooler)
-      - key: SUPABASE_JDBC_URL
+      # Database - use standard Spring Boot env var names
+      # Set actual values in Render Dashboard (never commit secrets)
+      - key: SPRING_DATASOURCE_URL
         sync: false  # jdbc:postgresql://aws-0-<region>.pooler.supabase.com:5432/postgres
-      - key: SUPABASE_DB_USER
+      - key: SPRING_DATASOURCE_USERNAME
         sync: false  # postgres.<project-ref>
-      - key: SUPABASE_DB_PASSWORD
-        sync: false  # Set manually in dashboard
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false  # Set in Render Dashboard
 
-      # Redis (Upstash)
-      - key: UPSTASH_REDIS_HOST
-        sync: false
-      - key: UPSTASH_REDIS_PORT
-        value: "6379"
-      - key: UPSTASH_REDIS_PASSWORD
-        sync: false
-
-      # Cloudflare R2 Storage (already configured)
+      # Cloudflare R2 Storage
       - key: R2_ENDPOINT
         sync: false
       - key: R2_ACCESS_KEY
@@ -66,7 +59,7 @@ services:
       - key: R2_PUBLIC_URL
         sync: false
 
-      # API Keys (set in Render dashboard)
+      # API Keys (set in Render Dashboard)
       - key: GEMINI_API_KEY
         sync: false
       - key: YOUTUBE_API_KEY
@@ -80,7 +73,7 @@ services:
 
       # Security
       - key: JWT_SECRET
-        generateValue: true  # Render auto-generates a secure value
+        generateValue: true
       - key: API_KEY
         generateValue: true
 
@@ -97,10 +90,9 @@ services:
 # 1. Update the repo URL above with your GitHub repository
 #
 # 2. After deploying, go to Render Dashboard and set these secrets:
-#    - SUPABASE_JDBC_URL: jdbc:postgresql://db.xxx.supabase.co:5432/postgres
-#    - SUPABASE_DB_USER: postgres.<project-ref>
-#    - SUPABASE_DB_PASSWORD: (from Supabase dashboard)
-#    - UPSTASH_REDIS_HOST, UPSTASH_REDIS_PASSWORD: (from Upstash)
+#    - SPRING_DATASOURCE_URL: jdbc:postgresql://aws-0-<region>.pooler.supabase.com:5432/postgres
+#    - SPRING_DATASOURCE_USERNAME: postgres.<project-ref>
+#    - SPRING_DATASOURCE_PASSWORD: (from Supabase dashboard)
 #    - GEMINI_API_KEY: (your API key)
 #    - R2_ENDPOINT, R2_ACCESS_KEY, R2_SECRET_ACCESS_KEY: (from Cloudflare)
 #

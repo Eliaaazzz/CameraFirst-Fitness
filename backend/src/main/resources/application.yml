@@ -118,7 +118,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
   data:
     redis:
@@ -201,11 +200,14 @@ spring:
     activate:
       on-profile: prod
   datasource:
-    # Supabase connection via Spring standard properties
-    # SPRING_DATASOURCE_URL must start with jdbc:postgresql://
-    url: ${SPRING_DATASOURCE_URL:${SUPABASE_JDBC_URL}}
-    username: ${SPRING_DATASOURCE_USERNAME:${SUPABASE_DB_USER:postgres}}
-    password: ${SPRING_DATASOURCE_PASSWORD:${SUPABASE_DB_PASSWORD}}
+    # Standard Spring Boot datasource properties
+    # These MUST be set via environment variables on Render:
+    #   SPRING_DATASOURCE_URL=jdbc:postgresql://aws-0-<region>.pooler.supabase.com:5432/postgres
+    #   SPRING_DATASOURCE_USERNAME=postgres.<project-ref>
+    #   SPRING_DATASOURCE_PASSWORD=<password>
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5  # Supabase free tier has connection limits
@@ -225,7 +227,6 @@ spring:
     properties:
       hibernate:
         format_sql: false
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
           batch_size: 20
     show-sql: false
