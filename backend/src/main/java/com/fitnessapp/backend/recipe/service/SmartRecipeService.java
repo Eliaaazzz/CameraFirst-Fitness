@@ -10,8 +10,10 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -38,6 +40,7 @@ public class SmartRecipeService {
   private final RecipeRepository recipeRepository;
   private final MealPlanHistoryService mealPlanHistoryService;
   private final ObjectMapper objectMapper;
+  @Nullable
   private final StringRedisTemplate redisTemplate;
 
   public SmartRecipeService(
@@ -46,7 +49,7 @@ public class SmartRecipeService {
       RecipeRepository recipeRepository,
       MealPlanHistoryService mealPlanHistoryService,
       ObjectMapper objectMapper,
-      StringRedisTemplate redisTemplate) {
+      @Autowired(required = false) StringRedisTemplate redisTemplate) {
     this.userProfileRepository = userProfileRepository;
     this.workoutSessionRepository = workoutSessionRepository;
     this.recipeRepository = recipeRepository;
@@ -80,6 +83,7 @@ public class SmartRecipeService {
   }
 
   public void evictCache(UUID userId) {
+    if (redisTemplate == null) return;
     String cacheKey = cacheKey(userId);
     redisTemplate.delete(cacheKey);
   }
@@ -89,6 +93,7 @@ public class SmartRecipeService {
   }
 
   private MealPlanResponse readCachedPlan(UUID userId) {
+    if (redisTemplate == null) return null;
     String value = redisTemplate.opsForValue().get(cacheKey(userId));
     if (StringUtils.hasText(value)) {
       try {
@@ -121,6 +126,7 @@ public class SmartRecipeService {
   }
 
   private void writeCache(UUID userId, String payload) {
+    if (redisTemplate == null) return;
     try {
       Duration ttl = Duration.ofHours(cacheTtlHours <= 0 ? 24 : cacheTtlHours);
       redisTemplate.opsForValue().set(cacheKey(userId), payload, ttl);

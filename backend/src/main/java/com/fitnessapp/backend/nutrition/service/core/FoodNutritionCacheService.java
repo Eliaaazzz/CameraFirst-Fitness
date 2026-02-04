@@ -3,7 +3,9 @@ package com.fitnessapp.backend.nutrition.service.core;
 import java.time.Duration;
 import java.util.Optional;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.stereotype.Service;
@@ -18,9 +20,10 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Simple Redis-backed cache for FoodNutrition DTOs.
- * This keeps caching concerns out of the DTO itself.
+ * Only active when Redis is available.
  */
 @Service
+@ConditionalOnBean(RedisConnectionFactory.class)
 @RequiredArgsConstructor
 @Slf4j
 public class FoodNutritionCacheService {

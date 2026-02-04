@@ -10,8 +10,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -53,6 +55,7 @@ public class IntelligentRecipeService {
   private final RecipeRepository recipeRepository;
   private final IngredientRepository ingredientRepository;
   private final ObjectMapper objectMapper;
+  @Nullable
   private final StringRedisTemplate redisTemplate;
   private final MeterRegistry meterRegistry;
 
@@ -60,9 +63,8 @@ public class IntelligentRecipeService {
       UserProfileRepository userProfileRepository,
       RecipeRepository recipeRepository,
       IngredientRepository ingredientRepository,
-      //Optional<ChatCompletionClient> chatCompletionClient,
       ObjectMapper objectMapper,
-      StringRedisTemplate redisTemplate,
+      @Autowired(required = false) StringRedisTemplate redisTemplate,
       MeterRegistry meterRegistry) {
     this.userProfileRepository = userProfileRepository;
     this.recipeRepository = recipeRepository;
@@ -474,6 +476,7 @@ public class IntelligentRecipeService {
    * Read from cache
    */
   private GeneratedRecipeResponse readCache(String cacheKey) {
+    if (redisTemplate == null) return null;
     try {
       String value = redisTemplate.opsForValue().get(cacheKey);
       if (StringUtils.hasText(value)) {
@@ -492,6 +495,7 @@ public class IntelligentRecipeService {
    */
   @SuppressWarnings("unused")
   private void writeCache(String cacheKey, GeneratedRecipeResponse response) {
+    if (redisTemplate == null) return;
     try {
       String payload = objectMapper.writeValueAsString(response);
       Duration ttl = Duration.ofHours(cacheTtlHours <= 0 ? 24 : cacheTtlHours);
