@@ -6,6 +6,8 @@ import java.time.ZoneId;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -14,18 +16,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Manages free quota for AI recipe generation
- *
- * Free tier limits:
- * - Daily: 5 generations per user per day
- * - Monthly: 30 generations per user per month
- *
- * After exceeding quota, users can:
- * - Wait until quota resets (next day/month)
- * - Use cached recipes (24-hour cache)
- * - Future: Upgrade to premium for unlimited generations
+ * Manages free quota for AI recipe generation.
+ * Only active when Redis is available.
  */
 @Service
+@ConditionalOnBean(RedisConnectionFactory.class)
 @RequiredArgsConstructor
 @Slf4j
 public class RecipeGenerationQuotaService {

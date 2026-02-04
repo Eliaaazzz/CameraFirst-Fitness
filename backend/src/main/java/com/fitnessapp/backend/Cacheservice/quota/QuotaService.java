@@ -8,14 +8,18 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 /**
  * Service for managing user quotas with Redis-backed counters.
  * Quotas are automatically reset based on their configured period (daily/weekly/monthly).
+ * Only active when Redis is available.
  */
 @Service
+@ConditionalOnBean(RedisConnectionFactory.class)
 @RequiredArgsConstructor
 @Slf4j
 public class QuotaService {

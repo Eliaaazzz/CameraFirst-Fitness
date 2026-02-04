@@ -18,13 +18,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Slf4j
-@RequiredArgsConstructor
 @Service
 public class YouTubeService {
 
@@ -32,8 +31,18 @@ public class YouTubeService {
     private static final String CACHE_KEY_PREFIX = "yt:video:";
 
     private final YouTube youtube;
+    @Nullable
     private final RedisTemplate<String, VideoMetadata> redisTemplate;
     private final YouTubeProperties properties;
+
+    public YouTubeService(
+            YouTube youtube,
+            @Autowired(required = false) RedisTemplate<String, VideoMetadata> redisTemplate,
+            YouTubeProperties properties) {
+        this.youtube = youtube;
+        this.redisTemplate = redisTemplate;
+        this.properties = properties;
+    }
 
     public Optional<VideoMetadata> fetchVideoMetadata(String videoId) {
         String normalizedId = normalizeVideoId(videoId);
@@ -42,9 +51,11 @@ public class YouTubeService {
         }
 
         String cacheKey = CACHE_KEY_PREFIX + normalizedId;
-        VideoMetadata cached = redisTemplate.opsForValue().get(cacheKey);
-        if (cached != null) {
-            return Optional.of(cached);
+        if (redisTemplate != null) {
+            VideoMetadata cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                return Optional.of(cached);
+            }
         }
 
         if (properties.getApiKey() == null || properties.getApiKey().isBlank()) {
@@ -64,7 +75,9 @@ public class YouTubeService {
             }
 
             VideoMetadata metadata = toMetadata(response.getItems().get(0));
-            redisTemplate.opsForValue().set(cacheKey, metadata, properties.getCacheTtl());
+            if (redisTemplate != null) {
+                redisTemplate.opsForValue().set(cacheKey, metadata, properties.getCacheTtl());
+            }
             return Optional.of(metadata);
         } catch (GoogleJsonResponseException ex) {
             log.error("YouTube API error ({}): {}", ex.getStatusCode(), ex.getDetails() != null ? ex.getDetails().getMessage() : ex.getMessage());
