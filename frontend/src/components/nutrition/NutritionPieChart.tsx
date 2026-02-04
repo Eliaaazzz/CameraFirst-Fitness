@@ -1,3 +1,31 @@
+import React, { useEffect } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedProps,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
+import Svg, { Circle, G } from 'react-native-svg';
+import { Flame } from 'phosphor-react-native';
+
+import { Text } from '@/components/Text';
+import { spacing } from '@/utils';
+import { useLanguageStore } from '@/stores/useLanguageStore';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+interface NutritionPieChartProps {
+  data: {
+    calories: { current: number; target: number };
+    protein: { current: number; target: number };
+    carbs: { current: number; target: number };
+    fat?: { current: number; target: number };
+  };
+  showFat?: boolean;
+}
+
 // ============================================================================
 // APPLE WATCH NEON COLORS - Vibrant & Bold
 // ============================================================================
