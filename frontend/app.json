@@ -2,6 +2,7 @@
   "expo": {
     "name": "FitnessMVP",
     "slug": "fitness-mvp",
+    "scheme": "com.fitnessapp.mvp",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
