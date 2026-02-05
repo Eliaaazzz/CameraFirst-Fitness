@@ -9,14 +9,20 @@ import {
   type WeightLogResponse,
   type WeightStatsResponse,
 } from '../weightApi';
-import { apiClient } from '../apiClient';
+import { api } from '../apiClient';
 
-// Mock apiClient
+// Mock api
 jest.mock('../apiClient', () => ({
-  apiClient: jest.fn(),
+  api: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    uploadImage: jest.fn(),
+  },
 }));
 
-const mockApiClient = apiClient as jest.MockedFunction<typeof apiClient>;
+const mockApi = api as jest.Mocked<typeof api>;
 
 describe('weightApi', () => {
   beforeEach(() => {
@@ -48,16 +54,13 @@ describe('weightApi', () => {
         createdAt: '2024-01-15T08:00:00Z',
       };
 
-      mockApiClient.mockResolvedValueOnce(mockResponse);
+      mockApi.post.mockResolvedValueOnce(mockResponse);
 
       // When
       const result = await logWeight(request);
 
       // Then
-      expect(mockApiClient).toHaveBeenCalledWith('/api/v1/weight', {
-        method: 'POST',
-        body: JSON.stringify(request),
-      });
+      expect(mockApi.post).toHaveBeenCalledWith('/api/v1/weight', request);
       expect(result).toEqual(mockResponse);
     });
 
@@ -74,23 +77,20 @@ describe('weightApi', () => {
         createdAt: '2024-01-15T08:00:00Z',
       };
 
-      mockApiClient.mockResolvedValueOnce(mockResponse);
+      mockApi.post.mockResolvedValueOnce(mockResponse);
 
       // When
       const result = await logWeight(request);
 
       // Then
-      expect(mockApiClient).toHaveBeenCalledWith('/api/v1/weight', {
-        method: 'POST',
-        body: JSON.stringify(request),
-      });
+      expect(mockApi.post).toHaveBeenCalledWith('/api/v1/weight', request);
       expect(result.id).toBe(2);
     });
 
     it('should propagate API errors', async () => {
       // Given
       const request: WeightLogRequest = { weightKg: 75 };
-      mockApiClient.mockRejectedValueOnce(new Error('Network error'));
+      mockApi.post.mockRejectedValueOnce(new Error('Network error'));
 
       // When & Then
       await expect(logWeight(request)).rejects.toThrow('Network error');
@@ -112,13 +112,13 @@ describe('weightApi', () => {
         { id: 2, weightKg: 74.5, logDate: '2024-01-10', createdAt: '2024-01-10T08:00:00Z' },
       ];
 
-      mockApiClient.mockResolvedValueOnce(mockResponse);
+      mockApi.get.mockResolvedValueOnce(mockResponse);
 
       // When
       const result = await getWeightHistory(startDate, endDate);
 
       // Then
-      expect(mockApiClient).toHaveBeenCalledWith(
+      expect(mockApi.get).toHaveBeenCalledWith(
         `/api/v1/weight/history?startDate=${startDate}&endDate=${endDate}`
       );
       expect(result).toHaveLength(2);
@@ -137,25 +137,25 @@ describe('weightApi', () => {
         { id: 1, weightKg: 75, logDate: '2024-01-15', createdAt: '2024-01-15T08:00:00Z' },
       ];
 
-      mockApiClient.mockResolvedValueOnce(mockResponse);
+      mockApi.get.mockResolvedValueOnce(mockResponse);
 
       // When
       const result = await getRecentWeightLogs();
 
       // Then
-      expect(mockApiClient).toHaveBeenCalledWith('/api/v1/weight/recent?limit=30');
+      expect(mockApi.get).toHaveBeenCalledWith('/api/v1/weight/recent?limit=30');
       expect(result).toHaveLength(1);
     });
 
     it('should fetch recent logs with custom limit', async () => {
       // Given
-      mockApiClient.mockResolvedValueOnce([]);
+      mockApi.get.mockResolvedValueOnce([]);
 
       // When
       await getRecentWeightLogs(10);
 
       // Then
-      expect(mockApiClient).toHaveBeenCalledWith('/api/v1/weight/recent?limit=10');
+      expect(mockApi.get).toHaveBeenCalledWith('/api/v1/weight/recent?limit=10');
     });
   });
 
@@ -180,13 +180,13 @@ describe('weightApi', () => {
         history: [],
       };
 
-      mockApiClient.mockResolvedValueOnce(mockResponse);
+      mockApi.get.mockResolvedValueOnce(mockResponse);
 
       // When
       const result = await getWeightStats();
 
       // Then
-      expect(mockApiClient).toHaveBeenCalledWith('/api/v1/weight/stats?days=30');
+      expect(mockApi.get).toHaveBeenCalledWith('/api/v1/weight/stats?days=30');
       expect(result.currentWeight).toBe(72);
       expect(result.trend).toBe('losing');
     });
@@ -207,13 +207,13 @@ describe('weightApi', () => {
         history: [],
       };
 
-      mockApiClient.mockResolvedValueOnce(mockResponse);
+      mockApi.get.mockResolvedValueOnce(mockResponse);
 
       // When
       const result = await getWeightStats(90);
 
       // Then
-      expect(mockApiClient).toHaveBeenCalledWith('/api/v1/weight/stats?days=90');
+      expect(mockApi.get).toHaveBeenCalledWith('/api/v1/weight/stats?days=90');
       expect(result.totalLogs).toBe(0);
     });
   });
@@ -225,15 +225,13 @@ describe('weightApi', () => {
   describe('deleteWeightLog()', () => {
     it('should call delete API with correct ID', async () => {
       // Given
-      mockApiClient.mockResolvedValueOnce(undefined);
+      mockApi.delete.mockResolvedValueOnce(undefined);
 
       // When
       await deleteWeightLog(123);
 
       // Then
-      expect(mockApiClient).toHaveBeenCalledWith('/api/v1/weight/123', {
-        method: 'DELETE',
-      });
+      expect(mockApi.delete).toHaveBeenCalledWith('/api/v1/weight/123');
     });
   });
 

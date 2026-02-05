@@ -58,6 +58,8 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^13.3.3",
     "@types/expo__vector-icons": "^9.0.1",
     "@types/jest": "^29.5.12",
     "@types/react": "^19.2.3",
