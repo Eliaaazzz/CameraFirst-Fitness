@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient';
+import { api } from './apiClient';
 
 // ============================================================================
 // Types
@@ -44,11 +44,7 @@ export interface WeightStatsResponse {
  * Log a new weight entry (or update existing entry for the same date).
  */
 export async function logWeight(request: WeightLogRequest): Promise<WeightLogResponse> {
-  const response = await apiClient<WeightLogResponse>('/api/v1/weight', {
-    method: 'POST',
-    body: JSON.stringify(request),
-  });
-  return response;
+  return await api.post<WeightLogResponse>('/api/v1/weight', request);
 }
 
 /**
@@ -59,33 +55,28 @@ export async function getWeightHistory(
   endDate: string
 ): Promise<WeightLogResponse[]> {
   const params = new URLSearchParams({ startDate, endDate });
-  const response = await apiClient<WeightLogResponse[]>(`/api/v1/weight/history?${params}`);
-  return response;
+  return await api.get<WeightLogResponse[]>(`/api/v1/weight/history?${params}`);
 }
 
 /**
  * Get recent weight logs.
  */
 export async function getRecentWeightLogs(limit = 30): Promise<WeightLogResponse[]> {
-  const response = await apiClient<WeightLogResponse[]>(`/api/v1/weight/recent?limit=${limit}`);
-  return response;
+  return await api.get<WeightLogResponse[]>(`/api/v1/weight/recent?limit=${limit}`);
 }
 
 /**
  * Get comprehensive weight statistics and trends.
  */
 export async function getWeightStats(days = 30): Promise<WeightStatsResponse> {
-  const response = await apiClient<WeightStatsResponse>(`/api/v1/weight/stats?days=${days}`);
-  return response;
+  return await api.get<WeightStatsResponse>(`/api/v1/weight/stats?days=${days}`);
 }
 
 /**
  * Delete a weight log entry.
  */
 export async function deleteWeightLog(id: number): Promise<void> {
-  await apiClient<void>(`/api/v1/weight/${id}`, {
-    method: 'DELETE',
-  });
+  await api.delete(`/api/v1/weight/${id}`);
 }
 
 // ============================================================================
