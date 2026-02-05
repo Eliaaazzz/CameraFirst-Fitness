@@ -324,9 +324,19 @@ export default function LoginScreen() {
   }, []);
 
   // Google OAuth setup
-  const redirectUri = Platform.OS === 'web'
-    ? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081')
-    : AuthSession.makeRedirectUri({ scheme: 'com.fitnessapp.mvp' });
+  // Use AuthSession.makeRedirectUri() for all platforms to ensure consistency.
+  // On Web, this defaults to the current origin (e.g., http://localhost:8081).
+  // On Native, it uses the provided scheme.
+  const redirectUri = AuthSession.makeRedirectUri({
+    scheme: 'com.fitnessapp.mvp',
+    preferLocalhost: true,
+  });
+
+  // Debug: Log the calculated redirectUri in development
+  if (__DEV__) {
+    console.log('[OAuth] Calculated redirectUri:', redirectUri);
+    console.log('[OAuth] Platform:', Platform.OS);
+  }
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     iosClientId: GOOGLE_IOS_CLIENT_ID,
