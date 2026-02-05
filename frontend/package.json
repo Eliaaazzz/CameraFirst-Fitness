@@ -10,7 +10,8 @@
     "test": "jest",
     "type-check": "tsc --noEmit",
     "lint": "echo 'Linting not configured yet' && exit 0",
-    "build": "npx expo export --platform web"
+    "build": "npx expo export --platform web && npm run postbuild",
+    "postbuild": "cp -r public/* dist/ 2>/dev/null || true"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
