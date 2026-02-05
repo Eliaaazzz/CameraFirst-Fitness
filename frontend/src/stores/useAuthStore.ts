@@ -236,6 +236,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.log('[AuthStore] Validating token with backend...');
       const userInfo = await fetchCurrentUser();
 
+      if (!userInfo) {
+        throw new Error('User info is empty after validation');
+      }
+
       // Success - update state with fresh data
       set({
         userInfo,
@@ -244,7 +248,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isRestoringToken: false,
       });
       await persistUserInfo(userInfo);
-      console.log('[AuthStore] Token validated, user:', userInfo.email);
+      console.log('[AuthStore] Token validated, user:', userInfo?.email || 'unknown');
     } catch (error: any) {
       console.error('[AuthStore] restoreToken failed:', error);
 

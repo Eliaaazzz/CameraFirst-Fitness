@@ -1,0 +1,8 @@
+# Cloudflare Pages Redirects
+# Proxy all API requests to the backend on Render
+
+# API endpoints - proxy to backend
+/api/* https://fitness-backend-latest-2.onrender.com/api/:splat 200
+
+# SPA fallback - serve index.html for all other routes
+/* /index.html 200
