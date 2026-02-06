@@ -2,7 +2,9 @@ name: Deploy Backend to Render
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - CF-35-fix-refine-uiux-to-be-saa-s
     paths:
       - 'backend/**'
       - '.github/workflows/deploy-render.yml'

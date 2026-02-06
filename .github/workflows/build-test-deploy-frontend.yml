@@ -2,7 +2,9 @@ name: Build, Test & Deploy Frontend
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - CF-35-fix-refine-uiux-to-be-saa-s
     paths:
       - 'frontend/**'
       - '!frontend/README.md'
