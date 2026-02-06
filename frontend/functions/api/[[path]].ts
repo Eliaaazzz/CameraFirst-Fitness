@@ -11,10 +11,12 @@ export async function onRequest(context: any) {
   const backendUrl = `${BACKEND_URL}${url.pathname}${url.search}`;
 
   // Forward the request to the backend
+  // CRITICAL: Use request.body directly to preserve binary data (e.g., image uploads)
+  // Using request.text() would corrupt multipart/form-data by treating binary as UTF-8
   const modifiedRequest = new Request(backendUrl, {
     method: request.method,
     headers: request.headers,
-    body: request.method !== 'GET' && request.method !== 'HEAD' ? await request.text() : undefined,
+    body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : null,
   });
 
   try {
