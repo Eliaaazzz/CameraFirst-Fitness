@@ -271,7 +271,15 @@ export async function uploadImage<T>(
   if (Platform.OS === 'web') {
     // On web, convert data URI to Blob
     const response = await fetch(imageUri);
-    const blob = await response.blob();
+    let blob = await response.blob();
+
+    // CRITICAL: Ensure blob has correct MIME type for Gemini API
+    // If blob type is empty or generic, explicitly set it to image/jpeg
+    if (!blob.type || blob.type === 'application/octet-stream' || blob.type === '') {
+      blob = new Blob([blob], { type: 'image/jpeg' });
+      console.log('[APIClient] Fixed blob MIME type to image/jpeg');
+    }
+
     formData.append('image', blob, 'image.jpg');
   } else {
     // On mobile (iOS/Android): Convert HEIC to JPEG using expo-image-manipulator
