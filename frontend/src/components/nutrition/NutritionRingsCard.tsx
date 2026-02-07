@@ -1,6 +1,6 @@
 import { Flame } from 'phosphor-react-native';
 import React, { useEffect } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
     Easing,
     useAnimatedProps,
@@ -49,30 +49,16 @@ interface NutritionRingsCardProps {
 
 
 const RING_COLORS = {
+  // Rings
+  protein: '#34C759', // Green
+  fat: '#FF3B30', // Red
+  carbs: '#007AFF', // Blue
 
-  // Outer Ring: Calories - Neon Orange-Red
-
-  calories: '#FF3B30',
-
-
-
-  // Second Ring: Protein - Neon Green
-
-  protein: '#34C759',
-
-
-
-  // Third Ring: Fat - Neon Yellow/Gold
-
-  fat: '#FFD60A',
-
-
-
-  // Inner Ring: Carbs - Electric Blue
-
-  carbs: '#007AFF',
-
+  // Center icon / accents
+  calories: '#FF9500', // Orange
 };
+
+const TRACK_COLOR = '#E5E7EB';
 
 
 
@@ -116,7 +102,7 @@ interface RingConfig {
 
 
 
-// 3 Rings Layout (Protein, Carbs, Fat)
+// 3 Rings Layout (Protein, Fat, Carbs)
 
 
 
@@ -152,15 +138,15 @@ const RING_CONFIGS: RingConfig[] = [
 
 
 
-    key: 'carbs',
+    key: 'fat',
 
 
 
-    label: 'Carbs',
+    label: 'Fat',
 
 
 
-    color: RING_COLORS.carbs,
+    color: RING_COLORS.fat,
 
 
 
@@ -176,15 +162,15 @@ const RING_CONFIGS: RingConfig[] = [
 
 
 
-    key: 'fat',
+    key: 'carbs',
 
 
 
-    label: 'Fat',
+    label: 'Carbs',
 
 
 
-    color: RING_COLORS.fat,
+    color: RING_COLORS.carbs,
 
 
 
@@ -312,7 +298,7 @@ function AnimatedRing({
 
     <>
 
-      {/* Background Track - Same color at 15% opacity */}
+      {/* Background Track - Gray track (Apple Watch style) */}
 
       <Circle
 
@@ -322,13 +308,13 @@ function AnimatedRing({
 
         r={radius}
 
-        stroke={color}
+        stroke={TRACK_COLOR}
 
         strokeWidth={STROKE_WIDTH}
 
         fill="none"
 
-        opacity={0.15}
+        opacity={1}
 
         strokeLinecap="round"
 
@@ -356,7 +342,7 @@ function AnimatedRing({
 
           strokeLinecap="round"
 
-          strokeDasharray={circumference}
+          strokeDasharray={[circumference, circumference]}
 
           animatedProps={animatedProps}
 
@@ -392,11 +378,13 @@ interface LegendItemProps {
 
   readonly unit: string;
 
+  readonly compact?: boolean;
+
 }
 
 
 
-function LegendItem({ color, label, current, target, unit }: LegendItemProps) {
+function LegendItem({ color, label, current, target, unit, compact = false }: LegendItemProps) {
 
   const percentage = target > 0 ? Math.round((current / target) * 100) : 0;
 
@@ -404,11 +392,17 @@ function LegendItem({ color, label, current, target, unit }: LegendItemProps) {
 
   return (
 
-    <View style={styles.legendItem}>
+    <View style={[styles.legendItem, compact && styles.legendItemCompact]}>
 
       {/* Colored dot indicator */}
 
-      <View style={[styles.legendDot, { backgroundColor: color }]} />
+      <View
+        style={[
+          styles.legendDot,
+          compact && styles.legendDotCompact,
+          { backgroundColor: color },
+        ]}
+      />
 
 
 
@@ -416,7 +410,10 @@ function LegendItem({ color, label, current, target, unit }: LegendItemProps) {
 
       <View style={styles.legendContent}>
 
-        <Text variant="caption" style={styles.legendLabel}>
+        <Text
+          variant="caption"
+          style={compact ? [styles.legendLabel, styles.legendLabelCompact] : styles.legendLabel}
+        >
 
           {label}
 
@@ -424,13 +421,20 @@ function LegendItem({ color, label, current, target, unit }: LegendItemProps) {
 
         <View style={styles.legendValues}>
 
-          <Text variant="body" weight="bold" style={styles.legendCurrent}>
+          <Text
+            variant="body"
+            weight="bold"
+            style={compact ? [styles.legendCurrent, styles.legendCurrentCompact] : styles.legendCurrent}
+          >
 
             {Math.round(current)}
 
           </Text>
 
-          <Text variant="caption" style={styles.legendTarget}>
+          <Text
+            variant="caption"
+            style={compact ? [styles.legendTarget, styles.legendTargetCompact] : styles.legendTarget}
+          >
 
             / {target}{unit}
 
@@ -444,9 +448,15 @@ function LegendItem({ color, label, current, target, unit }: LegendItemProps) {
 
       {/* Percentage badge */}
 
-      <View style={[styles.percentBadge, { backgroundColor: `${color}20` }]}>
+      <View style={[styles.percentBadge, compact && styles.percentBadgeCompact, { backgroundColor: `${color}20` }]}>
 
-        <Text style={[styles.percentText, { color }]}>
+        <Text
+          style={
+            compact
+              ? [styles.percentText, styles.percentTextCompact, { color }]
+              : [styles.percentText, { color }]
+          }
+        >
 
           {percentage}%
 
@@ -476,7 +486,7 @@ export function NutritionRingsCard({
 
   title,
 
-  showFat = true, // Default to true now as we force render 4 rings
+  showFat = true,
 
   animated = true,
 
@@ -485,6 +495,13 @@ export function NutritionRingsCard({
   const { t } = useLanguageStore();
 
   const displayTitle = title || t.todaysNutrition;
+
+  const { width } = useWindowDimensions();
+  const isCompact = width < 768;
+
+  const ringConfigs = showFat
+    ? RING_CONFIGS
+    : RING_CONFIGS.filter((config) => config.key !== 'fat');
 
 
 
@@ -556,15 +573,15 @@ export function NutritionRingsCard({
 
       {/* Content: Rings + Legend */}
 
-      <View style={styles.content}>
+      <View style={[styles.content, isCompact ? styles.contentCompact : styles.contentWide]}>
 
         {/* Rings Container */}
 
-        <View style={styles.ringsContainer}>
+        <View style={[styles.ringsContainer, isCompact && styles.ringsContainerCompact]}>
 
-          <Svg width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
+          <Svg width="100%" height="100%" viewBox={`0 0 ${svgSize} ${svgSize}`}>
 
-            {RING_CONFIGS.map((config, index) => (
+            {ringConfigs.map((config, index) => (
 
               <AnimatedRing
 
@@ -594,11 +611,11 @@ export function NutritionRingsCard({
 
           {/* Center content - Fits inside r=70 (Diameter 140) */}
 
-          <View style={styles.centerContent}>
+          <View style={[styles.centerContent, isCompact && styles.centerContentCompact]}>
 
             <Flame
 
-              size={32}
+              size={isCompact ? 28 : 32}
 
               weight="fill"
 
@@ -606,13 +623,15 @@ export function NutritionRingsCard({
 
             />
 
-            <Text style={styles.centerCalories}>
+            <Text
+              style={isCompact ? [styles.centerCalories, styles.centerCaloriesCompact] : styles.centerCalories}
+            >
 
               {Math.round(data.calories.current)}
 
             </Text>
 
-            <Text style={styles.centerSubtext}>
+            <Text style={isCompact ? [styles.centerSubtext, styles.centerSubtextCompact] : styles.centerSubtext}>
 
               of {data.calories.target} kcal
 
@@ -626,7 +645,7 @@ export function NutritionRingsCard({
 
         {/* Vertical Legend */}
 
-        <View style={styles.legend}>
+        <View style={[styles.legend, isCompact && styles.legendCompact]}>
 
           <LegendItem
 
@@ -639,6 +658,8 @@ export function NutritionRingsCard({
             target={data.calories.target}
 
             unit=""
+
+            compact={isCompact}
 
           />
 
@@ -654,21 +675,20 @@ export function NutritionRingsCard({
 
             unit="g"
 
-          />
-
-          <LegendItem
-
-            color={RING_COLORS.fat}
-
-            label="Fat"
-
-            current={data.fat?.current || 0}
-
-            target={data.fat?.target || 0}
-
-            unit="g"
+            compact={isCompact}
 
           />
+
+          {showFat && (
+            <LegendItem
+              color={RING_COLORS.fat}
+              label="Fat"
+              current={data.fat?.current || 0}
+              target={data.fat?.target || 0}
+              unit="g"
+              compact={isCompact}
+            />
+          )}
 
           <LegendItem
 
@@ -681,6 +701,8 @@ export function NutritionRingsCard({
             target={data.carbs.target}
 
             unit="g"
+
+            compact={isCompact}
 
           />
 
@@ -776,38 +798,58 @@ const styles = StyleSheet.create({
 
   content: {
 
-    flexDirection: 'row',
-
+    flexWrap: 'wrap',
     alignItems: 'center',
+    justifyContent: 'center',
 
+  },
+
+  contentWide: {
+    flexDirection: 'row',
     gap: spacing.xl,
+  },
 
+  contentCompact: {
+    flexDirection: 'column',
+    gap: spacing.lg,
   },
 
   ringsContainer: {
 
     position: 'relative',
 
-    width: 320,
-
-    height: 320,
-
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 240,
+    aspectRatio: 1,
     justifyContent: 'center',
 
     alignItems: 'center',
 
+    padding: spacing.md,
+
+  },
+
+  ringsContainerCompact: {
+    flexGrow: 0,
+    flexShrink: 0,
+    minWidth: 0,
+    alignSelf: 'stretch',
   },
 
   centerContent: {
 
-    position: 'absolute',
-
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
 
     justifyContent: 'center',
 
-    width: 100, // Expanded to fit more text
+    paddingHorizontal: spacing.sm,
 
+  },
+
+  centerContentCompact: {
+    paddingHorizontal: spacing.xs,
   },
 
   centerCalories: {
@@ -824,6 +866,10 @@ const styles = StyleSheet.create({
 
   },
 
+  centerCaloriesCompact: {
+    fontSize: 40,
+  },
+
   centerSubtext: {
 
     color: '#6B7280',
@@ -838,16 +884,31 @@ const styles = StyleSheet.create({
 
   },
 
+  centerSubtextCompact: {
+    fontSize: 12,
+  },
+
   // Vertical legend
 
   legend: {
 
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 220,
+    alignSelf: 'stretch',
 
     gap: spacing.xl, // Balanced spacing
 
     justifyContent: 'center',
 
+  },
+
+  legendCompact: {
+    flexGrow: 0,
+    flexShrink: 0,
+    minWidth: 0,
+    width: '100%',
+    gap: spacing.md,
   },
 
   legendItem: {
@@ -858,6 +919,12 @@ const styles = StyleSheet.create({
 
     gap: spacing.sm,
 
+    flexWrap: 'wrap',
+
+  },
+
+  legendItemCompact: {
+    gap: spacing.xs,
   },
 
   legendDot: {
@@ -870,9 +937,17 @@ const styles = StyleSheet.create({
 
   },
 
+  legendDotCompact: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+
   legendContent: {
 
     flex: 1,
+
+    minWidth: 0,
 
   },
 
@@ -886,6 +961,10 @@ const styles = StyleSheet.create({
 
     marginBottom: 1,
 
+  },
+
+  legendLabelCompact: {
+    fontSize: 12,
   },
 
   legendValues: {
@@ -906,6 +985,10 @@ const styles = StyleSheet.create({
 
   },
 
+  legendCurrentCompact: {
+    fontSize: 15,
+  },
+
   legendTarget: {
 
     color: '#9CA3AF',
@@ -918,6 +1001,10 @@ const styles = StyleSheet.create({
 
   },
 
+  legendTargetCompact: {
+    fontSize: 12,
+  },
+
   percentBadge: {
 
     paddingHorizontal: 8,
@@ -926,6 +1013,14 @@ const styles = StyleSheet.create({
 
     borderRadius: 10,
 
+    flexShrink: 0,
+
+  },
+
+  percentBadgeCompact: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
 
   percentText: {
@@ -936,10 +1031,12 @@ const styles = StyleSheet.create({
 
   },
 
+  percentTextCompact: {
+    fontSize: 10,
+  },
+
 });
 
 
 
 export default NutritionRingsCard;
-
-
