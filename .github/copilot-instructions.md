@@ -153,7 +153,7 @@ Slow/broken tests excluded in CI with `-PexcludeSlowTests`. **Do not run these i
 - [docs/AURA_DEVELOPMENT_PLAN_COMPLETE.md](../docs/AURA_DEVELOPMENT_PLAN_COMPLETE.md) - Development roadmap & implementation status
 - [docs/JWT-AUTHENTICATION-GUIDE.md](../docs/JWT-AUTHENTICATION-GUIDE.md) - Auth flow diagrams
 - [frontend/CODE_STRUCTURE.md](../frontend/CODE_STRUCTURE.md) - Component hierarchy & state flow
-- [docs/DEPLOYMENT_SUMMARY.md](../docs/DEPLOYMENT_SUMMARY.md) - AWS EC2 deployment guide
+- `render.yaml` - Render Blueprint (backend)
 
 **API Documentation:** Swagger UI at `http://localhost:8080/swagger-ui.html` when backend is running
 

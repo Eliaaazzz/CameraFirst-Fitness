@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BRAND_COLORS } from '@/utils';
 
 interface MealImageProps {
-  /** S3 image URL */
+  /** Public image URL (R2/CDN) */
   imageUrl: string | null | undefined;
   /** Size of the image (width & height) */
   size?: number;

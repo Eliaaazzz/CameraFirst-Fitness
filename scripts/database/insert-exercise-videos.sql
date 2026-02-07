@@ -1,6 +1,6 @@
 -- ============================================================
 -- Insert Exercise Videos Data
--- 插入练习视频数据到 AWS RDS
+-- 插入练习视频数据到 PostgreSQL（兼容 Supabase）
 -- ============================================================
 
 -- Insert all exercise videos (using ON CONFLICT to avoid duplicates)

@@ -1,20 +1,25 @@
 import { DetectedItemRow } from '@/components/nutrition/DetectedItemRow';
 import { NutritionSummaryCard } from '@/components/nutrition/NutritionSummaryCard';
+import { CameraView } from '@/components/CameraView';
 import useImageCompressor from '@/hooks/useImageCompressor';
+import { useCameraPermission } from '@/hooks/useCameraPermission';
 import nutritionApi, {
   DetectedFood,
   TotalNutrition,
 } from '@/services/nutritionApi';
+import { DEFAULT_MEAL_IMAGE_WIDTH_CM } from '@/utils';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Animated,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -27,8 +32,12 @@ const SUCCESS_GRADIENT = ['#A78BFA', '#F472B6'] as const;
 
 export function ReviewMealScreen({ route, navigation }: any) {
   // Support both new image analysis and viewing/editing saved meals
-  const { imageUri, meal } = route.params;
+  const { imageUri, meal, openCamera, imgWcm } = route.params ?? {};
   const isViewingExisting = !!meal;
+  const shouldShowCamera = !!openCamera && !imageUri && !isViewingExisting;
+
+  const cameraPerm = useCameraPermission();
+  const scaleHintCm = typeof imgWcm === 'number' ? imgWcm : DEFAULT_MEAL_IMAGE_WIDTH_CM;
 
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -88,6 +97,11 @@ export function ReviewMealScreen({ route, navigation }: any) {
       return;
     }
 
+    // Wait until we have an image URI (camera capture / gallery pick)
+    if (!imageUri) {
+      return;
+    }
+
     // Reset all state when imageUri changes (new photo taken)
     setLoading(true);
     setPhase(1);
@@ -100,8 +114,18 @@ export function ReviewMealScreen({ route, navigation }: any) {
     setShowSuccess(false);
     successAnim.setValue(0);
 
-    const timer1 = setTimeout(() => setPhase(2), 1200);
-    const timer2 = setTimeout(() => setPhase(3), 2400);
+    // Animation phases: 1 → 2 → 3, then stays on 3 until analysis completes
+    // Each phase lasts 1.5 seconds, completing one full cycle in 4.5 seconds
+    let isCancelled = false;
+    const PHASE_DURATION = 1500; // 1.5 seconds per phase
+
+    const timer1 = setTimeout(() => {
+      if (!isCancelled) setPhase(2);
+    }, PHASE_DURATION);
+
+    const timer2 = setTimeout(() => {
+      if (!isCancelled) setPhase(3);
+    }, PHASE_DURATION * 2);
 
     const analyze = async () => {
       try {
@@ -128,19 +152,27 @@ export function ReviewMealScreen({ route, navigation }: any) {
           console.warn('Image compression failed, using original image', compressionError);
         }
 
-        const response = await nutritionApi.analyzeFoodImage(uploadUri);
-        setItems(response.items);
-        setTotal(response.totalNutrition);
-        setServerImageUrl(response.imageUrl);
+        const response = await nutritionApi.analyzeFoodImage(uploadUri, { img_w_cm: scaleHintCm });
+
+        // Only update state if not cancelled (component still mounted)
+        if (!isCancelled) {
+          setItems(response.items);
+          setTotal(response.totalNutrition);
+          setServerImageUrl(response.imageUrl);
+          setLoading(false);
+        }
       } catch (error: any) {
+        // Don't show error if cancelled
+        if (isCancelled) return;
+
         console.error('Food analysis failed:', error);
-        
+
         // Parse error message for user-friendly display
         let errorTitle = 'Analysis Failed';
         let errorMessage = 'Failed to analyze the image. Please try again.';
-        
+
         const errorString = error?.message || error?.data?.message || String(error);
-        
+
         if (errorString.includes('too large') || errorString.includes('10MB')) {
           errorTitle = 'Image Too Large';
           errorMessage = 'The image is too large. Please take a photo with lower resolution or try a different image.';
@@ -154,17 +186,17 @@ export function ReviewMealScreen({ route, navigation }: any) {
           errorTitle = 'Request Timeout';
           errorMessage = 'The analysis is taking too long. Please try again with a smaller image.';
         }
-        
+
+        setLoading(false);
+
         const canRetry = retryCount < MAX_RETRIES;
-        
+
         Alert.alert(errorTitle, errorMessage, [
           ...(canRetry ? [{
             text: `Try Again (${MAX_RETRIES - retryCount} left)`,
             onPress: () => {
               // Reset and retry
               setRetryCount(prev => prev + 1);
-              setLoading(true);
-              setPhase(1);
             },
           }] : []),
           {
@@ -179,20 +211,105 @@ export function ReviewMealScreen({ route, navigation }: any) {
             },
           },
         ]);
-      } finally {
-        setLoading(false);
-        clearTimeout(timer1);
-        clearTimeout(timer2);
       }
     };
 
     analyze();
 
     return () => {
+      // Cleanup: cancel animation timers if component unmounts
+      isCancelled = true;
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
   }, [imageUri, retryCount, isViewingExisting]);
+
+  const openGallery = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission needed', 'Gallery permission is required');
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.85,
+      });
+
+      if (result.canceled || !result.assets?.[0]?.uri) {
+        return;
+      }
+
+      navigation.setParams({ imageUri: result.assets[0].uri, openCamera: false, imgWcm: scaleHintCm });
+    } catch (err) {
+      console.error('Gallery pick failed', err);
+      Alert.alert('Error', 'Could not open gallery: ' + (err as Error)?.message);
+    }
+  };
+
+  if (shouldShowCamera) {
+    const permissionDenied = cameraPerm.state === 'denied';
+    const permissionGranted = cameraPerm.state === 'granted';
+
+    if (!permissionGranted) {
+      return (
+        <SafeAreaView style={styles.container}>
+          <View style={styles.permissionContainer}>
+            <Text style={styles.permissionTitle}>Camera access needed</Text>
+            <Text style={styles.permissionSubtitle}>
+              Enable camera to scan your meal with the Magic Ring.
+            </Text>
+
+            <Pressable
+              onPress={permissionDenied ? cameraPerm.openSettings : () => cameraPerm.request()}
+              style={styles.permissionPrimaryBtn}
+            >
+              <Text style={styles.permissionPrimaryBtnText}>
+                {permissionDenied ? 'Open Settings' : 'Allow Camera'}
+              </Text>
+            </Pressable>
+
+            <Pressable onPress={openGallery} style={styles.permissionSecondaryBtn}>
+              <Text style={styles.permissionSecondaryBtnText}>Choose from Gallery</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                if (navigation.canGoBack()) navigation.goBack();
+                else navigation.navigate('Dashboard');
+              }}
+              style={styles.permissionTertiaryBtn}
+            >
+              <Text style={styles.permissionTertiaryBtnText}>Not now</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      );
+    }
+
+    return (
+      <View style={styles.cameraContainer}>
+        <CameraView
+          onCapture={(uri) => navigation.setParams({ imageUri: uri, openCamera: false, imgWcm: scaleHintCm })}
+          onCancel={() => {
+            if (navigation.canGoBack()) navigation.goBack();
+            else navigation.navigate('Dashboard');
+          }}
+          onGalleryPress={openGallery}
+          guideText="Align food here"
+          processing={false}
+          showReticle
+          captureButtonVariant="glass"
+          autoUsePhoto
+        />
+      </View>
+    );
+  }
 
   const handleAmountChange = (id: string, delta: number) => {
     setItems((prev) =>
@@ -363,8 +480,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
               <DetectedItemRow
                 key={item.id}
                 item={item}
-                onIncrease={() => handleAmountChange(item.id, 10)}
-                onDecrease={() => handleAmountChange(item.id, -10)}
+                onIncrease={() => handleAmountChange(item.id, 1)}
+                onDecrease={() => handleAmountChange(item.id, -1)}
               />
             ))}
 
@@ -449,6 +566,68 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FAFAFA',
+  },
+  cameraContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  permissionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    gap: 14,
+  },
+  permissionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'center',
+  },
+  permissionSubtitle: {
+    fontSize: 14,
+    color: '#374151',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  permissionPrimaryBtn: {
+    width: '100%',
+    maxWidth: 360,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#111827',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  permissionPrimaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  permissionSecondaryBtn: {
+    width: '100%',
+    maxWidth: 360,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  permissionSecondaryBtnText: {
+    color: '#111827',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  permissionTertiaryBtn: {
+    paddingVertical: 10,
+  },
+  permissionTertiaryBtnText: {
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',

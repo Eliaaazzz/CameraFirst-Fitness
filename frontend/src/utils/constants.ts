@@ -10,8 +10,8 @@ export const BRAND_COLORS = {
   primaryDark: '#EA580C',    // Orange-600 (pressed)
   primaryTint: 'rgba(249, 115, 22, 0.10)', // 10% for hover states
 
-  // Secondary - Pink
-  secondary: '#EC4899',      // Pink-500
+  // Secondary - Cyan (Vibrant, Energetic)
+  secondary: '#06B6D4',      // Cyan-500
 
   // Surfaces - Neutral, Stripe-like
   background: '#F5F6FA',     // More gray, less purple
@@ -41,3 +41,8 @@ export const TAB_ICON_SIZE = {
   focused: 26,
   default: 22,
 };
+
+// "Graceful Degradation" scale hint for meal photos.
+// If the device can't provide real-world scale (e.g., depth/LiDAR),
+// we assume the captured frame roughly covers a standard dinner plate.
+export const DEFAULT_MEAL_IMAGE_WIDTH_CM = 35;

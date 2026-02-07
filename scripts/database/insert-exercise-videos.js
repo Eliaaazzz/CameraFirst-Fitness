@@ -1,6 +1,6 @@
 /**
- * Insert Exercise Videos to AWS RDS
- * 将练习视频数据插入到 AWS RDS PostgreSQL
+ * Insert Exercise Videos to Postgres (Supabase compatible)
+ * 将练习视频数据插入到 PostgreSQL（兼容 Supabase）
  */
 
 import pg from 'pg';
@@ -14,8 +14,10 @@ const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+// Load env files (best-effort): .env.local -> .env.supabase -> .env
+for (const envFile of ['.env.local', '.env.supabase', '.env']) {
+  dotenv.config({ path: path.resolve(__dirname, '../../', envFile) });
+}
 
 // Exercise data
 const exercises = [
@@ -100,7 +102,7 @@ async function promptPassword() {
   });
 
   return new Promise((resolve) => {
-    rl.question('Enter RDS password for user "postgres": ', (password) => {
+    rl.question('Enter DB password: ', (password) => {
       rl.close();
       resolve(password.trim()); // Trim whitespace
     });
@@ -108,30 +110,39 @@ async function promptPassword() {
 }
 
 async function main() {
-  console.log('🚀 AWS RDS Exercise Videos Importer\n');
+  console.log('🚀 Exercise Videos Importer (Postgres)\n');
 
-  // Get password from user
-  const password = await promptPassword();
+  const host = process.env.PGHOST || process.env.SUPABASE_DB_HOST;
+  const port = Number(process.env.PGPORT || process.env.SUPABASE_DB_PORT || 5432);
+  const database = process.env.PGDATABASE || process.env.SUPABASE_DB_NAME || 'postgres';
+  const user = process.env.PGUSER || process.env.SUPABASE_DB_USER || 'postgres';
+
+  // Get password (env first, then prompt)
+  const password = process.env.PGPASSWORD || process.env.SUPABASE_DB_PASSWORD || (await promptPassword());
   
   if (!password || password.length === 0) {
     console.error('❌ Password is required');
     process.exit(1);
   }
 
+  if (!host) {
+    console.error('❌ Missing DB host. Set PGHOST (recommended) or SUPABASE_DB_HOST.');
+    process.exit(1);
+  }
+
   const pool = new Pool({
-    host: 'database-1.cdq2m4iswpu8.ap-southeast-2.rds.amazonaws.com',
-    port: 5432,
-    database: 'fitness_mvp',
-    user: 'postgres',
-    password: password,
-    ssl: {
-      rejectUnauthorized: false // AWS RDS requires SSL
-    }
+    host,
+    port,
+    database,
+    user,
+    password,
+    // Supabase requires SSL in most setups; this is safe for managed Postgres as well.
+    ssl: { rejectUnauthorized: false },
   });
 
   try {
     // Test connection
-    console.log('📡 Testing connection to AWS RDS...');
+    console.log('📡 Testing connection to Postgres...');
     await pool.query('SELECT NOW()');
     console.log('✅ Connected successfully!\n');
 

@@ -41,7 +41,7 @@ const getPositionStyle = (position: GlowPosition, size: number): ViewStyle => {
 
 export const GlowOrb: React.FC<GlowOrbProps> = ({
   size = 100,
-  color = '#F472B6',
+  color = '#06B6D4',
   position = 'center',
   opacity = 0.4,
   style,

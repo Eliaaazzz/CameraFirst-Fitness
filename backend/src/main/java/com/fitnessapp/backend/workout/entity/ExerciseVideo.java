@@ -91,7 +91,7 @@ public class ExerciseVideo {
     private OffsetDateTime embeddingGeneratedAt;
 
     /**
-     * Direct S3/CDN URL for the video thumbnail image.
+     * Direct CDN URL for the video thumbnail image.
      */
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;

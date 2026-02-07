@@ -24,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionRequestMetadata;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
@@ -46,12 +47,10 @@ import okhttp3.Response;
 public class GeminiMealAnalysisService implements FoodRecognitionProvider {
 
     private static final String PROVIDER_NAME = "gemini";
-    private static final String MODEL = "gemini-2.5-flash";
-    private static final String GEMINI_API_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent";
+    private static final String DEFAULT_MODEL = "gemini-2.5-flash";
     
-    // Increased from 1024 to 4096 to handle complex meals (e.g., sushi bento with many items)
-    private static final int MAX_OUTPUT_TOKENS = 4096;
+    // Increased to 8192 to reduce risk of JSON truncation on complex meals.
+    private static final int MAX_OUTPUT_TOKENS = 8192;
     private static final int TIMEOUT_SECONDS = 75; // Increased from 60s to handle complex meals
     private static final int MAX_RETRIES = 2;
     private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;
@@ -62,18 +61,24 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final String apiKey;
+    private final String model;
+    private final String geminiApiUrl;
 
     public GeminiMealAnalysisService(
             ObjectMapper objectMapper,
-            @Value("${app.gemini.api-key:}") String apiKey
+            @Value("${app.gemini.api-key:}") String apiKey,
+            @Value("${app.gemini.model:gemini-2.5-flash}") String model
     ) {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
+        this.model = (model == null || model.isBlank()) ? DEFAULT_MODEL : model.trim();
+        this.geminiApiUrl =
+                "https://generativelanguage.googleapis.com/v1beta/models/" + this.model + ":generateContent";
 
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("⚠️ Gemini API key not configured");
         } else {
-            log.info("✅ GeminiMealAnalysisService initialized: {}", MODEL);
+            log.info("✅ GeminiMealAnalysisService initialized: {}", this.model);
         }
 
         this.httpClient = new OkHttpClient.Builder()
@@ -92,7 +97,7 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
 
     @Override
     public String getModelName() {
-        return MODEL;
+        return model;
     }
 
     @Override
@@ -106,7 +111,7 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
     }
 
     @Override
-    public FoodRecognitionResult recognizeFoods(MultipartFile image) throws IOException {
+    public FoodRecognitionResult recognizeFoods(MultipartFile image, FoodRecognitionRequestMetadata metadata) throws IOException {
         if (!isAvailable()) {
             throw new FoodRecognitionException("Gemini API key not configured");
         }
@@ -122,11 +127,11 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
 
         log.info("🍽️ Gemini analyzing meal: size={} bytes", image.getSize());
         String base64Image = Base64.getEncoder().encodeToString(image.getBytes());
-        return recognizeFoods(base64Image, contentType);
+        return recognizeFoods(base64Image, contentType, metadata);
     }
 
     @Override
-    public FoodRecognitionResult recognizeFoods(String base64Image, String mediaType) {
+    public FoodRecognitionResult recognizeFoods(String base64Image, String mediaType, FoodRecognitionRequestMetadata metadata) {
         int attempt = 0;
         Exception lastException = null;
 
@@ -139,7 +144,7 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
         while (attempt < MAX_RETRIES) {
             attempt++;
             try {
-                return executeApiCall(optimizedImage, optimizedMediaType);
+                return executeApiCall(optimizedImage, optimizedMediaType, metadata);
             } catch (Exception e) {
                 lastException = e;
                 log.warn("Gemini API failed (attempt {}/{}): {}", attempt, MAX_RETRIES, e.getMessage());
@@ -225,11 +230,15 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
 
     // ==================== API Implementation ====================
 
-    private FoodRecognitionResult executeApiCall(String base64Image, String mediaType) throws IOException {
-        String requestBody = buildRequestBody(base64Image, mediaType);
+    private FoodRecognitionResult executeApiCall(
+            String base64Image,
+            String mediaType,
+            FoodRecognitionRequestMetadata metadata
+    ) throws IOException {
+        String requestBody = buildRequestBody(base64Image, mediaType, metadata);
 
         Request request = new Request.Builder()
-                .url(GEMINI_API_URL + "?key=" + apiKey)
+                .url(geminiApiUrl + "?key=" + apiKey)
                 .addHeader("content-type", "application/json")
                 .post(RequestBody.create(requestBody, MediaType.parse("application/json")))
                 .build();
@@ -251,44 +260,61 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
         }
     }
 
-    private String buildRequestBody(String base64Image, String mediaType) {
-        // Adaptive granularity prompt: dish-level for multiple items, ingredient-level for single dish
-        String prompt = """
-            You are an expert nutritionist. Analyze the food image.
+    private String buildRequestBody(String base64Image, String mediaType, FoodRecognitionRequestMetadata metadata) {
+        Double imgWcm = metadata != null ? metadata.resolveImageWidthCm() : null;
+        String metadataBlock = imgWcm != null
+                ? String.format("{\"img_w_cm\": %.1f}", imgWcm)
+                : "{}";
 
-            OBJECTIVE:
-            Identify foods with appropriate granularity based on dish count.
+        // Compressed, deterministic prompt for stable JSON and low latency.
+        // Keys must be English; values can match user language.
+        String prompt = String.format("""
+            ROLE: Optical Food Analysis Engine (v2.5)
+            GOAL: Output nutrition JSON from a food photo.
 
-            CRITICAL GRANULARITY RULE:
-            - FIRST: Count how many DISTINCT dishes/items are visible.
-            - If 2+ DISHES → Return DISH-LEVEL nutrition only (faster, less data).
-            - If 1 DISH only → Break down into INGREDIENTS for detailed tracking.
+            INPUT:
+            - Image: Food plate(s).
+            - METADATA: %s
 
-            NAMING RULE (CRITICAL - Do NOT include quantity in name):
-               - ❌ WRONG: {"name": "Oysters (x12)", "quantity": 1}
-               - ✅ CORRECT: {"name": "Fresh Oyster", "quantity": 12}
-               - Name = clean singular noun. Count goes in "quantity".
+            ANALYSIS_LOGIC (STRICT):
+            1) SCALE: Use img_w_cm to calibrate size. If missing, assume 28cm dinner plate width.
+            2) CLASSIFY:
+               - Countable (sushi, dumplings, wings, nuggets, slices): count pieces.
+               - Volumetric (rice, noodles, stir-fry, steak, salad): estimate weight via visual volume.
+            3) SCENARIOS:
+               - If mostly countable items: scene_type="countable"
+               - If single complex dish: scene_type="single_dish" and DECOMPOSE into ingredients (return each ingredient as a separate food).
+               - If multiple distinct dishes: scene_type="multi_dish" and DO NOT decompose ingredients.
 
-            COOKING COEFFICIENT (Restaurant Factor):
-               - Visual cues: shiny/oily? Deep-fried? Restaurant?
-               - If YES → Apply 1.1x-1.3x to calories.
-               - Set "is_restaurant_style": true.
+            OUTPUT_RULES:
+            - JSON ONLY. No markdown. No extra text.
+            - Do NOT put quantities inside "name".
+            - confidence: 0.0-1.0
+            - Use unit="piece" for countable, unit="g" for ingredient-level items, otherwise unit="serving".
+            - If oily/fried/restaurant-style: calories *= 1.2 (already included in numbers).
 
-            UNIT SELECTION:
-               - Countable (Sushi, Dumplings) → unit: "piece"
-               - Volume (Rice, Soup) → unit: "bowl"
-               - Standard (Burger, Steak) → unit: "serving"
+            JSON_SCHEMA:
+            {
+              "scene_type": "countable" | "single_dish" | "multi_dish",
+              "foods": [
+                {
+                  "name": string,
+                  "confidence": number,
+                  "quantity": number,
+                  "unit": "piece" | "serving" | "g" | "bowl" | "cup" | "slice",
+                  "weight_g": number,
+                  "calories": number,
+                  "protein_g": number,
+                  "carbs_g": number,
+                  "fat_g": number
+                }
+              ]
+            }
 
-            OUTPUT FORMAT (JSON only, no markdown):
+            CMD: ANALYZE
+            """, metadataBlock);
 
-            MULTI-DISH EXAMPLE (2+ dishes → dish-level only):
-            {"foods":[{"name":"Grilled Salmon","quantity":1,"unit":"serving","calories":450,"weight_g":200,"protein_g":40,"carbs_g":0,"fat_g":28,"is_restaurant_style":true},{"name":"Caesar Salad","quantity":1,"unit":"bowl","calories":320,"weight_g":180,"protein_g":8,"carbs_g":12,"fat_g":26,"is_restaurant_style":true}]}
-
-            SINGLE-DISH EXAMPLE (1 dish → ingredient breakdown):
-            {"foods":[{"name":"Chicken Breast","quantity":1,"unit":"serving","calories":165,"weight_g":100,"protein_g":31,"carbs_g":0,"fat_g":3.6,"is_restaurant_style":false},{"name":"Steamed Rice","quantity":1,"unit":"bowl","calories":206,"weight_g":158,"protein_g":4.3,"carbs_g":45,"fat_g":0.4,"is_restaurant_style":false},{"name":"Broccoli","quantity":1,"unit":"serving","calories":55,"weight_g":100,"protein_g":3.7,"carbs_g":11,"fat_g":0.6,"is_restaurant_style":false}]}
-            """;
-
-        // Using Gemini 2.5 Flash - fast and efficient for food recognition
+        // Flash model with deterministic generation for stable JSON.
         return String.format("""
             {
               "contents": [{"parts": [
@@ -297,7 +323,9 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
               ]}],
               "generationConfig": {
                 "maxOutputTokens": %d,
-                "temperature": 0.1
+                "temperature": 0.0,
+                "topP": 0.95,
+                "topK": 40
               }
             }
             """, mediaType, base64Image, escapeJson(prompt), MAX_OUTPUT_TOKENS);
@@ -345,9 +373,11 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
             JsonNode data = objectMapper.readTree(json);
 
             List<RecognizedFood> items = new ArrayList<>();
+            String sceneType = data.path("scene_type").isTextual() ? data.path("scene_type").asText() : null;
             JsonNode foods = data.path("foods");
             log.info("📝 Foods node type: {}, isEmpty: {}", foods.getNodeType(), foods.isEmpty());
             
+            int index = 0;
             for (JsonNode food : foods) {
                 // Parse Smart Splitting format with intuitive units
                 String name = food.path("name").asText("Unknown");
@@ -362,6 +392,7 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
                         food.path("carbs").asInt(0));
                 int fat = food.path("fat_g").asInt(
                         food.path("fat").asInt(0));
+                double confidence = food.path("confidence").asDouble(0.85);
                 boolean isRestaurantStyle = food.path("is_restaurant_style").asBoolean(false);
                 String cookingNote = food.path("cooking_note").asText(null);
                 String cookingMethod = food.path("cooking_method").asText(null);
@@ -378,23 +409,25 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
                 String displayName = name;
 
                 RecognizedFood item = RecognizedFood.builder()
-                        .foodKey(name.toLowerCase().replace(" ", "_"))
+                        .foodKey(toFoodKey(name, index))
                         .displayName(displayName)
                         .estimatedGrams(weightG)
                         .unit(unit)
                         .quantity(quantity)  // Pass quantity to frontend!
                         .cookingMethod(cookingMethod)
-                        .confidence(0.9)
+                        .confidence(confidence)
                         .nutrition(nutrition)
                         .build();
                 
                 items.add(item);
                 log.info("✅ Found: {} (qty={}, unit={}, {}g, {}kcal, restaurant={})", 
                         name, quantity, unit, weightG, calories, isRestaurantStyle);
+                index++;
             }
 
             return FoodRecognitionResult.builder()
                     .items(items)
+                    .sceneType(sceneType)
                     .build();
 
         } catch (IOException e) {
@@ -436,5 +469,16 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
     private String escapeJson(String text) {
         return text.replace("\\", "\\\\").replace("\"", "\\\"")
                 .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
+    }
+
+    private String toFoodKey(String name, int index) {
+        String base = name == null ? "food" : name.toLowerCase()
+                .trim()
+                .replaceAll("[^a-z0-9]+", "_")
+                .replaceAll("^_+|_+$", "");
+        if (base.isBlank()) {
+            base = "food";
+        }
+        return base + "_" + index;
     }
 }

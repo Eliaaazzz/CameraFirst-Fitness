@@ -41,9 +41,9 @@ import lombok.extern.slf4j.Slf4j;
  * Content-based recommendation service using TWO-STAGE FUNNEL + LATE FETCHING.
  *
  * CORE DIFFERENTIATOR: AI Semantic Search with Embeddings
- * This service preserves the AI capability while staying memory-safe on t2.micro.
+ * This service preserves the AI capability while staying memory-safe on low-memory instances.
  *
- * MEMORY OPTIMIZATION (AWS t2.micro, 1GB RAM):
+ * MEMORY OPTIMIZATION (low-memory instances, ~1GB RAM):
  * - Recipe.embedding = float[1536] = ~6KB per row
  * - Naive approach: 200 candidates with embeddings = ~1.2MB (TOO HEAVY)
  * - Our approach: Late-fetch 50 embeddings = ~300KB (SAFE)
@@ -75,7 +75,7 @@ import lombok.extern.slf4j.Slf4j;
  * │  STAGE 2c: LATE FETCHING (Database Layer) ★ KEY OPTIMIZATION ★         │
  * │  ───────────────────────────────────────────────────────────            │
  * │  • Fetch embeddings ONLY for 50 finalist IDs                           │
- * │  • Memory: 50 * 6KB = ~300KB (SAFE for t2.micro!)                      │
+ * │  • Memory: 50 * 6KB = ~300KB (safe for low-memory instances)           │
  * │  • Preserves AI semantic search capability                              │
  * └─────────────────────────────────────────────────────────────────────────┘
  *                                    ↓
@@ -101,7 +101,7 @@ public class ContentRecommendationService {
     private static final int MEALS_PER_DAY = 3;
 
     // Funnel sizes (optimized for 7 final recommendations)
-    // Memory: 50 lightweight + 20 embeddings × 6KB = ~170KB total (very safe for t2.micro)
+    // Memory: 50 lightweight + 20 embeddings × 6KB = ~170KB total (very safe for low-memory instances)
     private static final int COARSE_POOL_SIZE = 50;   // Stage 1: candidates from DB
     private static final int FINE_POOL_SIZE = 20;     // Stage 2b: finalists for AI scoring
 

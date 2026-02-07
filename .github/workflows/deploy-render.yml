@@ -7,12 +7,13 @@ on:
       - CF-35-fix-refine-uiux-to-be-saa-s
     paths:
       - 'backend/**'
+      - 'render.yaml'
       - '.github/workflows/deploy-render.yml'
   workflow_dispatch:
 
 env:
-  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/fitness-backend
   REGISTRY: docker.io
+  IMAGE_REPO: fitness-backend
 
 concurrency:
   group: backend-render-${{ github.ref }}
@@ -66,7 +67,9 @@ jobs:
     needs: build-and-test
 
     outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
+      docker-enabled: ${{ steps.docker_mode.outputs.enabled }}
+      image-name: ${{ steps.docker_mode.outputs.image }}
+      image-tags: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Checkout code
@@ -75,7 +78,29 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Determine Docker publish mode
+        id: docker_mode
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          enabled=false
+
+          if [ -n "${DOCKERHUB_USERNAME:-}" ] && [ -n "${DOCKERHUB_TOKEN:-}" ]; then
+            enabled=true
+            echo "✅ Docker Hub credentials found. Will build & push image."
+            echo "image=${{ env.REGISTRY }}/${DOCKERHUB_USERNAME}/${{ env.IMAGE_REPO }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Docker Hub secrets not set. Skipping Docker build/push."
+            echo "::notice::If your Render service builds from this repo (Dockerfile), deployment can still work without Docker Hub."
+          fi
+
+          echo "enabled=$enabled" >> "$GITHUB_OUTPUT"
+
       - name: Log in to Docker Hub
+        if: steps.docker_mode.outputs.enabled == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -84,14 +109,17 @@ jobs:
 
       - name: Extract metadata
         id: meta
+        if: steps.docker_mode.outputs.enabled == 'true'
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.DOCKER_IMAGE }}
+          images: ${{ steps.docker_mode.outputs.image }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
             type=sha,prefix=
 
       - name: Build and push Docker image
+        if: steps.docker_mode.outputs.enabled == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./backend
@@ -103,6 +131,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Image build summary
+        if: steps.docker_mode.outputs.enabled == 'true'
         run: |
           echo "Docker image built and pushed successfully!"
           echo "Image tags:"
@@ -119,25 +148,43 @@ jobs:
     steps:
       - name: Trigger Render Deploy Hook
         env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          RENDER_DEPLOY_HOOK_URL_PROD: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          RENDER_DEPLOY_HOOK_URL_STAGING: ${{ secrets.RENDER_DEPLOY_HOOK_URL_STAGING }}
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+          set -euo pipefail
+
+          # main -> production hook (expects Render to pull :latest)
+          # non-main -> staging hook (expects Render to pull :<branch>)
+          hook_url="${RENDER_DEPLOY_HOOK_URL_PROD:-}"
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            hook_url="${RENDER_DEPLOY_HOOK_URL_STAGING:-}"
+          fi
+
+          if [ -z "${hook_url:-}" ]; then
+            if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+              echo "RENDER_DEPLOY_HOOK_URL_STAGING secret is not set; skipping deploy for ${GITHUB_REF}."
+              exit 0
+            fi
             echo "RENDER_DEPLOY_HOOK_URL secret is not set"
             echo "Please set up the deploy hook in Render dashboard"
             exit 1
           fi
 
           echo "Triggering Render deployment..."
-          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$RENDER_DEPLOY_HOOK_URL")
+          response=$(curl -sS -L -o /dev/null -w "%{http_code}" -X POST "$hook_url")
 
-          if [ "$response" = "200" ] || [ "$response" = "201" ]; then
-            echo "Render deployment triggered successfully"
+          if [ "$response" -ge 200 ] && [ "$response" -lt 300 ]; then
+            echo "Render deployment triggered successfully (HTTP $response)"
           else
             echo "Failed to trigger Render deployment. HTTP status: $response"
             exit 1
           fi
 
       - name: Deployment summary
+        env:
+          DOCKER_ENABLED: ${{ needs.build-docker.outputs.docker-enabled }}
+          IMAGE_NAME: ${{ needs.build-docker.outputs.image-name }}
+          IMAGE_TAGS: ${{ needs.build-docker.outputs.image-tags }}
         run: |
           echo "========================================"
           echo "Render Deployment Triggered"
@@ -146,5 +193,12 @@ jobs:
           echo "Commit: ${{ github.sha }}"
           echo "Time: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           echo ""
-          echo "Render will pull the pre-built Docker image from Docker Hub"
-          echo "Image: ${{ env.REGISTRY }}/${{ env.DOCKER_IMAGE }}:latest"
+          if [ "${DOCKER_ENABLED}" = "true" ] && [ -n "${IMAGE_NAME:-}" ]; then
+            echo "Docker image published:"
+            echo "  ${IMAGE_NAME}"
+            echo "Tags:"
+            echo "${IMAGE_TAGS:-}" | tr ',' '\n' | sed 's/^/  - /'
+          else
+            echo "Docker image: skipped (no Docker Hub secrets)"
+            echo "Render must be configured to build from repo/Dockerfile for code changes to deploy."
+          fi

@@ -51,12 +51,12 @@ const GOAL_TYPE_CONFIG: Record<GoalType, { labelKey: 'fatLoss' | 'buildMuscle' |
   diabetes_control: { labelKey: 'glucoseControl', Icon: Drop, color: '#3B82F6' },
 };
 
-// Quick action config - minimalist style (Icons only colored)
+// Quick action config - Vibrant & Energetic
 const QUICK_ACTIONS = [
-  { key: 'history', labelKey: 'mealHistory' as const, Icon: ClockCounterClockwise, color: '#4B5563', screen: 'MealHistory' },
-  { key: 'insights', labelKey: 'weeklyInsights' as const, Icon: ChartLine, color: '#4B5563', screen: 'WeeklyInsights' },
-  { key: 'weight', labelKey: 'logWeight' as const, Icon: Scales, color: '#4B5563', screen: 'LogWeight' },
-  { key: 'export', labelKey: 'exportData' as const, Icon: Export, color: '#4B5563', screen: 'ExportData' },
+  { key: 'history', labelKey: 'mealHistory' as const, Icon: ClockCounterClockwise, color: '#06B6D4', screen: 'MealHistory' }, // Cyan
+  { key: 'insights', labelKey: 'weeklyInsights' as const, Icon: ChartLine, color: '#8B5CF6', screen: 'WeeklyInsights' }, // Violet
+  { key: 'weight', labelKey: 'logWeight' as const, Icon: Scales, color: '#F97316', screen: 'LogWeight' }, // Orange (Primary)
+  { key: 'export', labelKey: 'exportData' as const, Icon: Export, color: '#10B981', screen: 'ExportData' }, // Emerald
 ];
 
 interface DashboardWidgetsProps {
@@ -176,7 +176,7 @@ export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
           <View style={styles.hydrationHeader}>
             <View style={styles.hydrationHeaderLeft}>
               <View style={styles.hydrationIconBox}>
-                <Drop size={18} weight="fill" color="#007AFF" />
+                <Drop size={18} weight="fill" color="#06B6D4" />
               </View>
               <Text variant="body" weight="bold" style={styles.hydrationLabel}>Hydration</Text>
             </View>
@@ -197,7 +197,7 @@ function HydrationAddButton() {
   // Logic for adding water should be passed down, but for UI:
   return (
     <Pressable style={({ pressed }) => [styles.hydrationPlus, pressed && { opacity: 0.7 }]}>
-      <Plus size={16} weight="bold" color="#007AFF" />
+      <Plus size={16} weight="bold" color="#06B6D4" />
     </Pressable>
   );
 }
@@ -423,11 +423,11 @@ const styles = StyleSheet.create({
   },
   hydrationIconBox: {
     padding: 6,
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#CFFAFE', // Cyan-50
     borderRadius: 8,
   },
   hydrationLabel: {
-    color: '#1E3A8A',
+    color: '#164E63', // Cyan-900
   },
   hydrationPlus: {
     width: 32,
@@ -447,25 +447,25 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   hydrationCurrent: {
-    color: '#1E3A8A',
+    color: '#164E63', // Cyan-900
     fontSize: 32,
     lineHeight: 32,
   },
   hydrationTarget: {
-    color: '#007AFF',
+    color: '#06B6D4', // Cyan-500
     paddingBottom: 4,
   },
   hydrationTrack: {
     height: 12,
     borderRadius: 999,
-    backgroundColor: 'rgba(0, 122, 255, 0.15)',
+    backgroundColor: 'rgba(6, 182, 212, 0.15)', // Cyan with opacity
     overflow: 'hidden',
   },
   hydrationFill: {
     height: '100%',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#06B6D4', // Cyan-500
     borderRadius: 999,
-    shadowColor: '#007AFF',
+    shadowColor: '#06B6D4',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 5,

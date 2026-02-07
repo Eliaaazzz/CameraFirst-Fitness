@@ -50,6 +50,11 @@ export interface FoodRecognitionResponse {
   imageUrl?: string;
 }
 
+export interface FoodRecognitionRequestMetadata {
+  img_w_cm?: number;
+  real_world_width_cm?: number;
+}
+
 // Backend API types (matching Java @JsonProperty snake_case)
 interface BackendNutritionInfo {
   calories: number;
@@ -218,12 +223,16 @@ const transformBackendResponse = (backendResponse: BackendFoodRecognitionRespons
 };
 
 // Analyze food image with Gemini 3 Pro AI (Elite Sports Nutritionist)
-const analyzeFoodImage = async (imageUri: string): Promise<FoodRecognitionResponse> => {
+const analyzeFoodImage = async (
+  imageUri: string,
+  metadata?: FoodRecognitionRequestMetadata
+): Promise<FoodRecognitionResponse> => {
   console.log('[NutritionApi] Analyzing with Gemini 3 Pro Elite Sports Nutritionist...');
 
   const backendResponse = await api.uploadImage<BackendFoodRecognitionResponse>(
     '/api/v1/nutrition/analyze',
-    imageUri
+    imageUri,
+    metadata
   );
 
   console.log('[NutritionApi] Gemini 3 Pro response:', JSON.stringify(backendResponse, null, 2));
@@ -263,10 +272,11 @@ const saveMealFromImage = async (payload: SaveMealPayload): Promise<MealLogRespo
 
   // Build the request payload for /api/v1/nutrition/meals
   // The backend will extract userId from JWT token
+  // IMPORTANT: Backend expects "note" (singular), not "notes"
   const mealPayload = {
     mealType: payload.mealType || 'other',
     items: foodItems,
-    notes: payload.notes || `Detected: ${payload.items.map(f => f.name).join(', ')}`.slice(0, 500),
+    note: payload.notes || `Detected: ${payload.items.map(f => f.name).join(', ')}`.slice(0, 500),
     imageUrl: payload.imageUrl || null, // Use uploaded image URL when available
   };
 
@@ -302,10 +312,11 @@ const updateMeal = async (mealId: number, payload: SaveMealPayload): Promise<Mea
   }));
 
   // Build the request payload
+  // IMPORTANT: Backend expects "note" (singular), not "notes"
   const mealPayload = {
     mealType: payload.mealType || 'other',
     items: foodItems,
-    notes: payload.notes || `Detected: ${payload.items.map(f => f.name).join(', ')}`.slice(0, 500),
+    note: payload.notes || `Detected: ${payload.items.map(f => f.name).join(', ')}`.slice(0, 500),
     imageUrl: payload.imageUrl || null,
   };
 

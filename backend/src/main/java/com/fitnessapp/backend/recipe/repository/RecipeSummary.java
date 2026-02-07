@@ -20,7 +20,7 @@ import java.util.UUID;
  * - searchText
  * - embeddingGeneratedAt
  *
- * Perfect for AWS t2.micro with 1GB RAM constraint.
+ * Designed for low-memory instances (~1GB RAM).
  */
 public interface RecipeSummary {
 

@@ -396,6 +396,31 @@ export default function LoginScreen() {
     }
   }, [response, sendTokenToBackend]);
 
+  // Helpful for debugging `redirect_uri_mismatch` on web:
+  // Logs the *exact* redirect_uri + client_id being sent to Google.
+  const handleGoogleLogin = useCallback(async () => {
+    if (!request) return;
+
+    if (Platform.OS === 'web') {
+      console.log('[GoogleAuth] redirectUri (computed):', redirectUri);
+      const authUrl = request.url;
+      if (authUrl) {
+        try {
+          const u = new URL(authUrl);
+          console.log('[GoogleAuth] request params:', {
+            clientId: u.searchParams.get('client_id'),
+            redirectUri: u.searchParams.get('redirect_uri'),
+            responseType: u.searchParams.get('response_type'),
+          });
+        } catch {
+          console.log('[GoogleAuth] authUrl:', authUrl);
+        }
+      }
+    }
+
+    await promptAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined);
+  }, [promptAsync, redirectUri, request]);
+
   // Handle Apple login
   const handleAppleLogin = async () => {
     setIsLoading(true);
@@ -589,7 +614,7 @@ export default function LoginScreen() {
               <View style={styles.socialSection}>
                 <SocialButton
                   provider="google"
-                  onPress={() => promptAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined)}
+                  onPress={handleGoogleLogin}
                   disabled={!request || isLoading}
                 />
                 {appleAuthAvailable && (

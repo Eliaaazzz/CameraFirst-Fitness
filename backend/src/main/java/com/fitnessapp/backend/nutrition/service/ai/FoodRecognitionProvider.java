@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionRequestMetadata;
 
 /**
  * Interface for food recognition services.
@@ -16,19 +17,29 @@ public interface FoodRecognitionProvider {
      * Recognize foods in an image
      * 
      * @param image The image file
+     * @param metadata Optional request metadata (e.g., real-world scale hints)
      * @return Recognition result with detected foods
      * @throws IOException If image processing fails
      */
-    FoodRecognitionResult recognizeFoods(MultipartFile image) throws IOException;
+    default FoodRecognitionResult recognizeFoods(MultipartFile image) throws IOException {
+        return recognizeFoods(image, null);
+    }
+
+    FoodRecognitionResult recognizeFoods(MultipartFile image, FoodRecognitionRequestMetadata metadata) throws IOException;
 
     /**
      * Recognize foods from base64 encoded image
      * 
      * @param base64Image Base64 encoded image data
      * @param mediaType MIME type of the image
+     * @param metadata Optional request metadata (e.g., real-world scale hints)
      * @return Recognition result with detected foods
      */
-    FoodRecognitionResult recognizeFoods(String base64Image, String mediaType);
+    default FoodRecognitionResult recognizeFoods(String base64Image, String mediaType) {
+        return recognizeFoods(base64Image, mediaType, null);
+    }
+
+    FoodRecognitionResult recognizeFoods(String base64Image, String mediaType, FoodRecognitionRequestMetadata metadata);
 
     /**
      * Get the provider name

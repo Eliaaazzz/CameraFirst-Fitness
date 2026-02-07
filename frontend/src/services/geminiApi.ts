@@ -3,7 +3,7 @@
  * Handles communication with backend for AI-powered fitness goals
  */
 
-import { api } from './apiClient';
+import { api, APIError } from './apiClient';
 
 // ============ Request Types ============
 
@@ -326,7 +326,9 @@ export const getActiveGoal = async (userId: string): Promise<GeneratedGoals | nu
     console.log('[GoalsApi] Active goal retrieved from database');
     return response;
   } catch (error: any) {
-    if (error?.response?.status === 404) {
+    // apiClient throws APIError (not axios), so check `.status` instead of `error.response.status`.
+    const status = error instanceof APIError ? error.status : error?.status;
+    if (status === 404) {
       console.log('[GoalsApi] No active goal found for user');
       return null;
     }

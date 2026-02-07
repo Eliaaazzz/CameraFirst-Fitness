@@ -11,7 +11,7 @@ services:
   - type: web
     name: aurafitness-backend
     runtime: docker
-    repo: https://github.com/YOUR_USERNAME/AuraFitness  # Update with your repo
+    repo: https://github.com/Eliaaazzz/AuraFitness
     branch: main
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend

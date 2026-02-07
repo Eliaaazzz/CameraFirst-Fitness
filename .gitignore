@@ -9,6 +9,7 @@ debug.log*
 *.tar.gz
 *.zip
 .DS_Store
+*.pem
 .env
 .env.dev
 .env.prod

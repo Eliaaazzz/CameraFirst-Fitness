@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionRequestMetadata;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
@@ -51,13 +52,24 @@ public class FoodRecognitionService {
      * Recognize foods using the best available provider.
      */
     public FoodRecognitionResult recognizeFoods(MultipartFile image) throws IOException {
-        return recognizeFoods(image, null);
+        return recognizeFoods(image, null, null);
     }
 
     /**
      * Recognize foods using a chain of providers with fallback.
      */
     public FoodRecognitionResult recognizeFoods(MultipartFile image, String preferredProvider) throws IOException {
+        return recognizeFoods(image, preferredProvider, null);
+    }
+
+    /**
+     * Recognize foods using a chain of providers with fallback and optional metadata.
+     */
+    public FoodRecognitionResult recognizeFoods(
+            MultipartFile image,
+            String preferredProvider,
+            FoodRecognitionRequestMetadata metadata
+    ) throws IOException {
         List<FoodRecognitionProvider> candidates = getCandidateProviders(preferredProvider);
 
         if (candidates.isEmpty()) {
@@ -70,7 +82,7 @@ public class FoodRecognitionService {
             log.info("Trying provider '{}' ({})", provider.getProviderName(), provider.getModelName());
 
             try {
-                FoodRecognitionResult result = provider.recognizeFoods(image);
+                FoodRecognitionResult result = provider.recognizeFoods(image, metadata);
                 log.info("✅ Provider '{}' succeeded with {} items", 
                         provider.getProviderName(), 
                         result.getItems() != null ? result.getItems().size() : 0);

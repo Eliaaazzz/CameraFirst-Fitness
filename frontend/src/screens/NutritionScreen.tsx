@@ -64,24 +64,7 @@ export function NutritionScreen({ navigation }: any) {
         return;
       }
 
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Camera permission is required');
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets?.[0]) {
-        navigation.navigate('ReviewMeal', { imageUri: result.assets[0].uri });
-      } else {
-        Alert.alert('No image captured', 'Please retake a photo to continue.');
-      }
+      navigation.navigate('ReviewMeal', { openCamera: true });
     } catch (err) {
       console.error('Camera capture failed', err);
       Alert.alert('Error', 'Could not take photo: ' + (err as Error)?.message);

@@ -23,8 +23,8 @@
     "docker:down": "docker compose -f infrastructure/docker-compose.yml down",
     "docker:logs": "docker compose -f infrastructure/docker-compose.yml logs -f",
     "docker:build": "docker compose -f infrastructure/docker-compose.yml build",
-    "docker:prod:up": "docker compose -f infrastructure/docker-compose.prod.yml up -d",
-    "docker:prod:down": "docker compose -f infrastructure/docker-compose.prod.yml down",
+    "docker:supabase:up": "docker compose -f infrastructure/docker-compose.supabase.yml up -d",
+    "docker:supabase:down": "docker compose -f infrastructure/docker-compose.supabase.yml down",
     "test": "npm run frontend:test && npm run backend:test",
     "clean": "npm run backend:clean && rm -rf frontend/node_modules shared/node_modules node_modules"
   },

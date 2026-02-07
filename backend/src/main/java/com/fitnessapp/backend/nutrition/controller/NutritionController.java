@@ -18,8 +18,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.common.service.R2StorageService;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
+import com.fitnessapp.backend.nutrition.dto.FoodRecognitionRequestMetadata;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.service.ai.FoodRecognitionService;
 import com.fitnessapp.backend.nutrition.service.core.NutritionInsightService;
@@ -45,11 +47,13 @@ public class NutritionController {
   private final NutritionInsightService insightService;
   private final FoodRecognitionService foodRecognitionService;
   private final R2StorageService r2StorageService;
+  private final ObjectMapper objectMapper;
 
   @PostMapping(value = "/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<FoodRecognitionResponse> analyzeFoodImage(
       @RequestParam("image") MultipartFile image,
-      @RequestParam(value = "provider", required = false) String provider
+      @RequestParam(value = "provider", required = false) String provider,
+      @RequestParam(value = "metadata", required = false) String metadataJson
   ) throws IOException {
     log.info("Analyzing food image: {}, size: {} bytes", image.getOriginalFilename(), image.getSize());
 
@@ -69,16 +73,32 @@ public class NutritionController {
       log.warn("R2 upload failed; continuing without image URL", e);
     }
 
-    FoodRecognitionResult recognitionResult = foodRecognitionService.recognizeFoods(image, provider);
+    FoodRecognitionRequestMetadata metadata = parseMetadata(metadataJson);
+
+    FoodRecognitionResult recognitionResult = foodRecognitionService.recognizeFoods(image, provider, metadata);
     NutritionInfo totalNutrition = foodRecognitionService.calculateTotalNutrition(recognitionResult.getItems());
 
     FoodRecognitionResponse response = FoodRecognitionResponse.builder()
+        .sceneType(recognitionResult.getSceneType())
         .items(recognitionResult.getItems())
         .totalNutrition(totalNutrition)
         .imageUrl(r2Url)
         .build();
 
     return ResponseEntity.ok(response);
+  }
+
+  private FoodRecognitionRequestMetadata parseMetadata(String metadataJson) {
+    if (metadataJson == null || metadataJson.isBlank()) {
+      return null;
+    }
+
+    try {
+      return objectMapper.readValue(metadataJson, FoodRecognitionRequestMetadata.class);
+    } catch (Exception e) {
+      log.warn("Invalid metadata JSON; ignoring. metadata={}", metadataJson, e);
+      return null;
+    }
   }
 
   @GetMapping("/providers")
@@ -165,6 +185,8 @@ public class NutritionController {
   @lombok.NoArgsConstructor
   @lombok.AllArgsConstructor
   public static class FoodRecognitionResponse {
+    @com.fasterxml.jackson.annotation.JsonProperty("scene_type")
+    private String sceneType;
     private List<com.fitnessapp.backend.nutrition.dto.RecognizedFood> items;
     private NutritionInfo totalNutrition;
     private String imageUrl;

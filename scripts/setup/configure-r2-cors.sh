@@ -7,7 +7,7 @@
 # - From the aurafitness.org domain and localhost for development
 #
 # Prerequisites:
-# - AWS CLI installed and configured with R2 credentials
+# - `aws` CLI installed (used as an S3-compatible client for R2)
 # - Environment variables: R2_ENDPOINT, R2_ACCESS_KEY, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME
 #
 # Usage:
@@ -55,7 +55,7 @@ echo "CORS Configuration:"
 cat "$TEMP_FILE"
 echo ""
 
-# Apply CORS configuration using AWS CLI with R2 endpoint
+# Apply CORS configuration using `aws` CLI with R2 endpoint (S3-compatible API)
 # R2 requires region to be 'auto' or one of: wnam, enam, weur, eeur, apac, oc
 AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY" \
 AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \

@@ -36,7 +36,7 @@ public class WorkoutSession {
     private String exerciseType;
 
     /**
-     * 视频存储路径 (S3/本地路径)
+     * 视频存储路径 (R2/本地路径)
      */
     @Column(name = "video_url", length = 500)
     private String videoUrl;

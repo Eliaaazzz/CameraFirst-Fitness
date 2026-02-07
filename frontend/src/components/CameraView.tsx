@@ -1,9 +1,9 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Dimensions, Image, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Dimensions, Image, Pressable, StyleSheet, View } from 'react-native';
 import { CameraView as ExpoCameraView } from 'expo-camera';
 import type { CameraCapturedPicture } from 'expo-camera';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
 import { FAB, IconButton } from 'react-native-paper';
@@ -20,6 +20,9 @@ export interface CameraViewProps {
   onGalleryPress?: () => void;
   guideText?: string;
   processing?: boolean;
+  showReticle?: boolean;
+  captureButtonVariant?: 'fab' | 'glass';
+  autoUsePhoto?: boolean;
 }
 
 type FlashState = 'auto' | 'on' | 'off';
@@ -32,15 +35,43 @@ const flashSequence: FlashState[] = ['auto', 'on', 'off'];
 
 type CameraViewHandle = InstanceType<typeof ExpoCameraView>;
 
-export const CameraView = ({ onCapture, onCancel, onGalleryPress, guideText, processing = false }: CameraViewProps) => {
+export const CameraView = ({
+  onCapture,
+  onCancel,
+  onGalleryPress,
+  guideText,
+  processing = false,
+  showReticle = false,
+  captureButtonVariant = 'fab',
+  autoUsePhoto = false,
+}: CameraViewProps) => {
   const cameraRef = useRef<CameraViewHandle | null>(null);
   const [cameraType, setCameraType] = useState<CameraPosition>('back');
   const [flashMode, setFlashMode] = useState<FlashState>('auto');
   const [isCapturing, setIsCapturing] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [showFlashOverlay, setShowFlashOverlay] = useState(false);
+  const reticleAnim = useRef(new Animated.Value(0)).current;
 
   // Using FAB for capture – Material handles visual states
+
+  useEffect(() => {
+    if (!showReticle) {
+      reticleAnim.stopAnimation();
+      reticleAnim.setValue(0);
+      return;
+    }
+
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(reticleAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+        Animated.timing(reticleAnim, { toValue: 0, duration: 1200, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+
+    return () => loop.stop();
+  }, [reticleAnim, showReticle]);
 
   const toggleCamera = () => {
     setCameraType((prev: CameraPosition) => (prev === 'back' ? 'front' : 'back'));
@@ -80,7 +111,11 @@ export const CameraView = ({ onCapture, onCancel, onGalleryPress, guideText, pro
         skipProcessing: true,
       });
       if (photo?.uri) {
-        setCapturedPhoto(photo.uri);
+        if (autoUsePhoto) {
+          onCapture(photo.uri);
+        } else {
+          setCapturedPhoto(photo.uri);
+        }
       }
       setTimeout(() => setShowFlashOverlay(false), 130);
     } catch (error) {
@@ -145,39 +180,83 @@ export const CameraView = ({ onCapture, onCancel, onGalleryPress, guideText, pro
           <View style={styles.circleButtonPlaceholder} />
         )}
 
-        <View>
-          <IconButton icon={flashIcon as any} iconColor={flashColor} size={24} onPress={cycleFlash} style={styles.iconBtn} />
-          <Text variant="caption" style={styles.flashLabel} color="#FFFFFF">
-            {flashMode.toUpperCase()}
-          </Text>
-        </View>
+        {captureButtonVariant === 'glass' ? (
+          <View style={styles.circleButtonPlaceholder} />
+        ) : (
+          <>
+            <View>
+              <IconButton icon={flashIcon as any} iconColor={flashColor} size={24} onPress={cycleFlash} style={styles.iconBtn} />
+              <Text variant="caption" style={styles.flashLabel} color="#FFFFFF">
+                {flashMode.toUpperCase()}
+              </Text>
+            </View>
 
-        <IconButton icon="camera-switch" iconColor="#FFFFFF" size={24} onPress={toggleCamera} style={styles.iconBtn} />
+            <IconButton icon="camera-switch" iconColor="#FFFFFF" size={24} onPress={toggleCamera} style={styles.iconBtn} />
+          </>
+        )}
       </View>
 
-      {guideText && (
+      {showReticle ? (
+        <View style={styles.reticleWrap}>
+          <Animated.View
+            style={[
+              styles.reticleGlow,
+              {
+                opacity: reticleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0.9] }),
+                transform: [{ scale: reticleAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.03] }) }],
+              },
+            ]}
+          >
+            <BlurView intensity={22} tint="light" style={styles.reticleRing} />
+          </Animated.View>
+
+          {guideText ? (
+            <View style={styles.reticleLabel}>
+              <Text variant="caption" weight="medium" color="#FFFFFF" style={styles.reticleText}>
+                {guideText}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      ) : guideText ? (
         <View style={styles.guideContainer}>
           <Text variant="body" weight="medium" color="#FFFFFF" style={styles.guideText}>
             {guideText}
           </Text>
         </View>
-      )}
+      ) : null}
 
       <View style={styles.bottomControls}>
         <IconButton icon="image" iconColor="#FFFFFF" size={24} onPress={onGalleryPress} style={styles.iconBtnSquare} />
 
-        <FAB
-          icon="camera"
-          onPress={takePhoto}
-          disabled={isCapturing || processing}
-          style={styles.captureFab}
-          size="large"
-        />
+        {captureButtonVariant === 'glass' ? (
+          <Pressable
+            onPress={takePhoto}
+            disabled={isCapturing || processing}
+            style={({ pressed }) => [
+              styles.glassShutterOuter,
+              (isCapturing || processing) && styles.glassShutterDisabled,
+              pressed && styles.glassShutterPressed,
+            ]}
+          >
+            <BlurView intensity={28} tint="light" style={styles.glassShutter}>
+              <View style={styles.glassShutterInner} />
+            </BlurView>
+          </Pressable>
+        ) : (
+          <FAB
+            icon="camera"
+            onPress={takePhoto}
+            disabled={isCapturing || processing}
+            style={styles.captureFab}
+            size="large"
+          />
+        )}
 
         <View style={styles.circleButtonPlaceholder} />
       </View>
 
-      {capturedPhoto && (
+      {capturedPhoto && !autoUsePhoto && (
         <View style={styles.previewContainer}>
           <Image source={{ uri: capturedPhoto }} style={styles.preview} resizeMode="cover" />
           <View style={styles.previewActions}>
@@ -255,6 +334,36 @@ const styles = StyleSheet.create({
   guideText: {
     letterSpacing: 0.2,
   },
+  reticleWrap: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  reticleGlow: {
+    width: 288,
+    height: 288,
+    borderRadius: 144,
+    overflow: 'hidden',
+  },
+  reticleRing: {
+    flex: 1,
+    borderRadius: 144,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  reticleLabel: {
+    position: 'absolute',
+    bottom: -34,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.32)',
+  },
+  reticleText: {
+    letterSpacing: 0.3,
+  },
   bottomControls: {
     position: 'absolute',
     bottom: spacing['3xl'],
@@ -266,6 +375,37 @@ const styles = StyleSheet.create({
   },
   iconBtnSquare: { backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 12 },
   captureFab: { width: CAPTURE_BUTTON_SIZE, height: CAPTURE_BUTTON_SIZE, borderRadius: CAPTURE_BUTTON_SIZE / 2 },
+  glassShutterOuter: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  glassShutter: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+    overflow: 'hidden',
+  },
+  glassShutterInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.55)',
+  },
+  glassShutterPressed: {
+    transform: [{ scale: 0.97 }],
+  },
+  glassShutterDisabled: {
+    opacity: 0.55,
+  },
   previewContainer: {
     position: 'absolute',
     bottom: 0,

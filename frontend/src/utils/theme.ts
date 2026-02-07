@@ -13,8 +13,8 @@ export const colors = {
     primaryContainer: '#FFF7ED',  // Orange-50
     primaryTint: 'rgba(249, 115, 22, 0.10)', // 10% primary for hover backgrounds
 
-    secondary: '#EC4899',         // Pink-500
-    secondaryContainer: '#FCE7F3',
+    secondary: '#06B6D4',         // Cyan-500
+    secondaryContainer: '#CFFAFE',
 
     // Surfaces - Neutral, premium feel (Linear/Stripe style)
     background: '#F5F6FA',        // More gray, less purple (Stripe-like)
@@ -51,8 +51,8 @@ export const colors = {
     primaryLight: '#C4B5FD',      // Violet-300
     primaryContainer: '#4C1D95',  // Violet-900
     
-    secondary: '#F472B6',         // Pink-400
-    secondaryContainer: '#831843',
+    secondary: '#22D3EE',         // Cyan-400
+    secondaryContainer: '#164E63', // Cyan-900
     
     // Surfaces - Material Dark
     background: '#1A1A1A',        // Dark Gray (Not pure black)

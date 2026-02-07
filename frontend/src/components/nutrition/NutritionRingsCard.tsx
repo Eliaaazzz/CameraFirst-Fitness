@@ -78,75 +78,123 @@ const RING_COLORS = {
 
 // Ring configuration with proper spacing
 
-const STROKE_WIDTH = 18;  // Sleek and modern
+
+
+const STROKE_WIDTH = 22;  // Thicker, more like Apple Watch
+
+
+
+
 
 
 
 interface RingConfig {
 
-  key: 'calories' | 'protein' | 'fat' | 'carbs';
+
+
+  key: 'protein' | 'carbs' | 'fat';
+
+
 
   label: string;
 
+
+
   color: string;
 
+
+
   radius: number;
+
+
 
 }
 
 
 
-// Balanced Geometry (The Sweet Spot) - EXPANDED CENTER
+
+
+
+
+// 3 Rings Layout (Protein, Carbs, Fat)
+
+
 
 const RING_CONFIGS: RingConfig[] = [
 
-  {
 
-    key: 'calories',
-
-    label: 'Calories',
-
-    color: RING_COLORS.calories,
-
-    radius: 145, // Pushed outward
-
-  },
 
   {
+
+
 
     key: 'protein',
 
+
+
     label: 'Protein',
+
+
 
     color: RING_COLORS.protein,
 
-    radius: 120,
+
+
+    radius: 130, // Outer
+
+
 
   },
 
-  {
 
-    key: 'fat',
-
-    label: 'Fat',
-
-    color: RING_COLORS.fat,
-
-    radius: 95,
-
-  },
 
   {
+
+
 
     key: 'carbs',
 
+
+
     label: 'Carbs',
+
+
 
     color: RING_COLORS.carbs,
 
-    radius: 70, // Inner hole diameter ~122px
+
+
+    radius: 104, // Middle
+
+
 
   },
+
+
+
+  {
+
+
+
+    key: 'fat',
+
+
+
+    label: 'Fat',
+
+
+
+    color: RING_COLORS.fat,
+
+
+
+    radius: 78,  // Inner
+
+
+
+  },
+
+
 
 ];
 

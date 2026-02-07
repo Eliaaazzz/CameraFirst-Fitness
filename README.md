@@ -33,9 +33,7 @@ AuraFitness/
 │
 ├── infrastructure/             # Infrastructure as Code
 │   ├── docker-compose.yml     # Development environment
-│   ├── docker-compose.prod.yml # Production environment
-│   ├── aws-cloudformation.yaml # AWS infrastructure
-│   └── frontend-deploy.sh     # Frontend deployment script
+│   ├── docker-compose.supabase.yml # Optional: local Supabase stack
 │
 ├── scripts/                    # Utility scripts
 │   ├── setup/                 # Environment setup scripts
@@ -48,6 +46,7 @@ AuraFitness/
 ├── .github/workflows/          # CI/CD pipelines
 │
 ├── package.json               # Root workspace configuration
+├── render.yaml                # Render Blueprint (backend)
 ├── .env                       # Environment variables (gitignored)
 └── .gitignore                 # Git ignore rules
 ```
@@ -156,16 +155,20 @@ bash scripts/testing/test-api.sh
 
 ## Deployment
 
-### Using Docker Compose
+### Using Docker Compose (Local)
 ```bash
 # Development environment
 npm run docker:up
 
-# Production environment
-npm run docker:prod:up
+# Optional: local Supabase stack (if you're developing against Supabase)
+npm run docker:supabase:up
 ```
 
-### Manual Deployment
+### Production (Render + Supabase)
+- Backend: Render (Docker), configured via `render.yaml`
+- Frontend: Cloudflare Pages, deployed via GitHub Actions
+
+### Manual Build
 ```bash
 # Backend - build JAR
 npm run backend:build
@@ -174,7 +177,7 @@ npm run backend:build
 npm run frontend:build
 ```
 
-See deployment scripts in `scripts/deployment/` for detailed instructions.
+See `render.yaml` and `.github/workflows/` for CI/CD configuration.
 
 ## Documentation
 
@@ -202,7 +205,8 @@ See the `docs/` directory for detailed documentation on:
 - **TanStack Query** - Data fetching
 
 ### Infrastructure
-- **AWS EC2** - Application hosting
+- **Render** - Backend hosting (Docker)
+- **Supabase** - Postgres (managed)
 - **Cloudflare R2** - Object storage
 - **Docker** - Containerization
 - **GitHub Actions** - CI/CD

@@ -35,6 +35,64 @@ const UPLOAD_TIMEOUT = 90000; // 90 seconds for image uploads (AI analysis can t
 
 console.log('[APIClient Init] Final BASE_URL:', BASE_URL);
 
+// On web, blobs can occasionally lose their MIME type (e.g., blob: URLs, some browsers, or
+// certain compression paths). If the backend relies on `Content-Type` for validation or the
+// upstream AI model relies on `mime_type` for decoding, sending a generic/empty type can cause
+// hard-to-debug failures.
+async function detectImageMimeType(blob: Blob): Promise<string | null> {
+  try {
+    const headerSize = Math.min(16, blob.size);
+    const buffer = await blob.slice(0, headerSize).arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+
+    const startsWith = (...sig: number[]) => sig.every((b, i) => bytes[i] === b);
+
+    // JPEG: FF D8 FF
+    if (bytes.length >= 3 && startsWith(0xff, 0xd8, 0xff)) return 'image/jpeg';
+    // PNG: 89 50 4E 47
+    if (bytes.length >= 4 && startsWith(0x89, 0x50, 0x4e, 0x47)) return 'image/png';
+    // GIF: 47 49 46 38
+    if (bytes.length >= 4 && startsWith(0x47, 0x49, 0x46, 0x38)) return 'image/gif';
+    // WebP: RIFF....WEBP
+    if (
+      bytes.length >= 12 &&
+      startsWith(0x52, 0x49, 0x46, 0x46) &&
+      bytes[8] === 0x57 &&
+      bytes[9] === 0x45 &&
+      bytes[10] === 0x42 &&
+      bytes[11] === 0x50
+    ) {
+      return 'image/webp';
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeMimeType(type: string | undefined | null): string {
+  if (!type) return '';
+  // Strip charset or other params (e.g. "image/jpeg; charset=binary")
+  const base = type.split(';')[0]?.trim().toLowerCase();
+  if (base === 'image/jpg') return 'image/jpeg';
+  return base;
+}
+
+function filenameForMimeType(mimeType: string): string {
+  switch (mimeType) {
+    case 'image/png':
+      return 'image.png';
+    case 'image/gif':
+      return 'image.gif';
+    case 'image/webp':
+      return 'image.webp';
+    case 'image/jpeg':
+    default:
+      return 'image.jpg';
+  }
+}
+
 interface RequestConfig {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
@@ -273,14 +331,25 @@ export async function uploadImage<T>(
     const response = await fetch(imageUri);
     let blob = await response.blob();
 
-    // CRITICAL: Ensure blob has correct MIME type for Gemini API
-    // If blob type is empty or generic, explicitly set it to image/jpeg
-    if (!blob.type || blob.type === 'application/octet-stream' || blob.type === '') {
-      blob = new Blob([blob], { type: 'image/jpeg' });
-      console.log('[APIClient] Fixed blob MIME type to image/jpeg');
+    // Ensure we send a real image MIME type instead of empty/octet-stream.
+    // This helps the backend validate uploads and helps Gemini decode bytes correctly.
+    const normalizedType = normalizeMimeType(blob.type);
+    if (!normalizedType || normalizedType === 'application/octet-stream') {
+      console.warn('[APIClient] Blob MIME type missing/generic; attempting magic-byte detection...');
+      const detected = await detectImageMimeType(blob);
+      if (detected) {
+        blob = new Blob([blob], { type: detected });
+        console.log('[APIClient] Detected blob MIME type:', detected);
+      } else {
+        // Best-effort fallback. If bytes aren't JPEG, the backend/AI may reject it, but this
+        // is still better than "application/octet-stream" which is guaranteed to break.
+        blob = new Blob([blob], { type: 'image/jpeg' });
+        console.warn('[APIClient] Could not detect MIME type; falling back to image/jpeg');
+      }
     }
 
-    formData.append('image', blob, 'image.jpg');
+    const finalType = normalizeMimeType(blob.type) || 'image/jpeg';
+    formData.append('image', blob, filenameForMimeType(finalType));
   } else {
     // On mobile (iOS/Android): Convert HEIC to JPEG using expo-image-manipulator
     // This is CRITICAL for iPhone users as iOS default format is HEIC
