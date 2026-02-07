@@ -9,8 +9,24 @@ import { Platform } from 'react-native';
 // Ensure API Key is available (prioritize .env API_KEY, fallback to Expo environment variable)
 const APP_API_KEY = API_KEY || process.env.EXPO_PUBLIC_API_KEY || 'fitness-secret-key-123';
 
+function getDevFallbackBaseUrl(): string | null {
+  if (!__DEV__) return null;
+
+  // Android emulator can't reach host via localhost.
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:8080';
+  }
+
+  // iOS simulator + web dev can use localhost.
+  return 'http://localhost:8080';
+}
+
 // Ensure API Base URL is available (prioritize .env, fallback to Expo env var, then production URL)
-const RAW_API_BASE_URL = API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL || 'https://aurafitness.org';
+const RAW_API_BASE_URL =
+  API_BASE_URL ||
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
+  getDevFallbackBaseUrl() ||
+  'https://aurafitness.org';
 
 // Log configuration at init for debugging
 console.log('[APIClient Init]', {

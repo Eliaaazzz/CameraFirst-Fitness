@@ -64,7 +64,14 @@ U1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlbaWl5iZmqKjpKWmp6ipqrKztLW2
 t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/aAAwDAQACEQMRAD8A/v4o
 oor/AH/f/9k=
 EOF
-base64 -d "$TEST_IMAGE.b64" > "$TEST_IMAGE" 2>/dev/null
+if base64 -d < "$TEST_IMAGE.b64" > "$TEST_IMAGE" 2>/dev/null; then
+    :
+elif base64 -D < "$TEST_IMAGE.b64" > "$TEST_IMAGE" 2>/dev/null; then
+    :
+else
+    echo "   ✗ Failed to decode base64 test image (base64 tool incompatible)"
+    exit 1
+fi
 rm -f "$TEST_IMAGE.b64"
 
 if [ -f "$TEST_IMAGE" ]; then

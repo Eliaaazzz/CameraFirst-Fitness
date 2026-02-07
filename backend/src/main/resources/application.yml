@@ -61,7 +61,7 @@ app:
     api-key: ${ANTHROPIC_API_KEY:}
   gemini:
     api-key: ${GEMINI_API_KEY:}
-    model: ${GEMINI_MODEL:gemini-2.5-pro-preview-06-05}
+    model: ${GEMINI_MODEL:gemini-2.5-flash}
     enabled: ${GEMINI_ENABLED:true}
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
