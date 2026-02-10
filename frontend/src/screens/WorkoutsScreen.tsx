@@ -338,10 +338,11 @@ export const WorkoutsScreen = () => {
         Recommended routines and your saved list.
       </Text>
 
-      {/* Search Bar - Tour Zone 6 */}
+      {/* Search Bar - Tour Zone 4 */}
       <TourGuideZone
         zone={WORKOUTS_TOUR_STEP.zone}
         text={WORKOUTS_TOUR_STEP.text}
+        title={WORKOUTS_TOUR_STEP.title}
         shape="rectangle"
         borderRadius={12}
       >

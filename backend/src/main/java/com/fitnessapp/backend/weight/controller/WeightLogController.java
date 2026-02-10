@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,8 +16,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.fitnessapp.backend.api.common.ApiEnvelope;
+import com.fitnessapp.backend.security.AuthenticatedUser;
 import com.fitnessapp.backend.weight.dto.WeightLogRequest;
 import com.fitnessapp.backend.weight.dto.WeightLogResponse;
 import com.fitnessapp.backend.weight.dto.WeightStatsResponse;
@@ -40,8 +43,9 @@ public class WeightLogController {
      */
     @PostMapping
     public ResponseEntity<ApiEnvelope<WeightLogResponse>> logWeight(
-            @AuthenticationPrincipal UUID userId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody WeightLogRequest request) {
+        UUID userId = requireUserId(currentUser);
         log.info("Logging weight for user {}: {} kg", userId, request.weightKg());
         WeightLogResponse response = weightLogService.logWeight(userId, request);
         return ResponseEntity.ok(ApiEnvelope.success(response));
@@ -53,9 +57,10 @@ public class WeightLogController {
      */
     @GetMapping("/history")
     public ResponseEntity<ApiEnvelope<List<WeightLogResponse>>> getWeightHistory(
-            @AuthenticationPrincipal UUID userId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        UUID userId = requireUserId(currentUser);
         List<WeightLogResponse> history = weightLogService.getWeightHistory(userId, startDate, endDate);
         return ResponseEntity.ok(ApiEnvelope.success(history));
     }
@@ -66,8 +71,9 @@ public class WeightLogController {
      */
     @GetMapping("/recent")
     public ResponseEntity<ApiEnvelope<List<WeightLogResponse>>> getRecentWeightLogs(
-            @AuthenticationPrincipal UUID userId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam(defaultValue = "30") int limit) {
+        UUID userId = requireUserId(currentUser);
         List<WeightLogResponse> logs = weightLogService.getRecentWeightLogs(userId, Math.min(limit, 365));
         return ResponseEntity.ok(ApiEnvelope.success(logs));
     }
@@ -78,8 +84,9 @@ public class WeightLogController {
      */
     @GetMapping("/stats")
     public ResponseEntity<ApiEnvelope<WeightStatsResponse>> getWeightStats(
-            @AuthenticationPrincipal UUID userId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam(defaultValue = "30") int days) {
+        UUID userId = requireUserId(currentUser);
         WeightStatsResponse stats = weightLogService.getWeightStats(userId, Math.min(days, 365));
         return ResponseEntity.ok(ApiEnvelope.success(stats));
     }
@@ -90,9 +97,20 @@ public class WeightLogController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiEnvelope<Void>> deleteWeightLog(
-            @AuthenticationPrincipal UUID userId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long id) {
+        UUID userId = requireUserId(currentUser);
         weightLogService.deleteWeightLog(userId, id);
         return ResponseEntity.ok(ApiEnvelope.success(null));
+    }
+
+    private UUID requireUserId(AuthenticatedUser currentUser) {
+        if (currentUser == null || currentUser.userId() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "User context is missing. Did you provide X-API-Key?"
+            );
+        }
+        return currentUser.userId();
     }
 }

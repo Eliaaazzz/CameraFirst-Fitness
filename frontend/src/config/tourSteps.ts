@@ -1,6 +1,8 @@
 /**
  * Tour Steps Configuration
  * Defines the content and order of the "Take a Tour" feature
+ *
+ * 5 steps: Snap Meal → Today's Nutrition → Quick Actions → Workouts → Recipes
  */
 
 export interface TourStep {
@@ -10,60 +12,51 @@ export interface TourStep {
   text: string;
 }
 
-// Tour steps for the Dashboard screen
-export const DASHBOARD_TOUR_STEPS: TourStep[] = [
-  {
-    zone: 1,
-    screen: 'Dashboard',
-    title: 'Snap Your Meal',
-    text: 'Tap here to take a photo of your meal. Our AI will analyze the nutrition instantly!',
-  },
-  {
-    zone: 2,
-    screen: 'Dashboard',
-    title: "Today's Nutrition",
-    text: 'Track your daily calories and macros here. See your progress toward your goals.',
-  },
-  {
-    zone: 3,
-    screen: 'Dashboard',
-    title: 'Quick Actions',
-    text: 'Jump to Meal History, Weekly Insights, Log Weight, or Export Data without digging through menus.',
-  },
-];
-
-// Tour steps for Profile screen menu items
-export const SAVED_WORKOUTS_TOUR_STEP: TourStep = {
-  zone: 4,
-  screen: 'Profile',
-  title: 'Saved Workouts',
-  text: 'Access your bookmarked workout videos here. Build your personal workout library for quick access.',
+// Step 1: Snap Your Meal (Dashboard)
+export const SNAP_MEAL_STEP: TourStep = {
+  zone: 1,
+  screen: 'Dashboard',
+  title: 'Snap Your Meal',
+  text: 'Tap here to take a photo of your meal. Our AI will analyze the nutrition instantly!',
 };
 
-export const SAVED_RECIPES_TOUR_STEP: TourStep = {
-  zone: 5,
-  screen: 'Profile',
-  title: 'Saved Recipes',
-  text: 'Find all your favorite recipes here. Save recipes from the search tab to build your personal cookbook.',
+// Step 2: Today's Nutrition (Dashboard)
+export const TODAYS_NUTRITION_STEP: TourStep = {
+  zone: 2,
+  screen: 'Dashboard',
+  title: "Today's Nutrition",
+  text: 'Track your daily calories and macros here. See your progress toward your goals.',
 };
 
+// Step 3: Quick Actions (Dashboard)
+export const QUICK_ACTIONS_STEP: TourStep = {
+  zone: 3,
+  screen: 'Dashboard',
+  title: 'Quick Actions',
+  text: 'Jump to your logs and insights without digging through menus.',
+};
+
+// Step 4: Workouts (Workouts screen)
 export const WORKOUTS_TOUR_STEP: TourStep = {
-  zone: 6,
+  zone: 4,
   screen: 'Workouts',
-  title: 'Workout Search Tab',
-  text: 'Search for workout videos by type, muscle group, or equipment. Save your favorite routines to your personal list.',
+  title: 'Find Workouts',
+  text: 'Search for workout videos by type, muscle group, or equipment. Save your favorites!',
 };
 
+// Step 5: Recipes (Recipes screen)
 export const RECIPES_TOUR_STEP: TourStep = {
-  zone: 7,
+  zone: 5,
   screen: 'Recipes',
-  title: 'Recipe Search Tab',
-  text: 'Explore our vast library of healthy recipes. Use the search bar to find meals by ingredients, diet, or preparation time.',
+  title: 'Discover Recipes',
+  text: 'Explore healthy recipes. Search by ingredients, diet, or prep time.',
 };
 
-// All tour steps in order
+// All tour steps in order (5 steps)
 export const ALL_TOUR_STEPS: TourStep[] = [
-  ...DASHBOARD_TOUR_STEPS,
+  SNAP_MEAL_STEP,
+  TODAYS_NUTRITION_STEP,
+  QUICK_ACTIONS_STEP,
   WORKOUTS_TOUR_STEP,
   RECIPES_TOUR_STEP,
 ];

@@ -20,8 +20,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 
 import { Text, Card } from '@/components';
-import { spacing, radii } from '@/utils';
+import { spacing, radii, formatLocalDateKey } from '@/utils';
 import { logWeight, weightQueryKeys, type WeightLogRequest } from '@/services/weightApi';
+import { getFriendlyErrorMessage } from '@/utils/errors';
 
 // ============================================================================
 // Types
@@ -82,7 +83,7 @@ export const WeightLogModal: React.FC<WeightLogModalProps> = ({
     onError: (error) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       console.error('Failed to log weight:', error);
-      setErrors({ submit: 'Failed to save. Please try again.' });
+      setErrors({ submit: getFriendlyErrorMessage(error) });
     },
   });
 
@@ -127,7 +128,7 @@ export const WeightLogModal: React.FC<WeightLogModalProps> = ({
 
     const request: WeightLogRequest = {
       weightKg: parseFloat(weight), // Required
-      logDate: logDate.toISOString().split('T')[0], // "2024-01-15" format
+      logDate: formatLocalDateKey(logDate), // "YYYY-MM-DD" in local timezone
       bodyFatPercentage: bodyFat ? parseFloat(bodyFat) : undefined,
       muscleMassKg: muscleMass ? parseFloat(muscleMass) : undefined,
       note: note.trim() || undefined,
