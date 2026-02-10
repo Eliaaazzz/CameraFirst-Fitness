@@ -1,8 +1,11 @@
 package com.fitnessapp.backend.nutrition.service.core;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,19 +13,18 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fitnessapp.backend.nutrition.dto.FoodMetadata;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.entity.FoodNutrition;
-import com.fitnessapp.backend.nutrition.entity.FoodSynonym;
 import com.fitnessapp.backend.nutrition.enums.CookingMethod;
 import com.fitnessapp.backend.nutrition.repository.FoodNutritionRepository;
-import com.fitnessapp.backend.nutrition.repository.FoodSynonymRepository;
-import com.fitnessapp.backend.usda.domain.UsdaFood;
-import com.fitnessapp.backend.usda.service.UsdaFoodSearchService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Service for looking up food nutrition data from database
- * Supports fuzzy matching and synonym resolution
+ * Service for looking up food nutrition data from the database.
+ *
+ * <p>Note: The USDA and food synonym tables were removed in V44, so lookups are now performed
+ * against {@code food_nutrition} only (exact match, trigram similarity when available, and
+ * keyword fallback).
  */
 @Slf4j
 @Service
@@ -30,10 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 public class NutritionLookupService {
 
     private final FoodNutritionRepository foodNutritionRepository;
-    private final FoodSynonymRepository foodSynonymRepository;
     private final FoodKeyNormalizer foodKeyNormalizer;
-    private final UsdaFoodSearchService usdaFoodSearchService;
-    private final FoodSearchStrategyService foodSearchStrategyService;
 
     // Default nutrition for unknown foods (per 100g)
     private static final NutritionInfo DEFAULT_NUTRITION = NutritionInfo.builder()
@@ -47,10 +46,9 @@ public class NutritionLookupService {
      * Look up nutrition by food key with fallback strategies:
      * 1. NLP normalization and phrase mapping
      * 2. Exact match on food_key
-     * 3. Exact match on synonym
-     * 4. Fuzzy match on food_key (pg_trgm, with fallback to LIKE)
-     * 5. Fuzzy match on synonym (pg_trgm, with fallback to LIKE)
-     * 6. Default nutrition
+     * 3. Fuzzy match on food_key (pg_trgm, with fallback to LIKE)
+     * 4. Fuzzy match on display name (pg_trgm, with fallback to LIKE)
+     * 5. Default nutrition
      */
     @Transactional(readOnly = true)
     public NutritionInfo lookupNutrition(String foodKey) {
@@ -65,15 +63,7 @@ public class NutritionLookupService {
             return toNutritionInfo(exactMatch.get());
         }
 
-        // Strategy 2: Exact match on synonym
-        Optional<FoodSynonym> synonymMatch = findSynonymIgnoreCase(normalizedKey);
-        if (synonymMatch.isPresent()) {
-            String canonicalKey = synonymMatch.get().getCanonicalFoodKey();
-            log.debug("Found synonym match: {} -> {}", normalizedKey, canonicalKey);
-            return lookupByCanonicalKey(canonicalKey);
-        }
-
-        // Strategy 3: Fuzzy match on food_key (with fallback)
+        // Strategy 2: Fuzzy match on food_key (with fallback)
         List<FoodNutrition> fuzzyMatches = findFoodKeySimilarSafe(normalizedKey, 1);
         if (!fuzzyMatches.isEmpty()) {
             FoodNutrition match = fuzzyMatches.get(0);
@@ -81,21 +71,21 @@ public class NutritionLookupService {
             return toNutritionInfo(match);
         }
 
-        // Strategy 4: Fuzzy match on synonym (with fallback)
-        List<FoodSynonym> fuzzySynonyms = findSynonymSimilarSafe(normalizedKey, 1);
-        if (!fuzzySynonyms.isEmpty()) {
-            String canonicalKey = fuzzySynonyms.get(0).getCanonicalFoodKey();
-            log.info("Found fuzzy synonym match: {} -> {}", normalizedKey, canonicalKey);
-            return lookupByCanonicalKey(canonicalKey);
+        // Strategy 3: Fuzzy match on display name (with fallback)
+        List<FoodNutrition> fuzzyNameMatches = findDisplayNameSimilarSafe(normalizedKey, 1);
+        if (!fuzzyNameMatches.isEmpty()) {
+            FoodNutrition match = fuzzyNameMatches.get(0);
+            log.info("Found fuzzy name match for {}: {}", normalizedKey, match.getFoodKey());
+            return toNutritionInfo(match);
         }
 
-        // Strategy 6: Try USDA catalog using a name search (spaces instead of underscores)
-        NutritionInfo usda = lookupUsda(normalizedKey);
-        if (usda != null) {
-            return usda;
+        // Strategy 4: Keyword fallback (case-insensitive LIKE)
+        List<FoodNutrition> keywordMatches = foodNutritionRepository.searchByKeyword(normalizedKey);
+        if (!keywordMatches.isEmpty()) {
+            return toNutritionInfo(keywordMatches.get(0));
         }
 
-        // Strategy 7: Default
+        // Strategy 5: Default
         log.warn("No nutrition data found for: {}, using default", foodKey);
         return DEFAULT_NUTRITION;
     }
@@ -117,47 +107,70 @@ public class NutritionLookupService {
         log.debug("Looking up nutrition with metadata: base={}, form={}, method={}", 
                 metadata.getBaseIngredient(), metadata.getForm(), metadata.getCookingMethodStr());
 
-        // Use dynamic search strategy
-        Optional<FoodSearchStrategyService.SearchResult> searchResult = 
-                foodSearchStrategyService.findBestMatch(metadata);
-
-        if (searchResult.isPresent()) {
-            FoodSearchStrategyService.SearchResult result = searchResult.get();
-            UsdaFood food = result.getFood();
-            
-            log.info("Found match for metadata search: {} (priority={}, score={}, reason={})",
-                    food.getName(), result.getPriority(), result.getMatchScore(), result.getMatchReason());
-
-            if (food.getNutrition() == null) {
-                log.warn("Found food {} but nutrition data is missing", food.getName());
-                return DEFAULT_NUTRITION;
+        for (String candidate : buildSearchCandidates(metadata)) {
+            Optional<NutritionInfo> candidateNutrition = lookupNutritionOptional(candidate);
+            if (candidateNutrition.isEmpty()) {
+                continue;
             }
 
-            NutritionInfo baseNutrition = NutritionInfo.builder()
-                    .calories(toBigDecimal(food.getNutrition().getCalories()))
-                    .protein(toBigDecimal(food.getNutrition().getProteinG()))
-                    .fat(toBigDecimal(food.getNutrition().getFatG()))
-                    .carbs(toBigDecimal(food.getNutrition().getCarbsG()))
-                    .fiber(toBigDecimal(food.getNutrition().getFiberG()))
-                    .sugar(toBigDecimal(food.getNutrition().getSugarG()))
-                    .build();
-
-            // Apply cooking method multiplier for base matches (priority 1)
-            if (result.getPriority() == 1 && metadata.getCookingMethod() != CookingMethod.UNKNOWN) {
-                return applyCookingMethodMultiplier(baseNutrition, metadata.getCookingMethod());
+            NutritionInfo nutrition = candidateNutrition.get();
+            CookingMethod method = metadata.getCookingMethod();
+            if (method != null && method != CookingMethod.UNKNOWN) {
+                return applyCookingMethodMultiplier(nutrition, method);
             }
 
-            return baseNutrition;
-        }
-
-        // Fallback to traditional lookup if no metadata match
-        log.debug("No metadata match found, falling back to traditional lookup");
-        if (metadata.getSearchTerms() != null && !metadata.getSearchTerms().isEmpty()) {
-            String firstTerm = metadata.getSearchTerms().get(0);
-            return lookupNutrition(firstTerm);
+            return nutrition;
         }
 
         return DEFAULT_NUTRITION;
+    }
+
+    private List<String> buildSearchCandidates(FoodMetadata metadata) {
+        Set<String> candidates = new LinkedHashSet<>();
+
+        if (metadata.getSearchTerms() != null) {
+            for (String term : metadata.getSearchTerms()) {
+                if (term != null && !term.trim().isEmpty()) {
+                    candidates.add(term.trim());
+                }
+            }
+        }
+
+        if (metadata.getBaseIngredient() != null && !metadata.getBaseIngredient().trim().isEmpty()) {
+            candidates.add(metadata.getBaseIngredient().trim());
+        }
+
+        if (metadata.getForm() != null && !metadata.getForm().trim().isEmpty()) {
+            candidates.add(metadata.getForm().trim());
+        }
+
+        return new ArrayList<>(candidates);
+    }
+
+    private Optional<NutritionInfo> lookupNutritionOptional(String foodKey) {
+        String normalizedKey = foodKeyNormalizer.normalize(foodKey);
+
+        Optional<FoodNutrition> exactMatch = foodNutritionRepository.findByFoodKeyAndIsActiveTrue(normalizedKey);
+        if (exactMatch.isPresent()) {
+            return Optional.of(toNutritionInfo(exactMatch.get()));
+        }
+
+        List<FoodNutrition> fuzzyKeyMatches = findFoodKeySimilarSafe(normalizedKey, 1);
+        if (!fuzzyKeyMatches.isEmpty()) {
+            return Optional.of(toNutritionInfo(fuzzyKeyMatches.get(0)));
+        }
+
+        List<FoodNutrition> fuzzyNameMatches = findDisplayNameSimilarSafe(normalizedKey, 1);
+        if (!fuzzyNameMatches.isEmpty()) {
+            return Optional.of(toNutritionInfo(fuzzyNameMatches.get(0)));
+        }
+
+        List<FoodNutrition> keywordMatches = foodNutritionRepository.searchByKeyword(normalizedKey);
+        if (!keywordMatches.isEmpty()) {
+            return Optional.of(toNutritionInfo(keywordMatches.get(0)));
+        }
+
+        return Optional.empty();
     }
 
     /**
@@ -197,27 +210,16 @@ public class NutritionLookupService {
     }
 
     /**
-     * Fuzzy search synonym with fallback
+     * Fuzzy search display_name with fallback
      */
-    private List<FoodSynonym> findSynonymSimilarSafe(String query, int limit) {
+    private List<FoodNutrition> findDisplayNameSimilarSafe(String query, int limit) {
         try {
-            return foodSynonymRepository.findBySynonymSimilar(query, limit);
+            return foodNutritionRepository.findByDisplayNameSimilar(query, limit);
         } catch (Exception e) {
-            // pg_trgm not available, return empty (exact match already checked)
-            log.debug("Trigram search not available for synonyms: {}", e.getMessage());
-            return List.of();
-        }
-    }
-
-    /**
-     * Find synonym ignoring case with fallback
-     */
-    private Optional<FoodSynonym> findSynonymIgnoreCase(String synonym) {
-        try {
-            return foodSynonymRepository.findBySynonymIgnoreCase(synonym);
-        } catch (Exception e) {
-            log.debug("Synonym lookup failed: {}", e.getMessage());
-            return Optional.empty();
+            log.debug("Trigram search not available for display name, using LIKE fallback: {}", e.getMessage());
+            return foodNutritionRepository.searchByKeyword(query).stream()
+                    .limit(limit)
+                    .toList();
         }
     }
 
@@ -227,27 +229,7 @@ public class NutritionLookupService {
      */
     @Transactional(readOnly = true)
     public String resolveCanonicalKey(String foodKey) {
-        String normalizedKey = foodKeyNormalizer.normalize(foodKey);
-
-        // Check if it's already a valid food_key
-        if (foodNutritionRepository.existsByFoodKey(normalizedKey)) {
-            return normalizedKey;
-        }
-
-        // Check synonyms
-        Optional<FoodSynonym> synonym = foodSynonymRepository.findBySynonymIgnoreCase(normalizedKey);
-        if (synonym.isPresent()) {
-            return synonym.get().getCanonicalFoodKey();
-        }
-
-        // Fuzzy match on synonyms
-        List<FoodSynonym> fuzzySynonyms = findSynonymSimilarSafe(normalizedKey, 1);
-        if (!fuzzySynonyms.isEmpty()) {
-            return fuzzySynonyms.get(0).getCanonicalFoodKey();
-        }
-
-        // Return original key (may not exist in DB)
-        return normalizedKey;
+        return foodKeyNormalizer.normalize(foodKey);
     }
 
     /**
@@ -256,20 +238,7 @@ public class NutritionLookupService {
     @Transactional(readOnly = true)
     public boolean hasNutrition(String foodKey) {
         String normalizedKey = foodKeyNormalizer.normalize(foodKey);
-
-        // Direct match
-        if (foodNutritionRepository.findByFoodKeyAndIsActiveTrue(normalizedKey).isPresent()) {
-            return true;
-        }
-
-        // Synonym match
-        Optional<FoodSynonym> synonym = findSynonymIgnoreCase(normalizedKey);
-        if (synonym.isPresent()) {
-            return foodNutritionRepository.findByFoodKeyAndIsActiveTrue(
-                    synonym.get().getCanonicalFoodKey()).isPresent();
-        }
-
-        return false;
+        return foodNutritionRepository.findByFoodKeyAndIsActiveTrue(normalizedKey).isPresent();
     }
 
     /**
@@ -297,15 +266,6 @@ public class NutritionLookupService {
     }
 
     /**
-     * Lookup by known canonical key
-     */
-    private NutritionInfo lookupByCanonicalKey(String canonicalKey) {
-        return foodNutritionRepository.findByFoodKeyAndIsActiveTrue(canonicalKey)
-                .map(this::toNutritionInfo)
-                .orElse(DEFAULT_NUTRITION);
-    }
-
-    /**
      * Convert entity to DTO
      */
     private NutritionInfo toNutritionInfo(FoodNutrition entity) {
@@ -319,34 +279,4 @@ public class NutritionLookupService {
                 .build();
     }
 
-    /**
-     * Lookup USDA foods by name (simple contains + alias) and return the first match.
-     */
-    private NutritionInfo lookupUsda(String normalizedKey) {
-        try {
-            String query = normalizedKey.replace("_", " ");
-            java.util.List<UsdaFood> matches = usdaFoodSearchService.search(query, 1);
-            if (matches.isEmpty()) {
-                return null;
-            }
-            UsdaFood food = matches.get(0);
-            if (food.getNutrition() == null) {
-                return null;
-            }
-            log.info("Using USDA nutrition for '{}' : {}", normalizedKey, food.getName());
-            return NutritionInfo.builder()
-                    .calories(toBigDecimal(food.getNutrition().getCalories()))
-                    .protein(toBigDecimal(food.getNutrition().getProteinG()))
-                    .fat(toBigDecimal(food.getNutrition().getFatG()))
-                    .carbs(toBigDecimal(food.getNutrition().getCarbsG()))
-                    .build();
-        } catch (Exception e) {
-            log.debug("USDA lookup failed for {}: {}", normalizedKey, e.getMessage());
-            return null;
-        }
-    }
-
-    private java.math.BigDecimal toBigDecimal(Number value) {
-        return value == null ? java.math.BigDecimal.ZERO : java.math.BigDecimal.valueOf(value.doubleValue());
-    }
 }

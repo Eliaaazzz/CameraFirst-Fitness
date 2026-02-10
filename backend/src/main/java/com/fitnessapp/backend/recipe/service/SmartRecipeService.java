@@ -1,7 +1,6 @@
 package com.fitnessapp.backend.recipe.service;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,8 +22,6 @@ import com.fitnessapp.backend.recipe.entity.Recipe;
 import com.fitnessapp.backend.recipe.repository.RecipeRepository;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
-import com.fitnessapp.backend.workout.entity.WorkoutSession;
-import com.fitnessapp.backend.workout.repository.WorkoutSessionRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +33,6 @@ public class SmartRecipeService {
   private static final String CACHE_PREFIX = "meal-plan:";
 
   private final UserProfileRepository userProfileRepository;
-  private final WorkoutSessionRepository workoutSessionRepository;
   private final RecipeRepository recipeRepository;
   private final MealPlanHistoryService mealPlanHistoryService;
   private final ObjectMapper objectMapper;
@@ -45,13 +41,11 @@ public class SmartRecipeService {
 
   public SmartRecipeService(
       UserProfileRepository userProfileRepository,
-      WorkoutSessionRepository workoutSessionRepository,
       RecipeRepository recipeRepository,
       MealPlanHistoryService mealPlanHistoryService,
       ObjectMapper objectMapper,
       @Autowired(required = false) StringRedisTemplate redisTemplate) {
     this.userProfileRepository = userProfileRepository;
-    this.workoutSessionRepository = workoutSessionRepository;
     this.recipeRepository = recipeRepository;
     this.mealPlanHistoryService = mealPlanHistoryService;
     this.objectMapper = objectMapper;
@@ -71,11 +65,7 @@ public class SmartRecipeService {
     UserProfile profile = userProfileRepository.findByUserId(userId)
         .orElseThrow(() -> new EntityNotFoundException("User profile not found: " + userId));
 
-    LocalDateTime now = LocalDateTime.now();
-    List<WorkoutSession> sessions = workoutSessionRepository
-        .findByUserIdAndStartedAtBetweenOrderByStartedAtDesc(userId, now.minusDays(7), now);
-
-    NutritionTarget target = computeNutritionTarget(profile, sessions);
+    NutritionTarget target = computeNutritionTarget(profile);
 
     MealPlanResponse fallback = fallbackMealPlan(profile, target);
     persistAndCachePlan(userId, fallback, "FALLBACK");
@@ -139,20 +129,12 @@ public class SmartRecipeService {
     return CACHE_PREFIX + userId;
   }
 
-  private NutritionTarget computeNutritionTarget(UserProfile profile, List<WorkoutSession> sessions) {
+  private NutritionTarget computeNutritionTarget(UserProfile profile) {
     int calories = Optional.ofNullable(profile.getDailyCalorieTarget()).orElseGet(() ->
         Optional.ofNullable(profile.getBasalMetabolicRate()).orElse(2000));
     int protein = Optional.ofNullable(profile.getDailyProteinTarget()).orElse((int) Math.round(calories * 0.32 / 4));
     int carbs = Optional.ofNullable(profile.getDailyCarbsTarget()).orElse((int) Math.round(calories * 0.38 / 4));
     int fat = Optional.ofNullable(profile.getDailyFatTarget()).orElse((int) Math.round(calories * 0.30 / 9));
-
-    int additionalCalories = sessions.stream()
-        .mapToInt(session -> Optional.ofNullable(session.getDurationSeconds()).orElse(0))
-        .map(seconds -> seconds / 300) // per 5 minutes
-        .sum() * 20; // +20 kcal per 5 minutes of recorded training
-
-    calories += additionalCalories;
-    protein += sessions.size() * 5;
 
     return new NutritionTarget(calories, protein, carbs, fat);
   }

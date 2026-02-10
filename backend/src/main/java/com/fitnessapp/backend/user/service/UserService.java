@@ -14,7 +14,6 @@ import com.fitnessapp.backend.user.dto.StreakUpdateResult;
 import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
 import com.fitnessapp.backend.user.repository.UserRepository;
-import com.fitnessapp.backend.workout.repository.UserSavedWorkoutRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +31,6 @@ public class UserService {
   private final UserProfileRepository userProfileRepository;
   private final MealLogRepository mealLogRepository;
   private final UserSavedRecipeRepository userSavedRecipeRepository;
-  private final UserSavedWorkoutRepository userSavedWorkoutRepository;
   private final UserGoalRepository userGoalRepository;
 
   /**
@@ -247,23 +245,19 @@ public class UserService {
     userSavedRecipeRepository.deleteByUser_Id(userId);
     log.debug("Deleted saved recipes for user: {}", userId);
 
-    // 2. Delete saved workouts
-    userSavedWorkoutRepository.deleteByUser_Id(userId);
-    log.debug("Deleted saved workouts for user: {}", userId);
-
-    // 3. Delete meal logs
+    // 2. Delete meal logs
     mealLogRepository.deleteByUserId(userId);
     log.debug("Deleted meal logs for user: {}", userId);
 
-    // 4. Delete user goals
+    // 3. Delete user goals
     userGoalRepository.deleteAllByUserId(userId);
     log.debug("Deleted goals for user: {}", userId);
 
-    // 5. Delete user profile
+    // 4. Delete user profile
     userProfileRepository.deleteById(userId);
     log.debug("Deleted profile for user: {}", userId);
 
-    // 6. Delete user account
+    // 5. Delete user account
     userRepository.delete(user);
     log.info("Successfully deleted user account: {}", userId);
   }

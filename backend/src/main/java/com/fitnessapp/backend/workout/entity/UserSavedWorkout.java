@@ -1,11 +1,6 @@
 package com.fitnessapp.backend.workout.entity;
 
-import java.io.Serializable;
-import java.time.OffsetDateTime;
-import java.util.Objects;
-
 import com.fitnessapp.backend.user.entity.User;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
@@ -15,6 +10,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
+import java.io.Serializable;
+import java.time.OffsetDateTime;
+import java.util.Objects;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,7 +27,8 @@ import lombok.Setter;
 @AllArgsConstructor
 public class UserSavedWorkout {
 
-  @EmbeddedId private Id id;
+  @EmbeddedId
+  private Id id;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @MapsId("userId")
@@ -49,8 +49,8 @@ public class UserSavedWorkout {
   @NoArgsConstructor
   @AllArgsConstructor
   public static class Id implements Serializable {
-    private java.util.UUID userId;
-    private java.util.UUID workoutId;
+    private UUID userId;
+    private UUID workoutId;
 
     @Override
     public boolean equals(Object o) {

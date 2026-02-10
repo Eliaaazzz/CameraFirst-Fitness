@@ -162,8 +162,9 @@ public class UserLibraryController {
   private String mapWorkoutField(String token) {
     return switch (token.toLowerCase()) {
       case "savedat", "saved_at", "saved" -> "savedAt";
-      case "duration", "durationminutes" -> "workout.durationMinutes";
-      case "title" -> "workout.title";
+      // exercise_videos does not store duration; approximate via is_short (1 min vs 5 min on the frontend).
+      case "duration", "durationminutes" -> "workout.isShort";
+      case "title", "name" -> "workout.exerciseName";
       default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported sort field for workouts: " + token);
     };
   }

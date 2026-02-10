@@ -9,6 +9,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserSavedWorkoutRepository extends JpaRepository<UserSavedWorkout, Id> {
   Page<UserSavedWorkout> findByUser_Id(UUID userId, Pageable pageable);
-
-  void deleteByUser_Id(UUID userId);
 }
+

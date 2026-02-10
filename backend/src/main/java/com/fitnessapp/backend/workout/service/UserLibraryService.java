@@ -27,6 +27,11 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Service for managing user's saved content library (recipes + workouts).
+ *
+ * Workouts are backed by {@code exercise_videos} and {@code user_saved_workout}.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -36,31 +41,29 @@ public class UserLibraryService {
   private static final int MAX_PAGE_SIZE = 100;
 
   private final UserRepository userRepository;
-  private final ExerciseVideoRepository exerciseVideoRepository;
   private final RecipeRepository recipeRepository;
-  private final UserSavedWorkoutRepository savedWorkoutRepository;
   private final UserSavedRecipeRepository savedRecipeRepository;
+  private final ExerciseVideoRepository exerciseVideoRepository;
+  private final UserSavedWorkoutRepository savedWorkoutRepository;
   private final MeterRegistry meterRegistry;
 
   @Transactional
   public SavedWorkout saveWorkout(UUID userId, UUID workoutId) {
     long startTime = System.nanoTime();
     log.trace("saveWorkout: userId={}, workoutId={}", userId, workoutId);
-    
+
     userRepository.findById(userId)
         .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
     ExerciseVideo workout = exerciseVideoRepository.findById(workoutId)
         .orElseThrow(() -> new EntityNotFoundException("Workout not found: " + workoutId));
 
     UserSavedWorkout.Id id = new UserSavedWorkout.Id(userId, workoutId);
-    log.debug("Attempting to save workout {} for user {}", workoutId, userId);
     var existing = savedWorkoutRepository.findById(id);
     UserSavedWorkout persisted;
     boolean alreadySaved;
     if (existing.isPresent()) {
       persisted = existing.get();
       alreadySaved = true;
-      log.debug("Workout {} already saved for user {} at {}", workoutId, userId, persisted.getSavedAt());
     } else {
       UserSavedWorkout created = new UserSavedWorkout();
       created.setId(id);
@@ -71,13 +74,13 @@ public class UserLibraryService {
           .orElseThrow(() -> new IllegalStateException("Saved workout missing immediately after persist: " + id));
       alreadySaved = false;
     }
-    
+
     long duration = System.nanoTime() - startTime;
-    log.info("Workout {} saved for user {} (alreadySaved={}, durationMs={})", 
+    log.info("Workout {} saved for user {} (alreadySaved={}, durationMs={})",
         workoutId, userId, alreadySaved, duration / 1_000_000);
     meterRegistry.counter("user.library.save", "type", "workout", "alreadySaved", Boolean.toString(alreadySaved)).increment();
     meterRegistry.timer("user.library.save.duration", "type", "workout").record(duration, java.util.concurrent.TimeUnit.NANOSECONDS);
-    
+
     return toSavedWorkout(persisted.getWorkout(), persisted.getSavedAt(), alreadySaved);
   }
 
@@ -85,47 +88,41 @@ public class UserLibraryService {
   public boolean removeWorkout(UUID userId, UUID workoutId) {
     log.trace("removeWorkout: userId={}, workoutId={}", userId, workoutId);
     long startTime = System.nanoTime();
-    
+
     userRepository.findById(userId)
         .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
     UserSavedWorkout.Id id = new UserSavedWorkout.Id(userId, workoutId);
     if (!savedWorkoutRepository.existsById(id)) {
-      log.debug("Workout {} not found in library for user {}", workoutId, userId);
       return false;
     }
     savedWorkoutRepository.deleteById(id);
-    
+
     long duration = System.nanoTime() - startTime;
     log.info("Workout {} removed for user {} (durationMs={})", workoutId, userId, duration / 1_000_000);
     meterRegistry.counter("user.library.remove", "type", "workout").increment();
     meterRegistry.timer("user.library.remove.duration", "type", "workout").record(duration, java.util.concurrent.TimeUnit.NANOSECONDS);
-    
-    return true;
-  }
 
-  @Transactional(readOnly = true)
-  public PageResult<SavedWorkout> getSavedWorkouts(UUID userId) {
-    return getSavedWorkouts(userId, 0, DEFAULT_PAGE_SIZE, Sort.by(Sort.Order.desc("savedAt")));
+    return true;
   }
 
   @Transactional(readOnly = true)
   public PageResult<SavedWorkout> getSavedWorkouts(UUID userId, int page, int size, Sort sort) {
     log.trace("getSavedWorkouts: userId={}, page={}, size={}, sort={}", userId, page, size, sort);
     long startTime = System.nanoTime();
-    
+
     Pageable pageable = pageRequest(page, size, sort);
     var pageResult = savedWorkoutRepository.findByUser_Id(userId, pageable);
     var workouts = pageResult.getContent().stream()
-      .map(entry -> toSavedWorkout(entry.getWorkout(), entry.getSavedAt(), true))
-      .collect(Collectors.toList());
-    
+        .map(entry -> toSavedWorkout(entry.getWorkout(), entry.getSavedAt(), true))
+        .collect(Collectors.toList());
+
     long duration = System.nanoTime() - startTime;
     log.debug("Fetched {} saved workouts for user {} (page={}, size={}, sort={}, totalElements={}, durationMs={})",
-        workouts.size(), userId, pageResult.getNumber(), pageResult.getSize(), sort, 
+        workouts.size(), userId, pageResult.getNumber(), pageResult.getSize(), sort,
         pageResult.getTotalElements(), duration / 1_000_000);
     meterRegistry.counter("user.library.fetch", "type", "workout").increment();
     meterRegistry.timer("user.library.fetch.duration", "type", "workout").record(duration, java.util.concurrent.TimeUnit.NANOSECONDS);
-    
+
     return new PageResult<>(
         workouts,
         pageResult.getNumber(),
@@ -138,7 +135,7 @@ public class UserLibraryService {
   public SavedRecipe saveRecipe(UUID userId, UUID recipeId) {
     long startTime = System.nanoTime();
     log.trace("saveRecipe: userId={}, recipeId={}", userId, recipeId);
-    
+
     userRepository.findById(userId)
         .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
     Recipe recipe = recipeRepository.findById(recipeId)
@@ -163,13 +160,13 @@ public class UserLibraryService {
           .orElseThrow(() -> new IllegalStateException("Saved recipe missing immediately after persist: " + id));
       alreadySaved = false;
     }
-    
+
     long duration = System.nanoTime() - startTime;
-    log.info("Recipe {} saved for user {} (alreadySaved={}, durationMs={})", 
+    log.info("Recipe {} saved for user {} (alreadySaved={}, durationMs={})",
         recipeId, userId, alreadySaved, duration / 1_000_000);
     meterRegistry.counter("user.library.save", "type", "recipe", "alreadySaved", Boolean.toString(alreadySaved)).increment();
     meterRegistry.timer("user.library.save.duration", "type", "recipe").record(duration, java.util.concurrent.TimeUnit.NANOSECONDS);
-    
+
     return toSavedRecipe(persisted.getRecipe(), persisted.getSavedAt(), alreadySaved);
   }
 
@@ -177,7 +174,7 @@ public class UserLibraryService {
   public boolean removeRecipe(UUID userId, UUID recipeId) {
     log.trace("removeRecipe: userId={}, recipeId={}", userId, recipeId);
     long startTime = System.nanoTime();
-    
+
     userRepository.findById(userId)
         .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
     UserSavedRecipe.Id id = new UserSavedRecipe.Id(userId, recipeId);
@@ -186,12 +183,12 @@ public class UserLibraryService {
       return false;
     }
     savedRecipeRepository.deleteById(id);
-    
+
     long duration = System.nanoTime() - startTime;
     log.info("Recipe {} removed for user {} (durationMs={})", recipeId, userId, duration / 1_000_000);
     meterRegistry.counter("user.library.remove", "type", "recipe").increment();
     meterRegistry.timer("user.library.remove.duration", "type", "recipe").record(duration, java.util.concurrent.TimeUnit.NANOSECONDS);
-    
+
     return true;
   }
 
@@ -204,53 +201,26 @@ public class UserLibraryService {
   public PageResult<SavedRecipe> getSavedRecipes(UUID userId, int page, int size, Sort sort) {
     log.trace("getSavedRecipes: userId={}, page={}, size={}, sort={}", userId, page, size, sort);
     long startTime = System.nanoTime();
-    
+
     Pageable pageable = pageRequest(page, size, sort);
     var pageResult = savedRecipeRepository.findByUser_Id(userId, pageable);
     var recipes = pageResult.getContent().stream()
         .map(entry -> toSavedRecipe(entry.getRecipe(), entry.getSavedAt(), true))
         .collect(Collectors.toList());
-    
+
     long duration = System.nanoTime() - startTime;
     log.debug("Fetched {} saved recipes for user {} (page={}, size={}, sort={}, totalElements={}, durationMs={})",
         recipes.size(), userId, pageResult.getNumber(), pageResult.getSize(), sort,
         pageResult.getTotalElements(), duration / 1_000_000);
     meterRegistry.counter("user.library.fetch", "type", "recipe").increment();
     meterRegistry.timer("user.library.fetch.duration", "type", "recipe").record(duration, java.util.concurrent.TimeUnit.NANOSECONDS);
-    
+
     return new PageResult<>(
         recipes,
         pageResult.getNumber(),
         pageResult.getSize(),
         pageResult.getTotalElements(),
         pageResult.hasNext());
-  }
-
-  private SavedWorkout toSavedWorkout(ExerciseVideo workout, OffsetDateTime savedAt, boolean alreadySaved) {
-    return new SavedWorkout(
-        workout.getId(),
-        workout.getYoutubeId(),
-        workout.getExerciseName(),
-        workout.getIsShort() != null && workout.getIsShort() ? 5 : 10,
-        "all",
-        List.of(),
-        buildBodyParts(workout),
-        workout.getThumbnailUrl(),
-        0L,
-        savedAt,
-        alreadySaved
-    );
-  }
-
-  private List<String> buildBodyParts(ExerciseVideo workout) {
-    List<String> parts = new java.util.ArrayList<>();
-    if (workout.getPrimaryCategory() != null) {
-      parts.add(workout.getPrimaryCategory());
-    }
-    if (workout.getSecondaryCategory() != null) {
-      parts.add(workout.getSecondaryCategory());
-    }
-    return parts.isEmpty() ? List.of() : List.copyOf(parts);
   }
 
   private Pageable pageRequest(int page, int size, Sort sort) {
@@ -274,17 +244,37 @@ public class UserLibraryService {
     );
   }
 
+  private SavedWorkout toSavedWorkout(ExerciseVideo workout, OffsetDateTime savedAt, boolean alreadySaved) {
+    int durationMinutes = Boolean.TRUE.equals(workout.getIsShort()) ? 1 : 5;
+    List<String> bodyPart = java.util.stream.Stream.of(workout.getPrimaryCategory(), workout.getSecondaryCategory())
+        .filter(java.util.Objects::nonNull)
+        .filter(value -> !value.isBlank())
+        .collect(Collectors.toList());
+
+    return new SavedWorkout(
+        workout.getId(),
+        workout.getExerciseName(),
+        workout.getYoutubeId(),
+        durationMinutes,
+        "intermediate",
+        List.of(),
+        bodyPart,
+        workout.getThumbnailUrl(),
+        savedAt,
+        alreadySaved
+    );
+  }
+
   public record SavedWorkout(
       UUID id,
-      String youtubeId,
       String title,
+      String youtubeId,
       Integer durationMinutes,
       String level,
       List<String> equipment,
       List<String> bodyPart,
       String thumbnailUrl,
-      Long viewCount,
-      java.time.OffsetDateTime savedAt,
+      OffsetDateTime savedAt,
       boolean alreadySaved
   ) {}
 
