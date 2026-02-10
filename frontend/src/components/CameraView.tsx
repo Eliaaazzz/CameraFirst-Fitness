@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, Image, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Image, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { CameraView as ExpoCameraView } from 'expo-camera';
 import type { CameraCapturedPicture } from 'expo-camera';
 import { BlurView } from 'expo-blur';
@@ -11,7 +11,6 @@ import { FAB, IconButton } from 'react-native-paper';
 import { Button, LoadingSpinner, Text } from '@/components';
 import { spacing } from '@/utils';
 
-const { width } = Dimensions.get('window');
 const CAPTURE_BUTTON_SIZE = 84;
 
 export interface CameraViewProps {
@@ -45,6 +44,7 @@ export const CameraView = ({
   captureButtonVariant = 'fab',
   autoUsePhoto = false,
 }: CameraViewProps) => {
+  const { width: windowWidth } = useWindowDimensions();
   const cameraRef = useRef<CameraViewHandle | null>(null);
   const [cameraType, setCameraType] = useState<CameraPosition>('back');
   const [flashMode, setFlashMode] = useState<FlashState>('auto');
@@ -219,7 +219,7 @@ export const CameraView = ({
           ) : null}
         </View>
       ) : guideText ? (
-        <View style={styles.guideContainer}>
+        <View style={[styles.guideContainer, { top: windowWidth * 0.65 }]}>
           <Text variant="body" weight="medium" color="#FFFFFF" style={styles.guideText}>
             {guideText}
           </Text>
@@ -324,7 +324,6 @@ const styles = StyleSheet.create({
   },
   guideContainer: {
     position: 'absolute',
-    top: width * 0.65,
     alignSelf: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
@@ -421,7 +420,7 @@ const styles = StyleSheet.create({
   },
   preview: {
     width: '100%',
-    height: width * 0.75,
+    aspectRatio: 4 / 3,
     borderRadius: 16,
   },
   previewActions: {

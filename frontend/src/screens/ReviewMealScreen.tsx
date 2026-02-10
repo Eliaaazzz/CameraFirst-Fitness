@@ -9,6 +9,40 @@ import nutritionApi, {
 } from '@/services/nutritionApi';
 import { DEFAULT_MEAL_IMAGE_WIDTH_CM } from '@/utils';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+
+/**
+ * Merge duplicate food items by name, combining their nutritional values.
+ * Example: 8 "Fried Chicken" items become 1 item with amount=8 and summed nutrition.
+ */
+function mergeDuplicateFoods(foods: DetectedFood[]): DetectedFood[] {
+  const merged = new Map<string, DetectedFood>();
+
+  for (const food of foods) {
+    const key = food.name.toLowerCase().trim();
+    const existing = merged.get(key);
+
+    if (existing) {
+      // Merge: sum nutrition values and increment amount
+      merged.set(key, {
+        ...existing,
+        amount: existing.amount + (food.amount || 1),
+        calories: existing.calories + food.calories,
+        protein: existing.protein + food.protein,
+        carbs: existing.carbs + food.carbs,
+        fat: existing.fat + food.fat,
+      });
+    } else {
+      // First occurrence: clone with amount defaulting to 1
+      merged.set(key, {
+        ...food,
+        amount: food.amount || 1,
+        unit: food.unit || 'piece',
+      });
+    }
+  }
+
+  return Array.from(merged.values());
+}
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -46,17 +80,19 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const [items, setItems] = useState<DetectedFood[]>(() => {
     // Initialize with existing meal data if viewing
     if (meal?.foodItems) {
-      return meal.foodItems.map((food: any, index: number) => ({
+      const rawItems = meal.foodItems.map((food: any, index: number) => ({
         id: food.foodKey || `item-${index}`,
         name: food.displayName,
-        amount: food.grams,
-        unit: 'g',
+        amount: 1, // Each record represents 1 item
+        unit: 'piece',
         calories: food.calories,
         protein: food.protein,
         carbs: food.carbs,
         fat: food.fat,
         confidence: food.confidence,
       }));
+      // Merge duplicate items (e.g., 8 "Fried Chicken" -> 1 item with amount=8)
+      return mergeDuplicateFoods(rawItems);
     }
     return [];
   });
@@ -490,7 +526,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
         )}
       </ScrollView>
 
-      {!loading && !showSuccess && (
+      {/* Hide save button when viewing existing meal details */}
+      {!loading && !showSuccess && !isViewingExisting && (
         <View style={[styles.bottomBar, { paddingBottom: 16 + insets.bottom }]}>
           <Pressable
             onPress={handleSave}
@@ -500,7 +537,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
             {saving ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.saveButtonText}>{isViewingExisting ? 'Update meal' : 'Save to today'}</Text>
+              <Text style={styles.saveButtonText}>Save to today</Text>
             )}
           </Pressable>
         </View>
@@ -508,23 +545,34 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
       {/* Success Animation Overlay - 淡粉色弹窗 */}
       {showSuccess && total && (
-        <Animated.View
+        <Pressable
           style={[
             styles.successOverlay,
             {
               opacity: successAnim,
-              transform: [
-                {
-                  scale: successAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.8, 1],
-                  }),
-                },
-              ],
             },
           ]}
+          onPress={() => {
+            // Allow tap to dismiss and navigate
+            setShowSuccess(false);
+            navigation.navigate('Dashboard');
+          }}
         >
-          <View style={styles.successCard}>
+          <Animated.View
+            style={[
+              styles.successCard,
+              {
+                transform: [
+                  {
+                    scale: successAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <LinearGradient
               colors={SUCCESS_GRADIENT}
               start={{ x: 0, y: 0 }}
@@ -554,9 +602,10 @@ export function ReviewMealScreen({ route, navigation }: any) {
                 </View>
               </View>
               <Text style={styles.successSubtitle}>Added to today's nutrition</Text>
+              <Text style={styles.successTapHint}>Tap anywhere to continue</Text>
             </View>
-          </View>
-        </Animated.View>
+          </Animated.View>
+        </Pressable>
       )}
     </SafeAreaView>
   );
@@ -793,5 +842,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6C6A7E',
     marginTop: 8,
+  },
+  successTapHint: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 16,
   },
 });

@@ -1,6 +1,6 @@
 import { TourGuideZone } from '@/components/tour/TourProvider';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
 
@@ -24,6 +24,17 @@ const WORKOUT_SUGGESTIONS: SuggestionItem[] = [
   { id: 'legs', label: 'Legs', icon: 'walk', color: '#F97316' },
   { id: 'arms', label: 'Arms', icon: 'arm-flex', color: '#3B82F6' },
 ];
+
+const SUGGESTION_SEARCH_FALLBACKS: Record<string, string[]> = {
+  hiit: ['hiit', 'cardio', 'full body'],
+  yoga: ['yoga', 'stretching', 'mobility'],
+  strength: ['strength', 'arms', 'legs', 'core'],
+  cardio: ['cardio', 'hiit', 'full body'],
+  abs: ['core', 'abs'],
+  stretch: ['stretching', 'yoga', 'mobility'],
+  legs: ['legs', 'glutes', 'lower body'],
+  arms: ['arms', 'shoulders', 'upper body'],
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -124,6 +135,28 @@ export const WorkoutsScreen = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearBlurTimeout = useCallback(() => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
+  }, []);
+
+  const handleSearchFocusChange = useCallback((focused: boolean) => {
+    clearBlurTimeout();
+
+    if (focused) {
+      setIsSearchFocused(true);
+      return;
+    }
+
+    blurTimeoutRef.current = setTimeout(() => {
+      setIsSearchFocused(false);
+      blurTimeoutRef.current = null;
+    }, 120);
+  }, [clearBlurTimeout]);
 
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
@@ -158,10 +191,45 @@ export const WorkoutsScreen = () => {
     setIsSearching(false);
   }, []);
 
-  const handleSuggestionSelect = useCallback((suggestion: SuggestionItem) => {
+  const handleSuggestionSelect = useCallback(async (suggestion: SuggestionItem) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    clearBlurTimeout();
+
+    setIsSearchFocused(true);
     setSearchQuery(suggestion.label);
-    handleSearch(suggestion.label);
-  }, [handleSearch]);
+    setIsSearching(true);
+
+    const queries = SUGGESTION_SEARCH_FALLBACKS[suggestion.id] ?? [suggestion.label];
+    let resolvedResults: WorkoutSearchResult[] = [];
+
+    for (const query of queries) {
+      try {
+        const results = await searchWorkouts(query, 20);
+        if (results.length > 0) {
+          resolvedResults = results;
+          break;
+        }
+      } catch (error) {
+        console.error('[WorkoutsScreen] Suggestion search failed:', error);
+      }
+    }
+
+    setSearchResults(resolvedResults);
+    setIsSearching(false);
+  }, [clearBlurTimeout]);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Calculate bottom padding using shared utility (reduced on desktop with sidebar)
   const mobileBottomPadding = useContentBottomPadding(spacing.lg);
@@ -283,14 +351,14 @@ export const WorkoutsScreen = () => {
             value={searchQuery}
             onChangeText={handleSearch}
             onClear={clearSearch}
-            onFocusChange={setIsSearchFocused}
+            onFocusChange={handleSearchFocusChange}
             isLoading={isSearching}
           />
         </View>
       </TourGuideZone>
 
-      {/* Search Suggestions - only visible when search is focused */}
-      {showSearchUI && (
+      {/* Search Suggestions - only when focused and query is empty */}
+      {isSearchFocused && !isSearchMode && (
         <View style={styles.suggestionsSection}>
           <SearchSuggestions
             suggestions={WORKOUT_SUGGESTIONS}
@@ -329,6 +397,7 @@ export const WorkoutsScreen = () => {
                       equipment: [],
                       bodyPart: [item.primaryCategory],
                     }}
+                    disableHoverEffect
                     isSaved={savedWorkoutIds.has(item.id)}
                     onSave={(id) => saveWorkout.mutateAsync(id).then(() => true)}
                     onRemove={(id) => removeWorkout.mutateAsync(id).then(() => true)}
@@ -390,6 +459,7 @@ export const WorkoutsScreen = () => {
             data={[]} // Saved workouts moved to SavedWorkoutsScreen
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
             ItemSeparatorComponent={ItemSeparator}
             ListHeaderComponent={listHeaderComponent}

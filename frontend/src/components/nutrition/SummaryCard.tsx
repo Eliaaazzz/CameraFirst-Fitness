@@ -1,4 +1,4 @@
-import { getTheme } from '@/utils';
+import { BRAND_COLORS, getTheme } from '@/utils';
 import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -54,13 +54,13 @@ export function SummaryCard({ calories, goal, protein, carbs, fat, netCarbs, sug
       </View>
 
       <View style={styles.macros}>
-        <MacroPill label="Protein" {...protein} color="#10B981" />
-        <MacroPill label="Fat" {...fat} color="#EF4444" />
+        <MacroPill label="Protein" {...protein} color={BRAND_COLORS.macros.protein} />
+        <MacroPill label="Fat" {...fat} color={BRAND_COLORS.macros.fat} />
         {netCarbs && (
-          <MacroPill label="Net Carbs" {...netCarbs} color="#F59E0B" />
+          <MacroPill label="Net Carbs" {...netCarbs} color={BRAND_COLORS.macros.carbs} />
         )}
         {sugar && (
-          <MacroPill label="Sugar" {...sugar} color="#EC4899" />
+          <MacroPill label="Sugar" {...sugar} color={BRAND_COLORS.macros.sugar} />
         )}
       </View>
     </View>

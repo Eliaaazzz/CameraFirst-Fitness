@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  Dimensions,
   Platform,
 } from 'react-native';
 import { MealImage } from './MealImage';
@@ -146,9 +145,6 @@ export function TodaysMealCard({
     </Animated.View>
   );
 }
-
-const { width } = Dimensions.get('window');
-const cardWidth = width - 32;
 
 const styles = StyleSheet.create({
   container: {

@@ -8,13 +8,14 @@ import {
   useSaveRecipe,
   useSaveWorkout,
 } from '@/services';
-import { spacing } from '@/utils';
+import { spacing, useResponsive } from '@/utils';
 import { useRoute } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
-import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 export const ResultsScreen = () => {
   const route = useRoute<any>();
+  const { isMobile } = useResponsive();
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const savedWorkouts = useSavedWorkouts(userId);
@@ -131,7 +132,13 @@ export const ResultsScreen = () => {
                 ? savedRecipeIds.has(it.id) || it.alreadySaved
                 : savedWorkoutIds.has(it.id) || it.alreadySaved;
               return (
-                <View key={it.id} style={styles.card}>
+                <View
+                  key={it.id}
+                  style={[
+                    styles.card,
+                    Platform.OS === 'web' ? styles.cardWeb : isMobile ? styles.cardFull : styles.cardHalf,
+                  ]}
+                >
                   {showingRecipes ? (
                     <RecipeCard
                       item={it}
@@ -188,9 +195,17 @@ const styles = StyleSheet.create({
   },
   thumb: { width: 64, height: 64, borderRadius: 8 },
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
+    ...(Platform.OS === 'web'
+      ? {
+          display: 'grid' as any,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' as any,
+          gap: spacing.md,
+        }
+      : {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: spacing.md,
+        }),
   },
   toggleRow: {
     flexDirection: 'row',
@@ -198,7 +213,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     marginTop: spacing.md,
   },
-  card: { width: '48%' },
+  card: { width: '100%' },
+  cardWeb: { width: '100%' },
+  cardFull: { width: '100%' },
+  cardHalf: { width: '48%' },
   footer: {
     marginTop: spacing.xl,
     gap: spacing.sm,

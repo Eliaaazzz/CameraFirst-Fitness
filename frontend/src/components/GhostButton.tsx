@@ -196,7 +196,7 @@ export function GhostButton({
             <Feather
               name="chevron-right"
               size={14}
-              color={isHovered ? BRAND_COLORS.primary : '#CCC'}
+              color={isHovered ? currentTextColor : '#CCC'}
             />
           </Animated.View>
         )}

@@ -2,14 +2,16 @@ import React from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../Text';
+import { BRAND_COLORS } from '@/utils';
 
 // Design tokens
 const BUTTON_BORDER_RADIUS = 20;
 const BUTTON_PADDING_H = 20;
 const BUTTON_PADDING_V = 14;
 const ICON_SIZE = 20;
-const SAVED_COLOR = '#7C3AED';
-const UNSAVED_COLOR = '#6B6B7A';
+const SAVED_COLOR = BRAND_COLORS.primary;
+const UNSAVED_COLOR = BRAND_COLORS.secondary;
+const TEXT_COLOR = '#1A1A2E';
 
 interface SaveButtonProps {
   isSaved: boolean;
@@ -56,7 +58,7 @@ export const SaveButton: React.FC<SaveButtonProps> = ({
             color={isSaved ? SAVED_COLOR : UNSAVED_COLOR}
           />
           <View style={styles.textContainer}>
-            <Text style={[styles.text, { color: isSaved ? SAVED_COLOR : '#1A1A2E' }]}>
+            <Text style={[styles.text, { color: isSaved ? SAVED_COLOR : TEXT_COLOR }]}>
               {isSaved ? 'Saved to Library' : 'Save to Library'}
             </Text>
           </View>
@@ -71,7 +73,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(124, 58, 237, 0.08)', // Constant light purple - NEVER changes
+    backgroundColor: BRAND_COLORS.primaryTint,
+    borderWidth: 1,
+    borderColor: `${BRAND_COLORS.secondary}30`,
     paddingHorizontal: BUTTON_PADDING_H,
     paddingVertical: BUTTON_PADDING_V,
     borderRadius: BUTTON_BORDER_RADIUS,

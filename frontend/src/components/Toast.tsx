@@ -6,7 +6,7 @@
 
 import { Feather } from '@expo/vector-icons';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Dimensions, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -271,9 +271,6 @@ export function useToast(): ToastContextValue {
 // STYLES
 // ============================================================================
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const TOAST_MAX_WIDTH = Math.min(400, SCREEN_WIDTH - 32);
-
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
@@ -285,7 +282,9 @@ const styles = StyleSheet.create({
     pointerEvents: 'box-none',
   },
   toastItem: {
-    width: TOAST_MAX_WIDTH,
+    width: '100%',
+    maxWidth: 400,
+    marginHorizontal: 16,
     marginBottom: spacing.sm,
   },
   toastContent: {

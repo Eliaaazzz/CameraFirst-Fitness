@@ -6,16 +6,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
     ActivityIndicator,
-    Dimensions,
     FlatList,
     Platform,
     Pressable,
     StyleSheet,
     View,
+    useWindowDimensions,
 } from 'react-native';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = Math.min(280, SCREEN_WIDTH * 0.75);
 const CARD_SPACING = spacing.md;
 
 interface RecommendationSectionProps {
@@ -44,15 +42,18 @@ export const RecommendationSection = ({
   onSeeAllRecipes,
 }: RecommendationSectionProps) => {
   const dark = colors.dark;
+  const { width: windowWidth } = useWindowDimensions();
+  const cardWidth = Math.min(280, windowWidth * 0.75);
+  const snapInterval = cardWidth + CARD_SPACING;
 
   const renderWorkoutItem = ({ item, index }: { item: Workout; index: number }) => (
-    <View style={[styles.cardWrapper, index === 0 && styles.firstCard]}>
+    <View style={[styles.cardWrapper, { width: cardWidth }, index === 0 && styles.firstCard]}>
       <WorkoutCard item={item} onSave={onWorkoutSave} />
     </View>
   );
 
   const renderRecipeItem = ({ item, index }: { item: Recipe; index: number }) => (
-    <View style={[styles.cardWrapper, index === 0 && styles.firstCard]}>
+    <View style={[styles.cardWrapper, { width: cardWidth }, index === 0 && styles.firstCard]}>
       <RecipeCard item={item} onSave={onRecipeSave} />
     </View>
   );
@@ -118,7 +119,7 @@ export const RecommendationSection = ({
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
-            snapToInterval={CARD_WIDTH + CARD_SPACING}
+            snapToInterval={snapInterval}
             decelerationRate="fast"
             snapToAlignment="start"
           />
@@ -152,7 +153,7 @@ export const RecommendationSection = ({
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
-            snapToInterval={CARD_WIDTH + CARD_SPACING}
+            snapToInterval={snapInterval}
             decelerationRate="fast"
             snapToAlignment="start"
           />
@@ -215,7 +216,6 @@ const styles = StyleSheet.create({
     paddingRight: spacing.lg,
   },
   cardWrapper: {
-    width: CARD_WIDTH,
     marginLeft: CARD_SPACING,
     ...(Platform.OS === 'web' && {
       transition: 'transform 0.2s ease',

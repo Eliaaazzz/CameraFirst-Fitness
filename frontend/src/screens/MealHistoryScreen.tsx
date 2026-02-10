@@ -153,9 +153,6 @@ export const MealHistoryScreen = () => {
                     <Text variant="caption" style={styles.foodName} numberOfLines={1}>
                       {food.displayName}
                     </Text>
-                    <Text variant="caption" style={styles.foodGrams}>
-                      {food.grams}g
-                    </Text>
                   </View>
                 ))}
                 {item.foodItems && item.foodItems.length > 2 && (
@@ -383,9 +380,6 @@ const styles = StyleSheet.create({
   foodName: {
     color: BRAND_COLORS.textPrimary,
     flex: 1,
-  },
-  foodGrams: {
-    color: BRAND_COLORS.textSecondary,
   },
   moreFoods: {
     color: BRAND_COLORS.textSecondary,

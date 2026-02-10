@@ -81,6 +81,8 @@ type Props = {
   isSaved?: boolean;
   /** Image variant to use - 'thumb' for lists, 'medium' for cards */
   imageVariant?: 'thumb' | 'medium' | 'large';
+  /** Disable hover/press scale micro-animation (useful for dense lists like search results). */
+  disableHoverEffect?: boolean;
 };
 
 /**
@@ -88,7 +90,7 @@ type Props = {
  * Clean design, purple palette, micro-animations
  * Uses optimized images with small thumbnails for lists.
  */
-export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVariant = 'thumb' }: Props) => {
+export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVariant = 'thumb', disableHoverEffect = false }: Props) => {
   // Always use light mode
   const theme = getTheme('light');
   const [saving, setSaving] = useState(false);
@@ -98,7 +100,7 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
   // Animation for floating card effect - each card has its own state
   // Disable hover effect for saved items
   const [isHovered, setIsHovered] = useState(false);
-  const enableHover = !isSaved;
+  const enableHover = !isSaved && !disableHoverEffect;
 
   // Web hover handlers
   const webHoverProps = Platform.OS === 'web' && enableHover ? {
@@ -172,11 +174,12 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
   const handleStartPress = handleCardPress;
 
   // Dynamic styles for hover/press effect
+  const showHover = enableHover && isHovered;
   const cardDynamicStyle = {
-    transform: [{ scale: isHovered ? 1.05 : 1 }],
+    transform: [{ scale: showHover ? 1.05 : 1 }],
     ...(Platform.OS === 'web' && {
       transition: 'transform 0.2s ease-out, box-shadow 0.2s ease-out',
-      boxShadow: isHovered
+      boxShadow: showHover
         ? '0 12px 28px rgba(0, 0, 0, 0.35), 0 8px 12px rgba(0, 0, 0, 0.22)'
         : '0 4px 12px rgba(0, 0, 0, 0.15)',
     }),

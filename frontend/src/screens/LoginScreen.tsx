@@ -81,19 +81,19 @@ declare global {
 }
 
 // ============================================================================
-// Design Tokens - Modern Light Theme
+// Design Tokens - Modern Light Theme (Orange)
 // ============================================================================
 const COLORS = {
-  // Brand
-  brand50: '#F3E8FF', // Light Lavender
-  brand100: '#E9D5FF',
-  brand500: '#8B5CF6',
-  brand600: '#7C3AED', // Primary Purple
-  brand700: '#6D28D9',
+  // Brand - Orange
+  brand50: '#FFF7ED', // Orange 50
+  brand100: '#FFEDD5', // Orange 100
+  brand500: '#F97316', // Orange 500
+  brand600: '#EA580C', // Orange 600
+  brand700: '#C2410C', // Orange 700
 
   // Surfaces
   white: '#FFFFFF',
-  background: '#F3E8FF', // Main Background
+  background: '#FFF7ED', // Main Background
 
   // Text
   gray50: '#F9FAFB',
@@ -525,7 +525,7 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient
-      colors={['#F3E8FF', '#F3E8FF', '#FFFFFF']}
+      colors={[COLORS.brand50, COLORS.brand50, COLORS.white]}
       style={styles.gradient}
     >
       <KeyboardAvoidingView
@@ -751,12 +751,12 @@ const styles = StyleSheet.create({
     color: COLORS.brand600,
   },
   signInButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: COLORS.brand500,
     borderRadius: RADII.md,
     height: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#8B5CF6',
+    shadowColor: COLORS.brand500,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

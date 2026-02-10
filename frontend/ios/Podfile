@@ -23,6 +23,9 @@ prepare_react_native_project!
 target 'FitnessMVP' do
   use_expo_modules!
 
+  # VisionCamera - required for LiDAR depth sensing
+  pod 'VisionCamera', :path => '../../node_modules/react-native-vision-camera'
+
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
     config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
   else

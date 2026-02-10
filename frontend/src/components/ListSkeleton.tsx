@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Platform, StyleSheet, View } from 'react-native';
+import { Animated, Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { spacing } from '@/utils';
 import { Card } from './Card';
@@ -20,7 +20,7 @@ const ListSkeletonRow: React.FC<{
   secondaryWidth: number | string;
 }> = ({ showAvatar, primaryWidth, secondaryWidth }) => {
   const shimmer = useRef(new Animated.Value(0)).current;
-  const screenWidth = Dimensions.get('window').width;
+  const { width: screenWidth } = useWindowDimensions();
 
   // Convert percentage strings to pixel values
   const getWidth = (width: number | string): number => {

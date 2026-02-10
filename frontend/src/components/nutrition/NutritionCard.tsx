@@ -14,7 +14,7 @@ import { DotsThree, Fire } from 'phosphor-react-native';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 import { Text } from '@/components/Text';
-import { colors, radii, saasShadows, spacing } from '@/utils';
+import { BRAND_COLORS, colors, radii, saasShadows, spacing } from '@/utils';
 
 // Create animated SVG circle for native
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -40,6 +40,7 @@ export interface NutritionCardData {
 interface NutritionCardProps {
   data: NutritionCardData;
   onEdit?: () => void;
+  onMacroPress?: (macro: 'calories' | 'protein' | 'carbs' | 'fat') => void;
   animated?: boolean;
 }
 
@@ -48,13 +49,13 @@ interface NutritionCardProps {
 // ============================================================================
 
 const MACRO_COLORS = {
-  protein: '#60A5FA', // Blue-400
-  fat: '#FBBF24',     // Amber-400
-  carbs: '#F472B6',   // Pink-400
+  protein: BRAND_COLORS.macros.protein,
+  fat: BRAND_COLORS.macros.fat,
+  carbs: BRAND_COLORS.macros.carbs,
 };
 
 const GAUGE_COLORS = {
-  progress: '#F97316', // Orange-500
+  progress: BRAND_COLORS.macros.calories,
   track: '#F3F4F6',    // Gray-100
 };
 
@@ -69,9 +70,10 @@ interface MacroProgressProps {
   color: string;
   delay?: number;
   animated?: boolean;
+  onPress?: () => void;
 }
 
-function MacroProgress({ label, current, target, color, delay = 0, animated = true }: MacroProgressProps) {
+function MacroProgress({ label, current, target, color, delay = 0, animated = true, onPress }: MacroProgressProps) {
   const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0;
   const progress = useSharedValue(0);
 
@@ -94,7 +96,10 @@ function MacroProgress({ label, current, target, color, delay = 0, animated = tr
   }));
 
   return (
-    <View style={styles.macroItem}>
+    <Pressable 
+      style={({ pressed }) => [styles.macroItem, pressed && { opacity: 0.7 }]}
+      onPress={onPress}
+    >
       {/* Label */}
       <Text variant="caption" weight="bold" style={styles.macroLabel}>{label}</Text>
 
@@ -120,7 +125,7 @@ function MacroProgress({ label, current, target, color, delay = 0, animated = tr
           /{target} g
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -302,7 +307,7 @@ function SemiCircleGaugeNative({ current, target, animated = true }: SemiCircleG
 // MAIN COMPONENT
 // ============================================================================
 
-export function NutritionCard({ data, onEdit, animated = true }: NutritionCardProps) {
+export function NutritionCard({ data, onEdit, onMacroPress, animated = true }: NutritionCardProps) {
   const GaugeComponent = Platform.OS === 'web' ? SemiCircleGaugeWeb : SemiCircleGaugeNative;
 
   return (
@@ -328,11 +333,16 @@ export function NutritionCard({ data, onEdit, animated = true }: NutritionCardPr
       </View>
 
       {/* Semi-Circle Gauge */}
-      <GaugeComponent
-        current={data.calories.current}
-        target={data.calories.target}
-        animated={animated}
-      />
+      <Pressable 
+        style={({ pressed }) => pressed && { opacity: 0.8 }}
+        onPress={() => onMacroPress?.('calories')}
+      >
+        <GaugeComponent
+          current={data.calories.current}
+          target={data.calories.target}
+          animated={animated}
+        />
+      </Pressable>
 
       {/* Macro Progress Bars */}
       <View style={styles.macrosContainer}>
@@ -343,6 +353,7 @@ export function NutritionCard({ data, onEdit, animated = true }: NutritionCardPr
           color={MACRO_COLORS.protein}
           delay={400}
           animated={animated}
+          onPress={() => onMacroPress?.('protein')}
         />
         <MacroProgress
           label="Fat"
@@ -351,6 +362,7 @@ export function NutritionCard({ data, onEdit, animated = true }: NutritionCardPr
           color={MACRO_COLORS.fat}
           delay={500}
           animated={animated}
+          onPress={() => onMacroPress?.('fat')}
         />
         <MacroProgress
           label="Carbs"
@@ -359,6 +371,7 @@ export function NutritionCard({ data, onEdit, animated = true }: NutritionCardPr
           color={MACRO_COLORS.carbs}
           delay={600}
           animated={animated}
+          onPress={() => onMacroPress?.('carbs')}
         />
       </View>
     </View>

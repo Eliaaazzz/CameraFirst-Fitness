@@ -13,6 +13,7 @@ import { ErrorBoundary } from '@/components';
 import { Sidebar } from '@/components/layout';
 import DashboardScreen from '@/screens/DashboardScreen';
 import LoginScreen from '@/screens/LoginScreen';
+import RegisterScreen from '@/screens/RegisterScreen';
 import { MealHistoryScreen } from '@/screens/MealHistoryScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
 import { RecipeDetailScreen } from '@/screens/RecipeDetailScreen';
@@ -472,6 +473,7 @@ export const AppNavigator = () => {
       >
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
       </Stack.Navigator>
     </NavigationContainer>

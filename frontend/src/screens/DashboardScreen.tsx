@@ -6,9 +6,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
     ActionSheetIOS,
+    ActivityIndicator,
     Alert,
     Platform,
     Pressable,
@@ -43,8 +43,8 @@ import { GENERATED_GOALS_KEY } from './ProfileScreen';
 // Goal type display config - using target/flag icons to differentiate from streak's fire
 const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; icon: string; color: string }> = {
   fat_loss: { label: 'Fat Loss', icon: 'target', color: '#EF4444' },
-  muscle_gain: { label: 'Build Muscle', icon: 'flag-checkered', color: '#10B981' },
-  diabetes_control: { label: 'Glucose Control', icon: 'water', color: '#3B82F6' }, // Changed from heart-pulse to water (blood drop)
+  muscle_gain: { label: 'Build Muscle', icon: 'flag-checkered', color: BRAND_COLORS.macros.protein },
+  diabetes_control: { label: 'Glucose Control', icon: 'water', color: BRAND_COLORS.macros.carbs }, // Changed from heart-pulse to water (blood drop)
 };
 
 // Helper to determine meal type from time
@@ -54,6 +54,32 @@ const getMealType = (date: Date): string => {
   if (hour >= 11 && hour < 16) return 'Lunch'; // Extended lunch to 4pm
   if (hour >= 16 && hour < 22) return 'Dinner';
   return 'Snack';
+};
+
+const formatMealName = (mealName: string): string => {
+  const tokens = mealName
+    .split(',')
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  if (tokens.length <= 1) {
+    return mealName;
+  }
+
+  const counts = new Map<string, { label: string; count: number }>();
+  tokens.forEach((token) => {
+    const key = token.toLowerCase();
+    const existing = counts.get(key);
+    if (existing) {
+      existing.count += 1;
+      return;
+    }
+    counts.set(key, { label: token, count: 1 });
+  });
+
+  return Array.from(counts.values())
+    .map(({ label, count }) => (count > 1 ? `${label} x${count}` : label))
+    .join(', ');
 };
 
 const DashboardScreen = () => {
@@ -67,7 +93,7 @@ const DashboardScreen = () => {
   // Language support
   const { language, t, toggleLanguage } = useLanguageStore();
 
-  const { data: nutritionData, refresh } = useDailyNutrition();
+  const { data: nutritionData, isLoading: nutritionLoading, refresh } = useDailyNutrition();
   const goals = useGoals(userId);
   const stats = useGoalStatistics(userId);
 
@@ -161,6 +187,20 @@ const DashboardScreen = () => {
     ]);
     setRefreshing(false);
   };
+
+  const handleMacroSearch = useCallback((macro: 'calories' | 'protein' | 'carbs' | 'fat') => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
+    
+    let query = '';
+    switch (macro) {
+      case 'calories': query = 'Low Calorie Healthy'; break;
+      case 'protein': query = 'High Protein'; break;
+      case 'carbs': query = 'Low Carb Healthy'; break;
+      case 'fat': query = 'Healthy Fats'; break;
+    }
+    
+    navigation.navigate('Recipes', { initialSearchQuery: query });
+  }, [navigation]);
 
   const handleAddFood = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
@@ -290,38 +330,50 @@ const DashboardScreen = () => {
           </View>
 
           <View style={styles.goalsGrid}>
-            <View style={styles.goalItem}>
-              <Fire size={20} weight="fill" color="#EF4444" />
+            <Pressable 
+              style={({ pressed }) => [styles.goalItem, pressed && { opacity: 0.7 }]}
+              onPress={() => handleMacroSearch('calories')}
+            >
+              <Fire size={20} weight="fill" color={BRAND_COLORS.macros.calories} />
               <Text variant="heading3" weight="bold">{generatedGoals.dailyCalories.target}</Text>
               <Text variant="caption" style={styles.goalItemLabel}>kcal/day</Text>
-            </View>
-            <View style={styles.goalItem}>
-              <Barbell size={20} weight="fill" color="#10B981" />
+            </Pressable>
+            <Pressable 
+              style={({ pressed }) => [styles.goalItem, pressed && { opacity: 0.7 }]}
+              onPress={() => handleMacroSearch('protein')}
+            >
+              <Barbell size={20} weight="fill" color={BRAND_COLORS.macros.protein} />
               <Text variant="heading3" weight="bold">{generatedGoals.macros_grams.protein_g}g</Text>
               <Text variant="caption" style={styles.goalItemLabel}>Protein</Text>
-            </View>
-            <View style={styles.goalItem}>
-              <Grains size={20} weight="fill" color="#F59E0B" />
+            </Pressable>
+            <Pressable 
+              style={({ pressed }) => [styles.goalItem, pressed && { opacity: 0.7 }]}
+              onPress={() => handleMacroSearch('carbs')}
+            >
+              <Grains size={20} weight="fill" color={BRAND_COLORS.macros.carbs} />
               <Text variant="heading3" weight="bold">{generatedGoals.macros_grams.carbs_g}g</Text>
               <Text variant="caption" style={styles.goalItemLabel}>Carbs</Text>
-            </View>
-            <View style={styles.goalItem}>
-              <Drop size={20} weight="fill" color="#EF4444" />
+            </Pressable>
+            <Pressable 
+              style={({ pressed }) => [styles.goalItem, pressed && { opacity: 0.7 }]}
+              onPress={() => handleMacroSearch('fat')}
+            >
+              <Drop size={20} weight="fill" color={BRAND_COLORS.macros.fat} />
               <Text variant="heading3" weight="bold">{generatedGoals.macros_grams.fat_g}g</Text>
               <Text variant="caption" style={styles.goalItemLabel}>Fat</Text>
-            </View>
+            </Pressable>
           </View>
 
           {/* Activity targets row */}
           <View style={styles.activityRow}>
             <View style={styles.activityItem}>
-              <MaterialCommunityIcons name="run" size={16} color="#A78BFA" />
+              <MaterialCommunityIcons name="run" size={16} color={BRAND_COLORS.secondary} />
               <Text variant="caption">
                 {generatedGoals.weeklyActivityPlan.cardio_minutes_per_week} min cardio/week
               </Text>
             </View>
             <View style={styles.activityItem}>
-              <MaterialCommunityIcons name="shoe-print" size={16} color="#3B82F6" />
+              <MaterialCommunityIcons name="shoe-print" size={16} color={BRAND_COLORS.primary} />
               <Text variant="caption">
                 {generatedGoals.weeklyActivityPlan.steps_per_day_target.toLocaleString()} steps/day
               </Text>
@@ -340,24 +392,28 @@ const DashboardScreen = () => {
         ]}
         onPress={() => navigation.navigate('Profile')}
       >
-        <LinearGradient
-          colors={['rgba(139, 92, 246, 0.15)', 'rgba(236, 72, 153, 0.15)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.setGoalsGradient}
-        >
-          <MaterialCommunityIcons name="target" size={32} color={BRAND_COLORS.primary} />
+        <View style={styles.setGoalsGradient}>
+          <View style={styles.setGoalsIconBox}>
+            <MaterialCommunityIcons name="target" size={20} color={BRAND_COLORS.primary} />
+          </View>
           <View style={styles.setGoalsText}>
-            <Text variant="body" weight="bold">Set Your Fitness Goals</Text>
+            <Text variant="body" weight="bold" style={styles.setGoalsTitle}>Set Your Fitness Goals</Text>
             <Text variant="caption" style={styles.setGoalsSubtext}>
               Get personalized calorie & macro targets
             </Text>
           </View>
-          <Feather name="chevron-right" size={24} color={BRAND_COLORS.primary} />
-        </LinearGradient>
+          <View style={styles.setGoalsChevron}>
+            <Feather name="chevron-right" size={16} color={BRAND_COLORS.primary} />
+          </View>
+        </View>
       </Pressable>
     );
   };
+
+  // Only show loading placeholder on initial load (no data yet)
+  // Once data has been loaded, keep component mounted to preserve animation state
+  const hasNutritionData = nutritionData.calories > 0 || nutritionData.protein.current > 0 || nutritionData.meals.length > 0;
+  const showNutritionLoading = nutritionLoading && !hasNutritionData;
 
   const renderNutritionCard = () => (
     <TourGuideZone
@@ -366,8 +422,12 @@ const DashboardScreen = () => {
       title={DASHBOARD_TOUR_STEPS[1].title}
       icon="📊"
     >
-      {/* Use Recharts PieChart on web/desktop, NutritionRingsCard on mobile */}
-      {Platform.OS === 'web' && showSidebar ? (
+      {/* Only show loading on initial load; once data exists, keep component alive */}
+      {showNutritionLoading ? (
+        <View style={styles.nutritionLoadingContainer}>
+          <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
+        </View>
+      ) : Platform.OS === 'web' && showSidebar ? (
         <View style={styles.nutritionCardExpanded}>
           <NutritionPieChart
             data={{
@@ -388,6 +448,7 @@ const DashboardScreen = () => {
             fat: { current: nutritionData.fat.current, target: fatGoal },
           }}
           showFat={true}
+          onMacroPress={handleMacroSearch}
         />
       )}
     </TourGuideZone>
@@ -423,17 +484,12 @@ const DashboardScreen = () => {
                 <Text variant="heading1" weight="bold" style={styles.userName}>
                   {currentUser.data?.username || 'User'}
                 </Text>
-                <LinearGradient
-                  colors={['#FCD34D', '#F97316']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.streakBadge}
-                >
-                  <Ionicons name="flame" size={16} color="#FFFFFF" />
+                <View style={styles.streakBadge}>
+                  <Ionicons name="flame" size={15} color={BRAND_COLORS.primary} />
                   <Text style={styles.streakText}>
                     {currentUser.data?.currentStreak || 0}
                   </Text>
-                </LinearGradient>
+                </View>
               </View>
             </View>
             <View style={styles.headerActions}>
@@ -569,7 +625,7 @@ const DashboardScreen = () => {
                             {getMealType(new Date(meal.consumedAt))}
                           </Text>
                           <Text variant="caption" numberOfLines={1} style={{ color: colors.light.textSecondary }}>
-                            {meal.name}
+                            {formatMealName(meal.name)}
                           </Text>
                         </View>
                         <Text variant="body" weight="bold" style={styles.mealCalories}>
@@ -615,6 +671,11 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
+    width: '100%',
+    alignSelf: 'center',
+    ...(Platform.OS === 'web' && {
+      maxWidth: 1360,
+    }),
     // paddingBottom is set dynamically via useContentBottomPadding
   },
   // Desktop layout wrapper - fills viewport height
@@ -643,6 +704,16 @@ const styles = StyleSheet.create({
   inlineCard: {
     marginBottom: 0,
   },
+  // Loading placeholder for nutrition card - matches card height
+  nutritionLoadingContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    minHeight: 280,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   // Expanded nutrition card for desktop - takes more vertical space
   nutritionCardExpanded: {
     flex: 1,
@@ -652,14 +723,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 32, // Increased spacing for breathing room
+    marginBottom: spacing.xl,
   },
   headerLeft: {
     flex: 1,
   },
   greeting: {
-    color: colors.light.textSecondary,
-    marginBottom: spacing.xs,
+    color: colors.light.textMuted,
+    marginBottom: 2,
+    fontSize: 14,
+    letterSpacing: 0.2,
   },
   nameRow: {
     flexDirection: 'row',
@@ -668,6 +741,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     color: BRAND_COLORS.textPrimary,
+    letterSpacing: -0.4,
   },
   headerActions: {
     flexDirection: 'row',
@@ -675,12 +749,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   languageButton: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: colors.light.background,
+    backgroundColor: '#FFF7ED',
     borderWidth: 1,
-    borderColor: BRAND_COLORS.primary,
+    borderColor: '#FED7AA',
     justifyContent: 'center',
     alignItems: 'center',
     ...(Platform.OS === 'web' && {
@@ -689,21 +763,24 @@ const styles = StyleSheet.create({
     }),
   },
   languageButtonText: {
-    color: BRAND_COLORS.primary,
+    color: BRAND_COLORS.primaryDark,
     fontSize: 12,
   },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 20,
     gap: 4,
   },
   streakText: {
-    color: '#FFFFFF',
+    color: BRAND_COLORS.primaryDark,
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
   },
   profileButton: {
     width: 44,
@@ -747,7 +824,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(167, 139, 250, 0.1)',
+    backgroundColor: BRAND_COLORS.primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
     ...(Platform.OS === 'web' && {
@@ -783,9 +860,11 @@ const styles = StyleSheet.create({
   // Set goals prompt - Aura look with SaaS shadow
   setGoalsPrompt: {
     borderRadius: 16,
-    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
     marginBottom: 24,
-    ...saasShadows.card,
+    ...saasShadows.subtle,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'all 0.2s ease-out',
@@ -794,15 +873,34 @@ const styles = StyleSheet.create({
   setGoalsGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.lg,
+    padding: spacing.md,
     gap: spacing.md,
+  },
+  setGoalsIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: BRAND_COLORS.primaryTint,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   setGoalsText: {
     flex: 1,
   },
+  setGoalsTitle: {
+    color: BRAND_COLORS.textPrimary,
+  },
   setGoalsSubtext: {
-    color: colors.light.textSecondary,
+    color: colors.light.textMuted,
     marginTop: 2,
+  },
+  setGoalsChevron: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: BRAND_COLORS.primaryTint,
   },
   // Calorie card - Stripe/Linear style
   calorieCard: {
@@ -847,8 +945,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: BRAND_COLORS.primary,
-    paddingVertical: 4, // Reduced from 6
-    paddingHorizontal: 10, // Reduced from 12
+    paddingVertical: 5,
+    paddingHorizontal: 10,
     borderRadius: 8,
     gap: 6,
     ...(Platform.OS === 'web' && {
@@ -886,7 +984,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   mealsSubtitle: {
-    color: '#4B5563',
+    color: '#6B7280',
   },
   emptyMealsWrapper: {
     flex: 1,
@@ -940,7 +1038,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(229, 231, 235, 0.5)',
+    borderBottomColor: '#EEF2F7',
     gap: spacing.md,
   },
   mealDetails: {

@@ -3,12 +3,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
     ActivityIndicator,
-    Dimensions,
     Modal,
     Platform,
     Pressable,
     StyleSheet,
     View,
+    useWindowDimensions,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Text } from './Text';
@@ -26,7 +26,7 @@ export const YouTubePlayerModal: React.FC<YouTubePlayerModalProps> = ({
   title,
   onClose,
 }) => {
-  const { width, height } = Dimensions.get('window');
+  const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
   // For shorts, use vertical aspect ratio; for regular videos use 16:9

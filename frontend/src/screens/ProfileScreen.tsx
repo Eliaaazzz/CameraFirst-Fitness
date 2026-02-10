@@ -94,14 +94,14 @@ const GOAL_OPTIONS: Array<{ value: GoalType; label: string; icon: string; descri
     label: 'Build Muscle',
     icon: 'arm-flex',
     description: 'Grow stronger',
-    color: '#10B981'
+    color: BRAND_COLORS.macros.protein
   },
   {
     value: 'diabetes_control',
     label: 'Blood Sugar',
     icon: 'heart-pulse',
     description: 'Diabetes management',
-    color: '#3B82F6'
+    color: BRAND_COLORS.macros.carbs
   },
 ];
 
@@ -1074,19 +1074,19 @@ const ProfileScreen = () => {
                 </View>
                 <View style={styles.macrosRow}>
                   <View style={styles.macroItem}>
-                    <Text variant="heading3" weight="bold" style={{ color: '#10B981' }}>
+                    <Text variant="heading3" weight="bold" style={{ color: BRAND_COLORS.macros.protein }}>
                       {generatedGoals.macros_grams.protein_g}g
                     </Text>
                     <Text variant="caption">Protein</Text>
                   </View>
                   <View style={styles.macroItem}>
-                    <Text variant="heading3" weight="bold" style={{ color: '#F59E0B' }}>
+                    <Text variant="heading3" weight="bold" style={{ color: BRAND_COLORS.macros.carbs }}>
                       {generatedGoals.macros_grams.carbs_g}g
                     </Text>
                     <Text variant="caption">Carbs</Text>
                   </View>
                   <View style={styles.macroItem}>
-                    <Text variant="heading3" weight="bold" style={{ color: '#EF4444' }}>
+                    <Text variant="heading3" weight="bold" style={{ color: BRAND_COLORS.macros.fat }}>
                       {generatedGoals.macros_grams.fat_g}g
                     </Text>
                     <Text variant="caption">Fat</Text>
@@ -1393,7 +1393,7 @@ const ProfileScreen = () => {
               title="Regenerate Goals"
               variant="primary"
               onPress={() => setShowGoalsModal(true)}
-              style={{ backgroundColor: '#7C3AED' }}
+              style={{ backgroundColor: '#F97316' }}
               textColor="#FFFFFF"
             />
           </Card>
@@ -1401,29 +1401,31 @@ const ProfileScreen = () => {
           <Pressable
             style={({ pressed }) => [
               styles.generateGoalsCard,
-              pressed && { opacity: 0.9 },
+              pressed && styles.generateGoalsCardPressed,
             ]}
             onPress={() => setShowGoalsModal(true)}
             accessibilityRole="button"
             accessibilityLabel="Set your fitness goals with AI-powered personalization"
           >
-            <LinearGradient
-              colors={[BRAND_COLORS.primary, BRAND_COLORS.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.generateGoalsGradient}
-            >
-              <MaterialCommunityIcons name="target" size={48} color="#FFF" />
-              <Text variant="heading3" weight="bold" style={styles.generateGoalsTitle}>
-                Set Your Fitness Goals
-              </Text>
-              <Text variant="body" style={styles.generateGoalsText}>
-                Get AI-powered calorie and macro targets personalized for you
-              </Text>
-              <View style={styles.generateGoalsArrow}>
-                <Feather name="arrow-right" size={24} color="#FFF" />
+            <View style={styles.generateGoalsInner}>
+              <View style={styles.generateGoalsIcon}>
+                <MaterialCommunityIcons name="target" size={22} color={BRAND_COLORS.primary} />
               </View>
-            </LinearGradient>
+              <View style={styles.generateGoalsCopy}>
+                <Text variant="body" weight="bold" style={styles.generateGoalsTitle}>
+                  Set Your Fitness Goals
+                </Text>
+                <Text variant="caption" style={styles.generateGoalsText} numberOfLines={2}>
+                  AI-powered calorie and macro targets personalized for you
+                </Text>
+              </View>
+              <View style={styles.generateGoalsCta}>
+                <Text variant="caption" weight="semibold" style={styles.generateGoalsCtaText}>
+                  Start
+                </Text>
+                <Feather name="arrow-right" size={16} color={BRAND_COLORS.primary} />
+              </View>
+            </View>
           </Pressable>
         )}
 
@@ -1620,31 +1622,62 @@ const styles = StyleSheet.create({
     color: BRAND_COLORS.primary,
   },
   generateGoalsCard: {
-    borderRadius: 20,
-    overflow: 'hidden',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    padding: spacing.md,
     marginBottom: spacing.lg,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'all 0.15s ease-out',
+    }),
   },
-  generateGoalsGradient: {
-    padding: spacing.xl,
+  generateGoalsCardPressed: {
+    backgroundColor: '#FFF7ED',
+  },
+  generateGoalsInner: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.md,
   },
-  generateGoalsTitle: {
-    color: '#FFF',
-    marginTop: spacing.sm,
-  },
-  generateGoalsText: {
-    color: 'rgba(255,255,255,0.85)',
-    textAlign: 'center',
-  },
-  generateGoalsArrow: {
-    marginTop: spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  generateGoalsIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 12,
+    backgroundColor: BRAND_COLORS.primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
+  },
+  generateGoalsCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  generateGoalsTitle: {
+    color: BRAND_COLORS.textPrimary,
+  },
+  generateGoalsText: {
+    color: BRAND_COLORS.textMuted,
+    marginTop: 2,
+  },
+  generateGoalsCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: BRAND_COLORS.primaryTint,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    flexShrink: 0,
+  },
+  generateGoalsCtaText: {
+    color: BRAND_COLORS.primary,
+    fontSize: 12,
+    fontWeight: '600',
   },
   menuSection: {
     marginBottom: spacing.lg,

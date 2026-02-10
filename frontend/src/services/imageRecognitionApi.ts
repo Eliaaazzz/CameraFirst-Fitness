@@ -372,6 +372,154 @@ interface RecommendationApiResponse {
   }>;
 }
 
+interface WorkoutSearchApiResult {
+  id: string;
+  exerciseName: string;
+  primaryCategory: string;
+  youtubeId: string;
+  thumbnailUrl?: string | null;
+}
+
+// Goal-driven workout query plan:
+// - BUILD_MUSCLE: chest / shoulders / legs / back / abs(core)
+// - FAT_LOSS: cardio + yoga
+// - BLOOD_SUGAR_CONTROL: mixed strength + cardio
+// - MAINTAIN: balanced mix
+const GOAL_WORKOUT_QUERY_PLAN: Record<string, string[][]> = {
+  BUILD_MUSCLE: [
+    ['chest'],
+    ['shoulders', 'shoulder'],
+    ['legs', 'lower body'],
+    ['back'],
+    ['abs', 'core'],
+  ],
+  FAT_LOSS: [
+    ['cardio'],
+    ['yoga'],
+    ['hiit'],
+  ],
+  BLOOD_SUGAR_CONTROL: [
+    ['strength', 'resistance'],
+    ['cardio'],
+    ['legs'],
+    ['walk', 'walking'],
+    ['yoga'],
+  ],
+  MAINTAIN: [
+    ['strength'],
+    ['cardio'],
+    ['yoga'],
+    ['legs'],
+  ],
+};
+
+const mapWorkoutSearchResult = (item: WorkoutSearchApiResult): WorkoutCard => ({
+  id: item.id,
+  title: item.exerciseName,
+  youtubeId: item.youtubeId || undefined,
+  durationMinutes: 5,
+  level: 'intermediate',
+  equipment: [],
+  bodyPart: item.primaryCategory ? [item.primaryCategory] : [],
+  thumbnailUrl: item.thumbnailUrl ?? undefined,
+});
+
+async function searchWorkoutByKeyword(query: string, limit: number = 20): Promise<WorkoutCard[]> {
+  try {
+    const results = await api.get<WorkoutSearchApiResult[]>(
+      `/api/v1/search/workouts?query=${encodeURIComponent(query)}&limit=${limit}`
+    );
+    if (!Array.isArray(results)) {
+      return [];
+    }
+    return results.map(mapWorkoutSearchResult);
+  } catch (error) {
+    console.error(`searchWorkoutByKeyword failed for query "${query}":`, error);
+    return [];
+  }
+}
+
+async function getGoalDrivenWorkouts(goal: string): Promise<WorkoutCard[]> {
+  const queryPlan = GOAL_WORKOUT_QUERY_PLAN[goal];
+  if (!queryPlan) {
+    return [];
+  }
+
+  const queryCache = new Map<string, WorkoutCard[]>();
+  const getResultsForQuery = async (query: string): Promise<WorkoutCard[]> => {
+    if (queryCache.has(query)) {
+      return queryCache.get(query) || [];
+    }
+    const results = await searchWorkoutByKeyword(query, 20);
+    queryCache.set(query, results);
+    return results;
+  };
+
+  const selected: WorkoutCard[] = [];
+  const seenIds = new Set<string>();
+
+  // First pass: guarantee category coverage (one per planned group)
+  for (const queryGroup of queryPlan) {
+    let matchedWorkout: WorkoutCard | null = null;
+    for (const query of queryGroup) {
+      const queryResults = await getResultsForQuery(query);
+      matchedWorkout = queryResults.find((workout) => !seenIds.has(workout.id)) ?? null;
+      if (matchedWorkout) {
+        break;
+      }
+    }
+
+    if (matchedWorkout) {
+      selected.push(matchedWorkout);
+      seenIds.add(matchedWorkout.id);
+    }
+  }
+
+  // Second pass: top up to recommendation limit
+  for (const queryGroup of queryPlan) {
+    if (selected.length >= MAX_RECOMMENDATIONS) {
+      break;
+    }
+
+    for (const query of queryGroup) {
+      const queryResults = await getResultsForQuery(query);
+      for (const workout of queryResults) {
+        if (seenIds.has(workout.id)) {
+          continue;
+        }
+        selected.push(workout);
+        seenIds.add(workout.id);
+        if (selected.length >= MAX_RECOMMENDATIONS) {
+          break;
+        }
+      }
+
+      if (selected.length >= MAX_RECOMMENDATIONS) {
+        break;
+      }
+    }
+  }
+
+  return selected;
+}
+
+const mergeUniqueWorkouts = (...groups: WorkoutCard[][]): WorkoutCard[] => {
+  const merged: WorkoutCard[] = [];
+  const seenIds = new Set<string>();
+
+  for (const group of groups) {
+    for (const workout of group) {
+      if (!workout?.id || seenIds.has(workout.id)) {
+        continue;
+      }
+      merged.push(workout);
+      seenIds.add(workout.id);
+    }
+  }
+
+  return merged;
+};
+
 /**
  * Generate personalized recommendations using POST /api/v1/recommendations/generate
  */
@@ -416,14 +564,11 @@ async function generateRecommendations(goals: string[], userId?: string, limit: 
 export async function getRecommendedWorkouts(fitnessGoal?: string | null, userId?: string): Promise<WorkoutCard[]> {
   try {
     const goals = normalizeGoalForApi(fitnessGoal);
+    const primaryGoal = goals[0] ?? 'MAINTAIN';
     const response = await generateRecommendations(goals, userId, MAX_RECOMMENDATIONS);
 
-    if (!response || !Array.isArray(response.workouts)) {
-      return [];
-    }
-
-    // Map API response to WorkoutCard format
-    return response.workouts.map(w => ({
+    const aiRecommendedWorkouts = Array.isArray(response?.workouts)
+      ? response.workouts.map(w => ({
       id: w.id,
       title: w.title,
       youtubeId: w.videoUrl?.includes('youtube.com') ? w.videoUrl.split('/').pop() : undefined,
@@ -432,7 +577,12 @@ export async function getRecommendedWorkouts(fitnessGoal?: string | null, userId
       equipment: [],
       bodyPart: w.type ? [w.type] : [],
       thumbnailUrl: w.thumbnailUrl,
-    }));
+      }))
+      : [];
+
+    const goalDrivenWorkouts = await getGoalDrivenWorkouts(primaryGoal);
+    const merged = mergeUniqueWorkouts(goalDrivenWorkouts, aiRecommendedWorkouts);
+    return merged.slice(0, MAX_RECOMMENDATIONS);
   } catch (error) {
     console.error('getRecommendedWorkouts failed:', error);
     return [];

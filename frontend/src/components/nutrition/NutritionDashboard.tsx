@@ -3,7 +3,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { Flame, DotsThree } from 'phosphor-react-native';
 
 import { Text } from '@/components/Text';
-import { colors, radii, saasShadows, spacing } from '@/utils';
+import { BRAND_COLORS, colors, radii, saasShadows, spacing } from '@/utils';
 
 // Recharts is only available on web
 let PieChart: any;
@@ -47,14 +47,14 @@ export type NutritionDashboardProps = {
 // Constants
 // -----------------------------------------------------------------------------
 
-const TRACK_COLOR = '#fde9dc';
-const GRADIENT_START = '#fca15a';
-const GRADIENT_END = '#fb7413';
+const TRACK_COLOR = BRAND_COLORS.macros.calories + '20';
+const GRADIENT_START = BRAND_COLORS.macros.calories;
+const GRADIENT_END = BRAND_COLORS.primaryDark;
 
 const MACRO_COLORS = {
-  protein: '#58b7ff',
-  fat: '#f6c344',
-  carbs: '#f565a9',
+  protein: BRAND_COLORS.macros.protein,
+  fat: BRAND_COLORS.macros.fat,
+  carbs: BRAND_COLORS.macros.carbs,
 } as const;
 
 // -----------------------------------------------------------------------------

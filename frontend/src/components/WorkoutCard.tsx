@@ -12,13 +12,15 @@ type Props = {
   onSave?: (id: string) => Promise<boolean> | boolean | void;
   onRemove?: (id: string) => Promise<boolean> | boolean | void;
   isSaved?: boolean;
+  /** Disable hover/press scale micro-animation (useful for dense lists like search results). */
+  disableHoverEffect?: boolean;
 };
 
 /**
  * WorkoutCard - Material Design 3 Style
  * Clean design, purple palette, micro-animations
  */
-export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
+export const WorkoutCard = ({ item, onSave, onRemove, isSaved, disableHoverEffect = false }: Props) => {
   // Always use light mode
   const theme = getTheme('light');
   const [saving, setSaving] = useState(false);
@@ -28,7 +30,7 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
   // Animation for floating card effect - each card has its own state
   // Disable hover effect for saved items
   const [isHovered, setIsHovered] = useState(false);
-  const enableHover = !isSaved;
+  const enableHover = !isSaved && !disableHoverEffect;
 
   // Web hover handlers
   const webHoverProps = Platform.OS === 'web' && enableHover ? {
@@ -76,11 +78,12 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved }: Props) => {
   };
 
   // Dynamic styles for hover/press effect
+  const showHover = enableHover && isHovered;
   const cardDynamicStyle = {
-    transform: [{ scale: isHovered ? 1.05 : 1 }],
+    transform: [{ scale: showHover ? 1.05 : 1 }],
     ...(Platform.OS === 'web' && {
       transition: 'transform 0.2s ease-out, box-shadow 0.2s ease-out',
-      boxShadow: isHovered
+      boxShadow: showHover
         ? '0 12px 28px rgba(0, 0, 0, 0.35), 0 8px 12px rgba(0, 0, 0, 0.22)'
         : '0 4px 12px rgba(0, 0, 0, 0.15)',
     }),

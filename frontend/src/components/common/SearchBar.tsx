@@ -2,6 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
+    Platform,
     Pressable,
     StyleSheet,
     TextInput,
@@ -108,6 +109,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1F2937', // Dark text for light background
     paddingVertical: spacing.sm,
+    ...(Platform.OS === 'web' && {
+      outlineStyle: 'none' as any,
+      outlineWidth: 0,
+    }),
   },
   clearButton: {
     padding: spacing.xs,

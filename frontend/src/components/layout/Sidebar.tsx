@@ -111,26 +111,26 @@ function NavItemButton({
   const iconColor = isActive 
     ? BRAND_COLORS.primaryDark // Dark Orange
     : isHovered 
-      ? BRAND_COLORS.primary 
+      ? item.color 
       : colors.light.textSecondary;
 
   const labelColor = isActive 
     ? BRAND_COLORS.primaryDark // Dark Orange
     : isHovered 
-      ? BRAND_COLORS.primary 
+      ? item.color 
       : colors.light.textSecondary;
 
   const rowBg = isActive
     ? tint(BRAND_COLORS.primary, 0.12) // Light Orange Tint
     : isHovered
-      ? tint(BRAND_COLORS.primary, 0.08)
+      ? tint(item.color, 0.08)
       : 'transparent';
 
   // Chip background - Subtle on inactive, transparent white on active
   const chipBg = isActive
     ? 'rgba(255, 255, 255, 0.2)'
     : isHovered
-      ? 'rgba(249, 115, 22, 0.1)'
+      ? tint(item.color, 0.1)
       : 'transparent'; // Clean look for inactive
 
   return (
@@ -334,6 +334,8 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'background-color 0.15s ease-out',
+      outlineStyle: 'none' as any,
+      outlineWidth: 0,
     }),
   },
   headerCollapsed: {

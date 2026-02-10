@@ -189,8 +189,8 @@ export const WeeklyInsightsScreen = () => {
           </View>
 
           <View style={styles.macrosGrid}>
-            <View style={[styles.macroCard, { backgroundColor: '#10B98120' }]}>
-              <MaterialCommunityIcons name="food-drumstick" size={32} color="#10B981" />
+            <View style={[styles.macroCard, { backgroundColor: BRAND_COLORS.macros.protein + '20' }]}>
+              <MaterialCommunityIcons name="food-drumstick" size={32} color={BRAND_COLORS.macros.protein} />
               <Text variant="heading3" weight="bold" style={styles.macroValue}>
                 {macrosDistribution.protein.grams.toFixed(0)}g
               </Text>
@@ -205,8 +205,8 @@ export const WeeklyInsightsScreen = () => {
               </Text>
             </View>
 
-            <View style={[styles.macroCard, { backgroundColor: '#F59E0B20' }]}>
-              <MaterialCommunityIcons name="rice" size={32} color="#F59E0B" />
+            <View style={[styles.macroCard, { backgroundColor: BRAND_COLORS.macros.carbs + '20' }]}>
+              <MaterialCommunityIcons name="rice" size={32} color={BRAND_COLORS.macros.carbs} />
               <Text variant="heading3" weight="bold" style={styles.macroValue}>
                 {macrosDistribution.carbs.grams.toFixed(0)}g
               </Text>
@@ -221,8 +221,8 @@ export const WeeklyInsightsScreen = () => {
               </Text>
             </View>
 
-            <View style={[styles.macroCard, { backgroundColor: '#EF444420' }]}>
-              <MaterialCommunityIcons name="water" size={32} color="#EF4444" />
+            <View style={[styles.macroCard, { backgroundColor: BRAND_COLORS.macros.fat + '20' }]}>
+              <MaterialCommunityIcons name="water" size={32} color={BRAND_COLORS.macros.fat} />
               <Text variant="heading3" weight="bold" style={styles.macroValue}>
                 {macrosDistribution.fat.grams.toFixed(0)}g
               </Text>

@@ -11,7 +11,7 @@ import Svg, { Circle, G } from 'react-native-svg';
 import { Flame } from 'phosphor-react-native';
 
 import { Text } from '@/components/Text';
-import { spacing } from '@/utils';
+import { BRAND_COLORS, spacing } from '@/utils';
 import { useLanguageStore } from '@/stores/useLanguageStore';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -26,47 +26,35 @@ interface NutritionPieChartProps {
   showFat?: boolean;
 }
 
-// ============================================================================
-// APPLE WATCH NEON COLORS - Vibrant & Bold
-// ============================================================================
-
+// Tuned palette for AuraFit's light dashboard while preserving ring semantics.
 const RING_COLORS = {
-  // Outer Ring: Calories - Neon Orange-Red
-  calories: '#FF3B30',
-
-  // Second Ring: Protein - Neon Green
-  protein: '#34C759',
-
-  // Third Ring: Fat - Neon Yellow/Gold
-  fat: '#FFD60A',
-
-  // Inner Ring: Carbs - Electric Blue
-  carbs: '#007AFF',
+  protein: '#0EA5B7', // Soft cyan
+  // Distinct from calories accent (primary orange) while staying warm.
+  fat: BRAND_COLORS.macros.fat, // Warm amber
+  carbs: '#7DD3A8', // Soft light green
 };
+const RING_TRACK_COLOR = '#EEF2F6';
+const CALORIES_ACCENT = BRAND_COLORS.macros.calories;
+const CALORIES_DANGER = '#B91C1C';
 
 // Ring configuration with proper spacing
-const STROKE_WIDTH = 18;  // Sleek and modern
+const STROKE_WIDTH = 12;
 
 interface RingConfig {
-  key: 'calories' | 'protein' | 'fat' | 'carbs';
+  key: 'protein' | 'fat' | 'carbs';
   label: string;
   color: string;
   radius: number;
 }
 
-// Balanced Geometry (The Sweet Spot) - EXPANDED CENTER
+// Keep macro rings only (no calorie ring).
+// Inside -> outside follows legend order: Protein, Fat, Carbs.
 const RING_CONFIGS: RingConfig[] = [
-  {
-    key: 'calories',
-    label: 'Calories',
-    color: RING_COLORS.calories,
-    radius: 145, // Pushed outward
-  },
   {
     key: 'protein',
     label: 'Protein',
     color: RING_COLORS.protein,
-    radius: 120,
+    radius: 70, // Inner
   },
   {
     key: 'fat',
@@ -78,7 +66,7 @@ const RING_CONFIGS: RingConfig[] = [
     key: 'carbs',
     label: 'Carbs',
     color: RING_COLORS.carbs,
-    radius: 70, // Inner hole diameter ~122px
+    radius: 120, // Outer
   },
 ];
 
@@ -88,6 +76,7 @@ const RING_CONFIGS: RingConfig[] = [
 
 interface AnimatedRingProps {
   readonly color: string;
+  readonly trackColor: string;
   readonly radius: number;
   readonly percentage: number;
   readonly centerX: number;
@@ -97,6 +86,7 @@ interface AnimatedRingProps {
 
 function AnimatedRing({
   color,
+  trackColor,
   radius,
   percentage,
   centerX,
@@ -132,15 +122,14 @@ function AnimatedRing({
 
   return (
     <>
-      {/* Background Track - Same color at 15% opacity */}
+      {/* Background Track */}
       <Circle
         cx={centerX}
         cy={centerY}
         r={radius}
-        stroke={color}
+        stroke={trackColor}
         strokeWidth={STROKE_WIDTH}
         fill="none"
-        opacity={0.15}
         strokeLinecap="round"
       />
 
@@ -198,8 +187,8 @@ function LegendItem({ color, label, current, target, unit }: LegendItemProps) {
       </View>
 
       {/* Percentage badge */}
-      <View style={[styles.percentBadge, { backgroundColor: `${color}20` }]}>
-        <Text style={[styles.percentText, { color }]}>
+      <View style={styles.percentBadge}>
+        <Text style={styles.percentText}>
           {percentage}%
         </Text>
       </View>
@@ -224,9 +213,6 @@ export function NutritionPieChart({
 
   // Calculate percentages
   const percentages: Record<string, number> = {
-    calories: data.calories.target > 0
-      ? (data.calories.current / data.calories.target) * 100
-      : 0,
     protein: data.protein.target > 0
       ? (data.protein.current / data.protein.target) * 100
       : 0,
@@ -237,6 +223,10 @@ export function NutritionPieChart({
       ? (data.carbs.current / data.carbs.target) * 100
       : 0,
   };
+  const caloriesPercentage = data.calories.target > 0
+    ? (data.calories.current / data.calories.target) * 100
+    : 0;
+  const caloriesAccent = caloriesPercentage >= 130 ? CALORIES_DANGER : CALORIES_ACCENT;
 
   return (
     <View style={[styles.card, webCardShadow as any]}>
@@ -264,6 +254,7 @@ export function NutritionPieChart({
               <AnimatedRing
                 key={config.key}
                 color={config.color}
+                trackColor={RING_TRACK_COLOR}
                 radius={config.radius}
                 percentage={percentages[config.key]}
                 centerX={centerX}
@@ -273,12 +264,14 @@ export function NutritionPieChart({
             ))}
           </Svg>
 
+          <View style={styles.centerPlate} />
+
           {/* Center content - Fits inside r=70 (Diameter 140) */}
           <View style={styles.centerContent}>
             <Flame
               size={32}
               weight="fill"
-              color={RING_COLORS.calories}
+              color={caloriesAccent}
             />
             <Text style={styles.centerCalories}>
               {Math.round(data.calories.current)}
@@ -292,7 +285,7 @@ export function NutritionPieChart({
         {/* Vertical Legend */}
         <View style={styles.legend}>
           <LegendItem
-            color={RING_COLORS.calories}
+            color={caloriesAccent}
             label="Calories"
             current={data.calories.current}
             target={data.calories.target}
@@ -368,17 +361,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1.5,
   },
+  centerPlate: {
+    position: 'absolute',
+    width: 116,
+    height: 116,
+    borderRadius: 58,
+    backgroundColor: '#FCFDFE',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#111827',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
   centerContent: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 100, // Expanded to fit larger text within inner hole
+    width: 112,
   },
   centerCalories: {
     color: '#111827',
-    fontSize: 48, // Text-5xl
+    fontSize: 44,
     fontWeight: '700',
-    marginTop: 4,
+    marginTop: 2,
     textAlign: 'center',
   },
   centerSubtext: {
@@ -429,11 +436,15 @@ const styles = StyleSheet.create({
     marginLeft: 3,
   },
   percentBadge: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   percentText: {
+    color: '#6B7280',
     fontSize: 12,
     fontWeight: '600',
   },

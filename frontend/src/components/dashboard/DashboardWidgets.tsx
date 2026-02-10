@@ -6,9 +6,7 @@ import Animated, {
     useSharedValue,
     withDelay,
     withSpring,
-    withTiming,
 } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -47,16 +45,16 @@ const tint = (hex: string, alpha = 0.12): string => {
 // Goal type display config - semantically appropriate icons
 const GOAL_TYPE_CONFIG: Record<GoalType, { labelKey: 'fatLoss' | 'buildMuscle' | 'glucoseControl'; Icon: React.ComponentType<any>; color: string }> = {
   fat_loss: { labelKey: 'fatLoss', Icon: Target, color: '#EF4444' },
-  muscle_gain: { labelKey: 'buildMuscle', Icon: FlagCheckered, color: '#F97316' }, // Use Orange for energy
-  diabetes_control: { labelKey: 'glucoseControl', Icon: Drop, color: '#3B82F6' },
+  muscle_gain: { labelKey: 'buildMuscle', Icon: FlagCheckered, color: BRAND_COLORS.macros.protein }, // Use Emerald for growth
+  diabetes_control: { labelKey: 'glucoseControl', Icon: Drop, color: BRAND_COLORS.macros.carbs },
 };
 
 // Quick action config - Vibrant & Energetic
 const QUICK_ACTIONS = [
-  { key: 'history', labelKey: 'mealHistory' as const, Icon: ClockCounterClockwise, color: '#06B6D4', screen: 'MealHistory' }, // Cyan
-  { key: 'insights', labelKey: 'weeklyInsights' as const, Icon: ChartLine, color: '#8B5CF6', screen: 'WeeklyInsights' }, // Violet
-  { key: 'weight', labelKey: 'logWeight' as const, Icon: Scales, color: '#F97316', screen: 'LogWeight' }, // Orange (Primary)
-  { key: 'export', labelKey: 'exportData' as const, Icon: Export, color: '#10B981', screen: 'ExportData' }, // Emerald
+  { key: 'history', labelKey: 'mealHistory' as const, Icon: ClockCounterClockwise, color: BRAND_COLORS.secondary, screen: 'MealHistory' },
+  { key: 'insights', labelKey: 'weeklyInsights' as const, Icon: ChartLine, color: '#14B8A6', screen: 'WeeklyInsights' },
+  { key: 'weight', labelKey: 'logWeight' as const, Icon: Scales, color: BRAND_COLORS.primary, screen: 'LogWeight' },
+  { key: 'export', labelKey: 'exportData' as const, Icon: Export, color: '#22C55E', screen: 'ExportData' },
 ];
 
 interface DashboardWidgetsProps {
@@ -253,10 +251,18 @@ function QuickActionButton({ Icon, color, label, onPress }: QuickActionButtonPro
         onMouseLeave: () => setIsHovered(false),
       })}
     >
-      <View style={styles.actionIconWrapper}>
-        <Icon size={20} weight={isHovered ? 'fill' : 'regular'} color={isHovered ? BRAND_COLORS.primary : color} />
+      <View style={[
+        styles.actionIconWrapper,
+        {
+          backgroundColor: tint(color, 0.14),
+          borderColor: tint(color, 0.26),
+        },
+      ]}>
+        <Icon size={20} weight={isHovered ? 'fill' : 'regular'} color={color} />
       </View>
-      <Text variant="caption" weight="medium" style={styles.actionText}>{label}</Text>
+      <Text variant="caption" weight="medium" style={styles.actionText} numberOfLines={2}>
+        {label}
+      </Text>
     </AnimatedPressable>
   );
 }
@@ -304,7 +310,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -344,7 +352,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: 'rgba(249, 115, 22, 0.05)',
+    backgroundColor: 'rgba(6, 182, 212, 0.06)',
   },
   // Bento Section
   bentoSection: {
@@ -374,11 +382,11 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
     gap: 8,
     // For mobile flex layout
     ...(Platform.OS !== 'web' && {
@@ -391,22 +399,22 @@ const styles = StyleSheet.create({
     }),
   },
   actionButtonHovered: {
-    backgroundColor: '#F3F4F6',
-    borderColor: '#E5E7EB',
+    backgroundColor: '#F8FAFC',
+    borderColor: '#DDE3EC',
   },
   actionIconWrapper: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   actionText: {
-    color: '#374151',
+    color: '#4B5563',
     fontSize: 12,
+    lineHeight: 14,
+    minHeight: 28, // Reserve 2-line height so icons align across grid
     textAlign: 'center',
   },
   // Hydration

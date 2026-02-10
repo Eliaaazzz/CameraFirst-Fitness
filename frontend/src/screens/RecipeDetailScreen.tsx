@@ -4,7 +4,7 @@ import { BulletListItem, NumberedListItem, SaveButton, SectionCard } from '@/com
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecipeById, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
 import type { RecipeImageUrls } from '@/types';
-import { getTheme } from '@/utils/theme';
+import { BRAND_COLORS } from '@/utils';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useMemo } from 'react';
@@ -28,10 +28,10 @@ const BODY_FONT_SIZE = 16;
 const BODY_LINE_HEIGHT = 22;
 
 // Colors
-const PRIMARY_COLOR = '#7C3AED';
+const PRIMARY_COLOR = BRAND_COLORS.primary;
+const SECONDARY_COLOR = BRAND_COLORS.secondary;
 const TEXT_PRIMARY = '#1A1A2E';
 const TEXT_SECONDARY = '#6B6B7A';
-const SURFACE_BG = '#F8F8FA';
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -133,8 +133,6 @@ export const RecipeDetailScreen = () => {
     );
   }
 
-  const theme = getTheme('light');
-
   const handleSaveToggle = async () => {
     if (isSaved) {
       await removeRecipe.mutateAsync(recipe.id);
@@ -216,12 +214,12 @@ export const RecipeDetailScreen = () => {
             <Text style={styles.recipeTitle}>{recipe.title}</Text>
             <View style={styles.metaRow}>
               <View style={styles.metaItem}>
-                <Feather name="clock" size={16} color={TEXT_SECONDARY} />
+                <Feather name="clock" size={16} color={SECONDARY_COLOR} />
                 <Text style={styles.metaText}>{recipe.timeMinutes} min</Text>
               </View>
               {recipe.calories && (
                 <View style={styles.metaItem}>
-                  <Feather name="zap" size={16} color={TEXT_SECONDARY} />
+                  <Feather name="zap" size={16} color={SECONDARY_COLOR} />
                   <Text style={styles.metaText}>{recipe.calories} cal</Text>
                 </View>
               )}
@@ -478,7 +476,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tag: {
-    backgroundColor: SURFACE_BG,
+    backgroundColor: `${SECONDARY_COLOR}14`,
+    borderWidth: 1,
+    borderColor: `${SECONDARY_COLOR}30`,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,

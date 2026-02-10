@@ -35,6 +35,15 @@ export const BRAND_COLORS = {
   // Tab bar
   tabActive: '#F97316',       // Orange
   tabInactive: '#374151',     // Deeper gray for readability
+
+  // Macro Colors - Consistent across the app for distinctness
+  macros: {
+    calories: '#F97316', // Orange (Brand Primary)
+    protein: '#6366D8',  // Indigo (protein)
+    carbs: '#4DAA72',    // Soft green (carbs)
+    fat: '#E9A23B',      // Warm amber (fat)
+    sugar: '#EC4899',    // Pink
+  },
 };
 
 export const TAB_ICON_SIZE = {

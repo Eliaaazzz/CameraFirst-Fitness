@@ -6,6 +6,7 @@ export * from './PermissionExplanationScreen';
 export * from './RecipeDetailScreen';
 export * from './RecipesScreen';
 export * from './ResultsScreen';
+export { default as RegisterScreen } from './RegisterScreen';
 export * from './SearchScreen';
 export * from './WeeklyInsightsScreen';
 export * from './WorkoutsScreen';

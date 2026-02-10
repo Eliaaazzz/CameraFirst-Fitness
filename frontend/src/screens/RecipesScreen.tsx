@@ -1,6 +1,7 @@
 import { TourGuideZone } from '@/components/tour/TourProvider';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { useRoute } from '@react-navigation/native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { FAB } from 'react-native-paper';
 
@@ -24,6 +25,17 @@ const RECIPE_SUGGESTIONS: SuggestionItem[] = [
   { id: 'fish', label: 'Fish', icon: 'fish', color: '#06B6D4' },
   { id: 'vegetarian', label: 'Vegetarian', icon: 'leaf', color: '#22C55E' },
 ];
+
+const RECIPE_SUGGESTION_SEARCH_FALLBACKS: Record<string, string[]> = {
+  salad: ['salad', 'vegetable', 'veggie'],
+  chicken: ['chicken', 'grilled chicken', 'protein'],
+  smoothie: ['smoothie', 'shake', 'drink'],
+  pasta: ['pasta', 'noodle', 'spaghetti'],
+  breakfast: ['breakfast', 'egg', 'oatmeal'],
+  soup: ['soup', 'broth', 'stew'],
+  fish: ['fish', 'salmon', 'seafood'],
+  vegetarian: ['vegetarian', 'veggie', 'plant based'],
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -90,6 +102,7 @@ const ItemSeparator = () => <View style={{ height: spacing.md }} />;
 export const RecipesScreen = () => {
   // Always use light mode
   const theme = getTheme('light');
+  const route = useRoute<any>();
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const userGoal = currentUser.data?.profile?.fitnessGoal;
@@ -113,20 +126,32 @@ export const RecipesScreen = () => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [hasActiveSearch, setHasActiveSearch] = useState(false); // Track if user has initiated a search
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Calculate bottom padding for content using shared utility (reduced on desktop)
   const mobileBottomPadding = useContentBottomPadding(spacing.lg);
   const listBottomPadding = showSidebar ? spacing['2xl'] : mobileBottomPadding;
   const fabBottomPosition = useFABBottomPosition(spacing.md);
 
-  // Memoize empty component BEFORE any conditional returns
-  const listEmptyComponent = useMemo(() => (
-    <EmptyStateCard
-      icon={<Feather name="coffee" size={32} color={theme.colors.primary} />}
-      title="Your saved recipes will appear here"
-      variant="single"
-    />
-  ), [theme]);
+  const clearBlurTimeout = useCallback(() => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
+  }, []);
+
+  const handleSearchFocusChange = useCallback((focused: boolean) => {
+    clearBlurTimeout();
+
+    if (focused) {
+      setIsSearchFocused(true);
+      return;
+    }
+
+    blurTimeoutRef.current = setTimeout(() => {
+      setIsSearchFocused(false);
+      blurTimeoutRef.current = null;
+    }, 120);
+  }, [clearBlurTimeout]);
 
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
@@ -157,6 +182,17 @@ export const RecipesScreen = () => {
     }, 300);
   }, []);
 
+  // Handle initial search from navigation params (e.g. from Dashboard macro icons)
+  useEffect(() => {
+    const initialQuery = route.params?.initialSearchQuery;
+    if (initialQuery) {
+      handleSearch(initialQuery);
+      setHasActiveSearch(true);
+      // Optional: scroll to top if not already there
+      listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }
+  }, [route.params?.initialSearchQuery, handleSearch]);
+
   const clearSearch = useCallback(() => {
     setSearchQuery('');
     setSearchResults([]);
@@ -169,22 +205,42 @@ export const RecipesScreen = () => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
+    clearBlurTimeout();
 
     // Set query and mark active search BEFORE async call to prevent UI from hiding
+    setIsSearchFocused(true);
     setSearchQuery(suggestion.label);
     setHasActiveSearch(true);
     setIsSearching(true);
 
-    // Immediately trigger search without debounce for suggestion clicks
-    try {
-      const results = await searchRecipes(suggestion.label, 20);
-      setSearchResults(results);
-    } catch (error) {
-      console.error('[RecipesScreen] Search failed:', error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
+    const queries = RECIPE_SUGGESTION_SEARCH_FALLBACKS[suggestion.id] ?? [suggestion.label];
+    let resolvedResults: RecipeSearchResult[] = [];
+
+    for (const query of queries) {
+      try {
+        const results = await searchRecipes(query, 20);
+        if (results.length > 0) {
+          resolvedResults = results;
+          break;
+        }
+      } catch (error) {
+        console.error('[RecipesScreen] Suggestion search failed:', error);
+      }
     }
+
+    setSearchResults(resolvedResults);
+    setIsSearching(false);
+  }, [clearBlurTimeout]);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    };
   }, []);
 
   const handleRefresh = useCallback(() => {
@@ -293,14 +349,14 @@ export const RecipesScreen = () => {
             value={searchQuery}
             onChangeText={handleSearch}
             onClear={clearSearch}
-            onFocusChange={setIsSearchFocused}
+            onFocusChange={handleSearchFocusChange}
             isLoading={isSearching}
           />
         </View>
       </TourGuideZone>
 
-      {/* Search Suggestions - only visible when search is focused */}
-      {showSearchUI && (
+      {/* Search Suggestions - only when focused and query is empty */}
+      {isSearchFocused && !isSearchMode && (
         <View style={styles.suggestionsSection}>
           <SearchSuggestions
             suggestions={RECIPE_SUGGESTIONS}
@@ -337,6 +393,7 @@ export const RecipesScreen = () => {
                       difficulty: (item.difficulty as 'easy' | 'medium' | 'hard') || 'easy',
                       calories: item.calories ?? undefined,
                     }}
+                    disableHoverEffect
                     isSaved={savedRecipeIds.has(item.id)}
                     onSave={(id) => saveRecipe.mutateAsync(id).then(() => true)}
                     onRemove={(id) => removeRecipe.mutateAsync(id).then(() => true)}
@@ -398,6 +455,7 @@ export const RecipesScreen = () => {
             data={[]} // Saved recipes moved to SavedRecipesScreen
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
             ItemSeparatorComponent={ItemSeparator}
             ListHeaderComponent={listHeaderComponent}
