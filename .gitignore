@@ -66,6 +66,7 @@ frontend/*.orig.*
 frontend/web/
 frontend/.env.local
 frontend/.env.production.local
+frontend/.mcp.json
 
 # ==========================================
 # SHARED

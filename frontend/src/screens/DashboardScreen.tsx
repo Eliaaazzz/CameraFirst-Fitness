@@ -23,7 +23,7 @@ import { Barbell, Drop, Fire, Grains } from 'phosphor-react-native';
 
 import { BentoCard, SafeAreaWrapper, Text } from '@/components';
 import { StateView } from '@/components/common/StateView';
-import { DashboardWidgets } from '@/components/dashboard';
+import { DashboardWidgets, QuickActionsCard } from '@/components/dashboard';
 import { ScreenLayout } from '@/components/layout';
 import { MealImage } from '@/components/nutrition/MealImage';
 import { NutritionPieChart } from '@/components/nutrition/NutritionPieChart';
@@ -549,35 +549,41 @@ const DashboardScreen = () => {
                   ) : (
                     renderNutritionCard()
                   )}
+
+                  {/* Quick Actions (shown inline when right panel is hidden) */}
+                  {!showRightPanel && (
+                    <View style={{ marginTop: spacing.lg }}>
+                      <QuickActionsCard />
+                    </View>
+                  )}
         
-                {/* Today's Meals - Tour Zone 3 - positioned at bottom on desktop */}
-                <TourGuideZone
-                  zone={DASHBOARD_TOUR_STEPS[2].zone}
-                  text={DASHBOARD_TOUR_STEPS[2].text}
-                  title={DASHBOARD_TOUR_STEPS[2].title}
-                  icon="🍽️"
+                {/* Today's Meals */}
+                <BentoCard
+                  style={[
+                    styles.mealsCard,
+                    showSidebar && (showRightPanel ? styles.mealsCardDesktop : styles.mealsCardSidebar),
+                  ]}
                 >
-                  {/* Unified card wrapper - fills remaining space on desktop */}
-                  <BentoCard
-                    style={[
-                      styles.mealsCard,
-                      showSidebar && (showRightPanel ? styles.mealsCardDesktop : styles.mealsCardSidebar),
-                    ]}
-                  >
-                    {/* Header - matches NutritionRingsCard header */}
-                    <View style={styles.mealsHeader}>
-                      <View>
-                        <Text variant="heading3" weight="bold" style={styles.mealsTitle}>
-                          {t.todaysMeals}
+                  {/* Header - matches NutritionRingsCard header */}
+                  <View style={styles.mealsHeader}>
+                    <View>
+                      <Text variant="heading3" weight="bold" style={styles.mealsTitle}>
+                        {t.todaysMeals}
+                      </Text>
+                      {nutritionData.meals.length > 0 && (
+                        <Text variant="caption" style={styles.mealsSubtitle}>
+                          {nutritionData.meals.length} {nutritionData.meals.length === 1 ? t.mealLogged : t.mealsLogged}
                         </Text>
-                        {nutritionData.meals.length > 0 && (
-                          <Text variant="caption" style={styles.mealsSubtitle}>
-                            {nutritionData.meals.length} {nutritionData.meals.length === 1 ? t.mealLogged : t.mealsLogged}
-                          </Text>
-                        )}
-                      </View>
-                      
-                      {/* Compact Snap Button */}
+                      )}
+                    </View>
+                    
+                    {/* Compact Snap Button - Tour Zone 1 */}
+                    <TourGuideZone
+                      zone={DASHBOARD_TOUR_STEPS[0].zone}
+                      text={DASHBOARD_TOUR_STEPS[0].text}
+                      title={DASHBOARD_TOUR_STEPS[0].title}
+                      icon="📸"
+                    >
                       <Pressable 
                         onPress={handleAddFood}
                         style={({pressed}) => [styles.compactSnapBtn, pressed && styles.compactSnapBtnPressed]}
@@ -585,7 +591,8 @@ const DashboardScreen = () => {
                          <MaterialCommunityIcons name="camera" size={16} color="#FFFFFF" />
                          <Text style={styles.compactSnapBtnText}>Snap Meal</Text>
                       </Pressable>
-                    </View>
+                    </TourGuideZone>
+                  </View>
 
             {nutritionData.meals.length === 0 ? (
               <View style={styles.emptyMealsWrapper}>
@@ -656,7 +663,6 @@ const DashboardScreen = () => {
               </View>
             )}
           </BentoCard>
-        </TourGuideZone>
         </View>
         </TourScrollView>
       </ScreenLayout>

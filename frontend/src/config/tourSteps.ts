@@ -27,8 +27,8 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
     zone: 3,
     screen: 'Dashboard',
-    title: "Today's Meals",
-    text: 'Your logged meals appear here. View your daily nutrition breakdown at a glance.',
+    title: 'Quick Actions',
+    text: 'Jump to Meal History, Weekly Insights, Log Weight, or Export Data without digging through menus.',
   },
 ];
 
@@ -64,8 +64,6 @@ export const RECIPES_TOUR_STEP: TourStep = {
 // All tour steps in order
 export const ALL_TOUR_STEPS: TourStep[] = [
   ...DASHBOARD_TOUR_STEPS,
-  SAVED_WORKOUTS_TOUR_STEP,
-  SAVED_RECIPES_TOUR_STEP,
   WORKOUTS_TOUR_STEP,
   RECIPES_TOUR_STEP,
 ];

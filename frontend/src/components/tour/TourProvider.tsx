@@ -30,14 +30,9 @@ const TourContext = createContext<TourContextValue | null>(null);
 const ScrollViewContext = createContext<React.RefObject<ScrollView> | null>(null);
 
 // Zone to screen mapping - defines which screen each zone is on
-const ZONE_SCREEN_MAP: Record<number, string> = {
-  1: 'Dashboard',       // Snap Your Meal button
-  2: 'Dashboard',       // Today's Nutrition card
-  3: 'Dashboard',       // Today's Meals list
-  4: 'Profile',         // Meal History menu item
-  5: 'Profile',         // Weekly Insights menu item
-  6: 'Workouts',        // Workouts search bar
-  7: 'Recipes',         // Recipes search bar
+const getScreenForZone = (zone: number): string => {
+  const step = ALL_TOUR_STEPS.find((entry) => entry.zone === zone);
+  return step?.screen ?? 'Dashboard';
 };
 
 // --- Components ---
@@ -114,7 +109,7 @@ export const TourGuideProvider: React.FC<{
 
   // Scroll to a specific zone
   const scrollToZone = useCallback((zone: number, scrollViewRef: React.RefObject<ScrollView> | null) => {
-    const screen = ZONE_SCREEN_MAP[zone];
+    const screen = getScreenForZone(zone);
     const effectiveScrollRef = scrollViewRef || scrollViewRefsMap.current.get(screen);
     if (!effectiveScrollRef?.current) return;
 
@@ -128,9 +123,9 @@ export const TourGuideProvider: React.FC<{
         effectiveScrollRef.current?.scrollTo({ y: scrollY, animated: true });
       },
       () => {
-        ref.current?.measureInWindow((x, y) => {
-          effectiveScrollRef.current?.scrollTo({ y: Math.max(0, y - 100), animated: true });
-        });
+        // If the zone isn't a descendant of this ScrollView, `measureLayout` fails.
+        // Avoid trying to derive a ScrollView offset from `measureInWindow` (window coords),
+        // and just let the spotlight render based on the registered layout.
       }
     );
   }, []);
@@ -160,25 +155,15 @@ export const TourGuideProvider: React.FC<{
     emit('stop');
   }, [emit]);
 
-  // Dashboard zones - skip scrolling when transitioning between them (1->2, 2->3)
-  const DASHBOARD_ZONES = [1, 2, 3];
-
   // Navigate to zone - handles cross-screen navigation
   const goToZone = useCallback((zone: number) => {
     const prevZone = activeZone;
-    const targetScreen = ZONE_SCREEN_MAP[zone];
-    const prevScreen = prevZone !== null ? ZONE_SCREEN_MAP[prevZone] : currentScreenRef.current;
+    const targetScreen = getScreenForZone(zone);
+    const prevScreen = prevZone !== null ? getScreenForZone(prevZone) : currentScreenRef.current;
     const isCrossScreen = targetScreen !== prevScreen;
 
     // Check if this is the first step (zone 1 starting from null)
     const isFirstStep = prevZone === null && zone === 1;
-
-    // Skip scrolling for Dashboard transitions (1->2, 2->3) since after scrolling to zone 1,
-    // zones 2 and 3 are already visible in the viewport
-    const isWithinDashboardTransition = prevZone !== null
-      && zone !== 1      // Always scroll for zone 1 (first step)
-      && DASHBOARD_ZONES.includes(prevZone)
-      && DASHBOARD_ZONES.includes(zone);
 
     // Hide tooltip while transitioning
     setShowTooltip(false);
@@ -187,14 +172,6 @@ export const TourGuideProvider: React.FC<{
     // Navigate to target screen if needed
     if (isCrossScreen && navigationCallbackRef.current) {
       navigationCallbackRef.current(targetScreen);
-    }
-
-    // Skip scrolling for Dashboard internal transitions (1->2, 2->3)
-    if (isWithinDashboardTransition && !isCrossScreen) {
-      setTimeout(() => {
-        setShowTooltip(true);
-      }, 100);
-      return;
     }
 
     // For first step, use longer delays to ensure scroll completes before showing tooltip
