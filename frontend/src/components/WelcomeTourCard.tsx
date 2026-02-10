@@ -142,7 +142,7 @@ export const WelcomeTourCard: React.FC<WelcomeTourCardProps> = ({
           <View style={styles.contentColumn}>
             <View style={styles.textContainer}>
               <Text variant="heading3" weight="bold" style={styles.title}>
-                Welcome to Aura!
+                Welcome to AuraFit!
               </Text>
               <Text variant="body" style={styles.subtitle} numberOfLines={3}>
                 Track meals with our AI camera, discover workouts, and hit your goals.
