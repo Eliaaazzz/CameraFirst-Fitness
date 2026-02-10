@@ -1465,7 +1465,7 @@ const ProfileScreen = () => {
           {renderMenuItem(
             'account-edit-outline',
             'Account Details',
-            'Change name, email, password',
+            'Change name',
             () => setShowEditNameModal(true)
           )}
           {renderMenuItem(
