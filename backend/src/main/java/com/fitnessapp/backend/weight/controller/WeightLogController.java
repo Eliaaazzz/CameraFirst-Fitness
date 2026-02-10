@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.fitnessapp.backend.api.common.ApiEnvelope;
 import com.fitnessapp.backend.security.AuthenticatedUser;
@@ -104,9 +106,11 @@ public class WeightLogController {
 
     private UUID requireUserId(AuthenticatedUser currentUser) {
         if (currentUser == null || currentUser.userId() == null) {
-            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "User context is missing. Did you provide X-API-Key?");
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "User context is missing. Did you provide X-API-Key?"
+            );
         }
         return currentUser.userId();
-    }
     }
 }
