@@ -8,7 +8,7 @@ import { Text } from '@/components';
 import { BentoCard } from '@/components/common/BentoCard';
 import { TourGuideZone } from '@/components/tour/TourProvider';
 import { WeightLogModal } from '@/components/weight';
-import { DASHBOARD_TOUR_STEPS } from '@/config/tourSteps';
+import { QUICK_ACTIONS_STEP } from '@/config/tourSteps';
 import { useLanguageStore } from '@/stores';
 import { BRAND_COLORS } from '@/utils';
 
@@ -88,20 +88,23 @@ export function QuickActionsCard() {
   const { t } = useLanguageStore();
   const [showWeightModal, setShowWeightModal] = useState(false);
 
-  const onActionPress = useCallback((action: QuickAction) => {
-    if (action.key === 'weight') {
-      setShowWeightModal(true);
-      return;
-    }
-    navigation.navigate('Profile', { screen: action.screen });
-  }, [navigation]);
+  const onActionPress = useCallback(
+    (action: QuickAction) => {
+      if (action.key === 'weight') {
+        setShowWeightModal(true);
+        return;
+      }
+      navigation.navigate('Profile', { screen: action.screen });
+    },
+    [navigation]
+  );
 
   return (
     <>
       <TourGuideZone
-        zone={DASHBOARD_TOUR_STEPS[2].zone}
-        text={DASHBOARD_TOUR_STEPS[2].text}
-        title={DASHBOARD_TOUR_STEPS[2].title}
+        zone={QUICK_ACTIONS_STEP.zone}
+        text={QUICK_ACTIONS_STEP.text}
+        title={QUICK_ACTIONS_STEP.title}
         icon="⚡"
       >
         <BentoCard>
@@ -122,10 +125,7 @@ export function QuickActionsCard() {
         </BentoCard>
       </TourGuideZone>
 
-      <WeightLogModal
-        visible={showWeightModal}
-        onDismiss={() => setShowWeightModal(false)}
-      />
+      <WeightLogModal visible={showWeightModal} onDismiss={() => setShowWeightModal(false)} />
     </>
   );
 }

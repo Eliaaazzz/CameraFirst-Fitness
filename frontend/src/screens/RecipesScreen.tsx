@@ -336,10 +336,11 @@ export const RecipesScreen = () => {
         Healthy meals and your saved list.
       </Text>
 
-      {/* Search Bar - Tour Zone 7 */}
+      {/* Search Bar - Tour Zone 5 */}
       <TourGuideZone
         zone={RECIPES_TOUR_STEP.zone}
         text={RECIPES_TOUR_STEP.text}
+        title={RECIPES_TOUR_STEP.title}
         shape="rectangle"
         borderRadius={12}
       >

@@ -23,8 +23,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, EditNameModal, SafeAreaWrapper, Text, WheelPicker } from '@/components';
 import { StateView } from '@/components/common/StateView';
-import { TourGuideZone } from '@/components/tour/TourProvider';
-import { SAVED_RECIPES_TOUR_STEP, SAVED_WORKOUTS_TOUR_STEP } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import useImageCompressor from '@/hooks/useImageCompressor';
 import {
@@ -1434,30 +1432,18 @@ const ProfileScreen = () => {
           <Text variant="heading3" weight="semibold" style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
             Your Library
           </Text>
-          <TourGuideZone
-            zone={SAVED_WORKOUTS_TOUR_STEP.zone}
-            text={SAVED_WORKOUTS_TOUR_STEP.text}
-            title={SAVED_WORKOUTS_TOUR_STEP.title}
-          >
-            {renderMenuItem(
-              'dumbbell',
-              'Saved Workouts',
-              'Your bookmarked workouts',
-              () => navigation.navigate('SavedWorkouts' as any)
-            )}
-          </TourGuideZone>
-          <TourGuideZone
-            zone={SAVED_RECIPES_TOUR_STEP.zone}
-            text={SAVED_RECIPES_TOUR_STEP.text}
-            title={SAVED_RECIPES_TOUR_STEP.title}
-          >
-            {renderMenuItem(
-              'book-open-variant',
-              'Saved Recipes',
-              'Your favorite recipes',
-              () => navigation.navigate('SavedRecipes' as any)
-            )}
-          </TourGuideZone>
+          {renderMenuItem(
+            'dumbbell',
+            'Saved Workouts',
+            'Your bookmarked workouts',
+            () => navigation.navigate('SavedWorkouts' as any)
+          )}
+          {renderMenuItem(
+            'book-open-variant',
+            'Saved Recipes',
+            'Your favorite recipes',
+            () => navigation.navigate('SavedRecipes' as any)
+          )}
           {renderMenuItem(
             'food-apple',
             'Meal History',

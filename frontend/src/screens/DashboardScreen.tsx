@@ -29,7 +29,7 @@ import { MealImage } from '@/components/nutrition/MealImage';
 import { NutritionPieChart } from '@/components/nutrition/NutritionPieChart';
 import { NutritionRingsCard } from '@/components/nutrition/NutritionRingsCard';
 import WelcomeTourCard from '@/components/WelcomeTourCard';
-import { DASHBOARD_TOUR_STEPS } from '@/config/tourSteps';
+import { SNAP_MEAL_STEP, TODAYS_NUTRITION_STEP } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useDailyNutrition } from '@/hooks/useDailyNutrition';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -417,9 +417,9 @@ const DashboardScreen = () => {
 
   const renderNutritionCard = () => (
     <TourGuideZone
-      zone={DASHBOARD_TOUR_STEPS[1].zone}
-      text={DASHBOARD_TOUR_STEPS[1].text}
-      title={DASHBOARD_TOUR_STEPS[1].title}
+      zone={TODAYS_NUTRITION_STEP.zone}
+      text={TODAYS_NUTRITION_STEP.text}
+      title={TODAYS_NUTRITION_STEP.title}
       icon="📊"
     >
       {/* Only show loading on initial load; once data exists, keep component alive */}
@@ -579,9 +579,9 @@ const DashboardScreen = () => {
                     
                     {/* Compact Snap Button - Tour Zone 1 */}
                     <TourGuideZone
-                      zone={DASHBOARD_TOUR_STEPS[0].zone}
-                      text={DASHBOARD_TOUR_STEPS[0].text}
-                      title={DASHBOARD_TOUR_STEPS[0].title}
+                      zone={SNAP_MEAL_STEP.zone}
+                      text={SNAP_MEAL_STEP.text}
+                      title={SNAP_MEAL_STEP.title}
                       icon="📸"
                     >
                       <Pressable 
