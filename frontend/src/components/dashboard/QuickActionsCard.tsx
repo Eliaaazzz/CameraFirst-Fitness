@@ -4,13 +4,15 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import { useNavigation } from '@react-navigation/native';
 import { ChartLine, ClockCounterClockwise, Export, Scales } from 'phosphor-react-native';
 
-import { Text } from '@/components';
+import { Text, useSnackbar } from '@/components';
 import { BentoCard } from '@/components/common/BentoCard';
 import { TourGuideZone } from '@/components/tour/TourProvider';
 import { WeightLogModal } from '@/components/weight';
 import { QUICK_ACTIONS_STEP } from '@/config/tourSteps';
+import { getWeightHistory, type WeightLogResponse } from '@/services/weightApi';
 import { useLanguageStore } from '@/stores';
 import { BRAND_COLORS } from '@/utils';
+import { getFriendlyErrorMessage } from '@/utils/errors';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -22,9 +24,52 @@ const tint = (hex: string, alpha = 0.12): string => {
   return `rgba(${r},${g},${b},${alpha})`;
 };
 
+const csvEscape = (value: unknown): string => {
+  const str = value === null || value === undefined ? '' : String(value);
+  if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+  return str;
+};
+
+const buildWeightCsv = (rows: WeightLogResponse[]): string => {
+  const header = ['Date', 'WeightKg', 'BodyFatPercentage', 'MuscleMassKg', 'Note'];
+  const sorted = [...rows].sort((a, b) => a.logDate.localeCompare(b.logDate));
+
+  const lines = [header.join(',')];
+  for (const row of sorted) {
+    lines.push(
+      [
+        row.logDate,
+        row.weightKg,
+        row.bodyFatPercentage ?? '',
+        row.muscleMassKg ?? '',
+        row.note ?? '',
+      ]
+        .map(csvEscape)
+        .join(',')
+    );
+  }
+
+  return lines.join('\n');
+};
+
+const downloadTextFileOnWeb = (filename: string, content: string, mimeType: string) => {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  // Let the click finish before revoking.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+};
+
 const QUICK_ACTIONS = [
   { key: 'history', labelKey: 'mealHistory' as const, Icon: ClockCounterClockwise, color: BRAND_COLORS.secondary, screen: 'MealHistory' },
-  { key: 'insights', labelKey: 'weeklyInsights' as const, Icon: ChartLine, color: '#14B8A6', screen: 'WeeklyInsights' },
+  { key: 'insights', labelKey: 'weeklyInsights' as const, Icon: ChartLine, color: '#14B8A6', screen: 'WeeklyInsights', iconOffsetY: 1 },
   { key: 'weight', labelKey: 'logWeight' as const, Icon: Scales, color: BRAND_COLORS.primary, screen: 'LogWeight' },
   { key: 'export', labelKey: 'exportData' as const, Icon: Export, color: '#22C55E', screen: 'ExportData' },
 ] as const;
@@ -35,20 +80,24 @@ interface QuickActionButtonProps {
   Icon: React.ComponentType<any>;
   color: string;
   label: string;
+  iconOffsetY?: number;
   onPress: () => void;
+  disabled?: boolean;
 }
 
-function QuickActionButton({ Icon, color, label, onPress }: QuickActionButtonProps) {
+function QuickActionButton({ Icon, color, label, iconOffsetY, onPress, disabled }: QuickActionButtonProps) {
   const [isHovered, setIsHovered] = useState(false);
   const scale = useSharedValue(1);
 
   const handlePressIn = useCallback(() => {
+    if (disabled) return;
     scale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
-  }, [scale]);
+  }, [disabled, scale]);
 
   const handlePressOut = useCallback(() => {
+    if (disabled) return;
     scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-  }, [scale]);
+  }, [disabled, scale]);
 
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -56,10 +105,16 @@ function QuickActionButton({ Icon, color, label, onPress }: QuickActionButtonPro
 
   return (
     <AnimatedPressable
+      disabled={disabled}
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      style={[styles.actionButton, isHovered && styles.actionButtonHovered, containerStyle]}
+      style={[
+        styles.actionButton,
+        isHovered && styles.actionButtonHovered,
+        disabled && styles.actionButtonDisabled,
+        containerStyle,
+      ]}
       {...(Platform.OS === 'web' && {
         onMouseEnter: () => setIsHovered(true),
         onMouseLeave: () => setIsHovered(false),
@@ -74,7 +129,12 @@ function QuickActionButton({ Icon, color, label, onPress }: QuickActionButtonPro
           },
         ]}
       >
-        <Icon size={20} weight={isHovered ? 'fill' : 'regular'} color={color} />
+        <Icon
+          size={20}
+          weight={isHovered ? 'fill' : 'regular'}
+          color={color}
+          style={iconOffsetY ? { transform: [{ translateY: iconOffsetY }] } : undefined}
+        />
       </View>
       <Text variant="caption" weight="medium" style={styles.actionText} numberOfLines={2}>
         {label}
@@ -86,18 +146,49 @@ function QuickActionButton({ Icon, color, label, onPress }: QuickActionButtonPro
 export function QuickActionsCard() {
   const navigation = useNavigation<any>();
   const { t } = useLanguageStore();
+  const { showSnackbar } = useSnackbar();
   const [showWeightModal, setShowWeightModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
-  const onActionPress = useCallback(
-    (action: QuickAction) => {
-      if (action.key === 'weight') {
-        setShowWeightModal(true);
+  const exportWeightData = useCallback(async () => {
+    if (Platform.OS !== 'web') {
+      showSnackbar('Export is available on web only', { variant: 'error' });
+      return;
+    }
+    if (isExporting) return;
+
+    setIsExporting(true);
+    try {
+      const endDate = new Date().toISOString().slice(0, 10);
+      const startDate = '1970-01-01';
+
+      const rows = await getWeightHistory(startDate, endDate);
+      if (!rows.length) {
+        showSnackbar('No weight logs to export yet', { variant: 'error' });
         return;
       }
-      navigation.navigate('Profile', { screen: action.screen });
-    },
-    [navigation]
-  );
+
+      const csv = buildWeightCsv(rows);
+      downloadTextFileOnWeb(`aurafit-weight-${endDate}.csv`, csv, 'text/csv;charset=utf-8');
+      showSnackbar('Weight data exported', { variant: 'success' });
+    } catch (e) {
+      showSnackbar(getFriendlyErrorMessage(e), { variant: 'error' });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [isExporting, showSnackbar]);
+
+  const onActionPress = useCallback((action: QuickAction) => {
+    if (action.key === 'weight') {
+      setShowWeightModal(true);
+      return;
+    }
+    if (action.key === 'export') {
+      void exportWeightData();
+      return;
+    }
+    navigation.navigate('Profile', { screen: action.screen });
+  }, [exportWeightData, navigation]);
 
   return (
     <>
@@ -119,13 +210,18 @@ export function QuickActionsCard() {
                 color={action.color}
                 label={t[action.labelKey] as string}
                 onPress={() => onActionPress(action)}
+                iconOffsetY={'iconOffsetY' in action ? action.iconOffsetY : undefined}
+                disabled={action.key === 'export' && isExporting}
               />
             ))}
           </View>
         </BentoCard>
       </TourGuideZone>
 
-      <WeightLogModal visible={showWeightModal} onDismiss={() => setShowWeightModal(false)} />
+      <WeightLogModal
+        visible={showWeightModal}
+        onDismiss={() => setShowWeightModal(false)}
+      />
     </>
   );
 }
@@ -172,6 +268,9 @@ const styles = StyleSheet.create({
   actionButtonHovered: {
     backgroundColor: '#F8FAFC',
     borderColor: '#DDE3EC',
+  },
+  actionButtonDisabled: {
+    opacity: 0.55,
   },
   actionIconWrapper: {
     width: 40,

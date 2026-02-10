@@ -22,6 +22,7 @@ import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-nati
 import { Text, Card } from '@/components';
 import { spacing, radii } from '@/utils';
 import { logWeight, weightQueryKeys, type WeightLogRequest } from '@/services/weightApi';
+import { getFriendlyErrorMessage } from '@/utils/errors';
 
 // ============================================================================
 // Types
@@ -82,7 +83,7 @@ export const WeightLogModal: React.FC<WeightLogModalProps> = ({
     onError: (error) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       console.error('Failed to log weight:', error);
-      setErrors({ submit: 'Failed to save. Please try again.' });
+      setErrors({ submit: getFriendlyErrorMessage(error) });
     },
   });
 
