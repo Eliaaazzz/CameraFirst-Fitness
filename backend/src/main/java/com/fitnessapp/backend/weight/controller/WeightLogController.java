@@ -104,8 +104,9 @@ public class WeightLogController {
 
     private UUID requireUserId(AuthenticatedUser currentUser) {
         if (currentUser == null || currentUser.userId() == null) {
-            throw new IllegalStateException("User context is missing. Did you provide X-API-Key?");
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "User context is missing. Did you provide X-API-Key?");
         }
         return currentUser.userId();
+    }
     }
 }
