@@ -17,6 +17,7 @@ import {
     scheduleMultiDayReminder,
     scheduleReminderNotification,
 } from './notificationService';
+import { formatLocalDateKey, toLocalDateKey } from '@/utils';
 
 // Storage keys
 const GOALS_KEY = '@goals';
@@ -28,9 +29,12 @@ function generateId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// Helper to get current date in ISO format
-function getCurrentDate(): string {
+function getCurrentTimestamp(): string {
   return new Date().toISOString();
+}
+
+function getCurrentLocalDate(): string {
+  return formatLocalDateKey(new Date());
 }
 
 /**
@@ -71,7 +75,7 @@ export async function getGoalById(goalId: string): Promise<Goal | null> {
 export async function createGoal(userId: string, payload: CreateGoalPayload): Promise<Goal> {
   try {
     const goalId = generateId('goal');
-    const now = getCurrentDate();
+    const now = getCurrentTimestamp();
 
     // Create reminders with IDs
     const reminders: Reminder[] = (payload.reminders || []).map((r) => ({
@@ -163,7 +167,7 @@ export async function updateGoal(goalId: string, payload: UpdateGoalPayload): Pr
     const updatedGoal: Goal = {
       ...goals[index],
       ...payload,
-      updatedAt: getCurrentDate(),
+      updatedAt: getCurrentTimestamp(),
     };
 
     goals[index] = updatedGoal;
@@ -217,10 +221,10 @@ export async function logGoalProgress(payload: LogGoalProgressPayload): Promise<
     const progress: GoalProgress = {
       id: generateId('progress'),
       goalId,
-      date: date || getCurrentDate(),
+      date: date ? toLocalDateKey(date) : getCurrentLocalDate(),
       value,
       notes,
-      createdAt: getCurrentDate(),
+      createdAt: getCurrentTimestamp(),
     };
 
     // Store progress
@@ -238,7 +242,7 @@ export async function logGoalProgress(payload: LogGoalProgressPayload): Promise<
 
       if (goalIndex !== -1) {
         goals[goalIndex].currentValue = value;
-        goals[goalIndex].updatedAt = getCurrentDate();
+        goals[goalIndex].updatedAt = getCurrentTimestamp();
 
         // Check if goal is completed
         if (
@@ -290,11 +294,11 @@ export async function calculateGoalStatistics(userId: string): Promise<GoalStati
     let longestStreak = 0;
 
     // Get today's completed goals
-    const today = new Date().toISOString().split('T')[0];
+    const today = getCurrentLocalDate();
     const goalsCompletedToday = goals.filter((g) => {
       if (!g.progressHistory || g.progressHistory.length === 0) return false;
       const lastProgress = g.progressHistory[g.progressHistory.length - 1];
-      return lastProgress.date.startsWith(today);
+      return toLocalDateKey(lastProgress.date) === today;
     }).length;
 
     const stats: GoalStatistics = {
@@ -344,8 +348,8 @@ export async function addReminder(
       frequency: payload.frequency,
       daysOfWeek: payload.daysOfWeek,
       isEnabled: payload.isEnabled !== undefined ? payload.isEnabled : true,
-      createdAt: getCurrentDate(),
-      updatedAt: getCurrentDate(),
+      createdAt: getCurrentTimestamp(),
+      updatedAt: getCurrentTimestamp(),
     };
 
     // Get goal and add reminder
@@ -358,7 +362,7 @@ export async function addReminder(
     if (goalIndex === -1) throw new Error('Goal not found');
 
     goals[goalIndex].reminders.push(reminder);
-    goals[goalIndex].updatedAt = getCurrentDate();
+    goals[goalIndex].updatedAt = getCurrentTimestamp();
     await AsyncStorage.setItem(GOALS_KEY, JSON.stringify(goals));
 
     // Schedule notification
@@ -413,11 +417,11 @@ export async function updateReminder(
         goal.reminders[reminderIndex] = {
           ...goal.reminders[reminderIndex],
           ...payload,
-          updatedAt: getCurrentDate(),
+          updatedAt: getCurrentTimestamp(),
         };
 
         reminderUpdated = goal.reminders[reminderIndex];
-        goal.updatedAt = getCurrentDate();
+        goal.updatedAt = getCurrentTimestamp();
 
         // Reschedule if enabled
         if (reminderUpdated.isEnabled) {
@@ -470,7 +474,7 @@ export async function deleteReminder(reminderId: string): Promise<void> {
 
         // Remove reminder
         goal.reminders.splice(reminderIndex, 1);
-        goal.updatedAt = getCurrentDate();
+        goal.updatedAt = getCurrentTimestamp();
         break;
       }
     }

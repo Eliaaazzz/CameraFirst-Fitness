@@ -16,7 +16,7 @@ import {
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useCreateGoal, useDeleteGoal, useGoals, useGoalStatistics, useLogGoalProgress } from '@/services/goalsApi';
 import type { Goal, GoalType } from '@/types';
-import { spacing } from '@/utils';
+import { formatLocalDateKey, spacing } from '@/utils';
 import { clearJWT } from '@/utils/jwtStorage';
 
 type FilterType = GoalType | 'all';
@@ -77,7 +77,7 @@ export const GoalsScreen = () => {
     logProgress.mutate({
       goalId: goal.id,
       value: newValue,
-      date: new Date().toISOString(),
+      date: formatLocalDateKey(new Date()),
     });
   };
 

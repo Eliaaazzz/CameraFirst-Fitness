@@ -11,7 +11,7 @@ import { WeightLogModal } from '@/components/weight';
 import { QUICK_ACTIONS_STEP } from '@/config/tourSteps';
 import { getWeightHistory, type WeightLogResponse } from '@/services/weightApi';
 import { useLanguageStore } from '@/stores';
-import { BRAND_COLORS } from '@/utils';
+import { BRAND_COLORS, formatLocalDateKey } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -159,7 +159,7 @@ export function QuickActionsCard() {
 
     setIsExporting(true);
     try {
-      const endDate = new Date().toISOString().slice(0, 10);
+      const endDate = formatLocalDateKey(new Date());
       const startDate = '1970-01-01';
 
       const rows = await getWeightHistory(startDate, endDate);
