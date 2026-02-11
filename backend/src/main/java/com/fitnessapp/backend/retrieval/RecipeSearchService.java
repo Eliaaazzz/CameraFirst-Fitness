@@ -257,6 +257,7 @@ public class RecipeSearchService {
     /**
      * Text-based recipe search by title or tags
      */
+    @Cacheable(value = "recipeSearch", key = "'text_' + #query + '_' + #maxTime", unless = "#result.isEmpty()")
     @Transactional(readOnly = true)
     public List<RecipeCard> searchByText(String query, Integer maxTime) {
         log.info("Text search: query={}, maxTime={}", query, maxTime);

@@ -3,8 +3,11 @@ package com.fitnessapp.backend.retrieval;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +35,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ContentController {
 
+    private static final CacheControl SHORT_CACHE = CacheControl.maxAge(10, TimeUnit.MINUTES).cachePrivate();
+    private static final CacheControl MEDIUM_CACHE = CacheControl.maxAge(30, TimeUnit.MINUTES).cachePrivate();
+    private static final CacheControl LONG_CACHE = CacheControl.maxAge(1, TimeUnit.HOURS).cachePrivate();
+
     private final WorkoutRetrievalService workoutService;
     private final RecipeRetrievalService recipeService;
     private final RecipeSearchService recipeSearchService;
@@ -50,19 +57,20 @@ public class ContentController {
      * Chest, Back, Legs, Shoulders, Arms, Core, Glutes
      */
     @GetMapping("/workouts")
-    public WorkoutSearchResponse listWorkouts(
+    public ResponseEntity<WorkoutSearchResponse> listWorkouts(
             @RequestParam(defaultValue = "7") int limit) {
         Instant start = Instant.now();
 
         List<WorkoutCard> results = workoutService.getDefaultWorkouts(limit);
         Duration elapsed = Duration.between(start, Instant.now());
 
-        return WorkoutSearchResponse.builder()
+        WorkoutSearchResponse response = WorkoutSearchResponse.builder()
                 .workouts(results)
                 .totalResults(results.size())
                 .query(null)
                 .latencyMs((int) elapsed.toMillis())
                 .build();
+        return ResponseEntity.ok().cacheControl(MEDIUM_CACHE).body(response);
     }
 
     /**
@@ -70,7 +78,7 @@ public class ContentController {
      * GET /api/v1/workouts/search?query=chest&level=beginner&maxDuration=30
      */
     @GetMapping("/workouts/search")
-    public WorkoutSearchResponse searchWorkouts(
+    public ResponseEntity<WorkoutSearchResponse> searchWorkouts(
             @RequestParam String query,
             @RequestParam(required = false) String level,
             @RequestParam(required = false) Integer maxDuration) {
@@ -79,12 +87,13 @@ public class ContentController {
         List<WorkoutCard> results = workoutService.searchByText(query, level, maxDuration);
         Duration elapsed = Duration.between(start, Instant.now());
 
-        return WorkoutSearchResponse.builder()
+        WorkoutSearchResponse response = WorkoutSearchResponse.builder()
                 .workouts(results)
                 .totalResults(results.size())
                 .query(query)
                 .latencyMs((int) elapsed.toMillis())
                 .build();
+        return ResponseEntity.ok().cacheControl(SHORT_CACHE).body(response);
     }
 
     /**
@@ -92,7 +101,7 @@ public class ContentController {
      * GET /api/v1/recipes/search-text?query=chicken&maxTime=30
      */
     @GetMapping("/recipes/search-text")
-    public RecipeSearchResponse searchRecipesText(
+    public ResponseEntity<RecipeSearchResponse> searchRecipesText(
             @RequestParam String query,
             @RequestParam(required = false) Integer maxTime) {
         Instant start = Instant.now();
@@ -100,13 +109,14 @@ public class ContentController {
         List<RecipeCard> results = recipeSearchService.searchByText(query, maxTime);
         Duration elapsed = Duration.between(start, Instant.now());
 
-        return RecipeSearchResponse.builder()
+        RecipeSearchResponse response = RecipeSearchResponse.builder()
                 .recipes(results)
                 .totalResults(results.size())
                 .filters(RecipeSearchRequest.builder().build())
                 .latencyMs((int) elapsed.toMillis())
                 .fromCache(false)
                 .build();
+        return ResponseEntity.ok().cacheControl(SHORT_CACHE).body(response);
     }
 
     // ============================================================================
@@ -186,9 +196,11 @@ public class ContentController {
      * GET /api/v1/recipes/filter/high-protein?maxTime=30
      */
     @GetMapping("/recipes/filter/high-protein")
-    public List<RecipeCard> getHighProteinRecipes(
+    public ResponseEntity<List<RecipeCard>> getHighProteinRecipes(
             @RequestParam(defaultValue = "45") Integer maxTime) {
-        return recipeSearchService.findHighProteinRecipes(maxTime);
+        return ResponseEntity.ok()
+                .cacheControl(MEDIUM_CACHE)
+                .body(recipeSearchService.findHighProteinRecipes(maxTime));
     }
 
     /**
@@ -196,9 +208,11 @@ public class ContentController {
      * GET /api/v1/recipes/filter/low-carb?maxTime=30
      */
     @GetMapping("/recipes/filter/low-carb")
-    public List<RecipeCard> getLowCarbRecipes(
+    public ResponseEntity<List<RecipeCard>> getLowCarbRecipes(
             @RequestParam(defaultValue = "45") Integer maxTime) {
-        return recipeSearchService.findLowCarbRecipes(maxTime);
+        return ResponseEntity.ok()
+                .cacheControl(MEDIUM_CACHE)
+                .body(recipeSearchService.findLowCarbRecipes(maxTime));
     }
 
     /**
@@ -206,9 +220,11 @@ public class ContentController {
      * GET /api/v1/recipes/filter/low-calorie?maxTime=30
      */
     @GetMapping("/recipes/filter/low-calorie")
-    public List<RecipeCard> getLowCalorieRecipes(
+    public ResponseEntity<List<RecipeCard>> getLowCalorieRecipes(
             @RequestParam(defaultValue = "45") Integer maxTime) {
-        return recipeSearchService.findLowCalorieRecipes(maxTime);
+        return ResponseEntity.ok()
+                .cacheControl(MEDIUM_CACHE)
+                .body(recipeSearchService.findLowCalorieRecipes(maxTime));
     }
 
     /**
@@ -216,9 +232,11 @@ public class ContentController {
      * GET /api/v1/recipes/filter/balanced?maxTime=30
      */
     @GetMapping("/recipes/filter/balanced")
-    public List<RecipeCard> getBalancedRecipes(
+    public ResponseEntity<List<RecipeCard>> getBalancedRecipes(
             @RequestParam(defaultValue = "45") Integer maxTime) {
-        return recipeSearchService.findBalancedRecipes(maxTime);
+        return ResponseEntity.ok()
+                .cacheControl(MEDIUM_CACHE)
+                .body(recipeSearchService.findBalancedRecipes(maxTime));
     }
 
     /**
@@ -226,10 +244,12 @@ public class ContentController {
      * GET /api/v1/recipes/filter/calories?min=200&max=500
      */
     @GetMapping("/recipes/filter/calories")
-    public List<RecipeCard> getRecipesByCalories(
+    public ResponseEntity<List<RecipeCard>> getRecipesByCalories(
             @RequestParam(defaultValue = "200") int min,
             @RequestParam(defaultValue = "600") int max) {
-        return recipeSearchService.findByCaloriesRange(min, max);
+        return ResponseEntity.ok()
+                .cacheControl(MEDIUM_CACHE)
+                .body(recipeSearchService.findByCaloriesRange(min, max));
     }
 
     /**
@@ -244,7 +264,7 @@ public class ContentController {
      * - STRENGTH - High protein for strength training
      */
     @GetMapping("/recipes/by-goal")
-    public RecipeSearchResponse getRecipesByGoal(
+    public ResponseEntity<RecipeSearchResponse> getRecipesByGoal(
             @RequestParam String goal,
             @RequestParam(defaultValue = "20") int limit) {
         Instant start = Instant.now();
@@ -252,13 +272,14 @@ public class ContentController {
         List<RecipeCard> results = recipeSearchService.findByGoal(goal, limit);
         Duration elapsed = Duration.between(start, Instant.now());
 
-        return RecipeSearchResponse.builder()
+        RecipeSearchResponse response = RecipeSearchResponse.builder()
                 .recipes(results)
                 .totalResults(results.size())
                 .filters(RecipeSearchRequest.builder().build())
                 .latencyMs((int) elapsed.toMillis())
                 .fromCache(false)
                 .build();
+        return ResponseEntity.ok().cacheControl(MEDIUM_CACHE).body(response);
     }
 
     // ============================================================================
@@ -270,10 +291,12 @@ public class ContentController {
      * GET /api/v1/recipes/{recipeId}/scale?servings=4
      */
     @GetMapping("/recipes/{recipeId}/scale")
-    public RecipeScalingService.ScaledRecipe scaleRecipe(
+    public ResponseEntity<RecipeScalingService.ScaledRecipe> scaleRecipe(
             @PathVariable java.util.UUID recipeId,
             @RequestParam int servings) {
-        return recipeScalingService.scaleRecipe(recipeId, servings);
+        return ResponseEntity.ok()
+                .cacheControl(LONG_CACHE)
+                .body(recipeScalingService.scaleRecipe(recipeId, servings));
     }
 
     // ============================================================================
@@ -287,8 +310,9 @@ public class ContentController {
      * Returns complete recipe with ingredients and steps
      */
     @GetMapping("/recipes/{recipeId}")
-    public RecipeCard getRecipeById(@PathVariable java.util.UUID recipeId) {
-        return recipeService.getRecipeById(recipeId);
+    public ResponseEntity<RecipeCard> getRecipeById(@PathVariable java.util.UUID recipeId) {
+        return ResponseEntity.ok()
+                .cacheControl(LONG_CACHE)
+                .body(recipeService.getRecipeById(recipeId));
     }
 }
-

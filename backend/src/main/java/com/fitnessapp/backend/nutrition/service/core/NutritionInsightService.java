@@ -4,15 +4,11 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fitnessapp.backend.Cacheservice.cache.NutritionAdviceStore;
-import com.fitnessapp.backend.Cacheservice.cache.NutritionAdviceStore.AdviceEntry;
 import com.fitnessapp.backend.nutrition.entity.MealLog;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
 import com.fitnessapp.backend.nutrition.service.core.NutritionTrackingService.NutritionSummary;
@@ -25,15 +21,12 @@ public class NutritionInsightService {
 
   private final NutritionTrackingService trackingService;
   private final MealLogRepository mealLogRepository;
-  private final NutritionAdviceStore adviceStore;
 
   public NutritionInsightService(
       NutritionTrackingService trackingService,
-      MealLogRepository mealLogRepository,
-      NutritionAdviceStore adviceStore) {
+      MealLogRepository mealLogRepository) {
     this.trackingService = trackingService;
     this.mealLogRepository = mealLogRepository;
-    this.adviceStore = adviceStore;
   }
 
   @Transactional(readOnly = true)
@@ -47,19 +40,7 @@ public class NutritionInsightService {
     List<MealLog> logs = mealLogRepository.findByUserIdAndConsumedAtBetweenOrderByConsumedAtAsc(
         userId, rangeStart, rangeEnd);
 
-    SummarySignature signature = signatureFor(summary);
-    String signatureKey = signature.key();
-
-    AdviceEntry cachedAdvice = adviceStore.get(userId, start);
-    String aiAdvice;
-    if (cachedAdvice != null && Objects.equals(cachedAdvice.signature(), signatureKey)) {
-      aiAdvice = cachedAdvice.advice();
-      adviceStore.refresh(userId, start, cachedAdvice);
-    } else {
-      aiAdvice = buildFallbackAdvice(summary);
-      AdviceEntry entry = new AdviceEntry(signatureKey, aiAdvice);
-      adviceStore.put(userId, start, entry);
-    }
+    String aiAdvice = buildFallbackAdvice(summary);
 
     return new NutritionInsight(summary, logs, aiAdvice);
   }
@@ -110,47 +91,18 @@ public class NutritionInsightService {
   }
 
   public void invalidate(UUID userId) {
-    adviceStore.invalidate(userId);
+    // no-op: advice cache disabled
   }
 
   public void invalidate(UUID userId, LocalDate weekStart) {
-    adviceStore.invalidate(userId, normaliseWeekStart(weekStart));
+    // no-op: advice cache disabled
   }
 
   public void invalidateIfChanged(UUID userId, LocalDate referenceDate) {
-    LocalDate start = normaliseWeekStart(referenceDate);
-    AdviceEntry cached = adviceStore.get(userId, start);
-    if (cached == null) {
-      return;
-    }
-
-    NutritionSummary latestSummary = trackingService.weeklySummary(userId, start);
-    SummarySignature latestSignature = signatureFor(latestSummary);
-    String latestKey = latestSignature.key();
-    if (!Objects.equals(latestKey, cached.signature())) {
-      adviceStore.invalidate(userId, start);
-    } else {
-      adviceStore.refresh(userId, start, cached);
-    }
-  }
-
-  private SummarySignature signatureFor(NutritionSummary summary) {
-    return new SummarySignature(
-        summary.days(),
-        summary.calories().actual().doubleValue(),
-        summary.protein().actual().doubleValue(),
-        summary.carbs().actual().doubleValue(),
-        summary.fat().actual().doubleValue()
-    );
+    // no-op: advice cache disabled
   }
 
   public record NutritionInsight(NutritionSummary summary, List<MealLog> logs, String aiAdvice) {}
-
-  private record SummarySignature(int days, double calories, double protein, double carbs, double fat) {
-    String key() {
-      return String.format(Locale.ROOT, "%d|%.2f|%.2f|%.2f|%.2f", days, calories, protein, carbs, fat);
-    }
-  }
 
   private LocalDate normaliseWeekStart(LocalDate weekStart) {
     return (weekStart != null ? weekStart : LocalDate.now()).with(DayOfWeek.MONDAY);
