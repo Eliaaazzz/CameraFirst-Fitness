@@ -13,10 +13,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,6 +36,9 @@ import org.springframework.web.server.ResponseStatusException;
 @Slf4j
 public class UserLibraryController {
 
+  static final CacheControl USER_SAVED_ITEMS_CACHE =
+      CacheControl.maxAge(1, TimeUnit.MINUTES).cachePrivate();
+
   private final UserLibraryService libraryService;
   private final CurrentUser currentUser;
 
@@ -45,7 +51,7 @@ public class UserLibraryController {
   }
 
   @GetMapping("/workouts/saved")
-  public ApiEnvelope<PageResult<SavedWorkout>> savedWorkouts(
+  public ResponseEntity<ApiEnvelope<PageResult<SavedWorkout>>> savedWorkouts(
       @RequestParam(required = false) UUID userId,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size,
@@ -55,7 +61,9 @@ public class UserLibraryController {
     log.trace("API request: list saved workouts for user {} (page={}, size={}, sort={})",
         effectiveUserId, page, size, sortSpec);
     PageResult<SavedWorkout> workouts = libraryService.getSavedWorkouts(effectiveUserId, page, size, sortSpec);
-    return ApiEnvelope.of(workouts);
+    return ResponseEntity.ok()
+        .cacheControl(USER_SAVED_ITEMS_CACHE)
+        .body(ApiEnvelope.of(workouts));
   }
 
   @DeleteMapping("/workouts/saved/{workoutId}")
@@ -75,7 +83,7 @@ public class UserLibraryController {
   }
 
   @GetMapping("/recipes/saved")
-  public ApiEnvelope<PageResult<SavedRecipe>> savedRecipes(
+  public ResponseEntity<ApiEnvelope<PageResult<SavedRecipe>>> savedRecipes(
       @RequestParam(required = false) UUID userId,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size,
@@ -85,7 +93,9 @@ public class UserLibraryController {
     log.trace("API request: list saved recipes for user {} (page={}, size={}, sort={})",
         effectiveUserId, page, size, sortSpec);
     PageResult<SavedRecipe> recipes = libraryService.getSavedRecipes(effectiveUserId, page, size, sortSpec);
-    return ApiEnvelope.of(recipes);
+    return ResponseEntity.ok()
+        .cacheControl(USER_SAVED_ITEMS_CACHE)
+        .body(ApiEnvelope.of(recipes));
   }
 
   @DeleteMapping("/recipes/saved/{recipeId}")
