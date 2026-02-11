@@ -22,13 +22,13 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 @Slf4j
 public class R2Config {
 
-    @Value("${r2.endpoint:${R2_ENDPOINT}}")
+    @Value("${r2.endpoint:${R2_ENDPOINT:http://localhost:9000}}")
     private String endpoint;
 
-    @Value("${r2.access-key:${R2_ACCESS_KEY}}")
+    @Value("${r2.access-key:${R2_ACCESS_KEY:test-access-key}}")
     private String accessKey;
 
-    @Value("${r2.secret-key:${R2_SECRET_ACCESS_KEY}}")
+    @Value("${r2.secret-key:${R2_SECRET_ACCESS_KEY:test-secret-key}}")
     private String secretKey;
 
     @Bean

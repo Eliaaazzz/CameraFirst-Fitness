@@ -7,7 +7,9 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.fitnessapp.backend.workout.entity.ExerciseVideo;
@@ -30,6 +32,11 @@ public class WorkoutRetrievalService {
     /**
      * Text-based workout search - searches exercise_videos table
      */
+    @Cacheable(
+            value = "workoutSearch",
+            key = "'text_' + #query + '_' + #category + '_' + #maxDuration",
+            unless = "#result.isEmpty()")
+    @Transactional(readOnly = true)
     public List<WorkoutCard> searchByText(String query, String category, Integer maxDuration) {
         if (query == null || query.trim().isEmpty()) {
             log.warn("Empty search query; returning empty list");
@@ -56,6 +63,11 @@ public class WorkoutRetrievalService {
     /**
      * Find workouts by category (body part)
      */
+    @Cacheable(
+            value = "workouts",
+            key = "'from-image_' + #equipment + '_' + #level + '_' + #durationPreference",
+            unless = "#result.isEmpty()")
+    @Transactional(readOnly = true)
     public List<WorkoutCard> findWorkouts(String equipment, String level, int durationPreference) {
         String category = mapEquipmentToCategory(equipment);
         
@@ -77,6 +89,11 @@ public class WorkoutRetrievalService {
     /**
      * Get all exercises by category
      */
+    @Cacheable(
+            value = "workouts",
+            key = "'category_' + #category + '_' + #limit",
+            unless = "#result.isEmpty()")
+    @Transactional(readOnly = true)
     public List<WorkoutCard> getByCategory(String category, int limit) {
         List<ExerciseVideo> results = exerciseVideoRepository.findByCategory(category, limit);
         return results.stream()
@@ -88,6 +105,8 @@ public class WorkoutRetrievalService {
      * Get default workouts - one from each body part category for diverse display.
      * Returns up to 7 workouts covering: Chest, Back, Legs, Shoulders, Arms, Core, Glutes
      */
+    @Cacheable(value = "workouts", key = "'default_' + #limit", unless = "#result.isEmpty()")
+    @Transactional(readOnly = true)
     public List<WorkoutCard> getDefaultWorkouts(int limit) {
         log.info("Getting default diverse workouts, limit={}", limit);
 

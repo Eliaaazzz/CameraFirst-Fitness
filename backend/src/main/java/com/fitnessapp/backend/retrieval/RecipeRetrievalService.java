@@ -254,7 +254,7 @@ public class RecipeRetrievalService {
     /**
      * Clear all recipe caches (use when recipes are updated/imported)
      */
-    @CacheEvict(value = {"recipes", "recipeSearch", "trending", "communityFavorites"}, allEntries = true)
+    @CacheEvict(value = {"recipes", "recipeSearch"}, allEntries = true)
     public void clearRecipeCache() {
         log.info("Recipe cache cleared - all recipe-related caches evicted");
     }

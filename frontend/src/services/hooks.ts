@@ -44,6 +44,9 @@ const queryKeys = {
   recommendedRecipes: (fitnessGoal?: string | null) => ['recipes', 'recommended', fitnessGoal] as const,
 };
 
+const SAVED_ITEMS_STALE_TIME_MS = 1000 * 60 * 30; // 30 minutes
+const SAVED_ITEMS_GC_TIME_MS = 1000 * 60 * 60; // 60 minutes
+
 export const useUploadWorkout = () =>
   useMutation<WorkoutCard[], Error, { uri: string; metadata?: UploadWorkoutPayload }>({
     mutationKey: mutationKeys.uploadWorkout,
@@ -105,6 +108,10 @@ export const useSavedWorkouts = (userId?: string) =>
     queryKey: queryKeys.savedWorkouts(userId),
     enabled: !!userId,
     queryFn: () => getSavedWorkouts(userId),
+    staleTime: SAVED_ITEMS_STALE_TIME_MS,
+    gcTime: SAVED_ITEMS_GC_TIME_MS,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
 export const useSavedRecipes = (userId?: string) =>
@@ -112,6 +119,10 @@ export const useSavedRecipes = (userId?: string) =>
     queryKey: queryKeys.savedRecipes(userId),
     enabled: !!userId,
     queryFn: () => getSavedRecipes(userId),
+    staleTime: SAVED_ITEMS_STALE_TIME_MS,
+    gcTime: SAVED_ITEMS_GC_TIME_MS,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
 export const useRecommendedWorkouts = (fitnessGoal?: string | null, userId?: string) =>

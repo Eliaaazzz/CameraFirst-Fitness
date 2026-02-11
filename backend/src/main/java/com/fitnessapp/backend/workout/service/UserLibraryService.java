@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fitnessapp.backend.Cacheservice.cache.UserLibraryRecipeCacheStore;
+import com.fitnessapp.backend.Cacheservice.cache.UserLibraryWorkoutCacheStore;
 import com.fitnessapp.backend.recipe.entity.Recipe;
 import com.fitnessapp.backend.recipe.entity.UserSavedRecipe;
 import com.fitnessapp.backend.recipe.repository.RecipeRepository;
@@ -46,6 +48,8 @@ public class UserLibraryService {
   private final ExerciseVideoRepository exerciseVideoRepository;
   private final UserSavedWorkoutRepository savedWorkoutRepository;
   private final MeterRegistry meterRegistry;
+  private final UserLibraryWorkoutCacheStore workoutCacheStore;
+  private final UserLibraryRecipeCacheStore recipeCacheStore;
 
   @Transactional
   public SavedWorkout saveWorkout(UUID userId, UUID workoutId) {
@@ -81,6 +85,7 @@ public class UserLibraryService {
     meterRegistry.counter("user.library.save", "type", "workout", "alreadySaved", Boolean.toString(alreadySaved)).increment();
     meterRegistry.timer("user.library.save.duration", "type", "workout").record(duration, java.util.concurrent.TimeUnit.NANOSECONDS);
 
+    workoutCacheStore.invalidateAll(userId);
     return toSavedWorkout(persisted.getWorkout(), persisted.getSavedAt(), alreadySaved);
   }
 
@@ -102,15 +107,24 @@ public class UserLibraryService {
     meterRegistry.counter("user.library.remove", "type", "workout").increment();
     meterRegistry.timer("user.library.remove.duration", "type", "workout").record(duration, java.util.concurrent.TimeUnit.NANOSECONDS);
 
+    workoutCacheStore.invalidateAll(userId);
     return true;
   }
 
   @Transactional(readOnly = true)
   public PageResult<SavedWorkout> getSavedWorkouts(UUID userId, int page, int size, Sort sort) {
+    Pageable pageable = pageRequest(page, size, sort);
+    int effectivePage = pageable.getPageNumber();
+    int effectiveSize = pageable.getPageSize();
+    Sort effectiveSort = pageable.getSort();
+
+    PageResult<SavedWorkout> cached = workoutCacheStore.get(userId, effectivePage, effectiveSize, effectiveSort);
+    if (cached != null) {
+      return cached;
+    }
+
     log.trace("getSavedWorkouts: userId={}, page={}, size={}, sort={}", userId, page, size, sort);
     long startTime = System.nanoTime();
-
-    Pageable pageable = pageRequest(page, size, sort);
     var pageResult = savedWorkoutRepository.findByUser_Id(userId, pageable);
     var workouts = pageResult.getContent().stream()
         .map(entry -> toSavedWorkout(entry.getWorkout(), entry.getSavedAt(), true))
@@ -123,12 +137,14 @@ public class UserLibraryService {
     meterRegistry.counter("user.library.fetch", "type", "workout").increment();
     meterRegistry.timer("user.library.fetch.duration", "type", "workout").record(duration, java.util.concurrent.TimeUnit.NANOSECONDS);
 
-    return new PageResult<>(
+    PageResult<SavedWorkout> result = new PageResult<>(
         workouts,
         pageResult.getNumber(),
         pageResult.getSize(),
         pageResult.getTotalElements(),
         pageResult.hasNext());
+    workoutCacheStore.put(userId, effectivePage, effectiveSize, effectiveSort, result);
+    return result;
   }
 
   @Transactional
@@ -167,6 +183,7 @@ public class UserLibraryService {
     meterRegistry.counter("user.library.save", "type", "recipe", "alreadySaved", Boolean.toString(alreadySaved)).increment();
     meterRegistry.timer("user.library.save.duration", "type", "recipe").record(duration, java.util.concurrent.TimeUnit.NANOSECONDS);
 
+    recipeCacheStore.invalidateAll(userId);
     return toSavedRecipe(persisted.getRecipe(), persisted.getSavedAt(), alreadySaved);
   }
 
@@ -189,6 +206,7 @@ public class UserLibraryService {
     meterRegistry.counter("user.library.remove", "type", "recipe").increment();
     meterRegistry.timer("user.library.remove.duration", "type", "recipe").record(duration, java.util.concurrent.TimeUnit.NANOSECONDS);
 
+    recipeCacheStore.invalidateAll(userId);
     return true;
   }
 
@@ -199,10 +217,18 @@ public class UserLibraryService {
 
   @Transactional(readOnly = true)
   public PageResult<SavedRecipe> getSavedRecipes(UUID userId, int page, int size, Sort sort) {
+    Pageable pageable = pageRequest(page, size, sort);
+    int effectivePage = pageable.getPageNumber();
+    int effectiveSize = pageable.getPageSize();
+    Sort effectiveSort = pageable.getSort();
+
+    PageResult<SavedRecipe> cached = recipeCacheStore.get(userId, effectivePage, effectiveSize, effectiveSort);
+    if (cached != null) {
+      return cached;
+    }
+
     log.trace("getSavedRecipes: userId={}, page={}, size={}, sort={}", userId, page, size, sort);
     long startTime = System.nanoTime();
-
-    Pageable pageable = pageRequest(page, size, sort);
     var pageResult = savedRecipeRepository.findByUser_Id(userId, pageable);
     var recipes = pageResult.getContent().stream()
         .map(entry -> toSavedRecipe(entry.getRecipe(), entry.getSavedAt(), true))
@@ -215,12 +241,14 @@ public class UserLibraryService {
     meterRegistry.counter("user.library.fetch", "type", "recipe").increment();
     meterRegistry.timer("user.library.fetch.duration", "type", "recipe").record(duration, java.util.concurrent.TimeUnit.NANOSECONDS);
 
-    return new PageResult<>(
+    PageResult<SavedRecipe> result = new PageResult<>(
         recipes,
         pageResult.getNumber(),
         pageResult.getSize(),
         pageResult.getTotalElements(),
         pageResult.hasNext());
+    recipeCacheStore.put(userId, effectivePage, effectiveSize, effectiveSort, result);
+    return result;
   }
 
   private Pageable pageRequest(int page, int size, Sort sort) {

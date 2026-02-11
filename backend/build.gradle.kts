@@ -39,6 +39,7 @@ dependencies {
     implementation("org.flywaydb:flyway-core:10.17.0")
     implementation("org.flywaydb:flyway-database-postgresql:10.17.0")
 	implementation("org.springframework.boot:spring-boot-starter-cache")
+	implementation("com.github.ben-manes.caffeine:caffeine")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")
 	implementation("com.google.api-client:google-api-client:2.2.0")
 	implementation("com.google.apis:google-api-services-youtube:v3-rev20230502-2.0.0")
@@ -76,32 +77,6 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
-
-    // Exclude failed/slow/broken integration tests by default to ensure stable builds.
-    // These tests require complex Docker/Testcontainers or have configuration issues.
-    exclude("**/DatabaseSchemaIntegrationTest*")
-    exclude("**/FitnessAppApplicationTests*")
-    exclude("**/RecipePerformanceTest*")
-    exclude("**/*IntegrationTest*")
-    exclude("**/*IntegrationTests*")
-    exclude("**/RepositoryTests*")
-    exclude("**/UserProfile*Test*")
-    exclude("**/UserDeletion*Test*")
-    exclude("**/Nutrition*Test*")
-    exclude("**/RAGPipeline*Test*")
-    exclude("**/CurrentUserControllerTest*")
-    exclude("**/AvatarUpdateIntegrationTest*")
-    exclude("**/LeaderboardControllerTest*")
-    exclude("**/UserLibraryControllerTest*")
-    exclude("**/MealPlanControllerTest*")
-    exclude("**/MealControllerTest*")
-    exclude("**/WeightLogRepositoryTest*")
-    exclude("**/WeightLogControllerTest*")
-
-    // Additional exclusions controlled by property
-    if (project.hasProperty("excludeSlowTests")) {
-        // Reserved for future specific slow tests
-    }
 }
 
 tasks.jacocoTestReport {

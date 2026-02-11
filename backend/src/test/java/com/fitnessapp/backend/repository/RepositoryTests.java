@@ -7,29 +7,37 @@ import com.fitnessapp.backend.recipe.entity.Ingredient;
 import com.fitnessapp.backend.recipe.entity.Recipe;
 import com.fitnessapp.backend.recipe.entity.RecipeIngredient;
 import com.fitnessapp.backend.recipe.entity.RecipeIngredientId;
-import com.fitnessapp.backend.workout.entity.WorkoutVideo;
+import com.fitnessapp.backend.workout.entity.ExerciseVideo;
 import com.fitnessapp.backend.recipe.repository.IngredientRepository;
 import com.fitnessapp.backend.recipe.repository.RecipeRepository;
-import com.fitnessapp.backend.workout.repository.WorkoutVideoRepository;
+import com.fitnessapp.backend.user.entity.User;
+import com.fitnessapp.backend.workout.repository.ExerciseVideoRepository;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Assumptions;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 @DataJpaTest(properties = {
-    "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.flyway.enabled=false",
+    "spring.jpa.hibernate.ddl-auto=validate",
+    "spring.flyway.enabled=true",
     "app.seed.enabled=false"
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ContextConfiguration(classes = RepositoryTests.TestJpaConfig.class)
 class RepositoryTests {
   static PostgreSQLContainer<?> postgres;
 
@@ -75,30 +83,52 @@ class RepositoryTests {
     }
   }
 
-  @Autowired WorkoutVideoRepository workoutRepo;
+  @Autowired ExerciseVideoRepository workoutRepo;
   @Autowired RecipeRepository recipeRepo;
   @Autowired IngredientRepository ingredientRepo;
 
   @Test
-  void findByLevelAndDurationMinutesWorks() {
-    WorkoutVideo a = WorkoutVideo.builder()
-        .youtubeId("a1").title("A").level("beginner").durationMinutes(15)
-        .viewCount(0L)
+  void searchByKeywordAndCategoryWorks() {
+    OffsetDateTime now = OffsetDateTime.now();
+
+    ExerciseVideo a = ExerciseVideo.builder()
+        .youtubeId("a1")
+        .exerciseSlug("bench-press")
+        .exerciseName("Bench Press")
+        .videoUrl("https://youtube.com/watch?v=a1")
+        .r2Key("videos/a1")
+        .primaryCategory("Chest")
+        .secondaryCategory("Upper Body")
+        .createdAt(now)
+        .updatedAt(now)
         .build();
-    WorkoutVideo b = WorkoutVideo.builder()
-        .youtubeId("b1").title("B").level("beginner").durationMinutes(30)
-        .viewCount(0L)
+    ExerciseVideo b = ExerciseVideo.builder()
+        .youtubeId("b1")
+        .exerciseSlug("barbell-row")
+        .exerciseName("Barbell Row")
+        .videoUrl("https://youtube.com/watch?v=b1")
+        .r2Key("videos/b1")
+        .primaryCategory("Back")
+        .secondaryCategory("Upper Body")
+        .createdAt(now)
+        .updatedAt(now)
         .build();
-    workoutRepo.saveAll(List.of(a,b));
-    List<WorkoutVideo> found = workoutRepo.findByLevelAndDurationMinutesLessThanEqual("beginner", 20);
-    assertThat(found).extracting(WorkoutVideo::getYoutubeId).containsExactly("a1");
+    workoutRepo.saveAll(List.of(a, b));
+
+    List<ExerciseVideo> searched = workoutRepo.searchByKeyword("press", 10);
+    assertThat(searched).extracting(ExerciseVideo::getYoutubeId).contains("a1");
+
+    List<ExerciseVideo> byCategory = workoutRepo.findByCategory("Chest", 10);
+    assertThat(byCategory).extracting(ExerciseVideo::getYoutubeId).contains("a1");
   }
 
   @Test
   void findByIngredientsContainingWorks() {
     ObjectMapper mapper = new ObjectMapper();
-    Ingredient chicken = ingredientRepo.save(Ingredient.builder().name("chicken").build());
-    Ingredient lemon = ingredientRepo.save(Ingredient.builder().name("lemon").build());
+    String chickenName = "test_chicken_" + java.util.UUID.randomUUID();
+    String lemonName = "test_lemon_" + java.util.UUID.randomUUID();
+    Ingredient chicken = ingredientRepo.save(Ingredient.builder().name(chickenName).build());
+    Ingredient lemon = ingredientRepo.save(Ingredient.builder().name(lemonName).build());
 
     Recipe r1 = recipeRepo.save(Recipe.builder()
         .title("Lemon Chicken")
@@ -141,7 +171,14 @@ class RepositoryTests {
     r2.getIngredients().add(ri3);
     recipeRepo.save(r2);
 
-    List<Recipe> found = recipeRepo.findByIngredientsContaining(List.of("chicken","lemon"), 2);
+    List<Recipe> found = recipeRepo.findByIngredientsContaining(List.of(chickenName, lemonName), 2);
     assertThat(found).extracting(Recipe::getTitle).containsExactly("Lemon Chicken");
+  }
+
+  @SpringBootConfiguration
+  @EnableAutoConfiguration
+  @EntityScan(basePackageClasses = {Recipe.class, Ingredient.class, RecipeIngredient.class, ExerciseVideo.class, User.class})
+  @EnableJpaRepositories(basePackageClasses = {RecipeRepository.class, IngredientRepository.class, ExerciseVideoRepository.class})
+  static class TestJpaConfig {
   }
 }

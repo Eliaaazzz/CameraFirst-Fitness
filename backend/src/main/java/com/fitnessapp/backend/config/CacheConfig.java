@@ -1,68 +1,42 @@
 package com.fitnessapp.backend.config;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.fitnessapp.backend.Cacheservice.cache.UserLibraryCacheKeys;
 import java.time.Duration;
-import java.util.Set;
 import org.springframework.boot.autoconfigure.cache.CacheManagerCustomizer;
-import org.springframework.boot.autoconfigure.cache.RedisCacheManagerBuilderCustomizer;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.cache.RedisCacheConfiguration;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-
-import com.fitnessapp.backend.Cacheservice.cache.LeaderboardCacheKeys;
-import com.fitnessapp.backend.Cacheservice.cache.NutritionCacheKeys;
-import com.fitnessapp.backend.Cacheservice.cache.UserLibraryCacheKeys;
 
 @Configuration
 public class CacheConfig {
 
   @Bean
-  @ConditionalOnBean(RedisConnectionFactory.class)
-  public RedisCacheManagerBuilderCustomizer redisCacheCustomizer() {
-    return builder -> builder
-        // Nutrition advice: 6 hours
-        .withCacheConfiguration(
-            "nutritionAdvice",
-            RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofHours(6))
-        )
-        // Recipe search results: 30 minutes
-        .withCacheConfiguration(
-            "recipeSearch",
-            RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(30))
-        )
-        // Individual recipes: 2 hours
-        .withCacheConfiguration(
-            "recipes",
-            RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofHours(2))
-        )
-        // Spoonacular API responses: 24 hours (reduce API costs)
-        .withCacheConfiguration(
-            "spoonacular",
-            RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofHours(24))
-        )
-        // Trending recipes: 15 minutes (fresh data)
-        .withCacheConfiguration(
-            "trending",
-            RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(15))
-        )
-        // Community favorites: 1 hour
-        .withCacheConfiguration(
-            "communityFavorites",
-            RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofHours(1))
-        );
+  public CacheManagerCustomizer<CaffeineCacheManager> caffeineCacheCustomizer() {
+    return manager -> {
+      manager.setAllowNullValues(false);
+      manager.setCaffeine(caffeineBuilder(Duration.ofMinutes(10), 1_000));
+
+      // Core retrieval caches
+      manager.registerCustomCache("recipeSearch", caffeineCache(Duration.ofMinutes(30), 1_000));
+      manager.registerCustomCache("recipes", caffeineCache(Duration.ofHours(2), 500));
+      manager.registerCustomCache("workoutSearch", caffeineCache(Duration.ofMinutes(15), 1_000));
+      manager.registerCustomCache("workouts", caffeineCache(Duration.ofMinutes(20), 500));
+
+      // User library caches (explicitly kept)
+      manager.registerCustomCache(UserLibraryCacheKeys.WORKOUTS_CACHE, caffeineCache(Duration.ofMinutes(5), 1_000));
+      manager.registerCustomCache(UserLibraryCacheKeys.RECIPES_CACHE, caffeineCache(Duration.ofMinutes(5), 1_000));
+    };
   }
 
-  @Bean
-  @ConditionalOnBean(ConcurrentMapCacheManager.class)
-  public CacheManagerCustomizer<ConcurrentMapCacheManager> indexedCacheRegistration() {
-    return manager -> manager.setCacheNames(
-        Set.of(
-            NutritionCacheKeys.ADVICE_CACHE,
-            LeaderboardCacheKeys.LEADERBOARD_CACHE,
-            UserLibraryCacheKeys.WORKOUTS_CACHE,
-            UserLibraryCacheKeys.RECIPES_CACHE
-        ));
+  private Cache<Object, Object> caffeineCache(Duration ttl, long maxSize) {
+    return caffeineBuilder(ttl, maxSize).build();
+  }
+
+  private Caffeine<Object, Object> caffeineBuilder(Duration ttl, long maxSize) {
+    return Caffeine.newBuilder()
+        .expireAfterWrite(ttl)
+        .maximumSize(maxSize);
   }
 }

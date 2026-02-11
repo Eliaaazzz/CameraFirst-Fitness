@@ -2,7 +2,9 @@ package com.fitnessapp.backend.search;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +33,8 @@ import lombok.extern.slf4j.Slf4j;
 @Tag(name = "Search", description = "Search for recipes and workouts")
 public class SearchController {
 
+    private static final CacheControl SEARCH_CACHE = CacheControl.maxAge(10, TimeUnit.MINUTES).cachePrivate();
+
     private final RecipeRepository recipeRepository;
     private final ExerciseVideoRepository exerciseVideoRepository;
 
@@ -55,7 +59,9 @@ public class SearchController {
         log.info("Searching recipes with query: '{}', limit: {}", query, limit);
 
         if (query == null || query.trim().isEmpty()) {
-            return ResponseEntity.ok(List.of());
+            return ResponseEntity.ok()
+                .cacheControl(SEARCH_CACHE)
+                .body(List.of());
         }
 
         List<Recipe> recipes = recipeRepository.searchByText(query.trim(), Math.min(limit, 50));
@@ -65,7 +71,9 @@ public class SearchController {
             .toList();
 
         log.info("Found {} recipes for query '{}'", results.size(), query);
-        return ResponseEntity.ok(results);
+        return ResponseEntity.ok()
+            .cacheControl(SEARCH_CACHE)
+            .body(results);
     }
 
     /**
@@ -89,7 +97,9 @@ public class SearchController {
         log.info("Searching workouts with query: '{}', limit: {}", query, limit);
 
         if (query == null || query.trim().isEmpty()) {
-            return ResponseEntity.ok(List.of());
+            return ResponseEntity.ok()
+                .cacheControl(SEARCH_CACHE)
+                .body(List.of());
         }
 
         List<ExerciseVideo> videos = exerciseVideoRepository.searchByKeyword(query.trim(), Math.min(limit, 50));
@@ -99,7 +109,9 @@ public class SearchController {
             .toList();
 
         log.info("Found {} workouts for query '{}'", results.size(), query);
-        return ResponseEntity.ok(results);
+        return ResponseEntity.ok()
+            .cacheControl(SEARCH_CACHE)
+            .body(results);
     }
 
     /**

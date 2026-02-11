@@ -64,14 +64,13 @@ class UserLibraryControllerTest {
 
     SavedWorkout savedWorkout = new SavedWorkout(
         workoutId,
-        "yt123",
         "Morning Flow",
+        "yt123",
         25,
         "BEGINNER",
         List.of("yoga mat"),
         List.of("core"),
         "https://thumb",
-        500L,
         OffsetDateTime.now(),
         false);
     when(libraryService.saveWorkout(userId, workoutId)).thenReturn(savedWorkout);
@@ -135,14 +134,13 @@ class UserLibraryControllerTest {
 
     SavedWorkout workout = new SavedWorkout(
         UUID.randomUUID(),
-        "abc123",
         "HIIT Blast",
+        "abc123",
         30,
         "INTERMEDIATE",
         List.of("dumbbells"),
         List.of("shoulders"),
         "https://example.com/thumb.jpg",
-        10000L,
         OffsetDateTime.now(),
         true);
     when(libraryService.getSavedWorkouts(eq(userId), eq(0), eq(20), any(Sort.class)))
@@ -189,7 +187,7 @@ class UserLibraryControllerTest {
     ArgumentCaptor<Sort> sortCaptor = ArgumentCaptor.forClass(Sort.class);
     verify(libraryService).getSavedWorkouts(eq(userId), eq(0), eq(20), sortCaptor.capture());
     Sort captured = sortCaptor.getValue();
-    Sort.Order primary = captured.getOrderFor("workout.durationMinutes");
+    Sort.Order primary = captured.getOrderFor("workout.isShort");
     assertThat(primary).isNotNull();
     assertThat(primary.getDirection()).isEqualTo(Sort.Direction.ASC);
     Sort.Order secondary = captured.getOrderFor("savedAt");

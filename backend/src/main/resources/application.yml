@@ -13,6 +13,8 @@ spring:
     redis:
       repositories:
         enabled: false
+  cache:
+    type: caffeine
 
 usda:
   api:
@@ -21,9 +23,9 @@ usda:
 
 # Cloudflare R2 Storage
 r2:
-  endpoint: ${R2_ENDPOINT}
-  access-key: ${R2_ACCESS_KEY}
-  secret-key: ${R2_SECRET_ACCESS_KEY}
+  endpoint: ${R2_ENDPOINT:http://localhost:9000}
+  access-key: ${R2_ACCESS_KEY:test-access-key}
+  secret-key: ${R2_SECRET_ACCESS_KEY:test-secret-key}
   bucket: ${R2_BUCKET_NAME:aurafit}
   public-url: ${R2_PUBLIC_URL:https://media.aurafitness.com}
 
@@ -86,7 +88,7 @@ management:
       show-details: when_authorized
   health:
     redis:
-      enabled: true
+      enabled: false
 
 logging:
   level:
@@ -119,13 +121,6 @@ spring:
       hibernate:
         format_sql: true
     open-in-view: false
-  data:
-    redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
-      password: ${SPRING_DATA_REDIS_PASSWORD:}
-  cache:
-    type: redis
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -164,7 +159,7 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
   cache:
-    type: none  # Disable caching (no Redis)
+    type: caffeine  # In-memory cache (Caffeine), no Redis dependency
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
