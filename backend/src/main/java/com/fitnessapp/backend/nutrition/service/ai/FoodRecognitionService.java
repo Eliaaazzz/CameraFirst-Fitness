@@ -70,26 +70,36 @@ public class FoodRecognitionService {
             String preferredProvider,
             FoodRecognitionRequestMetadata metadata
     ) throws IOException {
+        long serviceStart = System.nanoTime();
         List<FoodRecognitionProvider> candidates = getCandidateProviders(preferredProvider);
 
         if (candidates.isEmpty()) {
             throw new FoodRecognitionException("No AI food recognition providers available");
         }
 
+        log.info("Food recognition candidates={}, preferredProvider={}, imageBytes={}",
+                candidates.size(), preferredProvider, image.getSize());
+
         Exception lastException = null;
 
         for (FoodRecognitionProvider provider : candidates) {
+            long providerStart = System.nanoTime();
             log.info("Trying provider '{}' ({})", provider.getProviderName(), provider.getModelName());
 
             try {
                 FoodRecognitionResult result = provider.recognizeFoods(image, metadata);
+                long durationMs = (System.nanoTime() - providerStart) / 1_000_000;
                 log.info("✅ Provider '{}' succeeded with {} items", 
                         provider.getProviderName(), 
                         result.getItems() != null ? result.getItems().size() : 0);
+                log.info("Provider '{}' latency={}ms (totalService={}ms)",
+                        provider.getProviderName(), durationMs, (System.nanoTime() - serviceStart) / 1_000_000);
                 return result;
 
             } catch (Exception e) {
-                log.warn("Provider '{}' failed: {}. Trying next...", provider.getProviderName(), e.getMessage());
+                long durationMs = (System.nanoTime() - providerStart) / 1_000_000;
+                log.warn("Provider '{}' failed in {}ms: {}. Trying next...",
+                        provider.getProviderName(), durationMs, e.getMessage());
                 lastException = e;
             }
         }

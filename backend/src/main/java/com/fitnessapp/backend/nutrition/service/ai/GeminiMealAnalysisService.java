@@ -49,10 +49,10 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
     private static final String PROVIDER_NAME = "gemini";
     private static final String DEFAULT_MODEL = "gemini-2.5-flash";
     
-    // Increased to 8192 to reduce risk of JSON truncation on complex meals.
-    private static final int MAX_OUTPUT_TOKENS = 8192;
-    private static final int TIMEOUT_SECONDS = 75; // Increased from 60s to handle complex meals
-    private static final int MAX_RETRIES = 2;
+    // Keep output bounded to reduce generation latency while preserving schema completeness.
+    private static final int MAX_OUTPUT_TOKENS = 1200;
+    private static final int TIMEOUT_SECONDS = 14;
+    private static final int MAX_RETRIES = 1;
     private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;
     private static final Set<String> SUPPORTED_IMAGE_TYPES = Set.of(
             "image/jpeg", "image/png", "image/gif", "image/webp"
@@ -125,26 +125,40 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
             throw new IllegalArgumentException("Unsupported image type: " + contentType);
         }
 
-        log.info("🍽️ Gemini analyzing meal: size={} bytes", image.getSize());
+        long start = System.nanoTime();
+        log.info("Gemini analyze start: imageBytes={}, contentType={}", image.getSize(), contentType);
+
         String base64Image = Base64.getEncoder().encodeToString(image.getBytes());
-        return recognizeFoods(base64Image, contentType, metadata);
+        long encodeMs = (System.nanoTime() - start) / 1_000_000;
+        log.info("Gemini stage=base64_encode latencyMs={}, base64Chars={}", encodeMs, base64Image.length());
+
+        FoodRecognitionResult result = recognizeFoods(base64Image, contentType, metadata);
+        long totalMs = (System.nanoTime() - start) / 1_000_000;
+        log.info("Gemini analyze completed totalLatencyMs={}", totalMs);
+        return result;
     }
 
     @Override
     public FoodRecognitionResult recognizeFoods(String base64Image, String mediaType, FoodRecognitionRequestMetadata metadata) {
+        long start = System.nanoTime();
         int attempt = 0;
         Exception lastException = null;
 
         // Compress image before sending to Gemini API - reduces upload time by 50%+
+        long compressStart = System.nanoTime();
         String optimizedImage = compressImage(base64Image);
+        long compressMs = (System.nanoTime() - compressStart) / 1_000_000;
         String optimizedMediaType = optimizedImage.equals(base64Image) ? mediaType : "image/jpeg";
-        log.info("🗜️ Image optimization: original {} chars, optimized {} chars", 
-                base64Image.length(), optimizedImage.length());
+        log.info("Gemini stage=image_optimize latencyMs={}, originalChars={}, optimizedChars={}",
+                compressMs, base64Image.length(), optimizedImage.length());
 
         while (attempt < MAX_RETRIES) {
             attempt++;
             try {
-                return executeApiCall(optimizedImage, optimizedMediaType, metadata);
+                FoodRecognitionResult result = executeApiCall(optimizedImage, optimizedMediaType, metadata);
+                long totalMs = (System.nanoTime() - start) / 1_000_000;
+                log.info("Gemini stage=complete attempts={}, totalLatencyMs={}", attempt, totalMs);
+                return result;
             } catch (Exception e) {
                 lastException = e;
                 log.warn("Gemini API failed (attempt {}/{}): {}", attempt, MAX_RETRIES, e.getMessage());
@@ -235,6 +249,7 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
             String mediaType,
             FoodRecognitionRequestMetadata metadata
     ) throws IOException {
+        long start = System.nanoTime();
         String requestBody = buildRequestBody(base64Image, mediaType, metadata);
 
         Request request = new Request.Builder()
@@ -245,8 +260,13 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
 
         try (Response response = httpClient.newCall(request).execute()) {
             String responseBody = response.body() != null ? response.body().string() : "";
-            log.info("📡 Gemini API response code: {}, body length: {}", response.code(), responseBody.length());
-            log.info("📡 Gemini API full response: {}", responseBody);
+            long latencyMs = (System.nanoTime() - start) / 1_000_000;
+            log.info("Gemini stage=api_call status={}, latencyMs={}, responseChars={}",
+                    response.code(), latencyMs, responseBody.length());
+            if (log.isDebugEnabled()) {
+                String preview = responseBody.length() > 400 ? responseBody.substring(0, 400) + "..." : responseBody;
+                log.debug("Gemini response preview: {}", preview);
+            }
 
             if (!response.isSuccessful()) {
                 log.error("Gemini API error ({}): {}", response.code(), responseBody);
@@ -256,7 +276,12 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
                 throw new FoodRecognitionException("API error: " + response.code());
             }
 
-            return parseResponse(responseBody);
+            long parseStart = System.nanoTime();
+            FoodRecognitionResult parsed = parseResponse(responseBody);
+            long parseMs = (System.nanoTime() - parseStart) / 1_000_000;
+            log.info("Gemini stage=parse latencyMs={}, items={}",
+                    parseMs, parsed.getItems() != null ? parsed.getItems().size() : 0);
+            return parsed;
         }
     }
 
@@ -266,34 +291,25 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
                 ? String.format("{\"img_w_cm\": %.1f}", imgWcm)
                 : "{}";
 
-        // Compressed, deterministic prompt for stable JSON and low latency.
+        // Compact prompt for lower latency while preserving deterministic schema output.
         // Keys must be English; values can match user language.
         String prompt = String.format("""
-            ROLE: Optical Food Analysis Engine (v2.5)
-            GOAL: Output nutrition JSON from a food photo.
+            You are a food-vision nutrition estimator.
+            Return STRICT JSON only (no markdown, no prose) using the schema below.
+            Metadata: %s
 
-            INPUT:
-            - Image: Food plate(s).
-            - METADATA: %s
+            Rules:
+            - Use img_w_cm for scale when present; otherwise assume 28cm plate width.
+            - scene_type:
+              countable = mostly piece-count items (e.g. sushi/dumplings/wings)
+              single_dish = one mixed dish, split into ingredients
+              multi_dish = multiple distinct dishes, do not split each dish into ingredients
+            - Do not include quantity text in name.
+            - confidence in [0.0, 1.0].
+            - unit: piece for countable, g for ingredient-level outputs, otherwise serving.
+            - Nutrition should reflect visible oils/sauces (restaurant/oily food included).
 
-            ANALYSIS_LOGIC (STRICT):
-            1) SCALE: Use img_w_cm to calibrate size. If missing, assume 28cm dinner plate width.
-            2) CLASSIFY:
-               - Countable (sushi, dumplings, wings, nuggets, slices): count pieces.
-               - Volumetric (rice, noodles, stir-fry, steak, salad): estimate weight via visual volume.
-            3) SCENARIOS:
-               - If mostly countable items: scene_type="countable"
-               - If single complex dish: scene_type="single_dish" and DECOMPOSE into ingredients (return each ingredient as a separate food).
-               - If multiple distinct dishes: scene_type="multi_dish" and DO NOT decompose ingredients.
-
-            OUTPUT_RULES:
-            - JSON ONLY. No markdown. No extra text.
-            - Do NOT put quantities inside "name".
-            - confidence: 0.0-1.0
-            - Use unit="piece" for countable, unit="g" for ingredient-level items, otherwise unit="serving".
-            - If oily/fried/restaurant-style: calories *= 1.2 (already included in numbers).
-
-            JSON_SCHEMA:
+            Schema:
             {
               "scene_type": "countable" | "single_dish" | "multi_dish",
               "foods": [
@@ -311,7 +327,7 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
               ]
             }
 
-            CMD: ANALYZE
+            Analyze now.
             """, metadataBlock);
 
         // Flash model with deterministic generation for stable JSON.
@@ -322,6 +338,7 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
                 {"text": "%s"}
               ]}],
               "generationConfig": {
+                "responseMimeType": "application/json",
                 "maxOutputTokens": %d,
                 "temperature": 0.0,
                 "topP": 0.95,
@@ -365,17 +382,23 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
             }
 
             String rawText = textBuilder.toString().trim();
-            log.info("📝 Gemini raw response text: {}", rawText);
+            if (log.isDebugEnabled()) {
+                String rawPreview = rawText.length() > 400 ? rawText.substring(0, 400) + "..." : rawText;
+                log.debug("Gemini raw text preview: {}", rawPreview);
+            }
 
             String json = extractJson(rawText);
-            log.info("📝 Extracted JSON: {}", json);
+            if (log.isDebugEnabled()) {
+                String jsonPreview = json.length() > 400 ? json.substring(0, 400) + "..." : json;
+                log.debug("Gemini extracted JSON preview: {}", jsonPreview);
+            }
 
             JsonNode data = objectMapper.readTree(json);
 
             List<RecognizedFood> items = new ArrayList<>();
             String sceneType = data.path("scene_type").isTextual() ? data.path("scene_type").asText() : null;
             JsonNode foods = data.path("foods");
-            log.info("📝 Foods node type: {}, isEmpty: {}", foods.getNodeType(), foods.isEmpty());
+            log.debug("Foods node type={}, isEmpty={}", foods.getNodeType(), foods.isEmpty());
             
             int index = 0;
             for (JsonNode food : foods) {
@@ -420,7 +443,7 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
                         .build();
                 
                 items.add(item);
-                log.info("✅ Found: {} (qty={}, unit={}, {}g, {}kcal, restaurant={})", 
+                log.debug("Found: {} (qty={}, unit={}, {}g, {}kcal, restaurant={})", 
                         name, quantity, unit, weightG, calories, isRestaurantStyle);
                 index++;
             }

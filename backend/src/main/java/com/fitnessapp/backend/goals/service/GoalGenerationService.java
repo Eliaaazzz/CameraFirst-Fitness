@@ -34,22 +34,26 @@ import java.util.regex.Pattern;
 @Service
 public class GoalGenerationService {
 
-    private static final String MODEL = "gemini-2.0-flash";
-    private static final String GEMINI_API_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent";
+    private static final String DEFAULT_MODEL = "gemini-2.5-flash";
     private static final int MAX_OUTPUT_TOKENS = 2048;
     private static final int TIMEOUT_SECONDS = 30;
 
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final String apiKey;
+    private final String model;
+    private final String geminiApiUrl;
 
     public GoalGenerationService(
             ObjectMapper objectMapper,
-            @Value("${app.gemini.api-key:}") String apiKey
+            @Value("${app.gemini.api-key:}") String apiKey,
+            @Value("${app.gemini.model:gemini-2.5-flash}") String model
     ) {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
+        this.model = (model == null || model.isBlank()) ? DEFAULT_MODEL : model.trim();
+        this.geminiApiUrl =
+                "https://generativelanguage.googleapis.com/v1beta/models/" + this.model + ":generateContent";
 
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
@@ -60,7 +64,7 @@ public class GoalGenerationService {
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("Gemini API key not configured - goal generation will use fallback calculations");
         } else {
-            log.info("GoalGenerationService initialized with Gemini AI");
+            log.info("GoalGenerationService initialized with Gemini AI model={}", this.model);
         }
     }
 
@@ -88,7 +92,7 @@ public class GoalGenerationService {
         String requestBody = buildGeminiRequestBody(prompt);
 
         Request httpRequest = new Request.Builder()
-                .url(GEMINI_API_URL + "?key=" + apiKey)
+                .url(geminiApiUrl + "?key=" + apiKey)
                 .addHeader("content-type", "application/json")
                 .post(RequestBody.create(requestBody, MediaType.parse("application/json")))
                 .build();

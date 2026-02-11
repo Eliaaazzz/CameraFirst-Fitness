@@ -44,7 +44,7 @@ app:
     api-key: ""
   gemini:
     api-key: ""
-    model: gemini-2.0-flash
+    model: gemini-2.5-flash
   jwt:
     secret: test-secret-key-that-is-long-enough-for-256-bits-for-jwt
     expiration-days: 30
