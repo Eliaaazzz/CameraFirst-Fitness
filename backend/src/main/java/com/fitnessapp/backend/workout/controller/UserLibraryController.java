@@ -36,7 +36,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Slf4j
 public class UserLibraryController {
 
-  private static final CacheControl USER_SAVED_ITEMS_CACHE =
+  static final CacheControl USER_SAVED_ITEMS_CACHE =
       CacheControl.maxAge(1, TimeUnit.MINUTES).cachePrivate();
 
   private final UserLibraryService libraryService;
