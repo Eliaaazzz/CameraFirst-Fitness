@@ -1,0 +1,32 @@
+# Speed up gcloud builds submit/upload by excluding local-only and heavy files
+.git/
+.gitignore
+.github/
+.claude/
+.continue/
+.vscode/
+.idea/
+
+# Local/firebase test artifacts
+.firebase/
+firebase.json
+.firebaserc
+public/
+
+# Node/Frontend artifacts (backend container build does not need them)
+node_modules/
+frontend/
+shared/node_modules/
+
+# Java/Gradle local outputs
+.gradle/
+backend/.gradle/
+backend/build/
+build/
+
+# Env/secrets and misc
+.env
+.env.*
+*.log
+*.tmp
+.DS_Store

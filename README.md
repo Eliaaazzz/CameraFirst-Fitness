@@ -46,7 +46,8 @@ AuraFitness/
 ├── .github/workflows/          # CI/CD pipelines
 │
 ├── package.json               # Root workspace configuration
-├── render.yaml                # Render Blueprint (backend)
+├── firebase.json              # Firebase Hosting config (frontend + API proxy)
+├── cloudbuild.yaml            # Google Cloud Build (backend)
 ├── .env                       # Environment variables (gitignored)
 └── .gitignore                 # Git ignore rules
 ```
@@ -58,7 +59,6 @@ AuraFitness/
 - **Java 21+** (for backend)
 - **Node.js 18+** (for frontend)
 - **PostgreSQL 16+** with pgvector extension
-- **Redis 7+** (for caching)
 - **Docker & Docker Compose** (recommended)
 - **Android Studio** or **Xcode** (for mobile development)
 
@@ -164,9 +164,9 @@ npm run docker:up
 npm run docker:supabase:up
 ```
 
-### Production (Render + Supabase)
-- Backend: Render (Docker), configured via `render.yaml`
-- Frontend: Cloudflare Pages, deployed via GitHub Actions
+### Production (Google Cloud + Firebase)
+- Backend: Google Cloud Run (Docker), configured via `cloudbuild.yaml`
+- Frontend: Firebase Hosting, with API proxy to Cloud Run
 
 ### Manual Build
 ```bash
@@ -177,7 +177,7 @@ npm run backend:build
 npm run frontend:build
 ```
 
-See `render.yaml` and `.github/workflows/` for CI/CD configuration.
+See `cloudbuild.yaml` and `firebase.json` for deployment configuration.
 
 ## Documentation
 
@@ -192,7 +192,7 @@ See the `docs/` directory for detailed documentation on:
 - **Spring Boot 3.3** - Application framework
 - **Java 21** - Runtime
 - **PostgreSQL 16** with pgvector - Primary database with vector search
-- **Redis 7** - Caching layer
+- **Caffeine** - In-memory cache
 - **Gradle** - Build tool
 - **Spring Security + JWT** - Authentication
 - **Flyway** - Database migrations
@@ -205,11 +205,12 @@ See the `docs/` directory for detailed documentation on:
 - **TanStack Query** - Data fetching
 
 ### Infrastructure
-- **Render** - Backend hosting (Docker)
+- **Google Cloud Run** - Backend hosting (Docker)
+- **Firebase Hosting** - Frontend hosting with API proxy
 - **Supabase** - Postgres (managed)
 - **Cloudflare R2** - Object storage
 - **Docker** - Containerization
-- **GitHub Actions** - CI/CD
+- **Google Cloud Build** - CI/CD
 
 ## Contributing
 

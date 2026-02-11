@@ -120,7 +120,8 @@ class UserLibraryControllerTest {
 
     mockMvc.perform(get("/api/v1/recipes/saved"))
         .andExpect(status().isOk())
-        .andExpect(cacheControl(UserLibraryController.USER_SAVED_ITEMS_CACHE))
+        .andExpect(header().string("Cache-Control", containsString("private")))
+        .andExpect(header().string("Cache-Control", containsString("max-age=60")))
         .andExpect(jsonPath("$.data.items[0].title").value("Protein Bowl"));
 
     ArgumentCaptor<Sort> sortCaptor = ArgumentCaptor.forClass(Sort.class);
@@ -151,7 +152,8 @@ class UserLibraryControllerTest {
 
     mockMvc.perform(get("/api/v1/workouts/saved").param("userId", userId.toString()))
         .andExpect(status().isOk())
-        .andExpect(cacheControl(UserLibraryController.USER_SAVED_ITEMS_CACHE))
+        .andExpect(header().string("Cache-Control", containsString("private")))
+        .andExpect(header().string("Cache-Control", containsString("max-age=60")))
         .andExpect(jsonPath("$.data.items[0].youtubeId").value("abc123"));
 
     ArgumentCaptor<Sort> workoutSortCaptor = ArgumentCaptor.forClass(Sort.class);

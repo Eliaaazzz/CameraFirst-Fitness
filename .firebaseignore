@@ -1,0 +1,30 @@
+# Firebase deploy ignore list
+firebase-debug.log
+firebase-debug.*.log
+
+# VCS / local tooling
+.git/
+.github/
+.vscode/
+.idea/
+.claude/
+.continue/
+
+# Node modules
+node_modules/
+**/node_modules/**
+
+# Backend and unrelated folders
+backend/
+infrastructure/
+docs/
+my-private-ai/
+scripts/
+implementation_plans/
+shared/
+
+# Local generated files
+.firebase/
+public/
+*.log
+.DS_Store

@@ -11,6 +11,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import com.fitnessapp.backend.embedding.EmbeddingGenerationException;
@@ -181,7 +182,9 @@ public class GlobalExceptionHandler {
     ) {
         // Check if this is an authentication-related error (from CurrentUser.requireUserId())
         String message = ex.getMessage();
-        if (message != null && (message.contains("User context is missing") || message.contains("X-API-Key"))) {
+        if (message != null && (message.contains("User context is missing")
+                || message.contains("X-API-Key")
+                || message.contains("Authentication required"))) {
             log.warn("Authentication required: {} at {}", message, request.getRequestURI());
             ApiEnvelope<Void> response = ApiEnvelope.error(
                     ErrorCode.UNAUTHORIZED,
@@ -202,6 +205,21 @@ public class GlobalExceptionHandler {
     }
 
     // ========== HTTP Method Exceptions ==========
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiEnvelope<Void>> handleNoResourceFound(
+            NoResourceFoundException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("Resource not found: {}", request.getRequestURI());
+
+        ApiEnvelope<Void> response = ApiEnvelope.error(
+                ErrorCode.INVALID_REQUEST,
+                "Resource not found",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiEnvelope<Void>> handleMethodNotSupported(
