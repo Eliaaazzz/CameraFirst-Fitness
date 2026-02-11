@@ -67,7 +67,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void login_emailPassword_doesNotSetCookieForMobileClient() {
+    void login_emailPassword_setsCookieForAllClients() {
         LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, MOCK_EMAIL, "password123");
         AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
@@ -204,7 +204,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void register_doesNotSetCookieForMobileClient() {
+    void register_setsCookieForAllClients() {
         RegisterRequest request = new RegisterRequest(MOCK_EMAIL, "password123");
         AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, true);
         when(authService.registerEmail(MOCK_EMAIL, "password123")).thenReturn(result);
