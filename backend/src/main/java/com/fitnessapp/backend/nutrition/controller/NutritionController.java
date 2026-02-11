@@ -5,6 +5,9 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
@@ -42,6 +45,7 @@ import lombok.extern.slf4j.Slf4j;
 public class NutritionController {
 
   private static final String PATH_PREFIX = "meals";
+  private static final long R2_WAIT_TIMEOUT_SECONDS = 2;
 
   private final NutritionTrackingService trackingService;
   private final NutritionInsightService insightService;
@@ -55,6 +59,7 @@ public class NutritionController {
       @RequestParam(value = "provider", required = false) String provider,
       @RequestParam(value = "metadata", required = false) String metadataJson
   ) throws IOException {
+    long requestStart = System.nanoTime();
     log.info("Analyzing food image: {}, size: {} bytes", image.getOriginalFilename(), image.getSize());
 
     if (image.isEmpty()) {
@@ -65,17 +70,32 @@ public class NutritionController {
       throw new IllegalArgumentException("Image file is too large (max 10MB)");
     }
 
-    // Upload to R2
+    FoodRecognitionRequestMetadata metadata = parseMetadata(metadataJson);
+    CompletableFuture<String> r2UploadFuture = CompletableFuture.supplyAsync(() -> {
+      try {
+        return r2StorageService.uploadFile(image, PATH_PREFIX);
+      } catch (Exception e) {
+        log.warn("R2 upload failed; continuing without image URL", e);
+        return null;
+      }
+    });
+
+    long recognitionStart = System.nanoTime();
+    FoodRecognitionResult recognitionResult = foodRecognitionService.recognizeFoods(image, provider, metadata);
+    long recognitionMs = (System.nanoTime() - recognitionStart) / 1_000_000;
+    log.info("Nutrition analyze stage=recognition latencyMs={}", recognitionMs);
+
     String r2Url = null;
     try {
-      r2Url = r2StorageService.uploadFile(image, PATH_PREFIX);
+      r2Url = r2UploadFuture.get(R2_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    } catch (TimeoutException e) {
+      r2UploadFuture.cancel(true);
+      log.warn("R2 upload still running after {}s; returning response without image URL",
+          R2_WAIT_TIMEOUT_SECONDS);
     } catch (Exception e) {
-      log.warn("R2 upload failed; continuing without image URL", e);
+      log.warn("R2 upload join failed; continuing without image URL", e);
     }
 
-    FoodRecognitionRequestMetadata metadata = parseMetadata(metadataJson);
-
-    FoodRecognitionResult recognitionResult = foodRecognitionService.recognizeFoods(image, provider, metadata);
     NutritionInfo totalNutrition = foodRecognitionService.calculateTotalNutrition(recognitionResult.getItems());
 
     FoodRecognitionResponse response = FoodRecognitionResponse.builder()
@@ -85,6 +105,8 @@ public class NutritionController {
         .imageUrl(r2Url)
         .build();
 
+    long totalMs = (System.nanoTime() - requestStart) / 1_000_000;
+    log.info("Nutrition analyze completed totalLatencyMs={}, hasImageUrl={}", totalMs, r2Url != null);
     return ResponseEntity.ok(response);
   }
 

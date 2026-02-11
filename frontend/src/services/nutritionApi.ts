@@ -232,7 +232,8 @@ const analyzeFoodImage = async (
   const backendResponse = await api.uploadImage<BackendFoodRecognitionResponse>(
     '/api/v1/nutrition/analyze',
     imageUri,
-    metadata
+    metadata,
+    { skipMobileCompression: true }
   );
 
   console.log('[NutritionApi] Gemini 3 Pro response:', JSON.stringify(backendResponse, null, 2));

@@ -118,12 +118,13 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const MAX_RETRIES = 3;
 
   // High-performance image compression (Web Worker on web, expo-image-manipulator on native)
-  // Target size of 8MB to stay well under the 10MB backend limit
+  // Keep uploads around ~1.5MB for lower model latency while preserving recognition quality.
   const { compress: compressImage } = useImageCompressor({
     defaultOptions: {
-      maxDimension: 1920, // Higher resolution for better food recognition
-      quality: 0.85,
-      targetSize: 8 * 1024 * 1024, // 8MB max to stay under 10MB backend limit
+      // 1280px is a strong latency/accuracy tradeoff for food recognition.
+      maxDimension: 1280,
+      quality: 0.82,
+      targetSize: 1_500_000, // ~1.5MB target to reduce model processing latency
     },
   });
 

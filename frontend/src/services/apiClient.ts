@@ -122,6 +122,14 @@ type GetDeleteOptions = Omit<RequestConfig, 'method' | 'body'>;
 /** Options for POST/PUT requests - cannot override method or body */
 type PostPutOptions = Omit<RequestConfig, 'method' | 'body'>;
 
+type UploadImageOptions = {
+  /**
+   * Skip mobile-side compression when the caller already pre-processed
+   * the image (for example in ReviewMealScreen).
+   */
+  skipMobileCompression?: boolean;
+};
+
 type ApiEnvelope<T> = {
   success: boolean;
   code?: number;
@@ -337,7 +345,8 @@ export async function del<T>(endpoint: string, options?: GetDeleteOptions): Prom
 export async function uploadImage<T>(
   endpoint: string,
   imageUri: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
+  options?: UploadImageOptions
 ): Promise<T> {
   const formData = new FormData();
 
@@ -371,26 +380,30 @@ export async function uploadImage<T>(
     // This is CRITICAL for iPhone users as iOS default format is HEIC
     let processedUri = imageUri;
 
-    try {
-      // Dynamic import to avoid bundling on web
-      const { compressImage } = await import('../utils/imageHelpers');
+    if (!options?.skipMobileCompression) {
+      try {
+        // Dynamic import to avoid bundling on web
+        const { compressImage } = await import('../utils/imageHelpers');
 
-      // compressImage uses ImageManipulator with SaveFormat.JPEG
-      // This converts HEIC → JPEG and also compresses for faster upload
-      const result = await compressImage(imageUri, {
-        maxDimension: 1536,  // Good quality for AI analysis
-        quality: 0.85
-      });
-      processedUri = result.uri;
+        // compressImage uses ImageManipulator with SaveFormat.JPEG
+        // This converts HEIC → JPEG and also compresses for faster upload
+        const result = await compressImage(imageUri, {
+          maxDimension: 1536,  // Good quality for AI analysis
+          quality: 0.85
+        });
+        processedUri = result.uri;
 
-      console.log('[APIClient] Image converted to JPEG:', {
-        original: imageUri.slice(-30),
-        processed: processedUri.slice(-30),
-        size: `${Math.round(result.size / 1024)}KB`
-      });
-    } catch (error) {
-      // If conversion fails, try with original (may fail on backend for HEIC)
-      console.warn('[APIClient] HEIC conversion failed, using original:', error);
+        console.log('[APIClient] Image converted to JPEG:', {
+          original: imageUri.slice(-30),
+          processed: processedUri.slice(-30),
+          size: `${Math.round(result.size / 1024)}KB`
+        });
+      } catch (error) {
+        // If conversion fails, try with original (may fail on backend for HEIC)
+        console.warn('[APIClient] HEIC conversion failed, using original:', error);
+      }
+    } else {
+      console.log('[APIClient] Skipping extra mobile compression for preprocessed image');
     }
 
     const filename = 'image.jpg'; // Always use .jpg extension
