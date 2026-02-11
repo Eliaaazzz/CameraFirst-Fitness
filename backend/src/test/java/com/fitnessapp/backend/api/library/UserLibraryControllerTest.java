@@ -151,8 +151,7 @@ class UserLibraryControllerTest {
 
     mockMvc.perform(get("/api/v1/workouts/saved").param("userId", userId.toString()))
         .andExpect(status().isOk())
-        .andExpect(header().string("Cache-Control", containsString("max-age=60")))
-        .andExpect(header().string("Cache-Control", containsString("private")))
+        .andExpect(cacheControl(UserLibraryController.USER_SAVED_ITEMS_CACHE))
         .andExpect(jsonPath("$.data.items[0].youtubeId").value("abc123"));
 
     ArgumentCaptor<Sort> workoutSortCaptor = ArgumentCaptor.forClass(Sort.class);
