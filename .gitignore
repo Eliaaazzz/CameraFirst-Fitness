@@ -18,6 +18,8 @@ upload.txt
 node_modules/
 venv/
 .gradle/
+.firebase/
+public/
 
 # ==========================================
 # BACKEND (Java/Spring Boot/Gradle)

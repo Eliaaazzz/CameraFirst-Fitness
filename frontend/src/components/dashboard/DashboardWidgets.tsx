@@ -21,7 +21,7 @@ import { Text } from '@/components';
 import { BentoCard } from '@/components/common/BentoCard';
 import { QuickActionsCard } from '@/components/dashboard/QuickActionsCard';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
-import { useLanguageStore } from '@/stores';
+import { useHydrationStore, useLanguageStore } from '@/stores';
 import { BRAND_COLORS, colors, saasShadows, spacing } from '@/utils';
 
 // Animated components
@@ -45,6 +45,12 @@ interface DashboardWidgetsProps {
 export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
   const navigation = useNavigation<any>();
   const { t } = useLanguageStore();
+  const hydrationCups = useHydrationStore((state) => state.cups);
+  const hydrationGoalCups = useHydrationStore((state) => state.dailyGoalCups);
+  const hydrationLoaded = useHydrationStore((state) => state.isLoaded);
+  const loadHydration = useHydrationStore((state) => state.loadHydration);
+  const addHydrationCup = useHydrationStore((state) => state.addCup);
+  const ensureHydrationToday = useHydrationStore((state) => state.ensureToday);
 
   const cardProgress = useSharedValue(0);
   const actionsProgress = useSharedValue(0);
@@ -53,6 +59,19 @@ export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
     cardProgress.value = withSpring(1, { damping: 18, stiffness: 100 });
     actionsProgress.value = withDelay(150, withSpring(1, { damping: 18, stiffness: 100 }));
   }, []);
+
+  useEffect(() => {
+    loadHydration().catch((error) => {
+      console.warn('[DashboardWidgets] Failed to load hydration state:', error);
+    });
+  }, [loadHydration]);
+
+  useEffect(() => {
+    if (!hydrationLoaded) return;
+    ensureHydrationToday().catch((error) => {
+      console.warn('[DashboardWidgets] Failed to sync hydration date:', error);
+    });
+  }, [ensureHydrationToday, hydrationLoaded]);
 
   const cardAnimatedStyle = useAnimatedStyle(() => ({
     opacity: cardProgress.value,
@@ -124,11 +143,17 @@ export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
               <View style={styles.hydrationIconBox}>
                 <Drop size={18} weight="fill" color="#06B6D4" />
               </View>
-              <Text variant="body" weight="bold" style={styles.hydrationLabel}>Hydration</Text>
+              <Text variant="body" weight="bold" style={styles.hydrationLabel}>{t.hydration}</Text>
             </View>
-            <HydrationAddButton />
+            <HydrationAddButton
+              onPress={() => {
+                addHydrationCup().catch((error) => {
+                  console.warn('[DashboardWidgets] Failed to add hydration cup:', error);
+                });
+              }}
+            />
           </View>
-          <HydrationProgress />
+          <HydrationProgress current={hydrationCups} goal={hydrationGoalCups} />
         </BentoCard>
       </Animated.View>
     </View>
@@ -139,10 +164,12 @@ export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
 // COMPONENTS
 // ============================================================================
 
-function HydrationAddButton() {
-  // Logic for adding water should be passed down, but for UI:
+function HydrationAddButton({ onPress }: { onPress: () => void }) {
   return (
-    <Pressable style={({ pressed }) => [styles.hydrationPlus, pressed && { opacity: 0.7 }]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.hydrationPlus, pressed && { opacity: 0.7 }]}
+    >
       <Plus size={16} weight="bold" color="#06B6D4" />
     </Pressable>
   );
@@ -164,11 +191,10 @@ function SetGoalsPrompt({ onPress }: { onPress: () => void }) {
   );
 }
 
-function HydrationProgress() {
+function HydrationProgress({ current, goal }: { current: number; goal: number }) {
   const { t } = useLanguageStore();
-  const current = 2; // Mock
-  const goal = 8;
-  const progress = current / goal;
+  const safeGoal = goal > 0 ? goal : 1;
+  const progress = Math.min(1, Math.max(0, current / safeGoal));
 
   return (
     <View style={styles.hydrationContent}>
