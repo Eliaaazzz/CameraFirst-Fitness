@@ -10,11 +10,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -37,6 +39,17 @@ public class AuthController {
     @Value("${app.cookie.domain:}")
     private String cookieDomain;
 
+    @Value("${app.google.client-id:}")
+    private String googleClientId;
+
+    /**
+     * Exposes Google OAuth client ID for web clients that fetch config dynamically.
+     */
+    @GetMapping("/google/client-id")
+    public ResponseEntity<Map<String, String>> getGoogleClientId() {
+        return ResponseEntity.ok(Map.of("clientId", googleClientId != null ? googleClientId : ""));
+    }
+
     /**
      * Unified login endpoint supporting all authentication methods.
      * For web clients (detected via User-Agent), sets JWT as HttpOnly cookie.
@@ -45,7 +58,6 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request,
-            @RequestHeader(value = "User-Agent", defaultValue = "") String userAgent,
             HttpServletResponse response) {
         AuthService.AuthResult result;
 
@@ -55,10 +67,8 @@ public class AuthController {
             result = authService.loginEmail(request.email(), request.password());
         }
 
-        // Set HttpOnly cookie for web clients
-        if (isWebClient(userAgent)) {
-            setJwtCookie(response, result.token());
-        }
+        // Always set HttpOnly cookie to keep web session restoration reliable.
+        setJwtCookie(response, result.token());
 
         return ResponseEntity.ok(toResponse(result));
     }
@@ -70,15 +80,11 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequest request,
-            @RequestHeader(value = "User-Agent", defaultValue = "") String userAgent,
             HttpServletResponse response) {
         AuthService.AuthResult result = authService.registerEmail(
                 request.email(), request.password());
 
-        // Set HttpOnly cookie for web clients
-        if (isWebClient(userAgent)) {
-            setJwtCookie(response, result.token());
-        }
+        setJwtCookie(response, result.token());
 
         return ResponseEntity.ok(toResponse(result));
     }
@@ -91,14 +97,11 @@ public class AuthController {
     @Deprecated
     public ResponseEntity<AuthResponse> googleLogin(
             @RequestBody GoogleLoginRequest request,
-            @RequestHeader(value = "User-Agent", defaultValue = "") String userAgent,
             HttpServletResponse response) {
         AuthService.AuthResult result = authService.loginSocial(
                 AuthProvider.GOOGLE, request.idToken());
 
-        if (isWebClient(userAgent)) {
-            setJwtCookie(response, result.token());
-        }
+        setJwtCookie(response, result.token());
 
         return ResponseEntity.ok(toResponse(result));
     }
@@ -109,14 +112,11 @@ public class AuthController {
     @PostMapping("/apple")
     public ResponseEntity<AuthResponse> appleLogin(
             @RequestBody AppleLoginRequest request,
-            @RequestHeader(value = "User-Agent", defaultValue = "") String userAgent,
             HttpServletResponse response) {
         AuthService.AuthResult result = authService.loginSocial(
                 AuthProvider.APPLE, request.idToken());
 
-        if (isWebClient(userAgent)) {
-            setJwtCookie(response, result.token());
-        }
+        setJwtCookie(response, result.token());
 
         return ResponseEntity.ok(toResponse(result));
     }
@@ -164,20 +164,6 @@ public class AuthController {
         }
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookieBuilder.build().toString());
-    }
-
-    /**
-     * Detect if the request is from a web browser.
-     * Mobile apps (React Native) typically don't send standard browser User-Agent strings.
-     */
-    private boolean isWebClient(String userAgent) {
-        if (userAgent == null || userAgent.isBlank()) {
-            return false;
-        }
-        String ua = userAgent.toLowerCase();
-        // Common browser indicators
-        return ua.contains("mozilla") || ua.contains("chrome") || ua.contains("safari")
-                || ua.contains("firefox") || ua.contains("edge") || ua.contains("opera");
     }
 
     // Legacy DTO for backwards compatibility

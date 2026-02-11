@@ -8,7 +8,6 @@ import com.fitnessapp.backend.auth.dto.LoginRequest;
 import com.fitnessapp.backend.auth.dto.RegisterRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.lang.reflect.Field;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +37,7 @@ class AuthControllerTest {
         setField(authController, "cookieSecure", true);
         setField(authController, "cookieSameSite", "Strict");
         setField(authController, "cookieDomain", "");
+        setField(authController, "googleClientId", "google-web-client-id");
     }
 
     private void setField(Object target, String fieldName, Object value) throws Exception {
@@ -57,7 +57,7 @@ class AuthControllerTest {
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-        ResponseEntity<AuthResponse> response = authController.login(request, "", servletResponse);
+        ResponseEntity<AuthResponse> response = authController.login(request, servletResponse);
 
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
@@ -73,10 +73,9 @@ class AuthControllerTest {
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-        // React Native user agent - not a browser
-        authController.login(request, "okhttp/4.12.0", servletResponse);
+        authController.login(request, servletResponse);
 
-        verify(servletResponse, never()).addHeader(eq(HttpHeaders.SET_COOKIE), anyString());
+        verify(servletResponse).addHeader(eq(HttpHeaders.SET_COOKIE), anyString());
     }
 
     @Test
@@ -86,8 +85,7 @@ class AuthControllerTest {
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-        // Browser user agent
-        authController.login(request, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", servletResponse);
+        authController.login(request, servletResponse);
 
         ArgumentCaptor<String> cookieCaptor = ArgumentCaptor.forClass(String.class);
         verify(servletResponse).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
@@ -111,7 +109,7 @@ class AuthControllerTest {
         when(authService.loginSocial(AuthProvider.GOOGLE, "google-id-token")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-        ResponseEntity<AuthResponse> response = authController.login(request, "", servletResponse);
+        ResponseEntity<AuthResponse> response = authController.login(request, servletResponse);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("google@gmail.com", response.getBody().email());
@@ -131,7 +129,7 @@ class AuthControllerTest {
         when(authService.loginSocial(AuthProvider.APPLE, "apple-id-token")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-        ResponseEntity<AuthResponse> response = authController.login(request, "", servletResponse);
+        ResponseEntity<AuthResponse> response = authController.login(request, servletResponse);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("apple@privaterelay.appleid.com", response.getBody().email());
@@ -149,7 +147,7 @@ class AuthControllerTest {
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-        authController.login(request, "", servletResponse);
+        authController.login(request, servletResponse);
 
         verify(authService).loginEmail(MOCK_EMAIL, "password123");
         verify(authService, never()).loginSocial(any(), anyString());
@@ -162,7 +160,7 @@ class AuthControllerTest {
         when(authService.loginSocial(AuthProvider.GOOGLE, "id-token")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-        authController.login(request, "", servletResponse);
+        authController.login(request, servletResponse);
 
         verify(authService).loginSocial(AuthProvider.GOOGLE, "id-token");
         verify(authService, never()).loginEmail(anyString(), anyString());
@@ -179,7 +177,7 @@ class AuthControllerTest {
         when(authService.registerEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-        ResponseEntity<AuthResponse> response = authController.register(request, "", servletResponse);
+        ResponseEntity<AuthResponse> response = authController.register(request, servletResponse);
 
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
@@ -195,7 +193,7 @@ class AuthControllerTest {
         when(authService.registerEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-        authController.register(request, "Mozilla/5.0 Chrome/120.0", servletResponse);
+        authController.register(request, servletResponse);
 
         ArgumentCaptor<String> cookieCaptor = ArgumentCaptor.forClass(String.class);
         verify(servletResponse).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
@@ -212,10 +210,9 @@ class AuthControllerTest {
         when(authService.registerEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-        // Empty user agent = mobile
-        authController.register(request, "", servletResponse);
+        authController.register(request, servletResponse);
 
-        verify(servletResponse, never()).addHeader(eq(HttpHeaders.SET_COOKIE), anyString());
+        verify(servletResponse).addHeader(eq(HttpHeaders.SET_COOKIE), anyString());
     }
 
     // =========================================================================
@@ -240,51 +237,6 @@ class AuthControllerTest {
     }
 
     // =========================================================================
-    // Web Client Detection
-    // =========================================================================
-
-    @Test
-    void login_detectsVariousBrowserUserAgents() {
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
-        when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
-        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, MOCK_EMAIL, "password123");
-
-        List<String> browserAgents = List.of(
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-                "Mozilla/5.0 Chrome/120.0.0.0 Safari/537.36",
-                "Mozilla/5.0 Firefox/121.0",
-                "Mozilla/5.0 Edg/120.0",
-                "Opera/9.80"
-        );
-
-        for (String ua : browserAgents) {
-            HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-            authController.login(request, ua, servletResponse);
-            verify(servletResponse).addHeader(eq(HttpHeaders.SET_COOKIE), anyString());
-        }
-    }
-
-    @Test
-    void login_detectsNonBrowserUserAgents() {
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
-        when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
-        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, MOCK_EMAIL, "password123");
-
-        List<String> nonBrowserAgents = List.of(
-                "",                    // Empty
-                "okhttp/4.12.0",      // OkHttp (Android)
-                "Expo/1.0",           // Expo app
-                "CFNetwork/1485"      // iOS URLSession
-        );
-
-        for (String ua : nonBrowserAgents) {
-            HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-            authController.login(request, ua, servletResponse);
-            verify(servletResponse, never()).addHeader(eq(HttpHeaders.SET_COOKIE), anyString());
-        }
-    }
-
-    // =========================================================================
     // Legacy Endpoints
     // =========================================================================
 
@@ -296,7 +248,6 @@ class AuthControllerTest {
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
         ResponseEntity<AuthResponse> response = authController.googleLogin(
                 new AuthController.GoogleLoginRequest("google-token"),
-                "",
                 servletResponse
         );
 
@@ -312,7 +263,6 @@ class AuthControllerTest {
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
         ResponseEntity<AuthResponse> response = authController.appleLogin(
                 new AuthController.AppleLoginRequest("apple-token"),
-                "",
                 servletResponse
         );
 
@@ -331,7 +281,7 @@ class AuthControllerTest {
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-        authController.login(request, "Mozilla/5.0", servletResponse);
+        authController.login(request, servletResponse);
 
         ArgumentCaptor<String> cookieCaptor = ArgumentCaptor.forClass(String.class);
         verify(servletResponse).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
@@ -350,7 +300,7 @@ class AuthControllerTest {
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
-        authController.login(request, "Mozilla/5.0", servletResponse);
+        authController.login(request, servletResponse);
 
         ArgumentCaptor<String> cookieCaptor = ArgumentCaptor.forClass(String.class);
         verify(servletResponse).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
@@ -368,5 +318,14 @@ class AuthControllerTest {
         assertTrue(new LoginRequest(AuthProvider.GOOGLE, "token", null, null).isSocialLogin());
         assertTrue(new LoginRequest(AuthProvider.APPLE, "token", null, null).isSocialLogin());
         assertFalse(new LoginRequest(AuthProvider.LOCAL, null, "e@e.com", "pass").isSocialLogin());
+    }
+
+    @Test
+    void getGoogleClientId_returnsConfiguredClientId() {
+        ResponseEntity<java.util.Map<String, String>> response = authController.getGoogleClientId();
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals("google-web-client-id", response.getBody().get("clientId"));
     }
 }
