@@ -4,6 +4,7 @@
  */
 
 import type { SavedRecipe, SavedWorkout } from '@/types';
+import { Platform } from 'react-native';
 import { api } from './apiClient';
 
 /**
@@ -17,6 +18,84 @@ interface PageResult<T> {
   total: number;
   hasNext: boolean;
 }
+
+const WEB_CACHE_TTL_MS = 60 * 1000; // 60s, aligned with backend Cache-Control max-age=60
+const WEB_CACHE_PREFIX = 'aurafit:saved-items:v1';
+
+type StorageLike = {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+};
+
+interface SavedItemsWebCache<T> {
+  cachedAt: number;
+  items: T[];
+}
+
+const getWebSessionStorage = (): StorageLike | null => {
+  if (Platform.OS !== 'web') {
+    return null;
+  }
+  const globalStorage = (globalThis as any)?.sessionStorage;
+  if (!globalStorage) {
+    return null;
+  }
+  return globalStorage as StorageLike;
+};
+
+const webCacheKey = (resource: 'workouts' | 'recipes', userId: string) =>
+  `${WEB_CACHE_PREFIX}:${resource}:${userId}`;
+
+const readWebCache = <T>(key: string): T[] | null => {
+  const storage = getWebSessionStorage();
+  if (!storage) {
+    return null;
+  }
+
+  try {
+    const raw = storage.getItem(key);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as SavedItemsWebCache<T>;
+    if (!parsed || !Array.isArray(parsed.items) || typeof parsed.cachedAt !== 'number') {
+      storage.removeItem(key);
+      return null;
+    }
+    if (Date.now() - parsed.cachedAt > WEB_CACHE_TTL_MS) {
+      storage.removeItem(key);
+      return null;
+    }
+    return parsed.items;
+  } catch {
+    storage.removeItem(key);
+    return null;
+  }
+};
+
+const writeWebCache = <T>(key: string, items: T[]): void => {
+  const storage = getWebSessionStorage();
+  if (!storage) {
+    return;
+  }
+  const payload: SavedItemsWebCache<T> = {
+    cachedAt: Date.now(),
+    items,
+  };
+  storage.setItem(key, JSON.stringify(payload));
+};
+
+const invalidateWebCache = (resource: 'workouts' | 'recipes', userId?: string): void => {
+  if (!userId) {
+    return;
+  }
+  const storage = getWebSessionStorage();
+  if (!storage) {
+    return;
+  }
+  storage.removeItem(webCacheKey(resource, userId));
+};
 
 const extractItems = <T>(response: any): PageResult<T> | null => {
   if (!response) return null;
@@ -39,6 +118,7 @@ export async function saveWorkout(workoutId: string, userId: string): Promise<Sa
     workoutId,
     userId,
   });
+  invalidateWebCache('workouts', userId);
   return response;
 }
 
@@ -50,6 +130,7 @@ export async function saveRecipe(recipeId: string, userId: string): Promise<Save
     recipeId,
     userId,
   });
+  invalidateWebCache('recipes', userId);
   return response;
 }
 
@@ -60,9 +141,16 @@ export async function getSavedWorkouts(userId?: string): Promise<SavedWorkout[]>
   if (!userId) {
     return [];
   }
+  const cacheKey = webCacheKey('workouts', userId);
+  const cached = readWebCache<SavedWorkout>(cacheKey);
+  if (cached) {
+    return cached;
+  }
   const response = await api.get<PageResult<SavedWorkout>>(`/api/v1/workouts/saved?userId=${userId}`);
   const page = extractItems<SavedWorkout>(response);
-  return page?.items ?? [];
+  const items = page?.items ?? [];
+  writeWebCache(cacheKey, items);
+  return items;
 }
 
 /**
@@ -72,9 +160,16 @@ export async function getSavedRecipes(userId?: string): Promise<SavedRecipe[]> {
   if (!userId) {
     return [];
   }
+  const cacheKey = webCacheKey('recipes', userId);
+  const cached = readWebCache<SavedRecipe>(cacheKey);
+  if (cached) {
+    return cached;
+  }
   const response = await api.get<PageResult<SavedRecipe>>(`/api/v1/recipes/saved?userId=${userId}`);
   const page = extractItems<SavedRecipe>(response);
-  return page?.items ?? [];
+  const items = page?.items ?? [];
+  writeWebCache(cacheKey, items);
+  return items;
 }
 
 /**
@@ -85,6 +180,7 @@ export async function removeSavedWorkout(workoutId: string, userId?: string): Pr
     ? `/api/v1/workouts/saved/${workoutId}?userId=${userId}`
     : `/api/v1/workouts/saved/${workoutId}`;
   await api.delete(url);
+  invalidateWebCache('workouts', userId);
 }
 
 /**
@@ -95,6 +191,7 @@ export async function removeSavedRecipe(recipeId: string, userId?: string): Prom
     ? `/api/v1/recipes/saved/${recipeId}?userId=${userId}`
     : `/api/v1/recipes/saved/${recipeId}`;
   await api.delete(url);
+  invalidateWebCache('recipes', userId);
 }
 
 /**

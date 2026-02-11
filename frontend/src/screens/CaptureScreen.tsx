@@ -18,7 +18,7 @@ import { useCameraPermission } from '@/hooks/useCameraPermission';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useGalleryPermission } from '@/hooks/useGalleryPermission';
 import { usePermissionHelper } from '@/hooks/usePermissionHelper';
-import { preferenceStorage, useSavedRecipes, useSavedWorkouts, useSaveRecipe, useSaveWorkout, useUploadRecipe, useUploadWorkout } from '@/services';
+import { preferenceStorage, useSaveRecipe, useSaveWorkout, useUploadRecipe, useUploadWorkout } from '@/services';
 import { RecipeCard, WorkoutCard } from '@/types';
 import { compressImage, formatDifficulty, formatMinutes, formatNumber } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
@@ -54,8 +54,6 @@ export const CaptureScreen = () => {
   const uploadRecipe = useUploadRecipe();
   const saveWorkoutMutation = useSaveWorkout(userId);
   const saveRecipeMutation = useSaveRecipe(userId);
-  const savedWorkoutsQuery = useSavedWorkouts(userId);
-  const savedRecipesQuery = useSavedRecipes(userId);
 
   const [workoutResults, setWorkoutResults] = useState<WorkoutCard[]>([]);
   const [recipeResults, setRecipeResults] = useState<RecipeCard[]>([]);
@@ -195,7 +193,6 @@ export const CaptureScreen = () => {
       }
       try {
         await saveWorkoutMutation.mutateAsync(id);
-        savedWorkoutsQuery.refetch();
         showSnackbar('Workout saved to your library', { variant: 'success' });
       } catch (error) {
         showSnackbar(
@@ -204,7 +201,7 @@ export const CaptureScreen = () => {
         );
       }
     },
-    [saveWorkoutMutation, savedWorkoutsQuery, showSnackbar, userId],
+    [saveWorkoutMutation, showSnackbar, userId],
   );
 
   const handleSaveRecipe = useCallback(
@@ -215,7 +212,6 @@ export const CaptureScreen = () => {
       }
       try {
         await saveRecipeMutation.mutateAsync(id);
-        savedRecipesQuery.refetch();
         showSnackbar('Recipe saved to your library', { variant: 'success' });
       } catch (error) {
         showSnackbar(
@@ -224,7 +220,7 @@ export const CaptureScreen = () => {
         );
       }
     },
-    [saveRecipeMutation, savedRecipesQuery, showSnackbar, userId],
+    [saveRecipeMutation, showSnackbar, userId],
   );
 
   const shouldShowCamera = cameraPerm.state === 'granted';
