@@ -91,7 +91,7 @@ class AuthControllerTest {
         verify(servletResponse).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
 
         String cookie = cookieCaptor.getValue();
-        assertTrue(cookie.contains("aura_jwt=" + MOCK_JWT));
+        assertTrue(cookie.contains("__session=" + MOCK_JWT));
         assertTrue(cookie.contains("HttpOnly"));
         assertTrue(cookie.contains("Secure"));
         assertTrue(cookie.contains("SameSite=Strict"));
@@ -199,7 +199,7 @@ class AuthControllerTest {
         verify(servletResponse).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
 
         String cookie = cookieCaptor.getValue();
-        assertTrue(cookie.contains("aura_jwt=" + MOCK_JWT));
+        assertTrue(cookie.contains("__session=" + MOCK_JWT));
         assertTrue(cookie.contains("HttpOnly"));
     }
 
@@ -231,7 +231,7 @@ class AuthControllerTest {
         verify(servletResponse).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
 
         String cookie = cookieCaptor.getValue();
-        assertTrue(cookie.contains("aura_jwt="));
+        assertTrue(cookie.contains("__session="));
         assertTrue(cookie.contains("Max-Age=0"));
         assertTrue(cookie.contains("HttpOnly"));
     }

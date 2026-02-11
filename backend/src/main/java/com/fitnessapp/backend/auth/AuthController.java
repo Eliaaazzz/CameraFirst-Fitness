@@ -23,7 +23,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthController {
 
-    public static final String JWT_COOKIE_NAME = "aura_jwt";
+    public static final String JWT_COOKIE_NAME = "__session";
 
     private final AuthService authService;
 

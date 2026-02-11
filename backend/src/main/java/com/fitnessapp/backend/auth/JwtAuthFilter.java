@@ -97,7 +97,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     /**
      * Extract JWT from HttpOnly cookie (web clients).
-     * Cookie name: "aura_jwt"
+     * Cookie name: "__session"
      */
     private String extractTokenFromCookie(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
