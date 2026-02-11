@@ -13,8 +13,13 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -25,6 +30,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
     "app.seed.enabled=false"
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ContextConfiguration(classes = UserProfileRepositoryTest.TestJpaConfig.class)
 class UserProfileRepositoryTest {
 
   private static PostgreSQLContainer<?> postgres;
@@ -107,5 +113,12 @@ class UserProfileRepositoryTest {
     assertThat(persisted.getDietaryPreference()).isEqualTo(DietaryPreference.NONE);
     assertThat(persisted.getCreatedAt()).isNotNull();
     assertThat(persisted.getUpdatedAt()).isNotNull();
+  }
+
+  @SpringBootConfiguration
+  @EnableAutoConfiguration
+  @EntityScan(basePackageClasses = {User.class, UserProfile.class})
+  @EnableJpaRepositories(basePackageClasses = {UserRepository.class, UserProfileRepository.class})
+  static class TestJpaConfig {
   }
 }

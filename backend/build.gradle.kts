@@ -75,45 +75,8 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-// Exclude test source files that reference removed/refactored classes
-// to avoid blocking compileTestJava for tests that do compile.
-tasks.withType<JavaCompile>().matching { it.name == "compileTestJava" }.configureEach {
-    exclude("**/RepositoryTests.java")
-    exclude("**/SmartRecipeServiceTest.java")
-    exclude("**/RagPipelineIntegrationTest.java")
-    exclude("**/NutritionLookupServiceMetadataTest.java")
-    exclude("**/UserServiceDeleteUserTest.java")
-    exclude("**/UserLibraryControllerTest.java")
-}
-
 tasks.withType<Test> {
     useJUnitPlatform()
-
-    // Exclude failed/slow/broken integration tests by default to ensure stable builds.
-    // These tests require complex Docker/Testcontainers or have configuration issues.
-    exclude("**/DatabaseSchemaIntegrationTest*")
-    exclude("**/FitnessAppApplicationTests*")
-    exclude("**/RecipePerformanceTest*")
-    exclude("**/*IntegrationTest*")
-    exclude("**/*IntegrationTests*")
-    exclude("**/RepositoryTests*")
-    exclude("**/UserProfile*Test*")
-    exclude("**/UserDeletion*Test*")
-    exclude("**/Nutrition*Test*")
-    exclude("**/RAGPipeline*Test*")
-    exclude("**/CurrentUserControllerTest*")
-    exclude("**/AvatarUpdateIntegrationTest*")
-    exclude("**/LeaderboardControllerTest*")
-    exclude("**/UserLibraryControllerTest*")
-    exclude("**/MealPlanControllerTest*")
-    exclude("**/MealControllerTest*")
-    exclude("**/WeightLogRepositoryTest*")
-    exclude("**/WeightLogControllerTest*")
-
-    // Additional exclusions controlled by property
-    if (project.hasProperty("excludeSlowTests")) {
-        // Reserved for future specific slow tests
-    }
 }
 
 tasks.jacocoTestReport {

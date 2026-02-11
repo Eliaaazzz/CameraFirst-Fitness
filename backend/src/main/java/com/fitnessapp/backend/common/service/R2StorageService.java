@@ -30,10 +30,10 @@ public class R2StorageService {
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
 
-    @Value("${r2.bucket:${R2_BUCKET_NAME}}")
+    @Value("${r2.bucket:${R2_BUCKET_NAME:test-bucket}}")
     private String bucket;
 
-    @Value("${r2.public-url:${R2_PUBLIC_URL}}")
+    @Value("${r2.public-url:${R2_PUBLIC_URL:https://example.invalid}}")
     private String publicUrl;
 
     /**

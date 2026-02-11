@@ -77,7 +77,7 @@ class CurrentUserControllerTest {
         .heightCm(172)
         .weightKg(new BigDecimal("70.0"))
         .build()));
-    when(userService.validateAndGetStreak(userId)).thenReturn(5);
+    when(userService.validateAndGetStreak(userId, null)).thenReturn(5);
 
     mockMvc.perform(get("/api/v1/me"))
         .andExpect(status().isOk())

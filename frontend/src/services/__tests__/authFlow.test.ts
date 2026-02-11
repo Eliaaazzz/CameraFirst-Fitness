@@ -331,36 +331,27 @@ describe('Auth API Data Flow', () => {
       expect(isEmailValid('@')).toBe(true); // Minimal - backend does stricter validation
     });
 
-    it('RegisterScreen password validation requires >= 6 characters', () => {
+    it('RegisterScreen password validation requires >= 8 characters', () => {
       // RegisterScreen validation (line 168)
-      const isPasswordValid = (password: string) => password.length >= 6;
+      const isPasswordValid = (password: string) => password.length >= 8;
 
-      expect(isPasswordValid('123456')).toBe(true);
-      expect(isPasswordValid('12345')).toBe(false);
+      expect(isPasswordValid('12345678')).toBe(true);
+      expect(isPasswordValid('1234567')).toBe(false);
       expect(isPasswordValid('')).toBe(false);
     });
 
-    /**
-     * BUG: Frontend RegisterScreen allows passwords of 6-7 characters,
-     * but backend RegisterRequest requires min 8 characters.
-     * Users with 6-7 char passwords pass frontend validation but get
-     * rejected by the backend.
-     *
-     * Frontend: password.length >= 6 (RegisterScreen.tsx:168)
-     * Backend: @Size(min = 8) (RegisterRequest.java:16)
-     */
-    it('should document password validation mismatch between frontend (>=6) and backend (>=8)', () => {
-      const frontendValid = (pw: string) => pw.length >= 6;
+    it('frontend and backend password validation are aligned at >=8', () => {
+      const frontendValid = (pw: string) => pw.length >= 8;
       const backendValid = (pw: string) => pw.length >= 8;
 
-      // These passwords pass frontend but fail backend
-      expect(frontendValid('abcdef')).toBe(true);
+      // Both reject too-short passwords
+      expect(frontendValid('abcdef')).toBe(false);
       expect(backendValid('abcdef')).toBe(false);
 
-      expect(frontendValid('abcdefg')).toBe(true);
+      expect(frontendValid('abcdefg')).toBe(false);
       expect(backendValid('abcdefg')).toBe(false);
 
-      // This password passes both
+      // Both accept 8+ length passwords
       expect(frontendValid('abcdefgh')).toBe(true);
       expect(backendValid('abcdefgh')).toBe(true);
     });

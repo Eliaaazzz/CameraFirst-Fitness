@@ -53,6 +53,13 @@ app:
   recipe-generation:
     cache-ttl-hours: 24
 
+r2:
+  endpoint: http://localhost:9000
+  access-key: test-access-key
+  secret-key: test-secret-key
+  bucket: test-bucket
+  public-url: https://example.invalid
+
 usda:
   api:
     key: ""

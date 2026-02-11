@@ -51,6 +51,11 @@ class UserDeletionIntegrationTest {
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
         registry.add("spring.flyway.enabled", () -> "true");
+        registry.add("r2.endpoint", () -> "http://localhost:9000");
+        registry.add("r2.access-key", () -> "test-access-key");
+        registry.add("r2.secret-key", () -> "test-secret-key");
+        registry.add("r2.bucket", () -> "test-bucket");
+        registry.add("r2.public-url", () -> "https://example.invalid");
     }
 
     @Autowired
@@ -61,6 +66,9 @@ class UserDeletionIntegrationTest {
 
     @Autowired
     private UserProfileRepository userProfileRepository;
+
+    @Autowired
+    private UserProfileService userProfileService;
 
     private UUID testUserId;
     private User testUser;
@@ -115,12 +123,11 @@ class UserDeletionIntegrationTest {
         @DisplayName("should delete user profile when user is deleted")
         void deleteUserProfileWithUser() {
             // Given - create user profile
-            UserProfile profile = new UserProfile();
-            profile.setUserId(testUserId);
+            UserProfile profile = userProfileService.getOrCreateProfile(testUserId);
             profile.setHeightCm(175);
             profile.setWeightKg(BigDecimal.valueOf(70));
             profile.setAvatarUrl("https://example.com/avatar.jpg");
-            userProfileRepository.save(profile);
+            userProfileService.save(profile);
 
             assertThat(userProfileRepository.findById(testUserId)).isPresent();
 
@@ -135,8 +142,7 @@ class UserDeletionIntegrationTest {
         @DisplayName("should delete user profile with all fields when user is deleted")
         void deleteUserProfileWithAllFieldsWhenUserDeleted() {
             // Given - create user profile with all fields
-            UserProfile profile = new UserProfile();
-            profile.setUserId(testUserId);
+            UserProfile profile = userProfileService.getOrCreateProfile(testUserId);
             profile.setHeightCm(175);
             profile.setWeightKg(BigDecimal.valueOf(70));
             profile.setDailyCalorieTarget(2500);
@@ -145,7 +151,7 @@ class UserDeletionIntegrationTest {
             profile.setDailyFatTarget(80);
             profile.setAvatarUrl("https://example.com/avatar.jpg");
             profile.setAvatarFileKey("avatars/test-user/avatar.jpg");
-            userProfileRepository.save(profile);
+            userProfileService.save(profile);
 
             assertThat(userProfileRepository.findById(testUserId)).isPresent();
 
@@ -167,15 +173,14 @@ class UserDeletionIntegrationTest {
         @DisplayName("should delete user and profile in a single transaction")
         void deleteUserAndProfileInTransaction() {
             // Given - create user profile
-            UserProfile profile = new UserProfile();
-            profile.setUserId(testUserId);
+            UserProfile profile = userProfileService.getOrCreateProfile(testUserId);
             profile.setHeightCm(175);
             profile.setWeightKg(BigDecimal.valueOf(70));
             profile.setDailyCalorieTarget(2500);
             profile.setDailyProteinTarget(180);
             profile.setDailyCarbsTarget(300);
             profile.setDailyFatTarget(80);
-            userProfileRepository.save(profile);
+            userProfileService.save(profile);
 
             // Verify all data exists
             assertThat(userRepository.findById(testUserId)).isPresent();
@@ -220,18 +225,16 @@ class UserDeletionIntegrationTest {
             UUID otherUserId = otherUser.getId();
 
             // Create profile for other user
-            UserProfile otherProfile = new UserProfile();
-            otherProfile.setUserId(otherUserId);
+            UserProfile otherProfile = userProfileService.getOrCreateProfile(otherUserId);
             otherProfile.setHeightCm(180);
             otherProfile.setWeightKg(BigDecimal.valueOf(80));
-            userProfileRepository.save(otherProfile);
+            userProfileService.save(otherProfile);
 
             // Create data for test user
-            UserProfile testProfile = new UserProfile();
-            testProfile.setUserId(testUserId);
+            UserProfile testProfile = userProfileService.getOrCreateProfile(testUserId);
             testProfile.setHeightCm(170);
             testProfile.setWeightKg(BigDecimal.valueOf(65));
-            userProfileRepository.save(testProfile);
+            userProfileService.save(testProfile);
 
             // When - delete test user
             userService.deleteUser(testUserId);
@@ -287,10 +290,7 @@ class UserDeletionIntegrationTest {
         @DisplayName("should handle deletion of user with empty profile fields")
         void deleteUserWithEmptyProfileFields() {
             // Given - create user profile with minimal fields
-            UserProfile profile = new UserProfile();
-            profile.setUserId(testUserId);
-            // Leave most fields null/default
-            userProfileRepository.save(profile);
+            userProfileService.getOrCreateProfile(testUserId);
 
             assertThat(userProfileRepository.findById(testUserId)).isPresent();
 

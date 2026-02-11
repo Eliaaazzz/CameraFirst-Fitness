@@ -165,7 +165,7 @@ export default function RegisterScreen() {
   }, [email]);
 
   const isPasswordValid = useMemo(() => {
-    return password.length >= 6;
+    return password.length >= 8;
   }, [password]);
 
   const doPasswordsMatch = useMemo(() => {
@@ -267,7 +267,7 @@ export default function RegisterScreen() {
 
               <InputField
                 icon="lock-closed-outline"
-                placeholder="Password (min 6 chars)"
+                placeholder="Password (min 8 chars)"
                 value={password}
                 onChangeText={(text) => { setPassword(text); setError(null); }}
                 secureTextEntry

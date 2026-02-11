@@ -33,17 +33,12 @@ import com.fitnessapp.backend.recipe.service.SmartRecipeService.MealPlanResponse
 import com.fitnessapp.backend.recipe.service.SmartRecipeService.NutritionTarget;
 import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
-import com.fitnessapp.backend.workout.entity.WorkoutSession;
-import com.fitnessapp.backend.workout.repository.WorkoutSessionRepository;
 
 @ExtendWith(MockitoExtension.class)
 class SmartRecipeServiceTest {
 
   @Mock
   private UserProfileRepository userProfileRepository;
-
-  @Mock
-  private WorkoutSessionRepository workoutSessionRepository;
 
   @Mock
   private RecipeRepository recipeRepository;
@@ -66,8 +61,12 @@ class SmartRecipeServiceTest {
     objectMapper = new ObjectMapper();
     when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     lenient().doNothing().when(valueOperations).set(anyString(), anyString(), any(Duration.class));
-    smartRecipeService = new SmartRecipeService(userProfileRepository, workoutSessionRepository,
-        recipeRepository, mealPlanHistoryService, objectMapper, redisTemplate);
+    smartRecipeService = new SmartRecipeService(
+        userProfileRepository,
+        recipeRepository,
+        mealPlanHistoryService,
+        objectMapper,
+        redisTemplate);
     ReflectionTestUtils.setField(smartRecipeService, "cacheTtlHours", 24L);
     lenient().when(mealPlanHistoryService.latestPlan(any())).thenReturn(Optional.empty());
     lenient().when(mealPlanHistoryService.storePlan(any(), any(), anyString(), anyString())).thenReturn(null);
@@ -98,13 +97,7 @@ class SmartRecipeServiceTest {
     profile.setDailyCalorieTarget(2500);
     when(userProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
 
-    WorkoutSession session = new WorkoutSession();
-    session.setDurationSeconds(1800);
-    session.setExerciseType("squat");
-    when(workoutSessionRepository.findByUserIdAndStartedAtBetweenOrderByStartedAtDesc(eq(userId), any(), any()))
-        .thenReturn(List.of(session));
-
-    Recipe recipe = Recipe.builder().id(UUID.randomUUID()).title("示例").difficulty("easy").build();
+    Recipe recipe = Recipe.builder().id(UUID.randomUUID()).title("Sample").difficulty("easy").build();
     when(recipeRepository.findTop12ByOrderByCreatedAtDesc()).thenReturn(List.of(recipe));
 
     MealPlanResponse response = smartRecipeService.generateMealPlan(userId);
@@ -123,9 +116,6 @@ class SmartRecipeServiceTest {
     UserProfile profile = new UserProfile();
     profile.setDailyCalorieTarget(2200);
     when(userProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
-    when(workoutSessionRepository.findByUserIdAndStartedAtBetweenOrderByStartedAtDesc(eq(userId), any(), any()))
-        .thenReturn(List.of());
-
     when(recipeRepository.findTop12ByOrderByCreatedAtDesc()).thenReturn(List.of());
     when(recipeRepository.findAll()).thenReturn(List.of());
 

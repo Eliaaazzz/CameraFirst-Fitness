@@ -52,6 +52,11 @@ class AvatarUpdateIntegrationTest {
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
         registry.add("spring.flyway.enabled", () -> "true");
+        registry.add("r2.endpoint", () -> "http://localhost:9000");
+        registry.add("r2.access-key", () -> "test-access-key");
+        registry.add("r2.secret-key", () -> "test-secret-key");
+        registry.add("r2.bucket", () -> "test-bucket");
+        registry.add("r2.public-url", () -> "https://example.invalid");
     }
 
     @Autowired
@@ -67,9 +72,12 @@ class AvatarUpdateIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        userProfileRepository.deleteAll();
+        userRepository.deleteAll();
+
         // Create a test user
         User testUser = new User();
-        testUser.setEmail("test-avatar@example.com");
+        testUser.setEmail("test-avatar-" + UUID.randomUUID() + "@example.com");
         testUser.setLevel("beginner");
         testUser.setTimeBucket(0);
         testUser = userRepository.save(testUser);
