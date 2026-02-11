@@ -5,9 +5,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -118,6 +120,8 @@ class UserLibraryControllerTest {
 
     mockMvc.perform(get("/api/v1/recipes/saved"))
         .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", containsString("max-age=60")))
+        .andExpect(header().string("Cache-Control", containsString("private")))
         .andExpect(jsonPath("$.data.items[0].title").value("Protein Bowl"));
 
     ArgumentCaptor<Sort> sortCaptor = ArgumentCaptor.forClass(Sort.class);
@@ -148,6 +152,8 @@ class UserLibraryControllerTest {
 
     mockMvc.perform(get("/api/v1/workouts/saved").param("userId", userId.toString()))
         .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", containsString("max-age=60")))
+        .andExpect(header().string("Cache-Control", containsString("private")))
         .andExpect(jsonPath("$.data.items[0].youtubeId").value("abc123"));
 
     ArgumentCaptor<Sort> workoutSortCaptor = ArgumentCaptor.forClass(Sort.class);
