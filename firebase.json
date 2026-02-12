@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "public",
+    "public": "frontend/dist",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -8,11 +8,15 @@
     ],
     "rewrites": [
       {
-        "source": "/**",
+        "source": "/api/**",
         "run": {
           "serviceId": "aurafitv",
-          "region": "australia-southeast1" 
+          "region": "australia-southeast1"
         }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
       }
     ]
   }

@@ -49,9 +49,9 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
     private static final String PROVIDER_NAME = "gemini";
     private static final String DEFAULT_MODEL = "gemini-2.5-flash";
     
-    // Keep output bounded to reduce generation latency while preserving schema completeness.
-    private static final int MAX_OUTPUT_TOKENS = 1200;
-    private static final int TIMEOUT_SECONDS = 14;
+    // Must be large enough for multi-dish scenes with many items; truncated JSON causes parse failures.
+    private static final int MAX_OUTPUT_TOKENS = 4096;
+    private static final int TIMEOUT_SECONDS = 25;
     private static final int MAX_RETRIES = 1;
     private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;
     private static final Set<String> SUPPORTED_IMAGE_TYPES = Set.of(
