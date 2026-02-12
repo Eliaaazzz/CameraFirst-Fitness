@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -147,6 +148,7 @@ export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
             </View>
             <HydrationAddButton
               onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
                 addHydrationCup().catch((error) => {
                   console.warn('[DashboardWidgets] Failed to add hydration cup:', error);
                 });
@@ -168,9 +170,14 @@ function HydrationAddButton({ onPress }: { onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.hydrationPlus, pressed && { opacity: 0.7 }]}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      accessibilityRole="button"
+      accessibilityLabel="Add one cup of water"
+      style={({ pressed }) => [styles.hydrationPlus, pressed && { opacity: 0.6, transform: [{ scale: 0.92 }] }]}
     >
-      <Plus size={16} weight="bold" color="#06B6D4" />
+      <View pointerEvents="none">
+        <Plus size={16} weight="bold" color="#06B6D4" />
+      </View>
     </Pressable>
   );
 }
@@ -302,12 +309,14 @@ const styles = StyleSheet.create({
     color: '#164E63', // Cyan-900
   },
   hydrationPlus: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     ...saasShadows.subtle,
   },
   hydrationContent: {

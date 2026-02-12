@@ -109,6 +109,116 @@ function filenameForMimeType(mimeType: string): string {
   }
 }
 
+const SUPPORTED_UPLOAD_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+]);
+
+function isSupportedUploadMimeType(type: string | undefined | null): boolean {
+  return SUPPORTED_UPLOAD_MIME_TYPES.has(normalizeMimeType(type));
+}
+
+function inferMimeTypeFromUri(uri: string): string {
+  if (!uri) return '';
+  const normalizedUri = uri.split('?')[0].split('#')[0].toLowerCase();
+
+  if (normalizedUri.endsWith('.jpg') || normalizedUri.endsWith('.jpeg')) return 'image/jpeg';
+  if (normalizedUri.endsWith('.png')) return 'image/png';
+  if (normalizedUri.endsWith('.gif')) return 'image/gif';
+  if (normalizedUri.endsWith('.webp')) return 'image/webp';
+  if (normalizedUri.endsWith('.heic')) return 'image/heic';
+  if (normalizedUri.endsWith('.heif')) return 'image/heif';
+
+  return '';
+}
+
+function dataUriToBlob(dataUri: string): Blob {
+  const match = dataUri.match(/^data:([^;,]+)?(?:;charset=[^;,]+)?(;base64)?,(.*)$/i);
+  if (!match) {
+    throw new Error('Invalid data URI');
+  }
+
+  const mimeType = normalizeMimeType(match[1] || 'application/octet-stream') || 'application/octet-stream';
+  const isBase64 = Boolean(match[2]);
+  const dataPart = match[3] || '';
+
+  if (isBase64) {
+    const binary = atob(dataPart);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new Blob([bytes], { type: mimeType });
+  }
+
+  return new Blob([decodeURIComponent(dataPart)], { type: mimeType });
+}
+
+async function readWebImageBlob(imageUri: string): Promise<Blob> {
+  if (imageUri.startsWith('data:')) {
+    return dataUriToBlob(imageUri);
+  }
+
+  const response = await fetch(imageUri);
+  if (!response.ok) {
+    throw new Error(`Failed to read image URI (HTTP ${response.status})`);
+  }
+
+  const blob = await response.blob();
+  if (blob.size === 0) {
+    throw new Error('Image blob is empty');
+  }
+
+  return blob;
+}
+
+async function convertBlobToJpegOnWeb(blob: Blob, quality = 0.9): Promise<Blob | null> {
+  if (typeof document === 'undefined' || typeof URL === 'undefined') {
+    return null;
+  }
+
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Failed to decode image'));
+      img.src = objectUrl;
+    });
+
+    const width = image.naturalWidth || image.width;
+    const height = image.naturalHeight || image.height;
+    if (!width || !height) {
+      throw new Error('Decoded image has invalid dimensions');
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Canvas 2D context is unavailable');
+    }
+
+    context.drawImage(image, 0, 0, width, height);
+
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (output) => (output ? resolve(output) : reject(new Error('Canvas toBlob returned null'))),
+        'image/jpeg',
+        quality
+      );
+    });
+  } catch (error) {
+    console.warn('[APIClient] Failed to convert image blob to JPEG:', error);
+    return null;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 interface RequestConfig {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
@@ -352,35 +462,76 @@ export async function uploadImage<T>(
 
   // Platform-specific image handling
   if (Platform.OS === 'web') {
-    // On web, convert data URI to Blob
-    const response = await fetch(imageUri);
-    let blob = await response.blob();
+    let blob: Blob;
+    try {
+      blob = await readWebImageBlob(imageUri);
+    } catch (error: any) {
+      throw new APIError(
+        'Unable to read selected image. Please choose the image again.',
+        400,
+        error
+      );
+    }
 
-    // Ensure we send a real image MIME type instead of empty/octet-stream.
-    // This helps the backend validate uploads and helps Gemini decode bytes correctly.
-    const normalizedType = normalizeMimeType(blob.type);
-    if (!normalizedType || normalizedType === 'application/octet-stream') {
-      console.warn('[APIClient] Blob MIME type missing/generic; attempting magic-byte detection...');
-      const detected = await detectImageMimeType(blob);
-      if (detected) {
-        blob = new Blob([blob], { type: detected });
-        console.log('[APIClient] Detected blob MIME type:', detected);
-      } else {
-        // Best-effort fallback. If bytes aren't JPEG, the backend/AI may reject it, but this
-        // is still better than "application/octet-stream" which is guaranteed to break.
-        blob = new Blob([blob], { type: 'image/jpeg' });
-        console.warn('[APIClient] Could not detect MIME type; falling back to image/jpeg');
+    let mimeType = normalizeMimeType(blob.type);
+    const detectedType = await detectImageMimeType(blob);
+
+    // Prefer detected signature when browser did not provide a concrete image MIME.
+    if ((!mimeType || mimeType === 'application/octet-stream') && detectedType) {
+      mimeType = detectedType;
+      blob = new Blob([blob], { type: mimeType });
+      console.log('[APIClient] Web image MIME detected from bytes:', mimeType);
+    }
+
+    // Fix mismatched browser metadata if signature is recognized and supported.
+    if (!isSupportedUploadMimeType(mimeType) && isSupportedUploadMimeType(detectedType)) {
+      mimeType = normalizeMimeType(detectedType);
+      blob = new Blob([blob], { type: mimeType });
+      console.warn('[APIClient] Corrected web image MIME using magic bytes:', mimeType);
+    }
+
+    // Last resort for unsupported/unknown browser types (e.g., image/heic):
+    // decode and transcode to JPEG in-browser so backend + Gemini accept it.
+    if (!isSupportedUploadMimeType(mimeType)) {
+      const converted = await convertBlobToJpegOnWeb(blob);
+      if (converted) {
+        blob = converted;
+        mimeType = 'image/jpeg';
+        console.log('[APIClient] Converted unsupported web image to JPEG before upload');
       }
     }
 
-    const finalType = normalizeMimeType(blob.type) || 'image/jpeg';
-    formData.append('image', blob, filenameForMimeType(finalType));
-  } else {
-    // On mobile (iOS/Android): Convert HEIC to JPEG using expo-image-manipulator
-    // This is CRITICAL for iPhone users as iOS default format is HEIC
-    let processedUri = imageUri;
+    if (!isSupportedUploadMimeType(mimeType)) {
+      throw new APIError(
+        `Unsupported image format${mimeType ? `: ${mimeType}` : ''}. Please use JPG, PNG, GIF, or WebP.`,
+        400
+      );
+    }
 
-    if (!options?.skipMobileCompression) {
+    if (blob.size === 0) {
+      throw new APIError('Selected image is empty. Please choose another image.', 400);
+    }
+
+    formData.append('image', blob, filenameForMimeType(mimeType));
+  } else {
+    // On mobile (iOS/Android), skip compression only when URI clearly points to a
+    // backend-supported format. Unknown/HEIC URIs must be converted to JPEG.
+    const inferredMimeType = inferMimeTypeFromUri(imageUri);
+    const skipCompressionSafely =
+      Boolean(options?.skipMobileCompression) && isSupportedUploadMimeType(inferredMimeType);
+
+    let processedUri = imageUri;
+    let finalMimeType = skipCompressionSafely
+      ? normalizeMimeType(inferredMimeType)
+      : 'image/jpeg';
+
+    if (!skipCompressionSafely) {
+      if (options?.skipMobileCompression) {
+        console.warn(
+          '[APIClient] skipMobileCompression requested but URI is not a confirmed supported image type; forcing JPEG conversion',
+          { inferredMimeType: inferredMimeType || 'unknown' }
+        );
+      }
       try {
         // Dynamic import to avoid bundling on web
         const { compressImage } = await import('../utils/imageHelpers');
@@ -392,6 +543,7 @@ export async function uploadImage<T>(
           quality: 0.85
         });
         processedUri = result.uri;
+        finalMimeType = 'image/jpeg';
 
         console.log('[APIClient] Image converted to JPEG:', {
           original: imageUri.slice(-30),
@@ -399,15 +551,24 @@ export async function uploadImage<T>(
           size: `${Math.round(result.size / 1024)}KB`
         });
       } catch (error) {
-        // If conversion fails, try with original (may fail on backend for HEIC)
-        console.warn('[APIClient] HEIC conversion failed, using original:', error);
+        if (!isSupportedUploadMimeType(inferredMimeType)) {
+          throw new APIError(
+            'Unable to prepare image for upload. Please choose a JPG/PNG image or retake the photo.',
+            400,
+            error
+          );
+        }
+
+        // Fallback to original URI only when it is already in a supported format.
+        finalMimeType = normalizeMimeType(inferredMimeType);
+        console.warn('[APIClient] JPEG conversion failed, uploading original supported format:', error);
       }
     } else {
       console.log('[APIClient] Skipping extra mobile compression for preprocessed image');
     }
 
-    const filename = 'image.jpg'; // Always use .jpg extension
-    const type = 'image/jpeg';
+    const type = normalizeMimeType(finalMimeType) || 'image/jpeg';
+    const filename = filenameForMimeType(type);
 
     formData.append('image', {
       uri: processedUri,

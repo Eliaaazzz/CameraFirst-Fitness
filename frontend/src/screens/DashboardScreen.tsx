@@ -26,7 +26,6 @@ import { StateView } from '@/components/common/StateView';
 import { DashboardWidgets, QuickActionsCard } from '@/components/dashboard';
 import { ScreenLayout } from '@/components/layout';
 import { MealImage } from '@/components/nutrition/MealImage';
-import { NutritionPieChart } from '@/components/nutrition/NutritionPieChart';
 import { NutritionRingsCard } from '@/components/nutrition/NutritionRingsCard';
 import WelcomeTourCard from '@/components/WelcomeTourCard';
 import { SNAP_MEAL_STEP, TODAYS_NUTRITION_STEP } from '@/config/tourSteps';
@@ -427,18 +426,6 @@ const DashboardScreen = () => {
         <View style={styles.nutritionLoadingContainer}>
           <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
         </View>
-      ) : Platform.OS === 'web' && showSidebar ? (
-        <View style={styles.nutritionCardExpanded}>
-          <NutritionPieChart
-            data={{
-              calories: { current: nutritionData.calories, target: calorieGoal },
-              protein: { current: nutritionData.protein.current, target: proteinGoal },
-              carbs: { current: nutritionData.carbs.current, target: carbsGoal },
-              fat: { current: nutritionData.fat.current, target: fatGoal },
-            }}
-            showFat={true}
-          />
-        </View>
       ) : (
         <NutritionRingsCard
           data={{
@@ -719,11 +706,6 @@ const styles = StyleSheet.create({
     minHeight: 280,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  // Expanded nutrition card for desktop - takes more vertical space
-  nutritionCardExpanded: {
-    flex: 1,
-    minHeight: 280,
   },
   header: {
     flexDirection: 'row',
