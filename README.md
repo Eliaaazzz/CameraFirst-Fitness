@@ -166,7 +166,7 @@ npm run docker:supabase:up
 
 ### Production (Google Cloud + Firebase)
 - Backend: Google Cloud Run (Docker), configured via `cloudbuild.yaml`
-- Frontend: Firebase Hosting, with API proxy to Cloud Run
+- Frontend: Firebase Hosting (`frontend/dist`), with `/api/**` proxy to Cloud Run
 
 ### Manual Build
 ```bash
@@ -178,6 +178,15 @@ npm run frontend:build
 ```
 
 See `cloudbuild.yaml` and `firebase.json` for deployment configuration.
+
+### Frontend Hosting Deploy
+```bash
+# Build latest web bundle into frontend/dist
+npm run frontend:build
+
+# Deploy only Firebase Hosting (serves frontend/dist)
+npm run deploy:hosting
+```
 
 ## Documentation
 

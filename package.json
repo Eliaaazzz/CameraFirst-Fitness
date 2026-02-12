@@ -26,7 +26,8 @@
     "docker:supabase:up": "docker compose -f infrastructure/docker-compose.supabase.yml up -d",
     "docker:supabase:down": "docker compose -f infrastructure/docker-compose.supabase.yml down",
     "test": "npm run frontend:test && npm run backend:test",
-    "clean": "npm run backend:clean && rm -rf frontend/node_modules shared/node_modules node_modules"
+    "clean": "npm run backend:clean && rm -rf frontend/node_modules shared/node_modules node_modules",
+    "deploy:hosting": "npm run frontend:build && firebase deploy --only hosting"
   },
   "engines": {
     "node": ">=18.0.0"
