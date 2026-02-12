@@ -6,13 +6,12 @@ import { ChartLine, ClockCounterClockwise, Export, Scales } from 'phosphor-react
 
 import { Text, useSnackbar } from '@/components';
 import { BentoCard } from '@/components/common/BentoCard';
+import { ExportDataModal } from '@/components/dashboard/ExportDataModal';
 import { TourGuideZone } from '@/components/tour/TourProvider';
 import { WeightLogModal } from '@/components/weight';
 import { QUICK_ACTIONS_STEP } from '@/config/tourSteps';
-import { getWeightHistory, type WeightLogResponse } from '@/services/weightApi';
 import { useLanguageStore } from '@/stores';
-import { BRAND_COLORS, formatLocalDateKey } from '@/utils';
-import { getFriendlyErrorMessage } from '@/utils/errors';
+import { BRAND_COLORS } from '@/utils';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -22,49 +21,6 @@ const tint = (hex: string, alpha = 0.12): string => {
   const g = Number.parseInt(h.slice(2, 4), 16);
   const b = Number.parseInt(h.slice(4, 6), 16);
   return `rgba(${r},${g},${b},${alpha})`;
-};
-
-const csvEscape = (value: unknown): string => {
-  const str = value === null || value === undefined ? '' : String(value);
-  if (/[\",\r\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
-  return str;
-};
-
-const buildWeightCsv = (rows: WeightLogResponse[]): string => {
-  const header = ['Date', 'WeightKg', 'BodyFatPercentage', 'MuscleMassKg', 'Note'];
-  const sorted = [...rows].sort((a, b) => a.logDate.localeCompare(b.logDate));
-
-  const lines = [header.join(',')];
-  for (const row of sorted) {
-    lines.push(
-      [
-        row.logDate,
-        row.weightKg,
-        row.bodyFatPercentage ?? '',
-        row.muscleMassKg ?? '',
-        row.note ?? '',
-      ]
-        .map(csvEscape)
-        .join(',')
-    );
-  }
-
-  return lines.join('\n');
-};
-
-const downloadTextFileOnWeb = (filename: string, content: string, mimeType: string) => {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-
-  // Let the click finish before revoking.
-  setTimeout(() => URL.revokeObjectURL(url), 0);
 };
 
 const QUICK_ACTIONS = [
@@ -148,35 +104,7 @@ export function QuickActionsCard() {
   const { t } = useLanguageStore();
   const { showSnackbar } = useSnackbar();
   const [showWeightModal, setShowWeightModal] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-
-  const exportWeightData = useCallback(async () => {
-    if (Platform.OS !== 'web') {
-      showSnackbar('Export is available on web only', { variant: 'error' });
-      return;
-    }
-    if (isExporting) return;
-
-    setIsExporting(true);
-    try {
-      const endDate = formatLocalDateKey(new Date());
-      const startDate = '1970-01-01';
-
-      const rows = await getWeightHistory(startDate, endDate);
-      if (!rows.length) {
-        showSnackbar('No weight logs to export yet', { variant: 'error' });
-        return;
-      }
-
-      const csv = buildWeightCsv(rows);
-      downloadTextFileOnWeb(`aurafit-weight-${endDate}.csv`, csv, 'text/csv;charset=utf-8');
-      showSnackbar('Weight data exported', { variant: 'success' });
-    } catch (e) {
-      showSnackbar(getFriendlyErrorMessage(e), { variant: 'error' });
-    } finally {
-      setIsExporting(false);
-    }
-  }, [isExporting, showSnackbar]);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const onActionPress = useCallback((action: QuickAction) => {
     if (action.key === 'weight') {
@@ -184,11 +112,15 @@ export function QuickActionsCard() {
       return;
     }
     if (action.key === 'export') {
-      void exportWeightData();
+      if (Platform.OS !== 'web') {
+        showSnackbar('Export insights are available on web only', { variant: 'error' });
+        return;
+      }
+      setShowExportModal(true);
       return;
     }
     navigation.navigate('Profile', { screen: action.screen });
-  }, [exportWeightData, navigation]);
+  }, [navigation, showSnackbar]);
 
   return (
     <>
@@ -211,7 +143,6 @@ export function QuickActionsCard() {
                 label={t[action.labelKey] as string}
                 onPress={() => onActionPress(action)}
                 iconOffsetY={'iconOffsetY' in action ? action.iconOffsetY : undefined}
-                disabled={action.key === 'export' && isExporting}
               />
             ))}
           </View>
@@ -221,6 +152,11 @@ export function QuickActionsCard() {
       <WeightLogModal
         visible={showWeightModal}
         onDismiss={() => setShowWeightModal(false)}
+      />
+
+      <ExportDataModal
+        visible={showExportModal}
+        onDismiss={() => setShowExportModal(false)}
       />
     </>
   );

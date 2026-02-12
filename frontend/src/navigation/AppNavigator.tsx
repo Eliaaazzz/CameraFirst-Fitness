@@ -251,8 +251,12 @@ const cameraButtonStyles = StyleSheet.create({
   container: {
     position: 'relative',
     top: -20,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'transparent',
     shadowColor: BRAND_COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -268,8 +272,6 @@ const cameraButtonStyles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
   },
 });
 
