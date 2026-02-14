@@ -40,11 +40,9 @@ export const Card = ({
     Platform.OS === 'web' && enableHover && onPress
       ? {
           cursor: 'pointer' as const,
-          transition: 'all 0.2s ease-out',
-          transform: isHovered ? [{ translateY: -2 }] : [],
+          transition: 'border-color 0.2s ease-out',
           ...(isHovered && {
-            boxShadow: '0 2px 4px 0 rgba(0, 0, 0, 0.06), 0 8px 24px 0 rgba(124, 58, 237, 0.12)',
-            borderColor: 'rgba(124, 58, 237, 0.15)',
+            borderColor: 'rgba(209, 213, 219, 1)',
           }),
         }
       : {};
@@ -68,10 +66,10 @@ export const Card = ({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radii.xl,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: 'rgba(229, 231, 235, 0.6)', // Ultra-thin gray border for premium feel
+    borderRadius: radii['2xl'],
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.48)',
   },
   content: {
     paddingHorizontal: 0,

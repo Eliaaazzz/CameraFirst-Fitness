@@ -164,10 +164,10 @@ export function QuickActionsCard() {
 
 const styles = StyleSheet.create({
   sectionLabel: {
-    color: '#6B7280',
+    color: '#7A6B5C',
     fontSize: 11,
-    letterSpacing: 1,
-    marginBottom: 16,
+    letterSpacing: 1.2,
+    marginBottom: 14,
   },
   actionsGrid: {
     ...(Platform.OS === 'web'
@@ -186,12 +186,17 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.58)',
+    borderRadius: 16,
     padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.48)',
     gap: 8,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 10,
+    shadowOpacity: 0.03,
+    elevation: 1,
     ...(Platform.OS !== 'web' && {
       flexBasis: '47%',
       flexGrow: 1,
@@ -199,28 +204,30 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'all 0.15s ease-out',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
     }),
   },
   actionButtonHovered: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#DDE3EC',
+    backgroundColor: 'rgba(255,255,255,0.76)',
+    borderColor: 'rgba(255,255,255,0.66)',
   },
   actionButtonDisabled: {
     opacity: 0.55,
   },
   actionIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 0.5,
   },
   actionText: {
-    color: '#4B5563',
+    color: '#6E5E4D',
     fontSize: 12,
-    lineHeight: 14,
-    minHeight: 28,
+    lineHeight: 15,
+    minHeight: 30,
     textAlign: 'center',
   },
 });

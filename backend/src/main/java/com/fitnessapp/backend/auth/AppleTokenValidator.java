@@ -16,10 +16,13 @@ import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.RSAPublicKeySpec;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +43,7 @@ public class AppleTokenValidator implements SocialTokenValidator {
             .build();
 
     @Value("${app.apple.client-id:}")
-    private String clientId;
+    private String clientIdConfig;
 
     private volatile long lastKeyFetch = 0;
 
@@ -64,10 +67,13 @@ public class AppleTokenValidator implements SocialTokenValidator {
             Algorithm algorithm = Algorithm.RSA256(publicKey, null);
             JWTVerifier verifier = JWT.require(algorithm)
                     .withIssuer(APPLE_ISSUER)
-                    .withAudience(clientId)
                     .build();
 
             DecodedJWT verified = verifier.verify(idToken);
+            if (!hasAllowedAudience(verified.getAudience())) {
+                log.warn("Apple token audience is not allowed. aud={}", verified.getAudience());
+                return Optional.empty();
+            }
 
             String email = verified.getClaim("email").asString();
             if (email == null || email.isBlank()) {
@@ -149,11 +155,32 @@ public class AppleTokenValidator implements SocialTokenValidator {
 
     @PostConstruct
     void init() {
-        if (clientId == null || clientId.isBlank()) {
+        if (getAllowedClientIds().isEmpty()) {
             log.warn("Apple client ID not configured - Apple Sign In will not work");
         } else {
             // Pre-fetch keys on startup
             refreshKeysIfNeeded();
         }
+    }
+
+    private boolean hasAllowedAudience(List<String> audience) {
+        if (audience == null || audience.isEmpty()) {
+            return false;
+        }
+        List<String> allowedClientIds = getAllowedClientIds();
+        if (allowedClientIds.isEmpty()) {
+            return false;
+        }
+        return audience.stream().anyMatch(allowedClientIds::contains);
+    }
+
+    private List<String> getAllowedClientIds() {
+        if (clientIdConfig == null || clientIdConfig.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(clientIdConfig.split(","))
+                .map(String::trim)
+                .filter(v -> !v.isBlank())
+                .collect(Collectors.toList());
     }
 }

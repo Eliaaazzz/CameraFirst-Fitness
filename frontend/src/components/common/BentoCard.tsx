@@ -1,34 +1,40 @@
 /**
- * BentoCard - Golden Standard Card Component
+ * BentoCard – Liquid Glass Card Component
  *
- * Unified card styling for all dashboard content:
- * - White background (#FFFFFF)
- * - 16px border radius
- * - 24px padding (p-6)
- * - 1px border (#E5E7EB)
- * - Subtle shadow (0 1px 2px rgba(0,0,0,0.05))
+ * Glass-like translucent card that floats above content:
+ * - Semi-transparent white background (content shows through subtly)
+ * - 22px border radius (Apple's rounded geometry)
+ * - 22px padding
+ * - Thin glass stroke (white at low opacity)
+ * - Soft floating shadow
  */
 
 import React from 'react';
 import { Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
-// Golden Standard Card Styles - single source of truth
+// Liquid Glass Card Styles - single source of truth
 export const BENTO_CARD_STYLES: ViewStyle = {
-  backgroundColor: '#FFFFFF',
-  borderRadius: 16,
-  padding: 24,
-  borderWidth: 1,
-  borderColor: '#E5E7EB',
-  // Shadow
-  shadowColor: '#000000',
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.05,
-  shadowRadius: 2,
-  elevation: 1,
+  backgroundColor: 'rgba(255,255,255,0.72)',
+  borderRadius: 22,
+  padding: 22,
+  borderWidth: 0.5,
+  borderColor: 'rgba(255,255,255,0.48)',
+  shadowColor: '#0F172A',
+  shadowOffset: { width: 0, height: 6 },
+  shadowRadius: 20,
+  shadowOpacity: 0.06,
+  elevation: 3,
 };
 
-// Web-specific box-shadow (applied separately)
-const webShadow = Platform.OS === 'web' ? { boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' } : {};
+// Web-specific box-shadow with backdrop blur (glassmorphism)
+const webShadow =
+  Platform.OS === 'web'
+    ? ({
+        boxShadow: '0 8px 28px rgba(15, 23, 42, 0.06)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+      } as any)
+    : {};
 
 interface BentoCardProps {
   children: React.ReactNode;

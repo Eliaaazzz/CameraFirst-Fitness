@@ -59,7 +59,7 @@ const elevationStyles = {
  * Features:
  * - Consistent header with title, optional icon, subtitle, and action
  * - White background with rounded corners
- * - Purple accent support for visual hierarchy
+ * - Warm orange accent support for visual hierarchy
  * - Hover effects on web for interactive cards
  * - SaaS-style shadows for premium feel
  *
@@ -195,26 +195,34 @@ function HeaderActionButton({ icon, onPress, label }: HeaderActionButtonProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(229, 231, 235, 0.6)', // Ultra-thin border
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderRadius: 22,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.48)',
     padding: spacing.lg,
+    // Floating glass shadow
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 20,
+    shadowOpacity: 0.06,
+    elevation: 3,
     ...(Platform.OS === 'web' && {
       transition: 'all 0.2s ease-out',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      boxShadow: '0 8px 28px rgba(15, 23, 42, 0.06)',
     }),
   },
   accentBorder: {
-    borderColor: 'rgba(167, 139, 250, 0.2)', // Subtle primary color border
+    borderColor: 'rgba(249, 115, 22, 0.18)',
   },
   fillHeight: {
     flex: 1,
   },
   cardHovered: {
     ...(Platform.OS === 'web' && {
-      transform: [{ translateY: -2 }],
-      boxShadow: '0 2px 4px 0 rgba(0, 0, 0, 0.06), 0 8px 24px 0 rgba(124, 58, 237, 0.12)',
-      borderColor: 'rgba(124, 58, 237, 0.15)',
+      borderColor: 'rgba(255, 255, 255, 0.72)',
+      boxShadow: '0 12px 36px rgba(15, 23, 42, 0.1)',
     }),
   },
   cardPressed: {

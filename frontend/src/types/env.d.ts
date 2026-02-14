@@ -17,4 +17,7 @@ declare module '@env' {
 
   // Apple Sign-In (optional)
   export const EXPO_PUBLIC_APPLE_SERVICE_ID: string;
+
+  // Facebook Login (optional)
+  export const EXPO_PUBLIC_FACEBOOK_APP_ID: string;
 }

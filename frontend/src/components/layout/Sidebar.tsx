@@ -121,17 +121,17 @@ function NavItemButton({
       : colors.light.textSecondary;
 
   const rowBg = isActive
-    ? tint(BRAND_COLORS.primary, 0.12) // Light Orange Tint
+    ? tint(BRAND_COLORS.primary, 0.14)
     : isHovered
-      ? tint(item.color, 0.08)
+      ? tint(BRAND_COLORS.primary, 0.08)
       : 'transparent';
 
-  // Chip background - Subtle on inactive, transparent white on active
+  // Chip background with warm tint even in idle state
   const chipBg = isActive
-    ? 'rgba(255, 255, 255, 0.2)'
+    ? 'rgba(255, 255, 255, 0.6)'
     : isHovered
-      ? tint(item.color, 0.1)
-      : 'transparent'; // Clean look for inactive
+      ? tint(item.color, 0.12)
+      : '#FFF3E5';
 
   return (
     <AnimatedPressable
@@ -140,7 +140,10 @@ function NavItemButton({
       onPressOut={handlePressOut}
       style={[
         styles.navItem,
-        { backgroundColor: rowBg },
+        {
+          backgroundColor: rowBg,
+          borderColor: isActive ? '#F6C28F' : isHovered ? '#F9D9B6' : 'transparent',
+        },
         isCollapsed && styles.navItemCollapsed,
         animatedStyle,
       ]}
@@ -150,7 +153,7 @@ function NavItemButton({
       })}
     >
       {/* Icon chip */}
-      <View style={[styles.chip, { backgroundColor: chipBg, borderColor: 'transparent' }]}>
+      <View style={[styles.chip, { backgroundColor: chipBg, borderColor: isActive ? '#F6C28F' : '#F5DDC3' }]}>
         <item.Icon
           size={20}
           weight={isActive ? 'fill' : 'regular'} // Filled icon for active state
@@ -315,9 +318,9 @@ const styles = StyleSheet.create({
   container: {
     width: LAYOUT_DIMENSIONS.sidebarWidth,
     height: '100%',
-    backgroundColor: colors.light.background,
+    backgroundColor: '#FFFDF9',
     borderRightWidth: 1,
-    borderRightColor: colors.light.border,
+    borderRightColor: '#F1E8DE',
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.sm,
   },
@@ -344,13 +347,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
   },
   headerPressed: {
-    backgroundColor: tint(BRAND_COLORS.primary, 0.06),
+    backgroundColor: '#FFF2E3',
   },
   toggleIcon: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: colors.light.surface,
+    backgroundColor: '#FFF3E6',
+    borderWidth: 1,
+    borderColor: '#F6C28F',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -359,7 +364,8 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   brandText: {
-    color: BRAND_COLORS.textPrimary,
+    color: '#1F2937',
+    letterSpacing: -0.3,
   },
 
   // Navigation
@@ -374,9 +380,11 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.xs,
     marginTop: 8,
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'transparent',
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
-      transition: 'background-color 0.12s ease-out',
+      transition: 'all 0.12s ease-out',
     }),
   },
   navItemCollapsed: {
@@ -398,7 +406,8 @@ const styles = StyleSheet.create({
   navLabel: {
     marginLeft: 12,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
 
   spacer: {
@@ -413,7 +422,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     marginHorizontal: spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: colors.light.border,
+    borderTopColor: '#F1E8DE',
     marginTop: spacing.md,
     gap: spacing.sm,
     ...(Platform.OS === 'web' && {
@@ -429,7 +438,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: tint(BRAND_COLORS.primary, 0.12),
+    backgroundColor: '#FFF1E3',
+    borderWidth: 1,
+    borderColor: '#F6C28F',
     justifyContent: 'center',
     alignItems: 'center',
   },

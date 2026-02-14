@@ -2,8 +2,10 @@
  * Tour Steps Configuration
  * Defines the content and order of the "Take a Tour" feature
  *
- * 5 steps: Snap Meal → Today's Nutrition → Quick Actions → Workouts → Recipes
+ * Web: 5 steps (includes Quick Actions)
+ * Native: 4 steps (Quick Actions removed from dashboard flow)
  */
+import { Platform } from 'react-native';
 
 export interface TourStep {
   zone: number;
@@ -52,11 +54,13 @@ export const RECIPES_TOUR_STEP: TourStep = {
   text: 'Explore healthy recipes. Search by ingredients, diet, or prep time.',
 };
 
-// All tour steps in order (5 steps)
+const DASHBOARD_TOUR_STEPS: TourStep[] = Platform.OS === 'web'
+  ? [SNAP_MEAL_STEP, TODAYS_NUTRITION_STEP, QUICK_ACTIONS_STEP]
+  : [SNAP_MEAL_STEP, TODAYS_NUTRITION_STEP];
+
+// All tour steps in order
 export const ALL_TOUR_STEPS: TourStep[] = [
-  SNAP_MEAL_STEP,
-  TODAYS_NUTRITION_STEP,
-  QUICK_ACTIONS_STEP,
+  ...DASHBOARD_TOUR_STEPS,
   WORKOUTS_TOUR_STEP,
   RECIPES_TOUR_STEP,
 ];
