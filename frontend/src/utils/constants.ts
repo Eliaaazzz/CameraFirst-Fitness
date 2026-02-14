@@ -1,8 +1,8 @@
 export const APP_NAME = 'FitnessMVP';
 
 /**
- * Premium SaaS Theme - Linear/Stripe Inspired
- * Neutral background with purple primary accents
+ * Brand + UI tokens
+ * Light, warm-neutral palette with liquid-glass friendly surfaces.
  */
 export const BRAND_COLORS = {
   // Primary - Orange (Vibrant, Fitness-focused)
@@ -13,10 +13,10 @@ export const BRAND_COLORS = {
   // Secondary - Cyan (Vibrant, Energetic)
   secondary: '#06B6D4',      // Cyan-500
 
-  // Surfaces - Neutral, Stripe-like
-  background: '#F5F6FA',     // More gray, less purple
+  // Surfaces
+  background: '#FFFFFF',
   surface: '#FFFFFF',
-  surfaceVariant: '#FAFBFC',
+  surfaceVariant: '#F8FAFC',
 
   // Text - Strong hierarchy (depth via weight/size, not gray fade)
   textPrimary: '#111827',     // Gray-900 (titles, headings)
@@ -25,7 +25,7 @@ export const BRAND_COLORS = {
   textDisabled: '#9CA3AF',    // Gray-400 (disabled states only)
 
   // Borders
-  border: '#E9E6F5',          // Subtle purple tint
+  border: '#E5E7EB',
 
   // Semantic colors
   success: '#10B981',
@@ -34,7 +34,19 @@ export const BRAND_COLORS = {
 
   // Tab bar
   tabActive: '#F97316',       // Orange
-  tabInactive: '#374151',     // Deeper gray for readability
+  tabInactive: '#64748B',     // Slate-500
+
+  // Liquid Glass material system
+  // Inspired by Apple's iOS 26 Liquid Glass – translucent layers that
+  // refract ambient color from underlying content.
+  glassFill: 'rgba(255,255,255,0.52)',         // Primary glass surface
+  glassFillStrong: 'rgba(255,255,255,0.72)',    // Elevated glass (tab bar, sheets)
+  glassFillSubtle: 'rgba(255,255,255,0.38)',    // Recessed glass (badges, pills)
+  glassStroke: 'rgba(255,255,255,0.48)',        // Inner edge highlight
+  glassStrokeOuter: 'rgba(0,0,0,0.06)',         // Outer shadow-edge
+  glassEdge: 'rgba(148,163,184,0.18)',          // Ambient edge tint
+  glassSpecular: 'rgba(255,255,255,0.72)',      // Top specular highlight
+  glassSpecularFade: 'rgba(255,255,255,0)',     // Specular gradient end
 
   // Macro Colors - Consistent across the app for distinctness
   macros: {

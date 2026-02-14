@@ -89,8 +89,7 @@ const DashboardScreen = () => {
   const showSidebar = useSidebarVisible(); // Desktop mode detection
   const showInlineGoalsRow = showSidebar && !showRightPanel;
 
-  // Language support
-  const { language, t, toggleLanguage } = useLanguageStore();
+  const { t } = useLanguageStore();
 
   const { data: nutritionData, isLoading: nutritionLoading, refresh } = useDailyNutrition();
   const goals = useGoals(userId);
@@ -479,26 +478,17 @@ const DashboardScreen = () => {
                 </View>
               </View>
             </View>
-            <View style={styles.headerActions}>
-              {/* Language toggle button */}
-              <Pressable
-                style={styles.languageButton}
-                onPress={toggleLanguage}
-              >
-                <Text variant="caption" weight="semibold" style={styles.languageButtonText}>
-                  {language === 'en' ? '中文' : 'EN'}
-                </Text>
-              </Pressable>
-              {/* Hide profile button on desktop (use sidebar instead) */}
-              {!showRightPanel && (
+            {/* Hide profile button on desktop (use sidebar instead) */}
+            {!showRightPanel && (
+              <View style={styles.headerActions}>
                 <Pressable
                   style={styles.profileButton}
                   onPress={() => navigation.navigate('Profile')}
                 >
-                  <Feather name="user" size={24} color={BRAND_COLORS.textPrimary} />
+                  <Feather name="user" size={22} color={BRAND_COLORS.textPrimary} />
                 </Pressable>
-              )}
-            </View>
+              </View>
+            )}
           </View>
 
           {/* Welcome Tour Card for new users */}
@@ -537,8 +527,8 @@ const DashboardScreen = () => {
                     renderNutritionCard()
                   )}
 
-                  {/* Quick Actions (shown inline when right panel is hidden) */}
-                  {!showRightPanel && (
+                  {/* Keep inline quick actions on web only; mobile removes this section */}
+                  {Platform.OS === 'web' && !showRightPanel && (
                     <View style={{ marginTop: spacing.lg }}>
                       <QuickActionsCard />
                     </View>
@@ -660,7 +650,8 @@ const DashboardScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.light.surface,
+    // Subtle warm gradient so glass elements have ambient color to refract
+    backgroundColor: '#F9F7F4',
   },
   content: {
     padding: spacing.lg,
@@ -699,13 +690,14 @@ const styles = StyleSheet.create({
   },
   // Loading placeholder for nutrition card - matches card height
   nutritionLoadingContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderRadius: 22,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.48)',
     minHeight: 280,
     justifyContent: 'center',
     alignItems: 'center',
+    ...saasShadows.subtle,
   },
   header: {
     flexDirection: 'row',
@@ -717,10 +709,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   greeting: {
-    color: colors.light.textMuted,
+    color: '#7A6B5C',
     marginBottom: 2,
     fontSize: 14,
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
   nameRow: {
     flexDirection: 'row',
@@ -729,41 +721,24 @@ const styles = StyleSheet.create({
   },
   userName: {
     color: BRAND_COLORS.textPrimary,
-    letterSpacing: -0.4,
+    letterSpacing: -0.7,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-  },
-  languageButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#FFF7ED',
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...(Platform.OS === 'web' && {
-      cursor: 'pointer' as any,
-      transition: 'all 0.15s ease-out',
-    }),
-  },
-  languageButtonText: {
-    color: BRAND_COLORS.primaryDark,
-    fontSize: 12,
+    gap: spacing.xs,
   },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF7ED',
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(255, 240, 225, 0.7)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(246, 194, 143, 0.6)',
+    paddingHorizontal: 11,
+    paddingVertical: 5,
     borderRadius: 20,
     gap: 4,
+    ...saasShadows.subtle,
   },
   streakText: {
     color: BRAND_COLORS.primaryDark,
@@ -774,12 +749,17 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: BRAND_COLORS.surface,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    ...saasShadows.subtle,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'all 0.15s ease-out',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
     }),
   },
   // Goals card - extends BentoCard with margin
@@ -800,7 +780,7 @@ const styles = StyleSheet.create({
   goalTypeIconSmall: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -847,15 +827,16 @@ const styles = StyleSheet.create({
   },
   // Set goals prompt - Aura look with SaaS shadow
   setGoalsPrompt: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.48)',
+    backgroundColor: 'rgba(255,255,255,0.68)',
     marginBottom: 24,
     ...saasShadows.subtle,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'all 0.2s ease-out',
+      backdropFilter: 'blur(16px)',
     }),
   },
   setGoalsGradient: {
@@ -868,7 +849,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: BRAND_COLORS.primaryTint,
+    backgroundColor: 'rgba(255,241,227,0.7)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(246,194,143,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -879,7 +862,7 @@ const styles = StyleSheet.create({
     color: BRAND_COLORS.textPrimary,
   },
   setGoalsSubtext: {
-    color: colors.light.textMuted,
+    color: '#8B7A6A',
     marginTop: 2,
   },
   setGoalsChevron: {
@@ -888,7 +871,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: BRAND_COLORS.primaryTint,
+    backgroundColor: 'rgba(255,241,227,0.7)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(246,194,143,0.5)',
   },
   // Calorie card - Stripe/Linear style
   calorieCard: {
@@ -932,23 +917,27 @@ const styles = StyleSheet.create({
   compactSnapBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BRAND_COLORS.primary,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    backgroundColor: 'rgba(249, 115, 22, 0.88)',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 183, 122, 0.6)',
     gap: 6,
+    ...saasShadows.subtle,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'opacity 0.2s',
     }),
   },
   compactSnapBtnPressed: {
-    opacity: 0.8,
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
   },
   compactSnapBtnText: {
     color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
   },
   // Meals card - extends BentoCard
   mealsCard: {
@@ -970,9 +959,10 @@ const styles = StyleSheet.create({
   mealsTitle: {
     color: BRAND_COLORS.textPrimary,
     fontWeight: '700',
+    letterSpacing: -0.3,
   },
   mealsSubtitle: {
-    color: '#6B7280',
+    color: '#7A6B5C',
   },
   emptyMealsWrapper: {
     flex: 1,
@@ -985,23 +975,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,
-    backgroundColor: '#FAFAFA',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,253,249,0.6)',
+    borderRadius: 18,
+    borderWidth: 0.5,
+    borderColor: 'rgba(241,232,222,0.5)',
     borderStyle: 'dashed',
     gap: spacing.sm,
     width: '100%',
   },
   emptyMealsContentPressed: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,246,236,0.7)',
     transform: [{ scale: 0.99 }],
   },
   emptyMealsIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,241,227,0.7)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(246,194,143,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
@@ -1014,7 +1006,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyMealsHint: {
-    color: colors.light.textMuted,
+    color: '#8B7A6A',
     marginTop: 2,
     textAlign: 'center',
   },
@@ -1025,8 +1017,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEF2F7',
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(242,233,222,0.6)',
     gap: spacing.md,
   },
   mealDetails: {
@@ -1039,8 +1031,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mealCalories: {
-    color: BRAND_COLORS.primary,
+    color: BRAND_COLORS.primaryDark,
     fontSize: 14,
+    fontWeight: '700',
   },
   mealMetaRow: {
     flexDirection: 'row',

@@ -2,10 +2,11 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { navigationRef } from './navigationService';
 
@@ -55,27 +56,95 @@ const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 /**
- * Tab bar background with subtle top border
- * Creates layered appearance without "floating" effect
+ * Liquid Glass Tab Bar Background
+ *
+ * Recreates Apple's iOS 26 Liquid Glass material:
+ * 1. Deep blur layer (lensing) – refracts ambient content below
+ * 2. Semi-transparent white tint – the "glass" body
+ * 3. Top-edge specular highlight – simulates light hitting the glass surface
+ * 4. Thin inner stroke – defines the glass boundary
+ *
+ * The tab bar floats above content with a soft, diffused shadow.
  */
 const TabBarBackground = () => (
-  <View style={tabBarStyles.background}>
-    <View style={tabBarStyles.topBorder} />
+  <View style={tabBarStyles.shell}>
+    {Platform.OS === 'web' ? (
+      <View style={tabBarStyles.webFallbackBlur} />
+    ) : (
+      <BlurView intensity={56} tint="systemChromeMaterialLight" style={tabBarStyles.blurLayer} />
+    )}
+    {/* Glass body tint */}
+    <LinearGradient
+      colors={['rgba(255,255,255,0.62)', 'rgba(255,255,255,0.44)']}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+      style={tabBarStyles.tintLayer}
+    />
+    {/* Top specular highlight – light hitting the glass edge */}
+    <LinearGradient
+      colors={['rgba(255,255,255,0.78)', 'rgba(255,255,255,0)']}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+      style={tabBarStyles.topSpecular}
+    />
+    {/* Inner edge stroke */}
+    <View style={tabBarStyles.outline} />
+  </View>
+);
+
+/**
+ * Active tab indicator – a pill-shaped glass capsule behind the icon.
+ * Uses a lighter glass fill with inner stroke, matching Apple's tab selection.
+ */
+const TabIconShell = ({ focused, children }: { focused: boolean; children: React.ReactNode }) => (
+  <View style={[tabBarStyles.iconShell, focused && tabBarStyles.iconShellFocused]}>
+    {children}
   </View>
 );
 
 const tabBarStyles = StyleSheet.create({
-  background: {
+  shell: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: BRAND_COLORS.surface,
+    borderRadius: 28,
+    overflow: 'hidden',
   },
-  topBorder: {
+  blurLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  webFallbackBlur: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.58)',
+    backdropFilter: 'blur(40px)',
+    WebkitBackdropFilter: 'blur(40px)',
+  } as any,
+  tintLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  topSpecular: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    height: 12,
+  },
+  outline: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 28,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.52)',
+  },
+  iconShell: {
+    width: 42,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  iconShellFocused: {
+    backgroundColor: 'rgba(255,255,255,0.54)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.68)',
   },
 });
 
@@ -228,6 +297,11 @@ interface CameraTabButtonProps {
   onPress: () => void;
 }
 
+/**
+ * Camera FAB – Liquid Glass floating action button.
+ * Uses the same glass material as the tab bar but with a warm brand tint
+ * that "shines through" the translucent surface.
+ */
 const CameraTabButton = ({ onPress }: CameraTabButtonProps) => (
   <Pressable
     onPress={onPress}
@@ -236,42 +310,60 @@ const CameraTabButton = ({ onPress }: CameraTabButtonProps) => (
       pressed && cameraButtonStyles.pressed,
     ]}
   >
-    <LinearGradient
-      colors={[BRAND_COLORS.primary, '#A78BFA']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={cameraButtonStyles.gradient}
-    >
-      <MaterialCommunityIcons name="camera" size={28} color="#FFFFFF" />
-    </LinearGradient>
+    <View style={cameraButtonStyles.shell}>
+      <BlurView intensity={60} tint="systemChromeMaterialLight" style={StyleSheet.absoluteFillObject} />
+      {/* Brand color tints through the glass */}
+      <LinearGradient
+        colors={['rgba(255,255,255,0.68)', 'rgba(249,115,22,0.28)']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
+      {/* Specular highlight crescent */}
+      <View style={cameraButtonStyles.specular} />
+      <MaterialCommunityIcons name="camera" size={26} color={BRAND_COLORS.primaryDark} />
+    </View>
   </Pressable>
 );
 
 const cameraButtonStyles = StyleSheet.create({
   container: {
     position: 'relative',
-    top: -20,
+    top: -22,
     width: 64,
     height: 64,
     borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
-    shadowColor: BRAND_COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    // Deeper, more diffused shadow for glass float
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    elevation: 0,
   },
   pressed: {
-    transform: [{ scale: 0.95 }],
+    transform: [{ scale: 0.94 }],
   },
-  gradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  shell: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.6)',
+  },
+  specular: {
+    position: 'absolute',
+    top: 4,
+    left: 12,
+    right: 12,
+    height: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.54)',
   },
 });
 
@@ -304,9 +396,17 @@ const MainTabs = () => {
 
     // Render icon without indicator bar (clean design)
     if (config.iconFamily === 'Feather') {
-      return <Feather name={iconName as any} size={size} color={color} />;
+      return (
+        <TabIconShell focused={focused}>
+          <Feather name={iconName as any} size={size} color={color} />
+        </TabIconShell>
+      );
     }
-    return <MaterialCommunityIcons name={iconName as any} size={size} color={color} />;
+    return (
+      <TabIconShell focused={focused}>
+        <MaterialCommunityIcons name={iconName as any} size={size} color={color} />
+      </TabIconShell>
+    );
   };
 
   // Desktop layout with sidebar - filter out the Capture tab
@@ -356,13 +456,14 @@ const MainTabs = () => {
       initialRouteName="Dashboard"
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: BRAND_COLORS.primary,
+        tabBarActiveTintColor: BRAND_COLORS.primaryDark,
         tabBarInactiveTintColor: BRAND_COLORS.tabInactive,
         tabBarHideOnKeyboard: true,
         tabBarLabelStyle: {
           fontSize: isDesktop ? 11 : 10,
-          fontWeight: '600',
-          marginTop: 2,
+          fontWeight: '700',
+          marginTop: 1,
+          letterSpacing: 0.2,
         },
         tabBarItemStyle: {
           flex: 1,
@@ -375,14 +476,17 @@ const MainTabs = () => {
           height: tabBarHeight,
           paddingBottom: tabBarPaddingBottom,
           paddingTop: tabBarPaddingTop,
-          backgroundColor: BRAND_COLORS.surface,
+          backgroundColor: 'transparent',
           borderTopWidth: 0,
-          // Subtle shadow for elevation
-          shadowColor: '#000',
-          shadowOpacity: 0.15,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: -4 },
-          elevation: 8,
+          borderRadius: 28,
+          marginHorizontal: isWeb ? 16 : 12,
+          marginBottom: isWeb ? 12 : 8,
+          // Liquid Glass floating shadow – deeper & wider
+          shadowColor: '#0F172A',
+          shadowOpacity: 0.14,
+          shadowRadius: 28,
+          shadowOffset: { width: 0, height: 10 },
+          elevation: 0,
           // Platform-specific positioning and layout
           ...(isWeb
             ? {
@@ -393,15 +497,15 @@ const MainTabs = () => {
                 alignItems: 'center' as const,
                 width: '100%',
                 position: 'absolute' as const,
-                left: 0,
-                right: 0,
+                left: 16,
+                right: 16,
                 bottom: 0,
               }
             : {
                 // Native: absolute positioning
                 position: 'absolute' as const,
-                left: 0,
-                right: 0,
+                left: 12,
+                right: 12,
                 bottom: 0,
               }),
         },

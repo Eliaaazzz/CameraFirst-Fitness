@@ -4,7 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -17,9 +16,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import CuteAuraLogo, { type CuteAuraLogoVariant } from '../components/common/CuteAuraLogo';
 import { api } from '../services/apiClient';
 import { useAuthStore } from '../stores';
 import { queryClient } from '../services/queryClient';
+const LOGO_VARIANT: CuteAuraLogoVariant = 'sparkle';
 
 // ============================================================================
 // Design Tokens - Orange Theme
@@ -69,17 +70,6 @@ const RADII = {
   xl: 24,
   '2xl': 32,
 };
-
-// ============================================================================
-// AuraFit Logo Component
-// ============================================================================
-const AuraFitLogo = ({ size = 150 }: { size?: number }) => (
-  <Image
-    source={require('../../assets/logo.png')}
-    style={{ width: size, height: size }}
-    resizeMode="contain"
-  />
-);
 
 // ============================================================================
 // Input Field Component
@@ -242,7 +232,7 @@ export default function RegisterScreen() {
           <View style={styles.card}>
             {/* Logo Section */}
             <View style={styles.logoSection}>
-              <AuraFitLogo size={112} />
+              <CuteAuraLogo size={116} variant={LOGO_VARIANT} />
               <Text style={styles.title}>Create Account</Text>
               <Text style={styles.subtitle}>Join AuraFit today!</Text>
             </View>

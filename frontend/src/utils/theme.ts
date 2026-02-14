@@ -1,8 +1,8 @@
 import { Platform } from 'react-native';
 
 /**
- * Premium SaaS Color Palette - Linear + Stripe Inspired
- * Neutral background with purple primary accents
+ * App theme tokens.
+ * Light mode is tuned for a soft "liquid glass" visual language.
  */
 export const colors = {
   light: {
@@ -16,11 +16,11 @@ export const colors = {
     secondary: '#06B6D4',         // Cyan-500
     secondaryContainer: '#CFFAFE',
 
-    // Surfaces - Neutral, premium feel (Linear/Stripe style)
-    background: '#F5F6FA',        // More gray, less purple (Stripe-like)
-    backgroundGradient: ['#F5F6FA', '#FAFBFC'],
+    // Surfaces - warm-neutral white
+    background: '#FFFFFF',
+    backgroundGradient: ['#FFFFFF', '#FFF9F2', '#F8FCFF'],
     surface: '#FFFFFF',
-    surfaceVariant: '#FAFBFC',    // Very light neutral
+    surfaceVariant: '#F8FAFC',
 
     // Text - Strong hierarchy, readable on neutral background
     // Using deeper grays for clarity - hierarchy via weight/size, not fading
@@ -35,12 +35,12 @@ export const colors = {
     warning: '#F59E0B',           // streak/carbs color
     info: '#3B82F6',
 
-    // Borders - Subtle, professional
-    border: '#E9E6F5',            // Slight purple tint for cohesion
-    borderSubtle: '#F3F4F6',
+    // Borders - clean neutral
+    border: '#E6ECF2',
+    borderSubtle: '#EEF3F8',
 
     // Shadow color for consistency
-    shadow: 'rgba(17, 24, 39, 0.08)', // Gray-900 at 8%
+    shadow: 'rgba(15, 23, 42, 0.06)',
 
     overlay: 'rgba(0, 0, 0, 0.5)',
   },
@@ -123,40 +123,49 @@ export const spacing = {
 
 export const radii = {
   sm: 4,
-  md: 6,
-  lg: 8,
-  xl: 10,  // Reduced from 16
-  '2xl': 12, // Reduced from 20
+  md: 8,
+  lg: 12,
+  xl: 16,
+  '2xl': 22,
   pill: 24,
   full: 9999,
 };
 
 /**
- * Premium Shadows - Softer, more diffused
- * Key: Lower opacity, larger radius for that "floating" feel
+ * Liquid Glass Shadows
+ * Deeper offsets & wider radii create the "floating above content" feel
+ * central to Apple's Liquid Glass language.
  */
 export const shadows = {
   light: {
     light: {
-      shadowColor: '#18181B',
+      shadowColor: '#0F172A',
       shadowOffset: { width: 0, height: 2 },
-      shadowRadius: 8,
-      shadowOpacity: 0.02,
+      shadowRadius: 10,
+      shadowOpacity: 0.04,
       elevation: 2,
     },
     medium: {
-      shadowColor: '#18181B',
-      shadowOffset: { width: 0, height: 4 },
-      shadowRadius: 12,
-      shadowOpacity: 0.04,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 6 },
+      shadowRadius: 18,
+      shadowOpacity: 0.06,
       elevation: 4,
     },
     heavy: {
-      shadowColor: '#18181B',
-      shadowOffset: { width: 0, height: 8 },
-      shadowRadius: 16,
-      shadowOpacity: 0.06,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 28,
+      shadowOpacity: 0.08,
       elevation: 8,
+    },
+    // Liquid glass floating shadow for elevated controls (tab bar, FAB)
+    glass: {
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 12 },
+      shadowRadius: 32,
+      shadowOpacity: 0.12,
+      elevation: 10,
     },
     // Premium glow effect for cards
     glow: {
@@ -209,77 +218,81 @@ export const getTheme = (mode: 'light' | 'dark') => ({
 });
 
 /**
- * SaaS-style Shadows - Stripe/Linear inspired
- * Key: Very subtle shadows + 1px border = professional "grounded" feel
+ * Liquid Glass Shadows
+ * Floating glass elements need soft, diffused shadows to feel elevated.
  */
 export const saasShadows = {
-  // Standard card shadow - minimal, almost flat
+  // Standard card shadow - soft floating
   card: Platform.select({
     web: {
-      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.02)', // Very subtle
+      boxShadow: '0 4px 16px rgba(15, 23, 42, 0.05)',
     } as any,
     default: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.02,
-      shadowRadius: 2,
-      elevation: 1,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 16,
+      shadowOpacity: 0.05,
+      elevation: 3,
     },
   }),
-  // Elevated card shadow
+  // Elevated card shadow - more prominent float
   cardElevated: Platform.select({
     web: {
-      boxShadow: '0 2px 4px 0 rgba(0, 0, 0, 0.04)',
+      boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
     } as any,
     default: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 4,
-      elevation: 2,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 8 },
+      shadowRadius: 24,
+      shadowOpacity: 0.08,
+      elevation: 6,
     },
   }),
-  // Subtle shadow
+  // Subtle shadow - barely there
   subtle: Platform.select({
     web: {
-      boxShadow: 'none', // Removed for cleaner look
+      boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
     } as any,
     default: {
-      shadowOpacity: 0,
-      elevation: 0,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 2 },
+      shadowRadius: 8,
+      shadowOpacity: 0.03,
+      elevation: 1,
     },
   }),
 };
 
 /**
- * Premium Card Styles - Stripe/Linear inspired
- * Key: 1px border + minimal shadow = clean, grounded cards
+ * Liquid Glass Card Styles
+ * Semi-transparent backgrounds with soft borders create the glass layer effect.
+ * Content shows through subtly, reinforcing depth & elevation.
  */
 export const cardStyles = {
-  // Standard card - white bg, 1px border, subtle shadow
+  // Standard card - translucent glass surface
   standard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.78)',
     borderWidth: 1,
-    borderColor: '#E2E8F0', // Sharper Gray-200 border
-    borderRadius: radii.xl,
+    borderColor: 'rgba(255,255,255,0.5)',
+    borderRadius: radii['2xl'],
     ...saasShadows.card,
   },
-  // Interactive card - with hover states for web
+  // Interactive card - glass with hover feedback
   interactive: Platform.select({
     web: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: 'rgba(255,255,255,0.78)',
       borderWidth: 1,
-      borderColor: '#E2E8F0',
-      borderRadius: radii.xl,
+      borderColor: 'rgba(255,255,255,0.5)',
+      borderRadius: radii['2xl'],
       cursor: 'pointer' as const,
-      transition: 'border-color 0.15s ease-out, box-shadow 0.15s ease-out',
+      transition: 'border-color 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out',
       ...saasShadows.card,
     } as any,
     default: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: 'rgba(255,255,255,0.78)',
       borderWidth: 1,
-      borderColor: '#E2E8F0',
-      borderRadius: radii.xl,
+      borderColor: 'rgba(255,255,255,0.5)',
+      borderRadius: radii['2xl'],
       ...saasShadows.card,
     },
   }),

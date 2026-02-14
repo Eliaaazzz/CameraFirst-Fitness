@@ -229,6 +229,8 @@ const styles = StyleSheet.create({
   // Goal Banner (additional styles, base from BentoCard)
   goalBanner: {
     overflow: 'hidden',
+    borderColor: 'rgba(255,255,255,0.48)',
+    backgroundColor: 'rgba(255,255,255,0.68)',
   },
   goalBannerHeader: {
     flexDirection: 'row',
@@ -239,21 +241,23 @@ const styles = StyleSheet.create({
   goalIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: 10,
-    backgroundColor: '#FFF7ED',
-    borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 241, 227, 0.7)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(246, 194, 143, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   goalStatusBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: 'rgba(255, 244, 232, 0.7)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(246, 194, 143, 0.5)',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 999,
   },
   goalStatusText: {
-    color: '#10B981',
+    color: '#C2410C',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -261,7 +265,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   goalBannerLabel: {
-    color: '#6B7280',
+    color: '#7A6B5C',
     letterSpacing: 1,
     fontSize: 10,
   },
@@ -273,7 +277,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   goalMetaText: {
-    color: '#4B5563',
+    color: '#6E5E4D',
   },
   goalDecorativeCircle: {
     position: 'absolute',
@@ -282,7 +286,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: 'rgba(6, 182, 212, 0.06)',
+    backgroundColor: 'rgba(251, 146, 60, 0.12)',
   },
   // Bento Section
   bentoSection: {
@@ -301,9 +305,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   hydrationIconBox: {
-    padding: 6,
-    backgroundColor: '#CFFAFE', // Cyan-50
-    borderRadius: 8,
+    padding: 7,
+    backgroundColor: 'rgba(230, 248, 252, 0.7)',
+    borderRadius: 10,
   },
   hydrationLabel: {
     color: '#164E63', // Cyan-900
@@ -312,11 +316,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.5)',
     ...saasShadows.subtle,
   },
   hydrationContent: {
@@ -339,27 +343,23 @@ const styles = StyleSheet.create({
   hydrationTrack: {
     height: 12,
     borderRadius: 999,
-    backgroundColor: 'rgba(6, 182, 212, 0.15)', // Cyan with opacity
+    backgroundColor: 'rgba(6, 182, 212, 0.12)',
     overflow: 'hidden',
   },
   hydrationFill: {
     height: '100%',
     backgroundColor: '#06B6D4', // Cyan-500
     borderRadius: 999,
-    shadowColor: '#06B6D4',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 5,
   },
   // Set Goals Prompt
   setGoalsPrompt: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: `${BRAND_COLORS.primary}20`,
+    backgroundColor: 'rgba(255,253,249,0.7)',
+    borderRadius: 14,
+    borderWidth: 0.5,
+    borderColor: 'rgba(246, 194, 143, 0.4)',
     borderStyle: 'dashed',
     gap: spacing.sm,
   },

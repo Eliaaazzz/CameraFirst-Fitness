@@ -5,7 +5,7 @@
     "scheme": "com.fitnessapp.mvp",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/app-icon-1024.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "platforms": [

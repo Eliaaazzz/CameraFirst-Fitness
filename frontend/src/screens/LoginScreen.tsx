@@ -2,21 +2,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
+import * as FacebookAuth from 'expo-auth-session/providers/facebook';
 import * as Google from 'expo-auth-session/providers/google';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
   Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,10 +23,12 @@ import Svg, { Path } from 'react-native-svg';
 
 import {
   EXPO_PUBLIC_APPLE_SERVICE_ID,
+  EXPO_PUBLIC_FACEBOOK_APP_ID,
   EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
   EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
   EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
 } from '@env';
+import CuteAuraLogo, { type CuteAuraLogoVariant } from '../components/common/CuteAuraLogo';
 import { api } from '../services/apiClient';
 import { queryClient } from '../services/queryClient';
 import { useAuthStore } from '../stores';
@@ -38,6 +39,8 @@ const GOOGLE_IOS_CLIENT_ID = EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || process.env.EXP
 const GOOGLE_ANDROID_CLIENT_ID = EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 const GOOGLE_WEB_CLIENT_ID = EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const APPLE_SERVICE_ID = EXPO_PUBLIC_APPLE_SERVICE_ID || process.env.EXPO_PUBLIC_APPLE_SERVICE_ID;
+const FACEBOOK_APP_ID = EXPO_PUBLIC_FACEBOOK_APP_ID || process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
+const LOGO_VARIANT: CuteAuraLogoVariant = 'sparkle';
 
 // Debug: Log OAuth config status (not values) in development
 if (__DEV__) {
@@ -46,6 +49,7 @@ if (__DEV__) {
     hasIosClientId: !!GOOGLE_IOS_CLIENT_ID,
     hasAndroidClientId: !!GOOGLE_ANDROID_CLIENT_ID,
     hasAppleServiceId: !!APPLE_SERVICE_ID,
+    hasFacebookAppId: !!FACEBOOK_APP_ID,
     webClientIdPrefix: GOOGLE_WEB_CLIENT_ID?.substring(0, 12) + '...',
   });
 }
@@ -61,6 +65,18 @@ declare global {
           redirectURI: string;
           usePopup: boolean;
         }) => void;
+        renderButton: (
+          element: string | HTMLElement,
+          options: {
+            type?: 'sign in' | 'continue' | 'sign-up';
+            color?: 'black' | 'white';
+            border?: boolean;
+            border_radius?: number;
+            width?: number | string;
+            height?: number | string;
+            locale?: string;
+          }
+        ) => void;
         signIn: () => Promise<{
           authorization: {
             code: string;
@@ -79,6 +95,8 @@ declare global {
     };
   }
 }
+
+const APPLE_WEB_BUTTON_ID = 'apple-signin-official-button';
 
 // ============================================================================
 // Design Tokens - Modern Light Theme (Orange)
@@ -130,17 +148,6 @@ const RADII = {
 };
 
 // ============================================================================
-// AuraFit Logo Component
-// ============================================================================
-const AuraFitLogo = ({ size = 150 }: { size?: number }) => (
-  <Image
-    source={require('../../assets/logo.png')}
-    style={{ width: size, height: size }}
-    resizeMode="contain"
-  />
-);
-
-// ============================================================================
 // Google Icon Component
 // ============================================================================
 const GoogleIcon = () => (
@@ -165,84 +172,31 @@ const GoogleIcon = () => (
 );
 
 // ============================================================================
-// Input Field Component
-// ============================================================================
-interface InputFieldProps {
-  icon: string;
-  placeholder: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  secureTextEntry?: boolean;
-  showToggle?: boolean;
-  onToggleSecure?: () => void;
-  isSecureVisible?: boolean;
-  keyboardType?: 'default' | 'email-address';
-  textContentType?: 'emailAddress' | 'password' | 'newPassword';
-}
-
-const InputField: React.FC<InputFieldProps> = ({
-  icon,
-  placeholder,
-  value,
-  onChangeText,
-  secureTextEntry = false,
-  showToggle = false,
-  onToggleSecure,
-  isSecureVisible = false,
-  keyboardType = 'default',
-  textContentType,
-}) => {
-  const [isFocused, setIsFocused] = useState(false);
-
-  return (
-    <View style={[styles.inputContainer, isFocused && styles.inputContainerFocused]}>
-      <View style={styles.inputIconContainer}>
-        <Ionicons name={icon} size={20} color={COLORS.gray400} />
-      </View>
-      <TextInput
-        style={styles.input}
-        placeholder={placeholder}
-        placeholderTextColor={COLORS.gray400}
-        value={value}
-        onChangeText={onChangeText}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        secureTextEntry={secureTextEntry && !isSecureVisible}
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType={keyboardType}
-        textContentType={textContentType}
-      />
-      {showToggle && (
-        <Pressable onPress={onToggleSecure} style={styles.eyeButton}>
-          <Ionicons
-            name={isSecureVisible ? 'eye-off-outline' : 'eye-outline'}
-            size={20}
-            color={COLORS.gray400}
-          />
-        </Pressable>
-      )}
-    </View>
-  );
-};
-
-// ============================================================================
 // Social Button Component
 // ============================================================================
 interface SocialButtonProps {
-  provider: 'google' | 'apple';
+  provider: 'google' | 'apple' | 'facebook' | 'instagram';
   onPress: () => void;
   disabled?: boolean;
 }
 
 const SocialButton: React.FC<SocialButtonProps> = ({ provider, onPress, disabled }) => {
   const isGoogle = provider === 'google';
+  const isApple = provider === 'apple';
+  const isFacebook = provider === 'facebook';
+  const isInstagram = provider === 'instagram';
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.socialButton,
-        isGoogle ? styles.googleButton : styles.appleButton,
+        isGoogle
+          ? styles.googleButton
+          : isApple
+          ? styles.appleButton
+          : isFacebook
+          ? styles.facebookButton
+          : styles.instagramButton,
         pressed && styles.socialButtonPressed,
         disabled && styles.buttonDisabled,
       ]}
@@ -251,11 +205,15 @@ const SocialButton: React.FC<SocialButtonProps> = ({ provider, onPress, disabled
     >
       {isGoogle ? (
         <GoogleIcon />
+      ) : isFacebook ? (
+        <Ionicons name="logo-facebook" size={20} color={COLORS.white} />
+      ) : isInstagram ? (
+        <Ionicons name="logo-instagram" size={20} color={COLORS.white} />
       ) : (
         <Ionicons name="logo-apple" size={20} color={COLORS.white} />
       )}
-      <Text style={[styles.socialButtonText, !isGoogle && styles.appleButtonText]}>
-        Continue with {isGoogle ? 'Google' : 'Apple'}
+      <Text style={[styles.socialButtonText, !isGoogle && styles.whiteSocialButtonText]}>
+        Continue with {isGoogle ? 'Google' : isApple ? 'Apple' : isFacebook ? 'Facebook' : 'Instagram'}
       </Text>
     </Pressable>
   );
@@ -270,57 +228,14 @@ export default function LoginScreen() {
 
   // Auth state
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // iOS: always show Apple button (actual sign-in will error gracefully if unavailable)
-  // Web: only show if Service ID is configured and JS SDK loads.
-  const [appleAuthAvailable, setAppleAuthAvailable] = useState(Platform.OS === 'ios');
-
-  // Validation
-  const isEmailValid = useMemo(() => {
-    return email.trim().length > 0 && email.includes('@');
-  }, [email]);
-
-  const isPasswordValid = useMemo(() => {
-    return password.length > 0;
-  }, [password]);
-
-  const isFormValid = isEmailValid && isPasswordValid;
-
-  // Check Apple auth availability and load Apple JS SDK on web
-  useEffect(() => {
-    const checkAppleAuth = async () => {
-      if (Platform.OS === 'web') {
-        // Load Apple Sign In JS SDK for web
-        if (APPLE_SERVICE_ID && typeof document !== 'undefined' && !document.getElementById('apple-signin-script')) {
-          const script = document.createElement('script');
-          script.id = 'apple-signin-script';
-          script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
-          script.async = true;
-          script.onload = () => {
-            if (globalThis.window?.AppleID) {
-              const redirectURI = globalThis.window.location.origin + '/auth/apple/callback';
-              globalThis.window.AppleID.auth.init({
-                clientId: APPLE_SERVICE_ID,
-                scope: 'email name',
-                redirectURI,
-                usePopup: true,
-              });
-              setAppleAuthAvailable(true);
-            }
-          };
-          document.head.appendChild(script);
-        } else if (!APPLE_SERVICE_ID) {
-          // No Apple Service ID configured
-          setAppleAuthAvailable(false);
-        }
-      } else if (Platform.OS === 'ios') {
-        setAppleAuthAvailable(true);
-      }
-    };
-    checkAppleAuth();
+  const [isAppleWebReady, setIsAppleWebReady] = useState(Platform.OS !== 'web');
+  const shouldShowAppleButton = Platform.OS === 'ios' || Platform.OS === 'web';
+  const legalBaseUrl = useMemo(() => {
+    if (Platform.OS === 'web' && typeof globalThis.window !== 'undefined') {
+      return globalThis.window.location.origin;
+    }
+    return 'https://aurafitness.org';
   }, []);
 
   // Google OAuth setup
@@ -338,12 +253,18 @@ export default function LoginScreen() {
     console.log('[OAuth] Platform:', Platform.OS);
   }
 
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+  const [googleRequest, googleResponse, promptGoogleAsync] = Google.useIdTokenAuthRequest({
     iosClientId: GOOGLE_IOS_CLIENT_ID,
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     webClientId: GOOGLE_WEB_CLIENT_ID,
     redirectUri,
     scopes: ['profile', 'email'],
+  });
+
+  const [facebookRequest, facebookResponse, promptFacebookAsync] = FacebookAuth.useAuthRequest({
+    clientId: FACEBOOK_APP_ID,
+    redirectUri,
+    scopes: ['public_profile', 'email'],
   });
 
   // Handle successful login - use Zustand store signIn
@@ -369,7 +290,7 @@ export default function LoginScreen() {
   }, [navigation]);
 
   // Send Google token to backend
-  const sendTokenToBackend = useCallback(async (idToken: string) => {
+  const sendGoogleTokenToBackend = useCallback(async (idToken: string) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -384,26 +305,71 @@ export default function LoginScreen() {
     }
   }, [handleLoginSuccess]);
 
+  const sendFacebookTokenToBackend = useCallback(async (accessToken: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
+        loginType: 'FACEBOOK',
+        idToken: accessToken,
+      });
+      await handleLoginSuccess(data);
+    } catch (err) {
+      setIsLoading(false);
+      setError(err instanceof Error ? err.message : 'Facebook sign-in failed. Please try again.');
+    }
+  }, [handleLoginSuccess]);
+
+  const sendAppleTokenToBackend = useCallback(async (idToken: string, fullName?: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
+        loginType: 'APPLE',
+        idToken,
+        fullName,
+      });
+      await handleLoginSuccess(data);
+    } catch (err) {
+      setIsLoading(false);
+      setError(err instanceof Error ? err.message : 'Apple sign-in failed. Please try again.');
+    }
+  }, [handleLoginSuccess]);
+
   // Handle Google OAuth response
   useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
+    if (googleResponse?.type === 'success') {
+      const { id_token } = googleResponse.params;
       if (id_token) {
-        sendTokenToBackend(id_token);
+        sendGoogleTokenToBackend(id_token);
       }
-    } else if (response?.type === 'error') {
-      setError(response.error?.message || 'Google sign-in failed.');
+    } else if (googleResponse?.type === 'error') {
+      setError(googleResponse.error?.message || 'Google sign-in failed.');
     }
-  }, [response, sendTokenToBackend]);
+  }, [googleResponse, sendGoogleTokenToBackend]);
+
+  useEffect(() => {
+    if (facebookResponse?.type === 'success') {
+      const accessToken =
+        facebookResponse.authentication?.accessToken || facebookResponse.params?.access_token;
+      if (accessToken) {
+        sendFacebookTokenToBackend(accessToken);
+        return;
+      }
+      setError('No access token received from Facebook');
+    } else if (facebookResponse?.type === 'error') {
+      setError(facebookResponse.error?.message || 'Facebook sign-in failed.');
+    }
+  }, [facebookResponse, sendFacebookTokenToBackend]);
 
   // Helpful for debugging `redirect_uri_mismatch` on web:
   // Logs the *exact* redirect_uri + client_id being sent to Google.
   const handleGoogleLogin = useCallback(async () => {
-    if (!request) return;
+    if (!googleRequest) return;
 
     if (Platform.OS === 'web') {
       console.log('[GoogleAuth] redirectUri (computed):', redirectUri);
-      const authUrl = request.url;
+      const authUrl = googleRequest.url;
       if (authUrl) {
         try {
           const u = new URL(authUrl);
@@ -418,42 +384,135 @@ export default function LoginScreen() {
       }
     }
 
-    await promptAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined);
-  }, [promptAsync, redirectUri, request]);
+    await promptGoogleAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined);
+  }, [googleRequest, promptGoogleAsync, redirectUri]);
 
-  // Handle Apple login
+  // Web Apple Sign-In: official JS SDK + official rendered button.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const onSuccess = async (event: Event) => {
+      const detail = (event as Event & {
+        detail?: {
+          authorization?: { id_token?: string };
+          user?: {
+            name?: {
+              firstName?: string;
+              lastName?: string;
+            };
+          };
+        };
+      }).detail;
+
+      const identityToken = detail?.authorization?.id_token;
+      if (!identityToken) {
+        setError('No identity token received from Apple.');
+        return;
+      }
+
+      let fullName: string | undefined;
+      const firstName = detail?.user?.name?.firstName;
+      const lastName = detail?.user?.name?.lastName;
+      if (firstName || lastName) {
+        fullName = `${firstName || ''} ${lastName || ''}`.trim() || undefined;
+      }
+
+      await sendAppleTokenToBackend(identityToken, fullName);
+    };
+
+    const onFailure = (event: Event) => {
+      const detail = (event as Event & { detail?: { error?: string } }).detail;
+      if (detail?.error === 'popup_closed_by_user') {
+        return;
+      }
+      setError('Apple sign-in failed.');
+    };
+
+    const initAppleAuth = () => {
+      if (!globalThis.window?.AppleID) return false;
+
+      if (!APPLE_SERVICE_ID) {
+        setIsAppleWebReady(false);
+        console.warn('[AppleAuth] EXPO_PUBLIC_APPLE_SERVICE_ID is missing on web');
+        return false;
+      }
+
+      const redirectURI = `${globalThis.window.location.origin}/auth/apple/callback`;
+      globalThis.window.AppleID.auth.init({
+        clientId: APPLE_SERVICE_ID,
+        scope: 'email name',
+        redirectURI,
+        usePopup: true,
+      });
+
+      try {
+        globalThis.window.AppleID.auth.renderButton(`#${APPLE_WEB_BUTTON_ID}`, {
+          type: 'continue',
+          color: 'black',
+          border: false,
+          border_radius: 12,
+          width: '100%',
+          height: 54,
+        });
+        setIsAppleWebReady(true);
+      } catch (error) {
+        console.warn('[AppleAuth] Failed to render official Apple button', error);
+        setIsAppleWebReady(false);
+      }
+
+      return true;
+    };
+
+    document.addEventListener('AppleIDSignInOnSuccess', onSuccess as EventListener);
+    document.addEventListener('AppleIDSignInOnFailure', onFailure as EventListener);
+
+    if (initAppleAuth()) {
+      return () => {
+        document.removeEventListener('AppleIDSignInOnSuccess', onSuccess as EventListener);
+        document.removeEventListener('AppleIDSignInOnFailure', onFailure as EventListener);
+      };
+    }
+
+    if (typeof document === 'undefined') return;
+
+    const existingScript = document.getElementById('apple-signin-script') as HTMLScriptElement | null;
+    if (existingScript) {
+      existingScript.addEventListener('load', initAppleAuth, { once: true });
+      return () => {
+        document.removeEventListener('AppleIDSignInOnSuccess', onSuccess as EventListener);
+        document.removeEventListener('AppleIDSignInOnFailure', onFailure as EventListener);
+      };
+    }
+
+    const script = document.createElement('script');
+    script.id = 'apple-signin-script';
+    script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+    script.async = true;
+    script.onload = () => {
+      if (!initAppleAuth()) {
+        setIsAppleWebReady(false);
+      }
+    };
+    script.onerror = () => {
+      setIsAppleWebReady(false);
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      document.removeEventListener('AppleIDSignInOnSuccess', onSuccess as EventListener);
+      document.removeEventListener('AppleIDSignInOnFailure', onFailure as EventListener);
+    };
+  }, [sendAppleTokenToBackend]);
+
+  // Handle Apple login (iOS native only)
   const handleAppleLogin = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
       if (Platform.OS === 'web') {
-        // Web: Use Apple Sign In JS SDK
-        if (!globalThis.window?.AppleID) {
-          throw new Error('Apple Sign In is not available. Please try again later.');
-        }
-
-        const response = await globalThis.window.AppleID.auth.signIn();
-        const identityToken = response.authorization.id_token;
-
-        if (!identityToken) {
-          throw new Error('No identity token received from Apple');
-        }
-
-        // Build full name from user info (only provided on first sign in)
-        let fullName: string | undefined;
-        if (response.user?.name) {
-          const { firstName, lastName } = response.user.name;
-          fullName = `${firstName || ''} ${lastName || ''}`.trim() || undefined;
-        }
-
-        const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
-          loginType: 'APPLE',
-          idToken: identityToken,
-          fullName,
-        });
-
-        await handleLoginSuccess(data);
+        // Web flow uses Apple official button + event callbacks.
+        setIsLoading(false);
         return;
       }
 
@@ -469,16 +528,10 @@ export default function LoginScreen() {
       if (!identityToken) {
         throw new Error('No identity token received from Apple');
       }
-
-      const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
-        loginType: 'APPLE',
-        idToken: identityToken,
-        fullName: credential.fullName
-          ? `${credential.fullName.givenName || ''} ${credential.fullName.familyName || ''}`.trim()
-          : undefined,
-      });
-
-      await handleLoginSuccess(data);
+      const fullName = credential.fullName
+        ? `${credential.fullName.givenName || ''} ${credential.fullName.familyName || ''}`.trim()
+        : undefined;
+      await sendAppleTokenToBackend(identityToken, fullName);
     } catch (err: any) {
       setIsLoading(false);
       if (err.code === 'ERR_REQUEST_CANCELED') {
@@ -488,33 +541,31 @@ export default function LoginScreen() {
     }
   };
 
-  // Handle email/password login
-  const handleEmailLogin = async () => {
-    if (!isFormValid) return;
-
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
-        loginType: 'LOCAL',
-        email: email.trim().toLowerCase(),
-        password,
-      });
-      await handleLoginSuccess(data);
-    } catch (err) {
-      setIsLoading(false);
-      setError(err instanceof Error ? err.message : 'Invalid email or password.');
+  const handleMetaLogin = useCallback(async (entry: 'facebook' | 'instagram') => {
+    if (!FACEBOOK_APP_ID) {
+      setError('Facebook Login is not configured yet. Please set EXPO_PUBLIC_FACEBOOK_APP_ID.');
+      return;
     }
-  };
+    if (!facebookRequest) return;
 
-  // Navigation handlers
-  const handleForgotPassword = () => {
-    navigation.navigate('ForgotPassword' as never);
-  };
+    setError(null);
+    if (entry === 'instagram') {
+      console.info('[MetaAuth] Instagram button uses Meta/Facebook OAuth flow.');
+    }
+    await promptFacebookAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined);
+  }, [facebookRequest, promptFacebookAsync]);
 
-  const handleCreateAccount = () => {
-    navigation.navigate('Register' as never);
-  };
+  const handleFacebookLogin = useCallback(() => {
+    handleMetaLogin('facebook').catch((err) => {
+      setError(err instanceof Error ? err.message : 'Facebook sign-in failed.');
+    });
+  }, [handleMetaLogin]);
+
+  const handleInstagramLogin = useCallback(() => {
+    handleMetaLogin('instagram').catch((err) => {
+      setError(err instanceof Error ? err.message : 'Instagram sign-in failed.');
+    });
+  }, [handleMetaLogin]);
 
   // Handle tap outside inputs to dismiss keyboard (only on native)
   const handleOutsideTap = useCallback(() => {
@@ -522,6 +573,23 @@ export default function LoginScreen() {
       Keyboard.dismiss();
     }
   }, []);
+
+  const openLegalPage = useCallback(async (path: 'terms-of-service.html' | 'privacy-policy.html') => {
+    try {
+      setError(null);
+      await Linking.openURL(`${legalBaseUrl}/${path}`);
+    } catch {
+      setError('Unable to open legal page. Please try again later.');
+    }
+  }, [legalBaseUrl]);
+
+  const handleOpenTerms = useCallback(() => {
+    openLegalPage('terms-of-service.html');
+  }, [openLegalPage]);
+
+  const handleOpenPrivacy = useCallback(() => {
+    openLegalPage('privacy-policy.html');
+  }, [openLegalPage]);
 
   return (
     <LinearGradient
@@ -544,9 +612,9 @@ export default function LoginScreen() {
             <View style={styles.card}>
               {/* Logo Section */}
               <View style={styles.logoSection}>
-                <AuraFitLogo size={112} />
+                <CuteAuraLogo size={116} variant={LOGO_VARIANT} />
                 <Text style={styles.title}>AuraFit</Text>
-                <Text style={styles.subtitle}>Welcome back! Sign in to continue.</Text>
+                <Text style={styles.subtitle}>Continue with Apple, Google, or Meta.</Text>
               </View>
 
               {/* Error Message */}
@@ -556,89 +624,53 @@ export default function LoginScreen() {
                 </View>
               )}
 
-              {/* Form Section */}
-              <View style={styles.formSection}>
-                <InputField
-                  icon="mail-outline"
-                  placeholder="Email address"
-                  value={email}
-                  onChangeText={(text) => { setEmail(text); setError(null); }}
-                  keyboardType="email-address"
-                  textContentType="emailAddress"
-                />
-
-                <InputField
-                  icon="lock-closed-outline"
-                  placeholder="Password"
-                  value={password}
-                  onChangeText={(text) => { setPassword(text); setError(null); }}
-                  secureTextEntry
-                  showToggle
-                  onToggleSecure={() => setShowPassword(!showPassword)}
-                  isSecureVisible={showPassword}
-                  textContentType="password"
-                />
-
-                <Pressable onPress={handleForgotPassword} style={styles.forgotPasswordContainer}>
-                  <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-                </Pressable>
-
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.signInButton,
-                    !isFormValid && styles.signInButtonDisabled,
-                    pressed && isFormValid && !isLoading && styles.signInButtonPressed,
-                  ]}
-                  onPress={handleEmailLogin}
-                  disabled={!isFormValid || isLoading}
-                >
-                  {isLoading ? (
-                    <View style={styles.loadingContent}>
-                      <ActivityIndicator size="small" color={COLORS.white} />
-                      <Text style={styles.signInButtonText}>Signing in...</Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.signInButtonText}>Sign In</Text>
-                  )}
-                </Pressable>
-              </View>
-
-              {/* Divider */}
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>Or continue with</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
               {/* Social Login */}
               <View style={styles.socialSection}>
                 <SocialButton
                   provider="google"
                   onPress={handleGoogleLogin}
-                  disabled={!request || isLoading}
+                  disabled={!googleRequest || isLoading}
                 />
-                {appleAuthAvailable && (
-                  <SocialButton
-                    provider="apple"
+                {shouldShowAppleButton && Platform.OS === 'ios' && (
+                  <AppleAuthentication.AppleAuthenticationButton
+                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                    cornerRadius={RADII.md}
+                    style={styles.appleNativeButton}
                     onPress={handleAppleLogin}
-                    disabled={isLoading}
                   />
                 )}
+                {shouldShowAppleButton && Platform.OS === 'web' && (
+                  isAppleWebReady ? (
+                    <View style={styles.appleWebButtonHost}>
+                      <View nativeID={APPLE_WEB_BUTTON_ID} style={styles.appleWebButton} />
+                      {isLoading && <View pointerEvents="none" style={styles.appleWebButtonOverlay} />}
+                    </View>
+                  ) : (
+                    <View style={[styles.appleWebFallbackButton, styles.buttonDisabled]}>
+                      <Ionicons name="logo-apple" size={20} color={COLORS.white} />
+                      <Text style={[styles.socialButtonText, styles.whiteSocialButtonText]}>Continue with Apple</Text>
+                    </View>
+                  )
+                )}
+                <SocialButton
+                  provider="facebook"
+                  onPress={handleFacebookLogin}
+                  disabled={!facebookRequest || isLoading}
+                />
+                <SocialButton
+                  provider="instagram"
+                  onPress={handleInstagramLogin}
+                  disabled={!facebookRequest || isLoading}
+                />
               </View>
 
               {/* Footer */}
               <View style={styles.footer}>
-                <View style={styles.signUpContainer}>
-                  <Text style={styles.signUpText}>Don't have an account? </Text>
-                  <Pressable onPress={handleCreateAccount}>
-                    <Text style={styles.signUpLink}>Sign up</Text>
-                  </Pressable>
-                </View>
-
                 <Text style={styles.legalText}>
                   By continuing, you agree to our{' '}
-                  <Text style={styles.legalLink}>Terms of Service</Text> and{' '}
-                  <Text style={styles.legalLink}>Privacy Policy</Text>.
+                  <Text style={styles.legalLink} onPress={handleOpenTerms}>Terms of Service</Text> and{' '}
+                  <Text style={styles.legalLink} onPress={handleOpenPrivacy}>Privacy Policy</Text>.
                 </Text>
               </View>
             </View>
@@ -662,19 +694,22 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: SPACING['2xl'],
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: RADII.xl,
+    borderRadius: RADII.lg,
     paddingHorizontal: SPACING['2xl'],
-    paddingVertical: SPACING['3xl'],
+    paddingVertical: SPACING['4xl'],
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 12,
-    maxWidth: 420,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.12,
+    shadowRadius: 28,
+    elevation: 14,
+    borderWidth: 1,
+    borderColor: COLORS.brand100,
+    maxWidth: 390,
+    minHeight: Platform.OS === 'web' ? 640 : undefined,
     width: '100%',
   },
 
@@ -684,7 +719,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING['2xl'],
   },
   title: {
-    fontSize: 30,
+    fontSize: 34,
     fontWeight: '700',
     color: COLORS.gray900,
     marginTop: SPACING.lg,
@@ -692,9 +727,10 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.gray500,
     textAlign: 'center',
+    lineHeight: 22,
   },
 
   // Error
@@ -804,13 +840,40 @@ const styles = StyleSheet.create({
 
   // Social Section
   socialSection: {
+    gap: SPACING.lg,
+  },
+  appleNativeButton: {
+    width: '100%',
+    height: 54,
+  },
+  appleWebButtonHost: {
+    position: 'relative',
+    height: 54,
+    borderRadius: RADII.md,
+    overflow: 'hidden',
+  },
+  appleWebButton: {
+    height: 54,
+  },
+  appleWebFallbackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: SPACING.md,
+    height: 54,
+    borderRadius: RADII.md,
+    backgroundColor: '#000000',
+  },
+  appleWebButtonOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.white,
+    opacity: 0.45,
   },
   socialButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 48,
+    height: 54,
     borderRadius: RADII.md,
     gap: SPACING.md,
   },
@@ -831,12 +894,28 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  facebookButton: {
+    backgroundColor: '#1877F2',
+    shadowColor: '#1877F2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  instagramButton: {
+    backgroundColor: '#E1306C',
+    shadowColor: '#E1306C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   socialButtonText: {
     fontSize: 14,
     fontWeight: '500',
     color: COLORS.gray700,
   },
-  appleButtonText: {
+  whiteSocialButtonText: {
     color: COLORS.white,
   },
   buttonDisabled: {
@@ -871,5 +950,6 @@ const styles = StyleSheet.create({
   },
   legalLink: {
     color: COLORS.brand600,
+    textDecorationLine: 'underline',
   },
 });

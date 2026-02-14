@@ -20,6 +20,8 @@ venv/
 .gradle/
 .firebase/
 public/
+!frontend/public/
+!frontend/public/**
 
 # ==========================================
 # BACKEND (Java/Spring Boot/Gradle)

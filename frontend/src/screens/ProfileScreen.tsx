@@ -35,6 +35,7 @@ import {
     Sex,
 } from '@/services/geminiApi';
 import { useGoalStatistics } from '@/services/goalsApi';
+import { HYDRATION_STORAGE_KEY } from '@/stores/useHydrationStore';
 import userApi from '@/services/userApi';
 import { useAuthStore } from '@/stores';
 import type { CurrentUserResponse, UserProfileResponse } from '@/types';
@@ -656,7 +657,7 @@ const ProfileScreen = () => {
     try {
       await userApi.deleteAccount();
       // Clear local data
-      await AsyncStorage.removeItem(GENERATED_GOALS_KEY);
+      await AsyncStorage.multiRemove([GENERATED_GOALS_KEY, HYDRATION_STORAGE_KEY]);
       queryClient.clear();
       // Sign out and navigate to login
       await useAuthStore.getState().signOut();
