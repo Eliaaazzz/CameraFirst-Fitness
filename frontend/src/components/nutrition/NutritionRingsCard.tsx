@@ -238,8 +238,8 @@ interface BloodSugarItemProps {
 
 function BloodSugarItem({ value, isCompact = false }: BloodSugarItemProps) {
   // Severity: <50 low, 50-100 moderate, >100 high
-  const severity = value < 50 ? 'low' : value < 100 ? 'moderate' : 'high';
-  const severityLabel = severity === 'low' ? 'Low' : severity === 'moderate' ? 'Med' : 'High';
+  const severity: "low" | "moderate" | "high" = value < 50 ? 'low' : value < 100 ? 'moderate' : 'high';
+  const severityLabel = { low: 'Low', moderate: 'Med', high: 'High' }[severity];
   const color = RING_COLORS.bloodSugar;
 
   return (
