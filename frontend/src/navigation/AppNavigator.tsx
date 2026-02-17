@@ -479,8 +479,6 @@ const MainTabs = () => {
           backgroundColor: 'transparent',
           borderTopWidth: 0,
           borderRadius: 28,
-          marginHorizontal: isWeb ? 16 : 12,
-          marginBottom: isWeb ? 12 : 8,
           // Liquid Glass floating shadow – deeper & wider
           shadowColor: '#0F172A',
           shadowOpacity: 0.14,
@@ -488,26 +486,16 @@ const MainTabs = () => {
           shadowOffset: { width: 0, height: 10 },
           elevation: 0,
           // Platform-specific positioning and layout
-          ...(isWeb
-            ? {
-                // Web: use flexbox for even distribution
-                display: 'flex' as const,
-                flexDirection: 'row' as const,
-                justifyContent: 'space-around' as const,
-                alignItems: 'center' as const,
-                width: '100%',
-                position: 'absolute' as const,
-                left: 16,
-                right: 16,
-                bottom: 0,
-              }
-            : {
-                // Native: absolute positioning
-                position: 'absolute' as const,
-                left: 12,
-                right: 12,
-                bottom: 0,
-              }),
+          position: 'absolute' as const,
+          bottom: isWeb ? 12 : 8,
+          left: isWeb ? 16 : 12,
+          right: isWeb ? 16 : 12,
+          ...(isWeb && {
+            display: 'flex' as const,
+            flexDirection: 'row' as const,
+            justifyContent: 'space-around' as const,
+            alignItems: 'center' as const,
+          }),
         },
         tabBarBackground: TabBarBackground,
         tabBarIcon: ({ focused, color }) => getTabBarIcon(route.name, focused, color),

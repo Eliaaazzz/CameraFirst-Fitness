@@ -432,6 +432,7 @@ const DashboardScreen = () => {
             protein: { current: nutritionData.protein.current, target: proteinGoal },
             carbs: { current: nutritionData.carbs.current, target: carbsGoal },
             fat: { current: nutritionData.fat.current, target: fatGoal },
+            bloodSugarRise: nutritionData.bloodSugarRise,
           }}
           showFat={true}
           onMacroPress={handleMacroSearch}

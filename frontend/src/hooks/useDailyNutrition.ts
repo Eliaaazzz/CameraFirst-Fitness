@@ -16,6 +16,8 @@ export interface DailyNutritionData {
   fat: { current: number; goal: number };
   netCarbs?: { current: number; goal: number };
   sugar?: { current: number; goal: number };
+  /** Estimated blood sugar rise (mg/dL) based on moderate T2 diabetes baseline */
+  bloodSugarRise: number;
   meals: Array<{
     id: string;
     name: string;
@@ -87,11 +89,18 @@ export function useDailyNutrition() {
       // Sugar from backend summary or estimate from today's meals
       const currentSugar = (summary as any)?.sugar?.actual || 0;
 
+      // Estimated blood sugar rise (mg/dL) using moderate T2 diabetes as baseline:
+      // - 4 mg/dL per gram of net carbs (moderate insulin resistance)
+      // - 0.5 mg/dL per gram of protein (gluconeogenesis, ~10-15% converts to glucose)
+      const currentNetCarbs = Math.max(0, currentCarbs - estimatedFiber);
+      const currentProtein = todaySummary?.current?.protein || summary?.protein?.actual || 0;
+      const bloodSugarRise = Math.round(currentNetCarbs * 4 + currentProtein * 0.5);
+
       return {
         calories: todaySummary?.current?.calories || summary?.calories?.actual || 0,
         goal: calorieGoal,
         protein: {
-          current: todaySummary?.current?.protein || summary?.protein?.actual || 0,
+          current: currentProtein,
           goal: proteinGoal,
         },
         carbs: {
@@ -103,13 +112,14 @@ export function useDailyNutrition() {
           goal: fatGoal,
         },
         netCarbs: {
-          current: Math.max(0, currentCarbs - estimatedFiber),
+          current: currentNetCarbs,
           goal: Math.max(0, carbsGoal - fiberGoal),
         },
         sugar: {
           current: currentSugar,
           goal: sugarGoal,
         },
+        bloodSugarRise,
         meals: todayMeals,
       };
     },
@@ -129,6 +139,7 @@ export function useDailyNutrition() {
       fat: { current: 0, goal: 65 },
       netCarbs: { current: 0, goal: 175 },
       sugar: { current: 0, goal: 25 },
+      bloodSugarRise: 0,
       meals: [],
     },
     isLoading,
