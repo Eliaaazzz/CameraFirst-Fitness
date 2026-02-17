@@ -90,11 +90,11 @@ export function useDailyNutrition() {
       const currentSugar = (summary as any)?.sugar?.actual || 0;
 
       // Estimated blood sugar rise (mg/dL) using moderate T2 diabetes as baseline:
-      // - 4 mg/dL per gram of net carbs (moderate insulin resistance)
-      // - 0.5 mg/dL per gram of protein (gluconeogenesis, ~10-15% converts to glucose)
+      const MG_DL_PER_G_NET_CARB = 4; // 4 mg/dL per gram of net carbs (moderate insulin resistance)
+      const MG_DL_PER_G_PROTEIN = 0.5; // 0.5 mg/dL per gram of protein (gluconeogenesis, ~10-15% converts to glucose)
       const currentNetCarbs = Math.max(0, currentCarbs - estimatedFiber);
       const currentProtein = todaySummary?.current?.protein || summary?.protein?.actual || 0;
-      const bloodSugarRise = Math.round(currentNetCarbs * 4 + currentProtein * 0.5);
+      const bloodSugarRise = Math.round(currentNetCarbs * MG_DL_PER_G_NET_CARB + currentProtein * MG_DL_PER_G_PROTEIN);
 
       return {
         calories: todaySummary?.current?.calories || summary?.calories?.actual || 0,
