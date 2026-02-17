@@ -8,8 +8,8 @@ import jakarta.validation.constraints.Size;
 /**
  * Unified login request supporting social and email/password authentication.
  *
- * <p>For social login (GOOGLE, APPLE, FACEBOOK):
- * - Set loginType to GOOGLE, APPLE, or FACEBOOK
+ * <p>For social login (GOOGLE, APPLE):
+ * - Set loginType to GOOGLE or APPLE
  * - Provide idToken
  * - email and password should be null
  *

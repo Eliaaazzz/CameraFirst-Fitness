@@ -71,9 +71,6 @@ app:
     # Comma-separated allowed audiences for Apple ID tokens.
     # Example: APPLE_CLIENT_ID=com.fitnessapp.mvp,com.aurafitness.web
     client-id: ${APPLE_CLIENT_ID:}
-  facebook:
-    app-id: ${FACEBOOK_APP_ID:}
-    app-secret: ${FACEBOOK_APP_SECRET:}
   jwt:
     secret: ${JWT_SECRET:change-me-in-production-this-needs-to-be-at-least-256-bits-long}
     expiration-days: ${JWT_EXPIRATION_DAYS:30}

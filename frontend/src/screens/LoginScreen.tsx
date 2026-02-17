@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
-import * as FacebookAuth from 'expo-auth-session/providers/facebook';
 import * as Google from 'expo-auth-session/providers/google';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
@@ -23,7 +22,6 @@ import Svg, { Path } from 'react-native-svg';
 
 import {
   EXPO_PUBLIC_APPLE_SERVICE_ID,
-  EXPO_PUBLIC_FACEBOOK_APP_ID,
   EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
   EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
   EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
@@ -39,7 +37,6 @@ const GOOGLE_IOS_CLIENT_ID = EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || process.env.EXP
 const GOOGLE_ANDROID_CLIENT_ID = EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 const GOOGLE_WEB_CLIENT_ID = EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const APPLE_SERVICE_ID = EXPO_PUBLIC_APPLE_SERVICE_ID || process.env.EXPO_PUBLIC_APPLE_SERVICE_ID;
-const FACEBOOK_APP_ID = EXPO_PUBLIC_FACEBOOK_APP_ID || process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
 const LOGO_VARIANT: CuteAuraLogoVariant = 'sparkle';
 
 // Debug: Log OAuth config status (not values) in development
@@ -49,7 +46,6 @@ if (__DEV__) {
     hasIosClientId: !!GOOGLE_IOS_CLIENT_ID,
     hasAndroidClientId: !!GOOGLE_ANDROID_CLIENT_ID,
     hasAppleServiceId: !!APPLE_SERVICE_ID,
-    hasFacebookAppId: !!FACEBOOK_APP_ID,
     webClientIdPrefix: GOOGLE_WEB_CLIENT_ID?.substring(0, 12) + '...',
   });
 }
@@ -175,45 +171,25 @@ const GoogleIcon = () => (
 // Social Button Component
 // ============================================================================
 interface SocialButtonProps {
-  provider: 'google' | 'apple' | 'facebook' | 'instagram';
   onPress: () => void;
   disabled?: boolean;
 }
 
-const SocialButton: React.FC<SocialButtonProps> = ({ provider, onPress, disabled }) => {
-  const isGoogle = provider === 'google';
-  const isApple = provider === 'apple';
-  const isFacebook = provider === 'facebook';
-  const isInstagram = provider === 'instagram';
-
+const SocialButton: React.FC<SocialButtonProps> = ({ onPress, disabled }) => {
   return (
     <Pressable
       style={({ pressed }) => [
         styles.socialButton,
-        isGoogle
-          ? styles.googleButton
-          : isApple
-          ? styles.appleButton
-          : isFacebook
-          ? styles.facebookButton
-          : styles.instagramButton,
+        styles.googleButton,
         pressed && styles.socialButtonPressed,
         disabled && styles.buttonDisabled,
       ]}
       onPress={onPress}
       disabled={disabled}
     >
-      {isGoogle ? (
-        <GoogleIcon />
-      ) : isFacebook ? (
-        <Ionicons name="logo-facebook" size={20} color={COLORS.white} />
-      ) : isInstagram ? (
-        <Ionicons name="logo-instagram" size={20} color={COLORS.white} />
-      ) : (
-        <Ionicons name="logo-apple" size={20} color={COLORS.white} />
-      )}
-      <Text style={[styles.socialButtonText, !isGoogle && styles.whiteSocialButtonText]}>
-        Continue with {isGoogle ? 'Google' : isApple ? 'Apple' : isFacebook ? 'Facebook' : 'Instagram'}
+      <GoogleIcon />
+      <Text style={styles.socialButtonText}>
+        Continue with Google
       </Text>
     </Pressable>
   );
@@ -261,12 +237,6 @@ export default function LoginScreen() {
     scopes: ['profile', 'email'],
   });
 
-  const [facebookRequest, facebookResponse, promptFacebookAsync] = FacebookAuth.useAuthRequest({
-    clientId: FACEBOOK_APP_ID,
-    redirectUri,
-    scopes: ['public_profile', 'email'],
-  });
-
   // Handle successful login - use Zustand store signIn
   const handleLoginSuccess = useCallback(async (data: { token: string; email: string; isNewUser?: boolean }) => {
     // Clear React Query cache
@@ -305,21 +275,6 @@ export default function LoginScreen() {
     }
   }, [handleLoginSuccess]);
 
-  const sendFacebookTokenToBackend = useCallback(async (accessToken: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
-        loginType: 'FACEBOOK',
-        idToken: accessToken,
-      });
-      await handleLoginSuccess(data);
-    } catch (err) {
-      setIsLoading(false);
-      setError(err instanceof Error ? err.message : 'Facebook sign-in failed. Please try again.');
-    }
-  }, [handleLoginSuccess]);
-
   const sendAppleTokenToBackend = useCallback(async (idToken: string, fullName?: string) => {
     setIsLoading(true);
     setError(null);
@@ -347,20 +302,6 @@ export default function LoginScreen() {
       setError(googleResponse.error?.message || 'Google sign-in failed.');
     }
   }, [googleResponse, sendGoogleTokenToBackend]);
-
-  useEffect(() => {
-    if (facebookResponse?.type === 'success') {
-      const accessToken =
-        facebookResponse.authentication?.accessToken || facebookResponse.params?.access_token;
-      if (accessToken) {
-        sendFacebookTokenToBackend(accessToken);
-        return;
-      }
-      setError('No access token received from Facebook');
-    } else if (facebookResponse?.type === 'error') {
-      setError(facebookResponse.error?.message || 'Facebook sign-in failed.');
-    }
-  }, [facebookResponse, sendFacebookTokenToBackend]);
 
   // Helpful for debugging `redirect_uri_mismatch` on web:
   // Logs the *exact* redirect_uri + client_id being sent to Google.
@@ -541,32 +482,6 @@ export default function LoginScreen() {
     }
   };
 
-  const handleMetaLogin = useCallback(async (entry: 'facebook' | 'instagram') => {
-    if (!FACEBOOK_APP_ID) {
-      setError('Facebook Login is not configured yet. Please set EXPO_PUBLIC_FACEBOOK_APP_ID.');
-      return;
-    }
-    if (!facebookRequest) return;
-
-    setError(null);
-    if (entry === 'instagram') {
-      console.info('[MetaAuth] Instagram button uses Meta/Facebook OAuth flow.');
-    }
-    await promptFacebookAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined);
-  }, [facebookRequest, promptFacebookAsync]);
-
-  const handleFacebookLogin = useCallback(() => {
-    handleMetaLogin('facebook').catch((err) => {
-      setError(err instanceof Error ? err.message : 'Facebook sign-in failed.');
-    });
-  }, [handleMetaLogin]);
-
-  const handleInstagramLogin = useCallback(() => {
-    handleMetaLogin('instagram').catch((err) => {
-      setError(err instanceof Error ? err.message : 'Instagram sign-in failed.');
-    });
-  }, [handleMetaLogin]);
-
   // Handle tap outside inputs to dismiss keyboard (only on native)
   const handleOutsideTap = useCallback(() => {
     if (Platform.OS !== 'web') {
@@ -614,7 +529,7 @@ export default function LoginScreen() {
               <View style={styles.logoSection}>
                 <CuteAuraLogo size={116} variant={LOGO_VARIANT} />
                 <Text style={styles.title}>AuraFit</Text>
-                <Text style={styles.subtitle}>Continue with Apple, Google, or Meta.</Text>
+                <Text style={styles.subtitle}>Continue with Apple or Google.</Text>
               </View>
 
               {/* Error Message */}
@@ -626,11 +541,10 @@ export default function LoginScreen() {
 
               {/* Social Login */}
               <View style={styles.socialSection}>
-                <SocialButton
-                  provider="google"
-                  onPress={handleGoogleLogin}
-                  disabled={!googleRequest || isLoading}
-                />
+                <View style={styles.authSectionHeader}>
+                  <Text style={styles.authSectionTitle}>Sign in to continue</Text>
+                  <Text style={styles.authSectionSubtitle}>Use your Apple or Google account</Text>
+                </View>
                 {shouldShowAppleButton && Platform.OS === 'ios' && (
                   <AppleAuthentication.AppleAuthenticationButton
                     buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
@@ -647,21 +561,20 @@ export default function LoginScreen() {
                       {isLoading && <View pointerEvents="none" style={styles.appleWebButtonOverlay} />}
                     </View>
                   ) : (
-                    <View style={[styles.appleWebFallbackButton, styles.buttonDisabled]}>
+                    <View style={styles.appleWebFallbackButton}>
                       <Ionicons name="logo-apple" size={20} color={COLORS.white} />
                       <Text style={[styles.socialButtonText, styles.whiteSocialButtonText]}>Continue with Apple</Text>
                     </View>
                   )
                 )}
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>or</Text>
+                  <View style={styles.dividerLine} />
+                </View>
                 <SocialButton
-                  provider="facebook"
-                  onPress={handleFacebookLogin}
-                  disabled={!facebookRequest || isLoading}
-                />
-                <SocialButton
-                  provider="instagram"
-                  onPress={handleInstagramLogin}
-                  disabled={!facebookRequest || isLoading}
+                  onPress={handleGoogleLogin}
+                  disabled={!googleRequest || isLoading}
                 />
               </View>
 
@@ -711,12 +624,13 @@ const styles = StyleSheet.create({
     maxWidth: 390,
     minHeight: Platform.OS === 'web' ? 640 : undefined,
     width: '100%',
+    justifyContent: 'space-between' as const,
   },
 
   // Logo Section
   logoSection: {
     alignItems: 'center',
-    marginBottom: SPACING['2xl'],
+    marginBottom: SPACING['3xl'],
   },
   title: {
     fontSize: 34,
@@ -840,7 +754,21 @@ const styles = StyleSheet.create({
 
   // Social Section
   socialSection: {
-    gap: SPACING.lg,
+    gap: SPACING.xl,
+  },
+  authSectionHeader: {
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  authSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.gray900,
+  },
+  authSectionSubtitle: {
+    fontSize: 13,
+    color: COLORS.gray500,
+    textAlign: 'center',
   },
   appleNativeButton: {
     width: '100%',
@@ -866,8 +794,8 @@ const styles = StyleSheet.create({
   },
   appleWebButtonOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: COLORS.white,
-    opacity: 0.45,
+    backgroundColor: '#000000',
+    opacity: 0.2,
   },
   socialButton: {
     flexDirection: 'row',
@@ -886,30 +814,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.gray200,
   },
-  appleButton: {
-    backgroundColor: '#000000',
-    shadowColor: COLORS.gray400,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  facebookButton: {
-    backgroundColor: '#1877F2',
-    shadowColor: '#1877F2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  instagramButton: {
-    backgroundColor: '#E1306C',
-    shadowColor: '#E1306C',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
-    elevation: 4,
-  },
   socialButtonText: {
     fontSize: 14,
     fontWeight: '500',
@@ -924,7 +828,7 @@ const styles = StyleSheet.create({
 
   // Footer
   footer: {
-    marginTop: SPACING['2xl'],
+    marginTop: SPACING['3xl'],
     alignItems: 'center',
     gap: SPACING.lg,
   },

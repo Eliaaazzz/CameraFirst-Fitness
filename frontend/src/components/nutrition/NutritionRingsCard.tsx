@@ -31,6 +31,8 @@ export interface NutritionRingsData {
   protein: MacroData;
   carbs: MacroData;
   fat?: MacroData;
+  /** Estimated blood sugar rise in mg/dL (moderate T2 diabetes baseline) */
+  bloodSugarRise?: number;
 }
 
 interface NutritionRingsCardProps {
@@ -50,6 +52,7 @@ const RING_COLORS = {
   fat: BRAND_COLORS.primary,       // Primary orange
   carbs: '#86EFAC',                // Light green
   calories: BRAND_COLORS.macros.calories,
+  bloodSugar: '#E11D48',           // Rose-600 for blood sugar
 };
 
 const TRACK_COLOR = '#E5E7EB';
@@ -225,6 +228,46 @@ function LegendItem({ color, label, current, target, unit, isCompact = false, on
 }
 
 // ============================================================================
+// BLOOD SUGAR RISE ITEM
+// ============================================================================
+
+interface BloodSugarItemProps {
+  readonly value: number;
+  readonly isCompact?: boolean;
+}
+
+function BloodSugarItem({ value, isCompact = false }: BloodSugarItemProps) {
+  // Severity: <50 low, 50-100 moderate, >100 high
+  const severity: "low" | "moderate" | "high" = value < 50 ? 'low' : value < 100 ? 'moderate' : 'high';
+  const severityLabel = { low: 'Low', moderate: 'Med', high: 'High' }[severity];
+  const color = RING_COLORS.bloodSugar;
+
+  return (
+    <View style={[styles.legendItem, isCompact && styles.legendItemCompact]}>
+      <View style={[styles.legendDot, { backgroundColor: color }]} />
+      <View style={styles.legendContent}>
+        <Text variant="caption" style={styles.legendLabel}>
+          Blood Sugar Est.
+        </Text>
+        <View style={styles.legendValues}>
+          <Text variant="body" weight="bold" style={styles.legendCurrent}>
+            +{value}
+          </Text>
+          <Text variant="caption" style={styles.legendTarget}>
+            mg/dL
+          </Text>
+        </View>
+      </View>
+      <View style={[styles.percentBadge, { backgroundColor: `${color}20` }]}>
+        <Text style={[styles.percentText, { color }]}>
+          {severityLabel}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -379,6 +422,12 @@ export function NutritionRingsCard({
             isCompact={isMobile}
             onPress={() => onMacroPress?.('carbs')}
           />
+          {data.bloodSugarRise != null && (
+            <BloodSugarItem
+              value={data.bloodSugarRise}
+              isCompact={isMobile}
+            />
+          )}
         </View>
       </View>
     </View>
