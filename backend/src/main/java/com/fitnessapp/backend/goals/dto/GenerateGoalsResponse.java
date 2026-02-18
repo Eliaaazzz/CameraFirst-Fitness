@@ -60,6 +60,9 @@ public class GenerateGoalsResponse {
         @JsonProperty("fat_g")
         private Integer fatG;
 
+        @JsonProperty("blood_sugar_rise_mg_dl")
+        private Integer bloodSugarRiseMgDl;
+
         private String notes;
     }
 

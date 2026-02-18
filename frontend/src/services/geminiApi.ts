@@ -11,6 +11,10 @@ export type Sex = 'male' | 'female' | 'prefer_not_to_say';
 export type GoalType = 'fat_loss' | 'muscle_gain' | 'diabetes_control';
 export type ActivityLevel = 'low' | 'medium' | 'high';
 
+const MODERATE_T2D_NET_CARB_RISE_MGDL_PER_G = 4;
+const MODERATE_T2D_PROTEIN_RISE_MGDL_PER_G = 0.5;
+const ESTIMATED_FIBER_RATIO = 0.1;
+
 export interface GenerateGoalsRequest {
   sex: Sex;
   heightCm: number;
@@ -33,6 +37,7 @@ export interface MacrosGrams {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  blood_sugar_rise_mg_dl?: number;
   notes: string;
 }
 
@@ -102,6 +107,39 @@ export interface SaveGoalRequest {
   activityLevel?: ActivityLevel;
 }
 
+function estimateBloodSugarRiseMgDl(carbsG: number, proteinG: number): number {
+  const safeCarbs = Math.max(0, carbsG || 0);
+  const safeProtein = Math.max(0, proteinG || 0);
+  const estimatedFiber = Math.round(safeCarbs * ESTIMATED_FIBER_RATIO);
+  const netCarbs = Math.max(0, safeCarbs - estimatedFiber);
+  return Math.round(
+    netCarbs * MODERATE_T2D_NET_CARB_RISE_MGDL_PER_G +
+    safeProtein * MODERATE_T2D_PROTEIN_RISE_MGDL_PER_G
+  );
+}
+
+function withDerivedBloodSugarRise(goals: GeneratedGoals): GeneratedGoals {
+  const macros = goals.macros_grams || {
+    protein_g: 0,
+    carbs_g: 0,
+    fat_g: 0,
+    notes: '',
+  };
+
+  return {
+    ...goals,
+    macros_grams: {
+      ...macros,
+      blood_sugar_rise_mg_dl:
+        macros.blood_sugar_rise_mg_dl ??
+        estimateBloodSugarRiseMgDl(
+          macros.carbs_g || 0,
+          macros.protein_g || 0
+        ),
+    },
+  };
+}
+
 // ============ API Functions ============
 
 /**
@@ -118,9 +156,11 @@ export const generateGoals = async (request: GenerateGoalsRequest): Promise<Gene
       activityLevel: request.activityLevel || 'medium',
     });
 
+    const normalized = withDerivedBloodSugarRise(response);
+
     // Add metadata
     return {
-      ...response,
+      ...normalized,
       generatedAt: new Date().toISOString(),
       goalType: request.goalType,
     };
@@ -253,6 +293,7 @@ export const generateFallbackGoals = (request: GenerateGoalsRequest): GeneratedG
       protein_g: proteinG,
       carbs_g: carbsG,
       fat_g: fatG,
+      blood_sugar_rise_mg_dl: estimateBloodSugarRiseMgDl(carbsG, proteinG),
       notes: macroNotes,
     },
     sugarLimit_g_per_day: sugarLimit,
@@ -310,7 +351,7 @@ export const saveGoal = async (
 
     const response = await api.post<GeneratedGoals>('/api/v1/goals/save', request);
     console.log('[GoalsApi] Goal saved to database successfully');
-    return response;
+    return withDerivedBloodSugarRise(response);
   } catch (error) {
     console.error('[GoalsApi] Failed to save goal to database:', error);
     throw error;
@@ -324,7 +365,7 @@ export const getActiveGoal = async (userId: string): Promise<GeneratedGoals | nu
   try {
     const response = await api.get<GeneratedGoals>(`/api/v1/goals/active?userId=${userId}`);
     console.log('[GoalsApi] Active goal retrieved from database');
-    return response;
+    return withDerivedBloodSugarRise(response);
   } catch (error: any) {
     // apiClient throws APIError (not axios), so check `.status` instead of `error.response.status`.
     const status = error instanceof APIError ? error.status : error?.status;
@@ -343,7 +384,7 @@ export const getActiveGoal = async (userId: string): Promise<GeneratedGoals | nu
 export const getGoalHistory = async (userId: string): Promise<GeneratedGoals[]> => {
   try {
     const response = await api.get<GeneratedGoals[]>(`/api/v1/goals/history?userId=${userId}`);
-    return response;
+    return response.map(withDerivedBloodSugarRise);
   } catch (error) {
     console.error('[GoalsApi] Failed to get goal history:', error);
     return [];

@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
     ActionSheetIOS,
     ActivityIndicator,
@@ -79,6 +80,21 @@ const formatMealName = (mealName: string): string => {
   return Array.from(counts.values())
     .map(({ label, count }) => (count > 1 ? `${label} x${count}` : label))
     .join(', ');
+};
+
+const MODERATE_T2D_NET_CARB_RISE_MGDL_PER_G = 4;
+const MODERATE_T2D_PROTEIN_RISE_MGDL_PER_G = 0.5;
+const ESTIMATED_FIBER_RATIO = 0.1;
+
+const estimateMacroBloodSugarRiseMgDl = (carbsG: number, proteinG: number): number => {
+  const safeCarbs = Math.max(0, carbsG || 0);
+  const safeProtein = Math.max(0, proteinG || 0);
+  const estimatedFiber = Math.round(safeCarbs * ESTIMATED_FIBER_RATIO);
+  const netCarbs = Math.max(0, safeCarbs - estimatedFiber);
+  return Math.round(
+    netCarbs * MODERATE_T2D_NET_CARB_RISE_MGDL_PER_G +
+    safeProtein * MODERATE_T2D_PROTEIN_RISE_MGDL_PER_G
+  );
 };
 
 const DashboardScreen = () => {
@@ -296,6 +312,12 @@ const DashboardScreen = () => {
 
   const renderGoalsSection = (styleOverride?: object) => {
     if (generatedGoals) {
+      const macroBloodSugarRise = generatedGoals.macros_grams.blood_sugar_rise_mg_dl
+        ?? estimateMacroBloodSugarRiseMgDl(
+          generatedGoals.macros_grams.carbs_g,
+          generatedGoals.macros_grams.protein_g
+        );
+
       return (
         <BentoCard style={[styles.goalsCard, styleOverride]}>
           {/* Header: Top-left aligned with icon + title */}
@@ -359,6 +381,14 @@ const DashboardScreen = () => {
               <Drop size={20} weight="fill" color={BRAND_COLORS.macros.fat} />
               <Text variant="heading3" weight="bold">{generatedGoals.macros_grams.fat_g}g</Text>
               <Text variant="caption" style={styles.goalItemLabel}>Fat</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.goalItem, pressed && { opacity: 0.7 }]}
+              onPress={() => handleMacroSearch('carbs')}
+            >
+              <MaterialCommunityIcons name="water-plus" size={20} color="#E11D48" />
+              <Text variant="heading3" weight="bold">+{macroBloodSugarRise}</Text>
+              <Text variant="caption" style={styles.goalItemLabel}>Glucose + (mg/dL)</Text>
             </Pressable>
           </View>
 
@@ -450,209 +480,277 @@ const DashboardScreen = () => {
 
   return (
     <SafeAreaWrapper>
-      <ScreenLayout rightPanel={renderRightPanel()} scrollable={false}>
-        <TourScrollView
-          style={styles.container}
-          contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
-          screenName="Dashboard"
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={BRAND_COLORS.primary}
-            />
-          }
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text variant="caption" style={styles.greeting}>{t.goodDay}</Text>
-              <View style={styles.nameRow}>
-                <Text variant="heading1" weight="bold" style={styles.userName}>
-                  {currentUser.data?.username || 'User'}
-                </Text>
-                <View style={styles.streakBadge}>
-                  <Ionicons name="flame" size={15} color={BRAND_COLORS.primary} />
-                  <Text style={styles.streakText}>
-                    {currentUser.data?.currentStreak || 0}
+      <View style={styles.screenRoot}>
+        <View pointerEvents="none" style={styles.ambientLayer}>
+          <LinearGradient
+            colors={['rgba(255,252,248,0.94)', 'rgba(251,252,255,0.9)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.ambientGradient}
+          />
+          <View style={styles.ambientWarmCloud} />
+          <View style={styles.ambientCoolCloud} />
+          <View style={styles.ambientMintCloud} />
+          {Platform.OS === 'web' && <View style={styles.ambientNoise} />}
+        </View>
+
+        <ScreenLayout rightPanel={renderRightPanel()} scrollable={false}>
+          <TourScrollView
+            style={styles.container}
+            contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
+            screenName="Dashboard"
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={BRAND_COLORS.primary}
+              />
+            }
+          >
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <Text variant="caption" style={styles.greeting}>{t.goodDay}</Text>
+                <View style={styles.nameRow}>
+                  <Text variant="heading1" weight="bold" style={styles.userName}>
+                    {currentUser.data?.username || 'User'}
                   </Text>
+                  <View style={styles.streakBadge}>
+                    <Ionicons name="flame" size={15} color={BRAND_COLORS.primary} />
+                    <Text style={styles.streakText}>
+                      {currentUser.data?.currentStreak || 0}
+                    </Text>
+                  </View>
                 </View>
               </View>
+              {/* Hide profile button on desktop (use sidebar instead) */}
+              {!showRightPanel && (
+                <View style={styles.headerActions}>
+                  <Pressable
+                    style={styles.profileButton}
+                    onPress={() => navigation.navigate('Profile')}
+                  >
+                    <Feather name="user" size={22} color={BRAND_COLORS.textPrimary} />
+                  </Pressable>
+                </View>
+              )}
             </View>
-            {/* Hide profile button on desktop (use sidebar instead) */}
-            {!showRightPanel && (
-              <View style={styles.headerActions}>
-                <Pressable
-                  style={styles.profileButton}
-                  onPress={() => navigation.navigate('Profile')}
-                >
-                  <Feather name="user" size={22} color={BRAND_COLORS.textPrimary} />
-                </Pressable>
-              </View>
+
+            {/* Welcome Tour Card for new users */}
+            {showWelcomeCard && (
+              <WelcomeTourCard
+                onStartTour={handleStartTour}
+                onSkip={handleSkipTour}
+              />
             )}
-          </View>
 
-          {/* Welcome Tour Card for new users */}
-          {showWelcomeCard && (
-            <WelcomeTourCard
-              onStartTour={handleStartTour}
-              onSkip={handleSkipTour}
-            />
-          )}
+            {/* Goals card/prompt - only in main column when right panel is hidden */}
+            {!showRightPanel && !showInlineGoalsRow && renderGoalsSection()}
 
-          {/* Goals card/prompt - only in main column when right panel is hidden */}
-          {!showRightPanel && !showInlineGoalsRow && renderGoalsSection()}
+          {/* Recommendations are now shown on their respective tabs (Workouts/Recipes) */}
 
-        {/* Recommendations are now shown on their respective tabs (Workouts/Recipes) */}
-
-                  {/* Main content wrapper - fills viewport on desktop */}
-                <View
-                  style={
-                    showSidebar
-                      ? showRightPanel
-                        ? styles.desktopContentWrapper
-                        : styles.sidebarContentWrapper
-                      : undefined
-                  }
-                >
-                  {showInlineGoalsRow ? (
-                    <View style={styles.inlineTopRow}>
-                      <View style={styles.inlineColumn}>
-                        {renderGoalsSection(styles.inlineCard)}
+                    {/* Main content wrapper - fills viewport on desktop */}
+                  <View
+                    style={
+                      showSidebar
+                        ? showRightPanel
+                          ? styles.desktopContentWrapper
+                          : styles.sidebarContentWrapper
+                        : undefined
+                    }
+                  >
+                    {showInlineGoalsRow ? (
+                      <View style={styles.inlineTopRow}>
+                        <View style={styles.inlineColumn}>
+                          {renderGoalsSection(styles.inlineCard)}
+                        </View>
+                        <View style={styles.inlineColumn}>
+                          {renderNutritionCard()}
+                        </View>
                       </View>
-                      <View style={styles.inlineColumn}>
-                        {renderNutritionCard()}
-                      </View>
-                    </View>
-                  ) : (
-                    renderNutritionCard()
-                  )}
+                    ) : (
+                      renderNutritionCard()
+                    )}
 
-                  {/* Keep inline quick actions on web only; mobile removes this section */}
-                  {Platform.OS === 'web' && !showRightPanel && (
-                    <View style={{ marginTop: spacing.lg }}>
-                      <QuickActionsCard />
-                    </View>
-                  )}
-        
-                {/* Today's Meals */}
-                <BentoCard
-                  style={[
-                    styles.mealsCard,
-                    showSidebar && (showRightPanel ? styles.mealsCardDesktop : styles.mealsCardSidebar),
-                  ]}
-                >
-                  {/* Header - matches NutritionRingsCard header */}
-                  <View style={styles.mealsHeader}>
-                    <View>
-                      <Text variant="heading3" weight="bold" style={styles.mealsTitle}>
-                        {t.todaysMeals}
-                      </Text>
-                      {nutritionData.meals.length > 0 && (
-                        <Text variant="caption" style={styles.mealsSubtitle}>
-                          {nutritionData.meals.length} {nutritionData.meals.length === 1 ? t.mealLogged : t.mealsLogged}
+                    {/* Keep inline quick actions on web only; mobile removes this section */}
+                    {Platform.OS === 'web' && !showRightPanel && (
+                      <View style={{ marginTop: spacing.lg }}>
+                        <QuickActionsCard />
+                      </View>
+                    )}
+
+                  {/* Today's Meals */}
+                  <BentoCard
+                    style={[
+                      styles.mealsCard,
+                      showSidebar && (showRightPanel ? styles.mealsCardDesktop : styles.mealsCardSidebar),
+                    ]}
+                  >
+                    {/* Header - matches NutritionRingsCard header */}
+                    <View style={styles.mealsHeader}>
+                      <View>
+                        <Text variant="heading3" weight="bold" style={styles.mealsTitle}>
+                          {t.todaysMeals}
                         </Text>
-                      )}
-                    </View>
-                    
-                    {/* Compact Snap Button - Tour Zone 1 */}
-                    <TourGuideZone
-                      zone={SNAP_MEAL_STEP.zone}
-                      text={SNAP_MEAL_STEP.text}
-                      title={SNAP_MEAL_STEP.title}
-                      icon="📸"
-                    >
-                      <Pressable 
-                        onPress={handleAddFood}
-                        style={({pressed}) => [styles.compactSnapBtn, pressed && styles.compactSnapBtnPressed]}
+                        {nutritionData.meals.length > 0 && (
+                          <Text variant="caption" style={styles.mealsSubtitle}>
+                            {nutritionData.meals.length} {nutritionData.meals.length === 1 ? t.mealLogged : t.mealsLogged}
+                          </Text>
+                        )}
+                      </View>
+
+                      {/* Compact Snap Button - Tour Zone 1 */}
+                      <TourGuideZone
+                        zone={SNAP_MEAL_STEP.zone}
+                        text={SNAP_MEAL_STEP.text}
+                        title={SNAP_MEAL_STEP.title}
+                        icon="📸"
                       >
-                         <MaterialCommunityIcons name="camera" size={16} color="#FFFFFF" />
-                         <Text style={styles.compactSnapBtnText}>Snap Meal</Text>
-                      </Pressable>
-                    </TourGuideZone>
-                  </View>
+                        <Pressable
+                          onPress={handleAddFood}
+                          style={({pressed}) => [styles.compactSnapBtn, pressed && styles.compactSnapBtnPressed]}
+                        >
+                           <MaterialCommunityIcons name="camera" size={16} color="#FFFFFF" />
+                           <Text style={styles.compactSnapBtnText}>Snap Meal</Text>
+                        </Pressable>
+                      </TourGuideZone>
+                    </View>
 
-            {nutritionData.meals.length === 0 ? (
-              <View style={styles.emptyMealsWrapper}>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.emptyMealsContent,
-                    pressed && styles.emptyMealsContentPressed,
-                  ]}
-                  onPress={handleAddFood}
-                >
-                  <View style={styles.emptyMealsIconContainer}>
-                    <MaterialCommunityIcons name="camera-plus" size={24} color={BRAND_COLORS.primary} />
-                  </View>
-                  <View style={styles.emptyMealsTextContainer}>
-                    <Text variant="body" weight="semibold" style={styles.emptyMealsTitle}>
-                      No meals logged yet.
-                    </Text>
-                    <Text variant="caption" style={styles.emptyMealsHint}>
-                      Snap a photo to start tracking
-                    </Text>
-                  </View>
-                </Pressable>
-              </View>
-            ) : (
-              <View style={styles.mealsList}>
-                {nutritionData.meals.map((meal) => (
-                  <View key={meal.id} style={styles.mealItem}>
-                    <MealImage
-                      imageUrl={meal.imageUrl}
-                      size={56}
-                      borderRadius={12}
-                    />
-                    <View style={styles.mealDetails}>
-                      <View style={styles.mealHeader}>
-                        <View style={{ flex: 1, marginRight: spacing.sm }}>
-                          <Text variant="body" weight="bold" style={{ color: BRAND_COLORS.textPrimary }}>
-                            {getMealType(new Date(meal.consumedAt))}
-                          </Text>
-                          <Text variant="caption" numberOfLines={1} style={{ color: colors.light.textSecondary }}>
-                            {formatMealName(meal.name)}
+              {nutritionData.meals.length === 0 ? (
+                <View style={styles.emptyMealsWrapper}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.emptyMealsContent,
+                      pressed && styles.emptyMealsContentPressed,
+                    ]}
+                    onPress={handleAddFood}
+                  >
+                    <View style={styles.emptyMealsIconContainer}>
+                      <MaterialCommunityIcons name="camera-plus" size={24} color={BRAND_COLORS.primary} />
+                    </View>
+                    <View style={styles.emptyMealsTextContainer}>
+                      <Text variant="body" weight="semibold" style={styles.emptyMealsTitle}>
+                        No meals logged yet.
+                      </Text>
+                      <Text variant="caption" style={styles.emptyMealsHint}>
+                        Snap a photo to start tracking
+                      </Text>
+                    </View>
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={styles.mealsList}>
+                  {nutritionData.meals.map((meal) => (
+                    <View key={meal.id} style={styles.mealItem}>
+                      <MealImage
+                        imageUrl={meal.imageUrl}
+                        size={56}
+                        borderRadius={12}
+                      />
+                      <View style={styles.mealDetails}>
+                        <View style={styles.mealHeader}>
+                          <View style={{ flex: 1, marginRight: spacing.sm }}>
+                            <Text variant="body" weight="bold" style={{ color: BRAND_COLORS.textPrimary }}>
+                              {getMealType(new Date(meal.consumedAt))}
+                            </Text>
+                            <Text variant="caption" numberOfLines={1} style={{ color: colors.light.textSecondary }}>
+                              {formatMealName(meal.name)}
+                            </Text>
+                          </View>
+                          <Text variant="body" weight="bold" style={styles.mealCalories}>
+                            {meal.calories} kcal
                           </Text>
                         </View>
-                        <Text variant="body" weight="bold" style={styles.mealCalories}>
-                          {meal.calories} kcal
-                        </Text>
-                      </View>
-                      <View style={styles.mealMetaRow}>
-                        <Text variant="caption" style={styles.mealTime}>
-                          {new Date(meal.consumedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
-                        <View style={styles.mealMacros}>
-                          <Text variant="caption" style={styles.mealMacroText}>
-                            P {Math.round(meal.protein || 0)}g
+                        <View style={styles.mealMetaRow}>
+                          <Text variant="caption" style={styles.mealTime}>
+                            {new Date(meal.consumedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </Text>
-                          <Text variant="caption" style={styles.mealMacroDivider}>·</Text>
-                          <Text variant="caption" style={styles.mealMacroText}>
-                            C {Math.round(meal.carbs || 0)}g
-                          </Text>
-                          <Text variant="caption" style={styles.mealMacroDivider}>·</Text>
-                          <Text variant="caption" style={styles.mealMacroText}>
-                            F {Math.round(meal.fat || 0)}g
-                          </Text>
+                          <View style={styles.mealMacros}>
+                            <Text variant="caption" style={styles.mealMacroText}>
+                              P {Math.round(meal.protein || 0)}g
+                            </Text>
+                            <Text variant="caption" style={styles.mealMacroDivider}>·</Text>
+                            <Text variant="caption" style={styles.mealMacroText}>
+                              C {Math.round(meal.carbs || 0)}g
+                            </Text>
+                            <Text variant="caption" style={styles.mealMacroDivider}>·</Text>
+                            <Text variant="caption" style={styles.mealMacroText}>
+                              F {Math.round(meal.fat || 0)}g
+                            </Text>
+                          </View>
                         </View>
                       </View>
                     </View>
-                  </View>
-                ))}
-              </View>
-            )}
-          </BentoCard>
-        </View>
-        </TourScrollView>
-      </ScreenLayout>
+                  ))}
+                </View>
+              )}
+            </BentoCard>
+          </View>
+          </TourScrollView>
+        </ScreenLayout>
+      </View>
     </SafeAreaWrapper>
   );
 };
 
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+  },
+  ambientLayer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  ambientGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  ambientWarmCloud: {
+    position: 'absolute',
+    width: 360,
+    height: 360,
+    borderRadius: 180,
+    top: -120,
+    right: -100,
+    backgroundColor: 'rgba(249,115,22,0.12)',
+    ...(Platform.OS === 'web' && ({
+      filter: 'blur(90px)',
+    } as any)),
+  },
+  ambientCoolCloud: {
+    position: 'absolute',
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    top: 160,
+    right: 60,
+    backgroundColor: 'rgba(6,182,212,0.08)',
+    ...(Platform.OS === 'web' && ({
+      filter: 'blur(84px)',
+    } as any)),
+  },
+  ambientMintCloud: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    bottom: -120,
+    left: -80,
+    backgroundColor: 'rgba(16,185,129,0.07)',
+    ...(Platform.OS === 'web' && ({
+      filter: 'blur(90px)',
+    } as any)),
+  },
+  ambientNoise: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.04,
+    ...(Platform.OS === 'web' && ({
+      backgroundImage:
+        'repeating-linear-gradient(0deg, rgba(17,24,39,0.12) 0px, rgba(17,24,39,0.12) 1px, transparent 1px, transparent 3px)',
+    } as any)),
+  },
   container: {
     flex: 1,
-    // Subtle warm gradient so glass elements have ambient color to refract
-    backgroundColor: '#F9F7F4',
+    backgroundColor: 'transparent',
   },
   content: {
     padding: spacing.lg,
@@ -803,16 +901,27 @@ const styles = StyleSheet.create({
   },
   goalsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
     marginBottom: spacing.md,
   },
   goalItem: {
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'center',
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 64,
+    minHeight: 74,
+    borderRadius: 12,
+    paddingVertical: spacing.xs,
+    backgroundColor: 'rgba(255,255,255,0.58)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(242,233,222,0.8)',
   },
   goalItemLabel: {
     color: colors.light.textSecondary,
     marginTop: 2,
+    textAlign: 'center',
   },
   activityRow: {
     flexDirection: 'row',
