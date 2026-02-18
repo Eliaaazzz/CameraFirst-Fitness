@@ -37,6 +37,9 @@ public class GoalGenerationService {
     private static final String DEFAULT_MODEL = "gemini-2.5-flash";
     private static final int MAX_OUTPUT_TOKENS = 2048;
     private static final int TIMEOUT_SECONDS = 30;
+    private static final double MODERATE_T2D_NET_CARB_RISE_MGDL_PER_G = 4.0;
+    private static final double MODERATE_T2D_PROTEIN_RISE_MGDL_PER_G = 0.5;
+    private static final double ESTIMATED_FIBER_RATIO = 0.10;
 
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -153,6 +156,7 @@ public class GoalGenerationService {
                     "protein_g": <number>,
                     "carbs_g": <number>,
                     "fat_g": <number>,
+                    "blood_sugar_rise_mg_dl": <number>,
                     "notes": "<macro strategy explanation>"
                 },
                 "sugarLimit_g_per_day": <number>,
@@ -229,6 +233,8 @@ public class GoalGenerationService {
 
         try {
             GenerateGoalsResponse result = objectMapper.readValue(jsonContent, GenerateGoalsResponse.class);
+
+            applyDerivedMacroMetrics(result);
 
             // Ensure diabetes safety note is present
             if (request.getGoalType() == GoalType.diabetes_control &&
@@ -343,6 +349,7 @@ public class GoalGenerationService {
         int proteinG = weightKg * proteinMultiplier;
         int fatG = (int) ((targetCalories * fatPercent) / 9);
         int carbsG = (int) ((targetCalories * carbsPercent) / 4);
+        int bloodSugarRise = estimateBloodSugarRiseMgDl(carbsG, proteinG);
 
         // Sugar and fiber targets
         int sugarLimit = goalType == GoalType.diabetes_control ? 20 : 25;
@@ -394,6 +401,7 @@ public class GoalGenerationService {
                         .proteinG(proteinG)
                         .carbsG(carbsG)
                         .fatG(fatG)
+                        .bloodSugarRiseMgDl(bloodSugarRise)
                         .notes(macroNotes)
                         .build())
                 .sugarLimitGPerDay(sugarLimit)
@@ -402,6 +410,27 @@ public class GoalGenerationService {
                 .milestonesChecklist(milestones)
                 .safetyNote(safetyNote)
                 .build();
+    }
+
+    private void applyDerivedMacroMetrics(GenerateGoalsResponse result) {
+        if (result == null || result.getMacrosGrams() == null) {
+            return;
+        }
+
+        MacrosGrams macros = result.getMacrosGrams();
+        macros.setBloodSugarRiseMgDl(estimateBloodSugarRiseMgDl(macros.getCarbsG(), macros.getProteinG()));
+    }
+
+    private int estimateBloodSugarRiseMgDl(Integer carbsG, Integer proteinG) {
+        int carbs = carbsG != null ? Math.max(0, carbsG) : 0;
+        int protein = proteinG != null ? Math.max(0, proteinG) : 0;
+        int estimatedFiber = (int) Math.round(carbs * ESTIMATED_FIBER_RATIO);
+        int netCarbs = Math.max(0, carbs - estimatedFiber);
+
+        return (int) Math.round(
+                netCarbs * MODERATE_T2D_NET_CARB_RISE_MGDL_PER_G +
+                        protein * MODERATE_T2D_PROTEIN_RISE_MGDL_PER_G
+        );
     }
 
     private List<MilestoneItem> generateMilestones(GoalType goalType) {

@@ -16,6 +16,9 @@ import java.util.stream.Collectors;
 @Data
 @Builder
 public class UserGoalResponse {
+    private static final double MODERATE_T2D_NET_CARB_RISE_MGDL_PER_G = 4.0;
+    private static final double MODERATE_T2D_PROTEIN_RISE_MGDL_PER_G = 0.5;
+    private static final double ESTIMATED_FIBER_RATIO = 0.10;
 
     private UUID id;
     private String goalType;
@@ -59,6 +62,9 @@ public class UserGoalResponse {
 
         @JsonProperty("fat_g")
         private Integer fatG;
+
+        @JsonProperty("blood_sugar_rise_mg_dl")
+        private Integer bloodSugarRiseMgDl;
 
         private String notes;
     }
@@ -129,6 +135,7 @@ public class UserGoalResponse {
                         .proteinG(entity.getProteinG())
                         .carbsG(entity.getCarbsG())
                         .fatG(entity.getFatG())
+                        .bloodSugarRiseMgDl(estimateBloodSugarRiseMgDl(entity.getCarbsG(), entity.getProteinG()))
                         .notes(entity.getMacrosNotes())
                         .build())
                 .sugarLimitGPerDay(entity.getSugarLimitG())
@@ -150,5 +157,17 @@ public class UserGoalResponse {
                         .activityLevel(entity.getInputActivityLevel())
                         .build())
                 .build();
+    }
+
+    private static Integer estimateBloodSugarRiseMgDl(Integer carbsG, Integer proteinG) {
+        int carbs = carbsG != null ? Math.max(0, carbsG) : 0;
+        int protein = proteinG != null ? Math.max(0, proteinG) : 0;
+        int estimatedFiber = (int) Math.round(carbs * ESTIMATED_FIBER_RATIO);
+        int netCarbs = Math.max(0, carbs - estimatedFiber);
+
+        return (int) Math.round(
+                netCarbs * MODERATE_T2D_NET_CARB_RISE_MGDL_PER_G +
+                        protein * MODERATE_T2D_PROTEIN_RISE_MGDL_PER_G
+        );
     }
 }

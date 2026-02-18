@@ -545,37 +545,39 @@ export default function LoginScreen() {
                   <Text style={styles.authSectionTitle}>Sign in to continue</Text>
                   <Text style={styles.authSectionSubtitle}>Use your Apple or Google account</Text>
                 </View>
-                {shouldShowAppleButton && Platform.OS === 'ios' && (
-                  <AppleAuthentication.AppleAuthenticationButton
-                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                    cornerRadius={RADII.md}
-                    style={styles.appleNativeButton}
-                    onPress={handleAppleLogin}
+                <View style={styles.socialButtonsStack}>
+                  {shouldShowAppleButton && Platform.OS === 'ios' && (
+                    <AppleAuthentication.AppleAuthenticationButton
+                      buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                      buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                      cornerRadius={RADII.md}
+                      style={styles.appleNativeButton}
+                      onPress={handleAppleLogin}
+                    />
+                  )}
+                  {shouldShowAppleButton && Platform.OS === 'web' && (
+                    isAppleWebReady ? (
+                      <View style={styles.appleWebButtonHost}>
+                        <View nativeID={APPLE_WEB_BUTTON_ID} style={styles.appleWebButton} />
+                        {isLoading && <View pointerEvents="none" style={styles.appleWebButtonOverlay} />}
+                      </View>
+                    ) : (
+                      <View style={styles.appleWebFallbackButton}>
+                        <Ionicons name="logo-apple" size={20} color={COLORS.white} />
+                        <Text style={[styles.socialButtonText, styles.whiteSocialButtonText]}>Continue with Apple</Text>
+                      </View>
+                    )
+                  )}
+                  <View style={styles.divider}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>or</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
+                  <SocialButton
+                    onPress={handleGoogleLogin}
+                    disabled={!googleRequest || isLoading}
                   />
-                )}
-                {shouldShowAppleButton && Platform.OS === 'web' && (
-                  isAppleWebReady ? (
-                    <View style={styles.appleWebButtonHost}>
-                      <View nativeID={APPLE_WEB_BUTTON_ID} style={styles.appleWebButton} />
-                      {isLoading && <View pointerEvents="none" style={styles.appleWebButtonOverlay} />}
-                    </View>
-                  ) : (
-                    <View style={styles.appleWebFallbackButton}>
-                      <Ionicons name="logo-apple" size={20} color={COLORS.white} />
-                      <Text style={[styles.socialButtonText, styles.whiteSocialButtonText]}>Continue with Apple</Text>
-                    </View>
-                  )
-                )}
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>or</Text>
-                  <View style={styles.dividerLine} />
                 </View>
-                <SocialButton
-                  onPress={handleGoogleLogin}
-                  disabled={!googleRequest || isLoading}
-                />
               </View>
 
               {/* Footer */}
@@ -736,7 +738,7 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: SPACING['2xl'],
+    marginVertical: SPACING.md,
   },
   dividerLine: {
     flex: 1,
@@ -754,7 +756,12 @@ const styles = StyleSheet.create({
 
   // Social Section
   socialSection: {
-    gap: SPACING.xl,
+    gap: SPACING.lg,
+    minHeight: 220,
+    justifyContent: 'center',
+  },
+  socialButtonsStack: {
+    gap: SPACING.sm,
   },
   authSectionHeader: {
     alignItems: 'center',
