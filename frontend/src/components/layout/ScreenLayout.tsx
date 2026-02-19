@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: colors.light.background,
+    backgroundColor: 'transparent',
   },
   mainWrapper: {
     flex: 1,
@@ -120,8 +120,13 @@ const styles = StyleSheet.create({
   rightPanel: {
     width: LAYOUT_DIMENSIONS.rightPanelWidth,
     borderLeftWidth: 1,
-    borderLeftColor: colors.light.border,
-    backgroundColor: colors.light.surface,
+    borderLeftColor: 'rgba(255,255,255,0.62)',
+    backgroundColor: 'rgba(255,252,247,0.4)',
+    ...(Platform.OS === 'web' && ({
+      backdropFilter: 'blur(22px)',
+      WebkitBackdropFilter: 'blur(22px)',
+      boxShadow: 'inset 1px 0 0 rgba(255,170,120,0.16), inset 0 1px 0 rgba(255,255,255,0.7)',
+    } as any)),
   },
   rightPanelContent: {
     flex: 1,

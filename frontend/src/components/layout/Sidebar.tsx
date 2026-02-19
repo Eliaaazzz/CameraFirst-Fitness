@@ -121,17 +121,17 @@ function NavItemButton({
       : colors.light.textSecondary;
 
   const rowBg = isActive
-    ? tint(BRAND_COLORS.primary, 0.14)
+    ? 'rgba(255,255,255,0.62)'
     : isHovered
-      ? tint(BRAND_COLORS.primary, 0.08)
+      ? 'rgba(255,255,255,0.46)'
       : 'transparent';
 
   // Chip background with warm tint even in idle state
   const chipBg = isActive
-    ? 'rgba(255, 255, 255, 0.6)'
+    ? tint(item.color, 0.26)
     : isHovered
-      ? tint(item.color, 0.12)
-      : '#FFF3E5';
+      ? tint(item.color, 0.18)
+      : 'rgba(255,244,231,0.82)';
 
   return (
     <AnimatedPressable
@@ -142,7 +142,16 @@ function NavItemButton({
         styles.navItem,
         {
           backgroundColor: rowBg,
-          borderColor: isActive ? '#F6C28F' : isHovered ? '#F9D9B6' : 'transparent',
+          borderColor: isActive ? 'rgba(255, 181, 133, 0.56)' : isHovered ? 'rgba(249, 217, 182, 0.55)' : 'transparent',
+          ...(Platform.OS === 'web' && ({
+            backdropFilter: isActive ? 'blur(18px)' : isHovered ? 'blur(12px)' : 'blur(0px)',
+            WebkitBackdropFilter: isActive ? 'blur(18px)' : isHovered ? 'blur(12px)' : 'blur(0px)',
+            boxShadow: isActive
+              ? 'inset 0 1px 0 rgba(255,255,255,0.76), 0 8px 20px rgba(15,23,42,0.05), 0 0 0 1px rgba(255,170,120,0.2)'
+              : isHovered
+                ? 'inset 0 1px 0 rgba(255,255,255,0.66), 0 6px 14px rgba(15,23,42,0.03)'
+                : 'none',
+          } as any)),
         },
         isCollapsed && styles.navItemCollapsed,
         animatedStyle,
@@ -318,11 +327,16 @@ const styles = StyleSheet.create({
   container: {
     width: LAYOUT_DIMENSIONS.sidebarWidth,
     height: '100%',
-    backgroundColor: '#FFFDF9',
+    backgroundColor: 'rgba(255,252,247,0.58)',
     borderRightWidth: 1,
-    borderRightColor: '#F1E8DE',
+    borderRightColor: 'rgba(255,255,255,0.62)',
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.sm,
+    ...(Platform.OS === 'web' && ({
+      backdropFilter: 'blur(22px)',
+      WebkitBackdropFilter: 'blur(22px)',
+      boxShadow: 'inset -1px 0 0 rgba(255,170,120,0.18), inset 0 1px 0 rgba(255,255,255,0.7)',
+    } as any)),
   },
 
   // Header
@@ -347,17 +361,22 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
   },
   headerPressed: {
-    backgroundColor: '#FFF2E3',
+    backgroundColor: 'rgba(255,255,255,0.56)',
   },
   toggleIcon: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: '#FFF3E6',
+    backgroundColor: 'rgba(255,255,255,0.62)',
     borderWidth: 1,
-    borderColor: '#F6C28F',
+    borderColor: 'rgba(255,188,144,0.56)',
     justifyContent: 'center',
     alignItems: 'center',
+    ...(Platform.OS === 'web' && ({
+      backdropFilter: 'blur(14px)',
+      WebkitBackdropFilter: 'blur(14px)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)',
+    } as any)),
   },
   brandContainer: {
     flex: 1,
@@ -401,6 +420,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    ...(Platform.OS === 'web' && ({
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45)',
+    } as any)),
   },
 
   navLabel: {
@@ -422,7 +444,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     marginHorizontal: spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: '#F1E8DE',
+    borderTopColor: 'rgba(255,255,255,0.62)',
     marginTop: spacing.md,
     gap: spacing.sm,
     ...(Platform.OS === 'web' && {
@@ -438,11 +460,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFF1E3',
+    backgroundColor: 'rgba(255,255,255,0.64)',
     borderWidth: 1,
-    borderColor: '#F6C28F',
+    borderColor: 'rgba(255,188,144,0.56)',
     justifyContent: 'center',
     alignItems: 'center',
+    ...(Platform.OS === 'web' && ({
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.74)',
+    } as any)),
   },
   userInfo: {
     flex: 1,

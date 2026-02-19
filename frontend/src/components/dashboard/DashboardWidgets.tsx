@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import React, { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
     interpolate,
     useAnimatedStyle,
@@ -98,7 +98,7 @@ export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
       {generatedGoals ? (
         <Animated.View style={cardAnimatedStyle}>
           <Pressable onPress={() => navigation.navigate('Profile')}>
-            <BentoCard style={styles.goalBanner}>
+            <BentoCard style={[styles.rightGlassCard, styles.goalBanner]}>
               <View style={styles.goalBannerHeader}>
                 <View style={styles.goalIconContainer}>
                   {goalTypeConfig && (
@@ -135,10 +135,10 @@ export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
 
       {/* 2. Quick Actions - CSS Grid 2x2 Bento Style */}
       <Animated.View style={[styles.bentoSection, actionsAnimatedStyle]}>
-        <QuickActionsCard />
+        <QuickActionsCard cardStyle={styles.rightGlassCard} />
 
         {/* 3. Hydration Card */}
-        <BentoCard>
+        <BentoCard style={styles.rightGlassCard}>
           <View style={styles.hydrationHeader}>
             <View style={styles.hydrationHeaderLeft}>
               <View style={styles.hydrationIconBox}>
@@ -226,10 +226,22 @@ const styles = StyleSheet.create({
     gap: 20,
     paddingVertical: spacing.sm,
   },
+  rightGlassCard: {
+    backgroundColor: 'rgba(255,255,255,0.66)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.62)',
+    ...saasShadows.subtle,
+    ...(Platform.OS === 'web' && ({
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      boxShadow:
+        'inset 0 1px 0 rgba(255,255,255,0.74), 0 0 0 1px rgba(255,170,120,0.18), 0 10px 24px rgba(15,23,42,0.04)',
+    } as any)),
+  },
   // Goal Banner (additional styles, base from BentoCard)
   goalBanner: {
     overflow: 'hidden',
-    borderColor: 'rgba(255,255,255,0.48)',
+    borderColor: 'rgba(255,255,255,0.62)',
     backgroundColor: 'rgba(255,255,255,0.68)',
   },
   goalBannerHeader: {
@@ -305,9 +317,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   hydrationIconBox: {
-    padding: 7,
-    backgroundColor: 'rgba(230, 248, 252, 0.7)',
+    padding: 8,
+    backgroundColor: 'rgba(205, 242, 250, 0.82)',
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(112, 223, 243, 0.36)',
   },
   hydrationLabel: {
     color: '#164E63', // Cyan-900
@@ -316,12 +330,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: 'rgba(255,255,255,0.58)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.66)',
     ...saasShadows.subtle,
+    ...(Platform.OS === 'web' && ({
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      boxShadow:
+        'inset 0 1px 0 rgba(255,255,255,0.78), 0 0 0 1px rgba(112,223,243,0.16), 0 8px 14px rgba(15,23,42,0.03)',
+    } as any)),
   },
   hydrationContent: {
     gap: 12,
@@ -356,12 +376,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    backgroundColor: 'rgba(255,253,249,0.7)',
+    backgroundColor: 'rgba(255,255,255,0.62)',
     borderRadius: 14,
-    borderWidth: 0.5,
-    borderColor: 'rgba(246, 194, 143, 0.4)',
-    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.62)',
     gap: spacing.sm,
+    ...(Platform.OS === 'web' && ({
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      boxShadow:
+        'inset 0 1px 0 rgba(255,255,255,0.74), 0 0 0 1px rgba(255,170,120,0.2), 0 10px 24px rgba(15,23,42,0.04)',
+    } as any)),
   },
   setGoalsText: {
     flex: 1,
