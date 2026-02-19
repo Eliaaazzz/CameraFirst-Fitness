@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import { ChartLine, ClockCounterClockwise, Export, Scales } from 'phosphor-react-native';
@@ -80,11 +80,12 @@ function QuickActionButton({ Icon, color, label, iconOffsetY, onPress, disabled 
         style={[
           styles.actionIconWrapper,
           {
-            backgroundColor: tint(color, 0.14),
-            borderColor: tint(color, 0.26),
+            backgroundColor: tint(color, 0.22),
+            borderColor: tint(color, 0.4),
           },
         ]}
       >
+        <View style={styles.actionIconSpecular} />
         <Icon
           size={20}
           weight={isHovered ? 'fill' : 'regular'}
@@ -99,7 +100,11 @@ function QuickActionButton({ Icon, color, label, iconOffsetY, onPress, disabled 
   );
 }
 
-export function QuickActionsCard() {
+interface QuickActionsCardProps {
+  cardStyle?: StyleProp<ViewStyle>;
+}
+
+export function QuickActionsCard({ cardStyle }: QuickActionsCardProps = {}) {
   const navigation = useNavigation<any>();
   const { t } = useLanguageStore();
   const { showSnackbar } = useSnackbar();
@@ -130,7 +135,7 @@ export function QuickActionsCard() {
         title={QUICK_ACTIONS_STEP.title}
         icon="⚡"
       >
-        <BentoCard>
+        <BentoCard style={cardStyle}>
           <Text variant="caption" weight="bold" style={styles.sectionLabel}>
             QUICK ACTIONS
           </Text>
@@ -164,7 +169,7 @@ export function QuickActionsCard() {
 
 const styles = StyleSheet.create({
   sectionLabel: {
-    color: '#7A6B5C',
+    color: '#6E5E4D',
     fontSize: 11,
     letterSpacing: 1.2,
     marginBottom: 14,
@@ -186,31 +191,37 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.58)',
+    backgroundColor: 'rgba(255,255,255,0.62)',
     borderRadius: 16,
     padding: 16,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.48)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.62)',
     gap: 8,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 10,
-    shadowOpacity: 0.03,
+    shadowOffset: { width: 0, height: 5 },
+    shadowRadius: 14,
+    shadowOpacity: 0.035,
     elevation: 1,
     ...(Platform.OS !== 'web' && {
       flexBasis: '47%',
       flexGrow: 1,
     }),
-    ...(Platform.OS === 'web' && {
+    ...(Platform.OS === 'web' && ({
       cursor: 'pointer' as any,
       transition: 'all 0.15s ease-out',
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
-    }),
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      boxShadow:
+        'inset 0 1px 0 rgba(255,255,255,0.72), 0 0 0 1px rgba(255,170,120,0.16), 0 8px 18px rgba(15,23,42,0.04)',
+    } as any)),
   },
   actionButtonHovered: {
     backgroundColor: 'rgba(255,255,255,0.76)',
-    borderColor: 'rgba(255,255,255,0.66)',
+    borderColor: 'rgba(255,255,255,0.7)',
+    ...(Platform.OS === 'web' && ({
+      boxShadow:
+        'inset 0 1px 0 rgba(255,255,255,0.8), 0 0 0 1px rgba(255,170,120,0.2), 0 10px 22px rgba(15,23,42,0.05)',
+    } as any)),
   },
   actionButtonDisabled: {
     opacity: 0.55,
@@ -221,10 +232,20 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 0.5,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  actionIconSpecular: {
+    position: 'absolute',
+    top: 0,
+    left: 6,
+    right: 6,
+    height: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.28)',
   },
   actionText: {
-    color: '#6E5E4D',
+    color: '#1F2937',
     fontSize: 12,
     lineHeight: 15,
     minHeight: 30,

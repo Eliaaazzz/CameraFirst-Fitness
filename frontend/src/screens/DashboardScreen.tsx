@@ -34,7 +34,7 @@ import useCurrentUser from '@/hooks/useCurrentUser';
 import { useDailyNutrition } from '@/hooks/useDailyNutrition';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useTourStatus } from '@/hooks/useTourStatus';
-import { GeneratedGoals, GoalType } from '@/services/geminiApi';
+import { GeneratedGoals, getActiveGoal, GoalType } from '@/services/geminiApi';
 import { useGoals, useGoalStatistics } from '@/services/goalsApi';
 import { useLanguageStore } from '@/stores';
 import { BRAND_COLORS, colors, saasShadows, spacing, useContentBottomPadding, useRightPanelVisible, useSidebarVisible } from '@/utils';
@@ -95,6 +95,25 @@ const estimateMacroBloodSugarRiseMgDl = (carbsG: number, proteinG: number): numb
     netCarbs * MODERATE_T2D_NET_CARB_RISE_MGDL_PER_G +
     safeProtein * MODERATE_T2D_PROTEIN_RISE_MGDL_PER_G
   );
+};
+
+const normalizeGoalMacros = (goals: GeneratedGoals): GeneratedGoals => {
+  const macros = goals.macros_grams || {
+    protein_g: 0,
+    carbs_g: 0,
+    fat_g: 0,
+    notes: '',
+  };
+
+  return {
+    ...goals,
+    macros_grams: {
+      ...macros,
+      blood_sugar_rise_mg_dl:
+        macros.blood_sugar_rise_mg_dl ??
+        estimateMacroBloodSugarRiseMgDl(macros.carbs_g, macros.protein_g),
+    },
+  };
 };
 
 const DashboardScreen = () => {
@@ -163,19 +182,43 @@ const DashboardScreen = () => {
     setShowWelcomeCard(false);
   }, [markTourSkipped]);
 
-  // Load generated goals from AsyncStorage
+  // Load generated goals from API (authoritative) then AsyncStorage fallback
   const loadGeneratedGoals = useCallback(async () => {
     try {
+      if (userId) {
+        try {
+          const dbGoal = await getActiveGoal(userId);
+          if (dbGoal) {
+            const normalizedDbGoal = normalizeGoalMacros(dbGoal);
+            const serializedDbGoal = JSON.stringify(normalizedDbGoal);
+            if (serializedDbGoal !== lastLoadedGoalsRef.current) {
+              setGeneratedGoals(normalizedDbGoal);
+              lastLoadedGoalsRef.current = serializedDbGoal;
+            }
+            await AsyncStorage.setItem(GENERATED_GOALS_KEY, serializedDbGoal);
+            return;
+          }
+        } catch (dbError) {
+          console.warn('[DashboardScreen] Failed to load goal from database:', dbError);
+        }
+      }
+
       const saved = await AsyncStorage.getItem(GENERATED_GOALS_KEY);
-      if (saved && saved !== lastLoadedGoalsRef.current) {
-        const parsed = JSON.parse(saved);
-        setGeneratedGoals(parsed);
-        lastLoadedGoalsRef.current = parsed;
+      if (saved) {
+        const parsed = normalizeGoalMacros(JSON.parse(saved));
+        const serializedParsed = JSON.stringify(parsed);
+        if (serializedParsed !== lastLoadedGoalsRef.current) {
+          setGeneratedGoals(parsed);
+          lastLoadedGoalsRef.current = serializedParsed;
+        }
+      } else if (lastLoadedGoalsRef.current !== null) {
+        setGeneratedGoals(null);
+        lastLoadedGoalsRef.current = null;
       }
     } catch (error) {
       console.error('Failed to load generated goals:', error);
     }
-  }, []);
+  }, [userId]);
 
   // Load goals on focus (so it updates after generation)
   // Note: We intentionally exclude stats from dependencies to prevent infinite loops

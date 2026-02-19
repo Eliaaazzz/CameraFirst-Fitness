@@ -5,7 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { navigationRef } from './navigationService';
@@ -330,6 +330,7 @@ const cameraButtonStyles = StyleSheet.create({
   container: {
     position: 'relative',
     top: -22,
+    alignSelf: 'center',
     width: 64,
     height: 64,
     borderRadius: 32,
@@ -371,6 +372,7 @@ const MainTabs = () => {
   const { isDesktop, isTablet, isWeb } = useResponsive();
   const showSidebar = useSidebarVisible();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
 
   // Calculate safe tab bar height with proper bottom inset
   const baseTabBarHeight = isDesktop ? 60 : isTablet ? 56 : 52;
@@ -381,6 +383,10 @@ const MainTabs = () => {
   });
   const tabBarHeight = baseTabBarHeight + tabBarPaddingBottom;
   const tabBarPaddingTop = 8;
+  const tabBarHorizontalMargin = isWeb ? 16 : 12;
+  const tabBarMaxWidth = isWeb ? 560 : 520;
+  const tabBarWidth = Math.max(280, Math.min(screenWidth - tabBarHorizontalMargin * 2, tabBarMaxWidth));
+  const tabBarLeft = Math.max(0, (screenWidth - tabBarWidth) / 2);
 
   const getTabBarIcon = (routeName: string, focused: boolean, color: string) => {
     const config = TAB_CONFIG.find(t => t.name === routeName);
@@ -474,6 +480,7 @@ const MainTabs = () => {
         },
         tabBarStyle: {
           height: tabBarHeight,
+          width: tabBarWidth,
           paddingBottom: tabBarPaddingBottom,
           paddingTop: tabBarPaddingTop,
           backgroundColor: 'transparent',
@@ -488,8 +495,9 @@ const MainTabs = () => {
           // Platform-specific positioning and layout
           position: 'absolute' as const,
           bottom: isWeb ? 12 : 8,
-          left: isWeb ? 16 : 12,
-          right: isWeb ? 16 : 12,
+          left: tabBarLeft,
+          right: undefined,
+          alignSelf: 'center' as const,
           ...(isWeb && {
             display: 'flex' as const,
             flexDirection: 'row' as const,

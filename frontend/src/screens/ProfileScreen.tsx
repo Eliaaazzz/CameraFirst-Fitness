@@ -45,6 +45,39 @@ import { getTheme } from '@/utils/theme';
 
 export const GENERATED_GOALS_KEY = '@generated_fitness_goals';
 const DEFAULT_AVATAR_CONTENT_TYPE = 'image/jpeg';
+const MODERATE_T2D_NET_CARB_RISE_MGDL_PER_G = 4;
+const MODERATE_T2D_PROTEIN_RISE_MGDL_PER_G = 0.5;
+const ESTIMATED_FIBER_RATIO = 0.1;
+
+const estimateBloodSugarRiseMgDl = (carbsG: number, proteinG: number): number => {
+  const safeCarbs = Math.max(0, carbsG || 0);
+  const safeProtein = Math.max(0, proteinG || 0);
+  const estimatedFiber = Math.round(safeCarbs * ESTIMATED_FIBER_RATIO);
+  const netCarbs = Math.max(0, safeCarbs - estimatedFiber);
+  return Math.round(
+    netCarbs * MODERATE_T2D_NET_CARB_RISE_MGDL_PER_G +
+    safeProtein * MODERATE_T2D_PROTEIN_RISE_MGDL_PER_G
+  );
+};
+
+const normalizeGoalMacros = (goals: GeneratedGoals): GeneratedGoals => {
+  const macros = goals.macros_grams || {
+    protein_g: 0,
+    carbs_g: 0,
+    fat_g: 0,
+    notes: '',
+  };
+
+  return {
+    ...goals,
+    macros_grams: {
+      ...macros,
+      blood_sugar_rise_mg_dl:
+        macros.blood_sugar_rise_mg_dl ??
+        estimateBloodSugarRiseMgDl(macros.carbs_g, macros.protein_g),
+    },
+  };
+};
 
 const mapGoalTypeToFitnessGoal = (goalType: GoalType): string => {
   switch (goalType) {
@@ -557,10 +590,11 @@ const ProfileScreen = () => {
         try {
           const dbGoal = await getActiveGoal(userId);
           if (dbGoal) {
+            const normalizedDbGoal = normalizeGoalMacros(dbGoal);
             console.log('[ProfileScreen] Loaded goal from database');
-            setGeneratedGoals(dbGoal);
+            setGeneratedGoals(normalizedDbGoal);
             // Also cache in AsyncStorage for offline access
-            await AsyncStorage.setItem(GENERATED_GOALS_KEY, JSON.stringify(dbGoal));
+            await AsyncStorage.setItem(GENERATED_GOALS_KEY, JSON.stringify(normalizedDbGoal));
             return;
           }
         } catch (dbError) {
@@ -572,7 +606,7 @@ const ProfileScreen = () => {
       const saved = await AsyncStorage.getItem(GENERATED_GOALS_KEY);
       if (saved) {
         console.log('[ProfileScreen] Loaded goal from AsyncStorage');
-        setGeneratedGoals(JSON.parse(saved));
+        setGeneratedGoals(normalizeGoalMacros(JSON.parse(saved)));
         return;
       }
 
@@ -592,6 +626,10 @@ const ProfileScreen = () => {
             protein_g: profile.dailyProteinTarget || 130,
             carbs_g: profile.dailyCarbsTarget || 220,
             fat_g: profile.dailyFatTarget || 70,
+            blood_sugar_rise_mg_dl: estimateBloodSugarRiseMgDl(
+              profile.dailyCarbsTarget || 220,
+              profile.dailyProteinTarget || 130
+            ),
             notes: 'Restored from your saved profile',
           },
           sugarLimit_g_per_day: 25,
@@ -711,7 +749,7 @@ const ProfileScreen = () => {
         activityLevel: 'medium',
       };
 
-      const goals = await generateGoals(request);
+      const goals = normalizeGoalMacros(await generateGoals(request));
       setGeneratedGoals(goals);
 
       // Save to AsyncStorage for quick offline access
