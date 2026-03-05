@@ -2,6 +2,8 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "target": "ES2017",
+    "lib": ["ES2017", "DOM", "DOM.Iterable"],
     "baseUrl": ".",
     "jsx": "react-native",
     "resolveJsonModule": true,

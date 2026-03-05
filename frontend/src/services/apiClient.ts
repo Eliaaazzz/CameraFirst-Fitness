@@ -265,6 +265,21 @@ class APIError extends Error {
   }
 }
 
+function parseRetryAfterMs(retryAfterHeader: string | null): number | undefined {
+  if (!retryAfterHeader) return undefined;
+
+  const asSeconds = Number.parseInt(retryAfterHeader, 10);
+  if (Number.isFinite(asSeconds) && asSeconds >= 0) {
+    return asSeconds * 1000;
+  }
+
+  const asDate = Date.parse(retryAfterHeader);
+  if (Number.isNaN(asDate)) return undefined;
+
+  const deltaMs = asDate - Date.now();
+  return deltaMs > 0 ? deltaMs : undefined;
+}
+
 /**
  * Make an HTTP request with timeout and error handling.
  * On web: Uses credentials: 'include' to send HttpOnly cookies.
@@ -349,6 +364,17 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
       const errorEnvelope = isApiEnvelope<any>(rawError) ? rawError : null;
       const message = errorEnvelope?.message || rawError?.message || `HTTP ${response.status}: ${response.statusText}`;
       const errors = errorEnvelope?.errors ?? rawError?.errors;
+      const retryAfterMs = parseRetryAfterMs(response.headers.get('retry-after'));
+
+      let normalizedMessage = message;
+      if (response.status === 429) {
+        const retryHint = retryAfterMs
+          ? ` Please retry in about ${Math.ceil(retryAfterMs / 1000)}s.`
+          : '';
+        normalizedMessage = `Too many requests.${retryHint}`;
+      } else if (response.status === 503) {
+        normalizedMessage = 'Service temporarily unavailable. Please try again shortly.';
+      }
 
       // Handle authentication failures (401/403)
       // On web: We're using HttpOnly cookies, so check if we're authenticated (have stored email)
@@ -373,12 +399,12 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
         throw new APIError(
           'Your session has expired. Please sign in again.',
           response.status,
-          { ...rawError, message, errors, authError: true }
+          { ...rawError, message: normalizedMessage, errors, authError: true, retryAfterMs }
         );
       }
 
       console.log('[APIClient Error]', { status: response.status, data: rawError });
-      throw new APIError(message, response.status, { ...rawError, errors });
+      throw new APIError(normalizedMessage, response.status, { ...rawError, errors, retryAfterMs });
     }
 
     // Handle empty responses

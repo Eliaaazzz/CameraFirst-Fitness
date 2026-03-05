@@ -228,7 +228,6 @@ const DashboardScreen = () => {
       loadGeneratedGoals();
       refresh();
       stats.refetch();
-      currentUser.refetch(); // Refresh user data (username, streak, etc.)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loadGeneratedGoals, refresh])
   );
