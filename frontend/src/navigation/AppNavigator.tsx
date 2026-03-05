@@ -494,9 +494,7 @@ const MainTabs = () => {
           // Platform-specific positioning and layout
           position: 'absolute' as const,
           bottom: isWeb ? 12 : 8,
-          left: '50%',
-          transform: [{ translateX: -tabBarWidth / 2 }],
-          right: undefined,
+          alignSelf: 'center' as const,
           ...(isWeb && {
             display: 'flex' as const,
             flexDirection: 'row' as const,

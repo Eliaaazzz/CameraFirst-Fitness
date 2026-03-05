@@ -2,13 +2,13 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "target": "ES2017",
-    "lib": ["ES2017", "DOM", "DOM.Iterable"],
+    "target": "ES2019",
+    "lib": ["ES2019", "DOM", "DOM.Iterable"],
     "baseUrl": ".",
     "jsx": "react-native",
     "resolveJsonModule": true,
     "skipLibCheck": true,
-  "types": ["jest", "react-native", "expo"],
+    "types": ["jest", "node", "react-native", "expo"],
     "paths": {
       "@/*": [
         "./src/*"
