@@ -126,9 +126,13 @@ export function useDailyNutrition() {
   });
 
   const refresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['dailyNutrition'] });
-    refetch();
-  }, [queryClient, refetch]);
+    // Invalidating active queries already triggers a refetch.
+    // Avoid explicit refetch() to prevent duplicate requests.
+    return queryClient.invalidateQueries({
+      queryKey: ['dailyNutrition'],
+      refetchType: 'active',
+    });
+  }, [queryClient]);
 
   return {
     data: data || {

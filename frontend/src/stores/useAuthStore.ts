@@ -129,11 +129,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await saveJWT(token, undefined, userInfo?.email);
     }
 
-    // If userInfo provided, use it directly
+    // If userInfo provided, use it for instant UI.
+    // Continue to canonical /me fetch when values are partial placeholders.
     if (userInfo) {
       set({ userInfo, isAuthenticated: true, isLoading: false });
       await persistUserInfo(userInfo);
-      return;
+
+      const hasValidUserId = typeof userInfo.userId === 'string' && userInfo.userId.trim().length > 0;
+      const hasValidUsername = typeof userInfo.username === 'string' && userInfo.username.trim().length > 0;
+
+      if (hasValidUserId && hasValidUsername) {
+        return;
+      }
+
+      console.log('[AuthStore] Partial userInfo provided, fetching canonical profile from /api/v1/me');
     }
 
     // Otherwise fetch from backend

@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import { useAuthStore } from '@/stores';
@@ -14,8 +14,14 @@ import { useAuthStore } from '@/stores';
 export default function SplashScreen() {
   const navigation = useNavigation();
   const { isRestoringToken, isAuthenticated, restoreToken } = useAuthStore();
+  const hasStartedRestoreRef = useRef(false);
 
   useEffect(() => {
+    if (hasStartedRestoreRef.current) {
+      return;
+    }
+    hasStartedRestoreRef.current = true;
+
     const initAuth = async () => {
       console.log('[SplashScreen] Starting auth restoration...');
 

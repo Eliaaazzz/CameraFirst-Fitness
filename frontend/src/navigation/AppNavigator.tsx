@@ -386,7 +386,6 @@ const MainTabs = () => {
   const tabBarHorizontalMargin = isWeb ? 16 : 12;
   const tabBarMaxWidth = isWeb ? 560 : 520;
   const tabBarWidth = Math.max(280, Math.min(screenWidth - tabBarHorizontalMargin * 2, tabBarMaxWidth));
-  const tabBarLeft = Math.max(0, (screenWidth - tabBarWidth) / 2);
 
   const getTabBarIcon = (routeName: string, focused: boolean, color: string) => {
     const config = TAB_CONFIG.find(t => t.name === routeName);
@@ -495,9 +494,9 @@ const MainTabs = () => {
           // Platform-specific positioning and layout
           position: 'absolute' as const,
           bottom: isWeb ? 12 : 8,
-          left: tabBarLeft,
+          left: '50%',
+          transform: [{ translateX: -tabBarWidth / 2 }],
           right: undefined,
-          alignSelf: 'center' as const,
           ...(isWeb && {
             display: 'flex' as const,
             flexDirection: 'row' as const,
