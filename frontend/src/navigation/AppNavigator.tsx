@@ -388,11 +388,12 @@ const MainTabs = () => {
   const availableTabBarWidth = screenWidth - tabBarHorizontalMargin * 2;
   const tabBarWidth = Math.round(Math.max(280, Math.min(availableTabBarWidth, tabBarMaxWidth)));
   const shouldUseFixedTabBarWidth = availableTabBarWidth > tabBarMaxWidth;
+  // Note: `left: '50%'` percentages are not supported in React Native (Yoga ignores them).
+  // Use explicit pixel math for fixed-width case; equal left/right for fluid case.
   const tabBarFrameStyle = shouldUseFixedTabBarWidth
     ? {
         width: tabBarWidth,
-        left: '50%' as const,
-        marginLeft: -tabBarWidth / 2,
+        left: Math.round((screenWidth - tabBarWidth) / 2),
       }
     : {
         left: tabBarHorizontalMargin,
@@ -471,6 +472,7 @@ const MainTabs = () => {
   return (
     <Tab.Navigator
       initialRouteName="Dashboard"
+      safeAreaInsets={{ left: 0, right: 0 }}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: BRAND_COLORS.primaryDark,
