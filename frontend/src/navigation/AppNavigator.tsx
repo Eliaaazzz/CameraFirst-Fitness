@@ -1,11 +1,21 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import {
+  BottomTabBar,
+  createBottomTabNavigator,
+  type BottomTabBarButtonProps,
+} from '@react-navigation/bottom-tabs';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  type PressableStateCallbackType,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { navigationRef } from './navigationService';
@@ -103,6 +113,10 @@ const TabIconShell = ({ focused, children }: { focused: boolean; children: React
 );
 
 const tabBarStyles = StyleSheet.create({
+  frame: {
+    width: '92%',
+    minWidth: 0,
+  },
   shell: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 28,
@@ -293,19 +307,35 @@ const TAB_CONFIG = [
 ];
 
 // Custom camera button component for bottom tab
-interface CameraTabButtonProps {
-  onPress: () => void;
-}
-
 /**
  * Camera FAB – Liquid Glass floating action button.
  * Uses the same glass material as the tab bar but with a warm brand tint
  * that "shines through" the translucent surface.
  */
-const CameraTabButton = ({ onPress }: CameraTabButtonProps) => (
+type CameraTabButtonProps = Partial<BottomTabBarButtonProps>;
+
+const CameraTabButton = ({
+  children: _children,
+  style,
+  onPress,
+  onLongPress,
+  testID,
+  accessibilityLabel,
+  accessibilityState,
+  role,
+  android_ripple,
+}: CameraTabButtonProps) => (
   <Pressable
     onPress={onPress}
-    style={({ pressed }) => [
+    onLongPress={onLongPress}
+    testID={testID}
+    accessibilityLabel={accessibilityLabel}
+    accessibilityState={accessibilityState}
+    role={role as any}
+    android_ripple={android_ripple}
+    style={({ pressed }: PressableStateCallbackType) => [
+      style,
+      cameraButtonStyles.button,
       cameraButtonStyles.container,
       pressed && cameraButtonStyles.pressed,
     ]}
@@ -327,10 +357,15 @@ const CameraTabButton = ({ onPress }: CameraTabButtonProps) => (
 );
 
 const cameraButtonStyles = StyleSheet.create({
+  button: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    backgroundColor: 'transparent',
+  },
   container: {
     position: 'relative',
     top: -22,
-    alignSelf: 'center',
     width: 64,
     height: 64,
     borderRadius: 32,
@@ -383,8 +418,10 @@ const MainTabs = () => {
   const tabBarPaddingTop = 8;
   // Two-layer approach:
   // - Outer wrapper: position + centering only (left:0, right:0, alignItems:'center')
-  // - Inner BottomTabBar: width + visuals only (no position/left/right/margin)
-  // This avoids the classic bug of mixing width + left/right + margin on the same element.
+  // - Inner frame: width constraint only
+  // - BottomTabBar: visuals only
+  // React Navigation's internal BottomTabBar root still carries start/end positioning,
+  // so keeping width on a parent frame avoids the right-shift drift.
   const renderTabBar = (props: React.ComponentProps<typeof BottomTabBar>) => (
     <View
       pointerEvents="box-none"
@@ -397,7 +434,9 @@ const MainTabs = () => {
         alignItems: 'center',
       }}
     >
-      <BottomTabBar {...props} />
+      <View style={[tabBarStyles.frame, { maxWidth: isWeb ? 560 : 520 }]}>
+        <BottomTabBar {...props} />
+      </View>
     </View>
   );
 
@@ -494,10 +533,7 @@ const MainTabs = () => {
           alignItems: 'center',
         },
         tabBarStyle: {
-          // Width only — no position/left/right/margin here.
-          // The renderTabBar wrapper handles all positioning and centering.
-          width: '92%' as any,
-          maxWidth: isWeb ? 560 : 520,
+          // The renderTabBar frame owns width and centering.
           height: tabBarHeight,
           paddingBottom: tabBarPaddingBottom,
           paddingTop: tabBarPaddingTop,
