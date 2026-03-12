@@ -1,5 +1,5 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { BlurView } from 'expo-blur';
@@ -388,17 +388,27 @@ const MainTabs = () => {
   const availableTabBarWidth = screenWidth - tabBarHorizontalMargin * 2;
   const tabBarWidth = Math.round(Math.max(280, Math.min(availableTabBarWidth, tabBarMaxWidth)));
   const shouldUseFixedTabBarWidth = availableTabBarWidth > tabBarMaxWidth;
-  // Note: `left: '50%'` percentages are not supported in React Native (Yoga ignores them).
-  // Use explicit pixel math for fixed-width case; equal left/right for fluid case.
-  const tabBarFrameStyle = shouldUseFixedTabBarWidth
+  // Wrapper style applied to our own View (not the BottomTabBar), so React Navigation's
+  // internal `start: 0, end: 0` CSS classes cannot interfere with our positioning.
+  const tabBarWrapperStyle = shouldUseFixedTabBarWidth
     ? {
-        width: tabBarWidth,
+        position: 'absolute' as const,
+        bottom: isWeb ? 12 : 8,
         left: Math.round((screenWidth - tabBarWidth) / 2),
+        width: tabBarWidth,
       }
     : {
+        position: 'absolute' as const,
+        bottom: isWeb ? 12 : 8,
         left: tabBarHorizontalMargin,
         right: tabBarHorizontalMargin,
       };
+
+  const renderTabBar = (props: React.ComponentProps<typeof BottomTabBar>) => (
+    <View pointerEvents="box-none" style={tabBarWrapperStyle}>
+      <BottomTabBar {...props} />
+    </View>
+  );
 
   const getTabBarIcon = (routeName: string, focused: boolean, color: string) => {
     const config = TAB_CONFIG.find(t => t.name === routeName);
@@ -473,6 +483,7 @@ const MainTabs = () => {
     <Tab.Navigator
       initialRouteName="Dashboard"
       safeAreaInsets={{ left: 0, right: 0 }}
+      tabBar={renderTabBar}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: BRAND_COLORS.primaryDark,
@@ -498,22 +509,14 @@ const MainTabs = () => {
           backgroundColor: 'transparent',
           borderTopWidth: 0,
           borderRadius: 28,
-          // Liquid Glass floating shadow – deeper & wider
+          // Liquid Glass floating shadow
           shadowColor: '#0F172A',
           shadowOpacity: 0.14,
           shadowRadius: 28,
           shadowOffset: { width: 0, height: 10 },
           elevation: 0,
-          // Platform-specific positioning and layout
-          position: 'absolute' as const,
-          bottom: isWeb ? 12 : 8,
-          ...tabBarFrameStyle,
-          ...(isWeb && {
-            display: 'flex' as const,
-            flexDirection: 'row' as const,
-            justifyContent: 'space-around' as const,
-            alignItems: 'center' as const,
-          }),
+          // Positioning is handled by the renderTabBar wrapper View,
+          // so React Navigation's internal start:0/end:0 classes don't interfere.
         },
         tabBarBackground: TabBarBackground,
         tabBarIcon: ({ focused, color }) => getTabBarIcon(route.name, focused, color),
