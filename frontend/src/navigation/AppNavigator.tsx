@@ -408,11 +408,12 @@ const MainTabs = () => {
   const showSidebar = useSidebarVisible();
   const insets = useSafeAreaInsets();
   // Calculate safe tab bar height with proper bottom inset
-  const baseTabBarHeight = isDesktop ? 60 : isTablet ? 56 : 52;
+  // Increased height to ensure labels are visible (64 for mobile/tablet, 68 for desktop)
+  const baseTabBarHeight = isDesktop ? 68 : isTablet ? 64 : 64;
   const tabBarPaddingBottom = Platform.select({
-    ios: Math.max(insets.bottom, 8) + 4,
-    android: Math.max(insets.bottom, 8) + 4,
-    default: 12, // web
+    ios: Math.max(insets.bottom, 4) + 2,
+    android: Math.max(insets.bottom, 4) + 2,
+    default: 8, // web
   });
   const tabBarHeight = baseTabBarHeight + tabBarPaddingBottom;
   const tabBarPaddingTop = 8;
