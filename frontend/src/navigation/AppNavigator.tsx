@@ -5,7 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { navigationRef } from './navigationService';
@@ -372,8 +372,6 @@ const MainTabs = () => {
   const { isDesktop, isTablet, isWeb } = useResponsive();
   const showSidebar = useSidebarVisible();
   const insets = useSafeAreaInsets();
-  const { width: screenWidth } = useWindowDimensions();
-
   // Calculate safe tab bar height with proper bottom inset
   const baseTabBarHeight = isDesktop ? 60 : isTablet ? 56 : 52;
   const tabBarPaddingBottom = Platform.select({
@@ -383,29 +381,22 @@ const MainTabs = () => {
   });
   const tabBarHeight = baseTabBarHeight + tabBarPaddingBottom;
   const tabBarPaddingTop = 8;
-  const tabBarHorizontalMargin = isWeb ? 16 : 12;
-  const tabBarMaxWidth = isWeb ? 560 : 520;
-  const availableTabBarWidth = screenWidth - tabBarHorizontalMargin * 2;
-  const tabBarWidth = Math.round(Math.max(280, Math.min(availableTabBarWidth, tabBarMaxWidth)));
-  const shouldUseFixedTabBarWidth = availableTabBarWidth > tabBarMaxWidth;
-  // Wrapper style applied to our own View (not the BottomTabBar), so React Navigation's
-  // internal `start: 0, end: 0` CSS classes cannot interfere with our positioning.
-  const tabBarWrapperStyle = shouldUseFixedTabBarWidth
-    ? {
-        position: 'absolute' as const,
-        bottom: isWeb ? 12 : 8,
-        left: Math.round((screenWidth - tabBarWidth) / 2),
-        width: tabBarWidth,
-      }
-    : {
-        position: 'absolute' as const,
-        bottom: isWeb ? 12 : 8,
-        left: tabBarHorizontalMargin,
-        right: tabBarHorizontalMargin,
-      };
-
+  // Two-layer approach:
+  // - Outer wrapper: position + centering only (left:0, right:0, alignItems:'center')
+  // - Inner BottomTabBar: width + visuals only (no position/left/right/margin)
+  // This avoids the classic bug of mixing width + left/right + margin on the same element.
   const renderTabBar = (props: React.ComponentProps<typeof BottomTabBar>) => (
-    <View pointerEvents="box-none" style={tabBarWrapperStyle}>
+    <View
+      pointerEvents="box-none"
+      style={{
+        // 'fixed' on web prevents scrolling away; 'absolute' on native
+        position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
+        left: 0,
+        right: 0,
+        bottom: isWeb ? 12 : 8,
+        alignItems: 'center',
+      }}
+    >
       <BottomTabBar {...props} />
     </View>
   );
@@ -503,20 +494,21 @@ const MainTabs = () => {
           alignItems: 'center',
         },
         tabBarStyle: {
+          // Width only — no position/left/right/margin here.
+          // The renderTabBar wrapper handles all positioning and centering.
+          width: '92%' as any,
+          maxWidth: isWeb ? 560 : 520,
           height: tabBarHeight,
           paddingBottom: tabBarPaddingBottom,
           paddingTop: tabBarPaddingTop,
           backgroundColor: 'transparent',
           borderTopWidth: 0,
           borderRadius: 28,
-          // Liquid Glass floating shadow
           shadowColor: '#0F172A',
           shadowOpacity: 0.14,
           shadowRadius: 28,
           shadowOffset: { width: 0, height: 10 },
           elevation: 0,
-          // Positioning is handled by the renderTabBar wrapper View,
-          // so React Navigation's internal start:0/end:0 classes don't interfere.
         },
         tabBarBackground: TabBarBackground,
         tabBarIcon: ({ focused, color }) => getTabBarIcon(route.name, focused, color),
