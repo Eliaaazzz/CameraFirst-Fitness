@@ -426,15 +426,17 @@ const MainTabs = () => {
     <View
       pointerEvents="box-none"
       style={{
-        // 'fixed' on web prevents scrolling away; 'absolute' on native
         position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
         left: 0,
         right: 0,
         bottom: isWeb ? 12 : 8,
         alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        width: '100%',
       }}
     >
-      <View style={[tabBarStyles.frame, { maxWidth: isWeb ? 560 : 520 }]}>
+      <View style={[tabBarStyles.frame, { maxWidth: isWeb ? 560 : 520, alignSelf: 'center' }]}>
         <BottomTabBar {...props} />
       </View>
     </View>
@@ -490,18 +492,6 @@ const MainTabs = () => {
                 options={{ title: tab.label }}
               />
             ))}
-
-            {/* Hidden screens */}
-            <Tab.Screen
-              name="Results"
-              component={SafeResultsScreen}
-              options={{ tabBarButton: () => null }}
-            />
-            <Tab.Screen
-              name="ReviewMeal"
-              component={SafeReviewMealScreen}
-              options={{ tabBarButton: () => null }}
-            />
           </Tab.Navigator>
         </View>
       </View>
@@ -512,7 +502,7 @@ const MainTabs = () => {
   return (
     <Tab.Navigator
       initialRouteName="Dashboard"
-      safeAreaInsets={{ left: 0, right: 0 }}
+      safeAreaInsets={{ left: 0, right: 0, top: 0, bottom: 0 }}
       tabBar={renderTabBar}
       screenOptions={({ route }) => ({
         headerShown: false,
@@ -533,7 +523,6 @@ const MainTabs = () => {
           alignItems: 'center',
         },
         tabBarStyle: {
-          // The renderTabBar frame owns width and centering.
           height: tabBarHeight,
           paddingBottom: tabBarPaddingBottom,
           paddingTop: tabBarPaddingTop,
@@ -545,6 +534,7 @@ const MainTabs = () => {
           shadowRadius: 28,
           shadowOffset: { width: 0, height: 10 },
           elevation: 0,
+          width: '100%',
         },
         tabBarBackground: TabBarBackground,
         tabBarIcon: ({ focused, color }) => getTabBarIcon(route.name, focused, color),
@@ -579,29 +569,6 @@ const MainTabs = () => {
           />
         );
       })}
-
-      {/* Hidden screens - accessible via navigation but not shown in tab bar */}
-      <Tab.Screen
-        name="Results"
-        component={SafeResultsScreen}
-        options={{
-          title: 'Results',
-          tabBarButton: () => null,
-          tabBarItemStyle: { display: 'none' },
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-      <Tab.Screen
-        name="ReviewMeal"
-        component={SafeReviewMealScreen}
-        options={{
-          title: 'Review Meal',
-          tabBarButton: () => null,
-          tabBarItemStyle: { display: 'none' },
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-      {/* MealHistory and WeeklyInsights are now in ProfileStackScreen */}
     </Tab.Navigator>
   );
 };
@@ -618,6 +585,8 @@ export const AppNavigator = () => {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
+        <Stack.Screen name="Results" component={SafeResultsScreen} />
+        <Stack.Screen name="ReviewMeal" component={SafeReviewMealScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
