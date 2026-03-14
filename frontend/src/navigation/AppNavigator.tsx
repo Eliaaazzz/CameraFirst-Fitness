@@ -153,7 +153,7 @@ const tabBarStyles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
+    marginTop: 0,
   },
   iconShellFocused: {
     backgroundColor: 'rgba(255,255,255,0.54)',
@@ -407,15 +407,18 @@ const MainTabs = () => {
   const { isDesktop, isTablet, isWeb } = useResponsive();
   const showSidebar = useSidebarVisible();
   const insets = useSafeAreaInsets();
+  const tabBarLabelFontSize = isDesktop ? 11 : 10;
+  const tabBarLabelLineHeight = tabBarLabelFontSize + 2;
   // Calculate safe tab bar height with proper bottom inset
-  const baseTabBarHeight = isDesktop ? 60 : isTablet ? 56 : 52;
+  // Keep extra vertical room for the custom glass icon shell and tab label stack.
+  const baseTabBarHeight = isDesktop ? 68 : isTablet ? 72 : 72;
   const tabBarPaddingBottom = Platform.select({
-    ios: Math.max(insets.bottom, 8) + 4,
-    android: Math.max(insets.bottom, 8) + 4,
-    default: 12, // web
+    ios: Math.max(insets.bottom, 4) + 2,
+    android: Math.max(insets.bottom, 4) + 2,
+    default: 8, // web
   });
   const tabBarHeight = baseTabBarHeight + tabBarPaddingBottom;
-  const tabBarPaddingTop = 8;
+  const tabBarPaddingTop = 10;
   // Two-layer approach:
   // - Outer wrapper: position + centering only (left:0, right:0, alignItems:'center')
   // - Inner frame: width constraint only
@@ -509,18 +512,24 @@ const MainTabs = () => {
         tabBarActiveTintColor: BRAND_COLORS.primaryDark,
         tabBarInactiveTintColor: BRAND_COLORS.tabInactive,
         tabBarHideOnKeyboard: true,
+        tabBarShowLabel: true,
+        tabBarLabelPosition: 'below-icon',
         tabBarLabelStyle: {
-          fontSize: isDesktop ? 11 : 10,
+          fontSize: tabBarLabelFontSize,
+          lineHeight: tabBarLabelLineHeight,
           fontWeight: '700',
-          marginTop: 1,
+          marginTop: 4,
           letterSpacing: 0.2,
+          paddingBottom: 1,
+        },
+        tabBarIconStyle: {
+          marginTop: 2,
         },
         tabBarItemStyle: {
           flex: 1,
-          minHeight: 44,
-          paddingTop: 0,
-          justifyContent: 'center',
-          alignItems: 'center',
+          minHeight: 56,
+          paddingTop: 2,
+          paddingBottom: 0,
         },
         tabBarStyle: {
           height: tabBarHeight,

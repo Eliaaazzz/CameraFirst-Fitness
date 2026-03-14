@@ -303,30 +303,19 @@ export default function LoginScreen() {
     }
   }, [googleResponse, sendGoogleTokenToBackend]);
 
-  // Helpful for debugging `redirect_uri_mismatch` on web:
-  // Logs the *exact* redirect_uri + client_id being sent to Google.
   const handleGoogleLogin = useCallback(async () => {
-    if (!googleRequest) return;
+    if (!googleRequest?.url) return;
 
     if (Platform.OS === 'web') {
-      console.log('[GoogleAuth] redirectUri (computed):', redirectUri);
-      const authUrl = googleRequest.url;
-      if (authUrl) {
-        try {
-          const u = new URL(authUrl);
-          console.log('[GoogleAuth] request params:', {
-            clientId: u.searchParams.get('client_id'),
-            redirectUri: u.searchParams.get('redirect_uri'),
-            responseType: u.searchParams.get('response_type'),
-          });
-        } catch {
-          console.log('[GoogleAuth] authUrl:', authUrl);
-        }
-      }
+      // Safari blocks window.open() called from async functions.
+      // Use a full-page redirect instead — expo-auth-session handles the
+      // response when the app reloads after Google redirects back.
+      window.location.href = googleRequest.url;
+      return;
     }
 
-    await promptGoogleAsync(Platform.OS === 'web' ? { showInRecents: true } : undefined);
-  }, [googleRequest, promptGoogleAsync, redirectUri]);
+    await promptGoogleAsync();
+  }, [googleRequest, promptGoogleAsync]);
 
   // Web Apple Sign-In: official JS SDK + official rendered button.
   useEffect(() => {
