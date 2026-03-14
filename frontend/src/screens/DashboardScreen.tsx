@@ -354,12 +354,6 @@ const DashboardScreen = () => {
 
   const renderGoalsSection = (styleOverride?: object) => {
     if (generatedGoals) {
-      const macroBloodSugarRise = generatedGoals.macros_grams.blood_sugar_rise_mg_dl
-        ?? estimateMacroBloodSugarRiseMgDl(
-          generatedGoals.macros_grams.carbs_g,
-          generatedGoals.macros_grams.protein_g
-        );
-
       return (
         <BentoCard style={[styles.goalsCard, styleOverride]}>
           {/* Header: Top-left aligned with icon + title */}
@@ -423,14 +417,6 @@ const DashboardScreen = () => {
               <Drop size={20} weight="fill" color={BRAND_COLORS.macros.fat} />
               <Text variant="heading3" weight="bold">{generatedGoals.macros_grams.fat_g}g</Text>
               <Text variant="caption" style={styles.goalItemLabel}>Fat</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.goalItem, pressed && { opacity: 0.7 }]}
-              onPress={() => handleMacroSearch('carbs')}
-            >
-              <MaterialCommunityIcons name="water-plus" size={20} color="#E11D48" />
-              <Text variant="heading3" weight="bold">+{macroBloodSugarRise}</Text>
-              <Text variant="caption" style={styles.goalItemLabel}>Glucose + (mg/dL)</Text>
             </Pressable>
           </View>
 
