@@ -160,7 +160,7 @@ const translations: Record<Language, Translations> = {
     // Goals
     fatLoss: 'Fat Loss',
     buildMuscle: 'Build Muscle',
-    glucoseControl: 'Glucose Control',
+    glucoseControl: 'Nutrition Balance',
 
     // Status
     overLimit: 'Over limit',
@@ -237,7 +237,7 @@ const translations: Record<Language, Translations> = {
     // Goals
     fatLoss: '减脂',
     buildMuscle: '增肌',
-    glucoseControl: '血糖控制',
+    glucoseControl: '营养平衡',
 
     // Status
     overLimit: '已超标',

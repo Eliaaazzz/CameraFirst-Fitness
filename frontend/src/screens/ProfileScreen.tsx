@@ -130,9 +130,9 @@ const GOAL_OPTIONS: Array<{ value: GoalType; label: string; icon: string; descri
   },
   {
     value: 'diabetes_control',
-    label: 'Blood Sugar',
-    icon: 'heart-pulse',
-    description: 'Diabetes management',
+    label: 'Nutrition Balance',
+    icon: 'leaf',
+    description: 'Steady energy and lighter carbs',
     color: BRAND_COLORS.macros.carbs
   },
 ];
@@ -1139,10 +1139,6 @@ const ProfileScreen = () => {
                 <View style={styles.goalCardHeader}>
                   <MaterialCommunityIcons name="target" size={24} color={theme.colors.info} />
                   <Text variant="body" weight="semibold" style={{ color: theme.colors.textPrimary }}>Daily Targets</Text>
-                </View>
-                <View style={styles.targetRow}>
-                  <MaterialCommunityIcons name="cube-outline" size={20} color={theme.colors.warning} />
-                  <Text variant="body" style={{ color: theme.colors.textSecondary }}>Sugar Limit: {generatedGoals.sugarLimit_g_per_day}g</Text>
                 </View>
                 <View style={styles.targetRow}>
                   <MaterialCommunityIcons name="leaf" size={20} color={theme.colors.success} />

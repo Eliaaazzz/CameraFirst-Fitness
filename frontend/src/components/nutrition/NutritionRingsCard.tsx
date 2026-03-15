@@ -1,6 +1,6 @@
 import { Flame } from 'phosphor-react-native';
 import React, { useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedProps,
@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, G } from 'react-native-svg';
 
+import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES } from '@/components/common/BentoCard';
 import { Text } from '@/components/Text';
 import { useLanguageStore } from '@/stores';
 import { BRAND_COLORS, spacing } from '@/utils';
@@ -311,7 +312,7 @@ export function NutritionRingsCard({
   };
 
   return (
-    <View style={[styles.card, webCardShadow as any]}>
+    <View style={styles.card}>
       {/* Header */}
       <View style={styles.header}>
         <Text variant="heading3" weight="bold" style={styles.title}>
@@ -445,20 +446,10 @@ export function getCalorieSubtitle(current: number, target: number): string {
 // STYLES
 // ============================================================================
 
-const webCardShadow = Platform.OS === 'web' ? { boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' } : {};
-
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: spacing.lg,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    ...BENTO_CARD_STYLES,
+    ...(BENTO_CARD_WEB_STYLES as object),
   },
   header: {
     flexDirection: 'row',

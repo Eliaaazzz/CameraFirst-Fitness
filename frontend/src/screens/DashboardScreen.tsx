@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Barbell, Drop, Fire, Grains } from 'phosphor-react-native';
 
 import { BentoCard, SafeAreaWrapper, Text } from '@/components';
+import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES } from '@/components/common/BentoCard';
 import { StateView } from '@/components/common/StateView';
 import { DashboardWidgets, QuickActionsCard } from '@/components/dashboard';
 import { ScreenLayout } from '@/components/layout';
@@ -44,7 +45,7 @@ import { GENERATED_GOALS_KEY } from './ProfileScreen';
 const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; icon: string; color: string }> = {
   fat_loss: { label: 'Fat Loss', icon: 'target', color: '#EF4444' },
   muscle_gain: { label: 'Build Muscle', icon: 'flag-checkered', color: BRAND_COLORS.macros.protein },
-  diabetes_control: { label: 'Glucose Control', icon: 'water', color: BRAND_COLORS.macros.carbs }, // Changed from heart-pulse to water (blood drop)
+  diabetes_control: { label: 'Nutrition Balance', icon: 'leaf', color: BRAND_COLORS.macros.carbs },
 };
 
 // Helper to determine meal type from time
@@ -511,14 +512,18 @@ const DashboardScreen = () => {
       <View style={styles.screenRoot}>
         <View pointerEvents="none" style={styles.ambientLayer}>
           <LinearGradient
-            colors={['rgba(255,252,248,0.94)', 'rgba(251,252,255,0.9)']}
+            colors={
+              Platform.OS === 'web'
+                ? ['rgba(255,248,241,0.8)', 'rgba(246,248,251,0.76)']
+                : ['rgba(255,252,248,0.94)', 'rgba(251,252,255,0.9)']
+            }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.ambientGradient}
           />
-          <View style={styles.ambientWarmCloud} />
-          <View style={styles.ambientCoolCloud} />
-          <View style={styles.ambientMintCloud} />
+          <View style={[styles.ambientWarmCloud, Platform.OS === 'web' && styles.ambientWarmCloudWeb]} />
+          <View style={[styles.ambientCoolCloud, Platform.OS === 'web' && styles.ambientCoolCloudWeb]} />
+          <View style={[styles.ambientMintCloud, Platform.OS === 'web' && styles.ambientMintCloudWeb]} />
           {Platform.OS === 'web' && <View style={styles.ambientNoise} />}
         </View>
 
@@ -744,6 +749,9 @@ const styles = StyleSheet.create({
       filter: 'blur(90px)',
     } as any)),
   },
+  ambientWarmCloudWeb: {
+    backgroundColor: 'rgba(249,115,22,0.07)',
+  },
   ambientCoolCloud: {
     position: 'absolute',
     width: 320,
@@ -755,6 +763,9 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' && ({
       filter: 'blur(84px)',
     } as any)),
+  },
+  ambientCoolCloudWeb: {
+    backgroundColor: 'rgba(6,182,212,0.045)',
   },
   ambientMintCloud: {
     position: 'absolute',
@@ -768,9 +779,12 @@ const styles = StyleSheet.create({
       filter: 'blur(90px)',
     } as any)),
   },
+  ambientMintCloudWeb: {
+    backgroundColor: 'rgba(16,185,129,0.04)',
+  },
   ambientNoise: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.04,
+    opacity: 0.02,
     ...(Platform.OS === 'web' && ({
       backgroundImage:
         'repeating-linear-gradient(0deg, rgba(17,24,39,0.12) 0px, rgba(17,24,39,0.12) 1px, transparent 1px, transparent 3px)',
@@ -817,14 +831,11 @@ const styles = StyleSheet.create({
   },
   // Loading placeholder for nutrition card - matches card height
   nutritionLoadingContainer: {
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    borderRadius: 22,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.48)',
+    ...BENTO_CARD_STYLES,
+    ...(BENTO_CARD_WEB_STYLES as object),
     minHeight: 280,
     justifyContent: 'center',
     alignItems: 'center',
-    ...saasShadows.subtle,
   },
   header: {
     flexDirection: 'row',

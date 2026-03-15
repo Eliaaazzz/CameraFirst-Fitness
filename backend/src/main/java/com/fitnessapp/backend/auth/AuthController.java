@@ -62,7 +62,7 @@ public class AuthController {
         AuthService.AuthResult result;
 
         if (request.isSocialLogin()) {
-            result = authService.loginSocial(request.loginType(), request.idToken());
+            result = authService.loginSocial(request.loginType(), request.idToken(), request.fullName());
         } else {
             result = authService.loginEmail(request.email(), request.password());
         }
@@ -114,7 +114,7 @@ public class AuthController {
             @RequestBody AppleLoginRequest request,
             HttpServletResponse response) {
         AuthService.AuthResult result = authService.loginSocial(
-                AuthProvider.APPLE, request.idToken());
+                AuthProvider.APPLE, request.idToken(), request.fullName());
 
         setJwtCookie(response, result.token());
 
@@ -169,5 +169,5 @@ public class AuthController {
     // Legacy DTO for backwards compatibility
     public record GoogleLoginRequest(String idToken) {}
 
-    public record AppleLoginRequest(String idToken) {}
+    public record AppleLoginRequest(String idToken, String fullName) {}
 }

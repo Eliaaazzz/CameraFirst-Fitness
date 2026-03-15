@@ -13,6 +13,7 @@ import {
   Platform,
   Pressable,
   type PressableStateCallbackType,
+  Text as RNText,
   StyleSheet,
   View,
 } from 'react-native';
@@ -85,7 +86,7 @@ const TabBarBackground = () => (
     )}
     {/* Glass body tint */}
     <LinearGradient
-      colors={['rgba(255,255,255,0.62)', 'rgba(255,255,255,0.44)']}
+      colors={['rgba(255,255,255,0.72)', 'rgba(255,248,241,0.56)']}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}
       style={tabBarStyles.tintLayer}
@@ -110,6 +111,16 @@ const TabIconShell = ({ focused, children }: { focused: boolean; children: React
   <View style={[tabBarStyles.iconShell, focused && tabBarStyles.iconShellFocused]}>
     {children}
   </View>
+);
+
+const TabBarLabel = ({ focused, label }: { focused: boolean; label: string }) => (
+  <RNText
+    allowFontScaling
+    maxFontSizeMultiplier={1.1}
+    style={[tabBarStyles.label, focused ? tabBarStyles.labelFocused : tabBarStyles.labelInactive]}
+  >
+    {label}
+  </RNText>
 );
 
 const tabBarStyles = StyleSheet.create({
@@ -159,6 +170,21 @@ const tabBarStyles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.54)',
     borderWidth: 0.5,
     borderColor: 'rgba(255,255,255,0.68)',
+  },
+  label: {
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '800',
+    letterSpacing: 0.15,
+    marginTop: 6,
+    paddingBottom: 1,
+    textAlign: 'center',
+  },
+  labelFocused: {
+    color: BRAND_COLORS.primaryDark,
+  },
+  labelInactive: {
+    color: '#334155',
   },
 });
 
@@ -407,7 +433,7 @@ const MainTabs = () => {
   const { isDesktop, isTablet, isWeb } = useResponsive();
   const showSidebar = useSidebarVisible();
   const insets = useSafeAreaInsets();
-  const tabBarLabelFontSize = isDesktop ? 11 : 10;
+  const tabBarLabelFontSize = isDesktop ? 11 : 12;
   const tabBarLabelLineHeight = tabBarLabelFontSize + 2;
   // Calculate safe tab bar height with proper bottom inset
   // Keep extra vertical room for the custom glass icon shell and tab label stack.
@@ -510,7 +536,7 @@ const MainTabs = () => {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: BRAND_COLORS.primaryDark,
-        tabBarInactiveTintColor: BRAND_COLORS.tabInactive,
+        tabBarInactiveTintColor: '#334155',
         tabBarHideOnKeyboard: true,
         tabBarShowLabel: true,
         tabBarLabelPosition: 'below-icon',
@@ -558,7 +584,9 @@ const MainTabs = () => {
             component={tab.component}
             options={({ navigation }) => ({
               title: tab.label,
-              tabBarLabel: isCamera ? () => null : tab.label,
+              tabBarLabel: isCamera
+                ? () => null
+                : ({ focused }) => <TabBarLabel focused={focused} label={tab.label} />,
               tabBarButton: isCamera
                 ? () => (
                     <CameraTabButton
