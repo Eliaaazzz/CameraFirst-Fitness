@@ -52,7 +52,7 @@ class AuthControllerTest {
 
     @Test
     void login_emailPassword_returnsAuthResponse() {
-        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, MOCK_EMAIL, "password123");
+        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, null, MOCK_EMAIL, "password123");
         AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
@@ -68,7 +68,7 @@ class AuthControllerTest {
 
     @Test
     void login_emailPassword_setsCookieForAllClients() {
-        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, MOCK_EMAIL, "password123");
+        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, null, MOCK_EMAIL, "password123");
         AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
@@ -80,7 +80,7 @@ class AuthControllerTest {
 
     @Test
     void login_emailPassword_setsCookieForWebClient() {
-        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, MOCK_EMAIL, "password123");
+        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, null, MOCK_EMAIL, "password123");
         AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
@@ -104,9 +104,9 @@ class AuthControllerTest {
 
     @Test
     void login_google_routesToSocialLogin() {
-        LoginRequest request = new LoginRequest(AuthProvider.GOOGLE, "google-id-token", null, null);
+        LoginRequest request = new LoginRequest(AuthProvider.GOOGLE, "google-id-token", null, null, null);
         AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, "google@gmail.com", true);
-        when(authService.loginSocial(AuthProvider.GOOGLE, "google-id-token")).thenReturn(result);
+        when(authService.loginSocial(AuthProvider.GOOGLE, "google-id-token", null)).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
         ResponseEntity<AuthResponse> response = authController.login(request, servletResponse);
@@ -114,7 +114,7 @@ class AuthControllerTest {
         assertEquals(200, response.getStatusCode().value());
         assertEquals("google@gmail.com", response.getBody().email());
         assertTrue(response.getBody().isNewUser());
-        verify(authService).loginSocial(AuthProvider.GOOGLE, "google-id-token");
+        verify(authService).loginSocial(AuthProvider.GOOGLE, "google-id-token", null);
         verify(authService, never()).loginEmail(anyString(), anyString());
     }
 
@@ -124,16 +124,16 @@ class AuthControllerTest {
 
     @Test
     void login_apple_routesToSocialLogin() {
-        LoginRequest request = new LoginRequest(AuthProvider.APPLE, "apple-id-token", null, null);
+        LoginRequest request = new LoginRequest(AuthProvider.APPLE, "apple-id-token", "Taylor Swift", null, null);
         AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, "apple@privaterelay.appleid.com", false);
-        when(authService.loginSocial(AuthProvider.APPLE, "apple-id-token")).thenReturn(result);
+        when(authService.loginSocial(AuthProvider.APPLE, "apple-id-token", "Taylor Swift")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
         ResponseEntity<AuthResponse> response = authController.login(request, servletResponse);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("apple@privaterelay.appleid.com", response.getBody().email());
-        verify(authService).loginSocial(AuthProvider.APPLE, "apple-id-token");
+        verify(authService).loginSocial(AuthProvider.APPLE, "apple-id-token", "Taylor Swift");
     }
 
     // =========================================================================
@@ -142,7 +142,7 @@ class AuthControllerTest {
 
     @Test
     void login_localType_routesToLoginEmail() {
-        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, MOCK_EMAIL, "password123");
+        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, null, MOCK_EMAIL, "password123");
         AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
@@ -150,19 +150,19 @@ class AuthControllerTest {
         authController.login(request, servletResponse);
 
         verify(authService).loginEmail(MOCK_EMAIL, "password123");
-        verify(authService, never()).loginSocial(any(), anyString());
+        verify(authService, never()).loginSocial(any(), anyString(), any());
     }
 
     @Test
     void login_googleType_routesToLoginSocial() {
-        LoginRequest request = new LoginRequest(AuthProvider.GOOGLE, "id-token", null, null);
+        LoginRequest request = new LoginRequest(AuthProvider.GOOGLE, "id-token", null, null, null);
         AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
-        when(authService.loginSocial(AuthProvider.GOOGLE, "id-token")).thenReturn(result);
+        when(authService.loginSocial(AuthProvider.GOOGLE, "id-token", null)).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
         authController.login(request, servletResponse);
 
-        verify(authService).loginSocial(AuthProvider.GOOGLE, "id-token");
+        verify(authService).loginSocial(AuthProvider.GOOGLE, "id-token", null);
         verify(authService, never()).loginEmail(anyString(), anyString());
     }
 
@@ -258,11 +258,11 @@ class AuthControllerTest {
     @Test
     void appleLogin_legacyEndpoint_works() {
         AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, "a@apple.com", true);
-        when(authService.loginSocial(AuthProvider.APPLE, "apple-token")).thenReturn(result);
+        when(authService.loginSocial(AuthProvider.APPLE, "apple-token", "Taylor Swift")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
         ResponseEntity<AuthResponse> response = authController.appleLogin(
-                new AuthController.AppleLoginRequest("apple-token"),
+                new AuthController.AppleLoginRequest("apple-token", "Taylor Swift"),
                 servletResponse
         );
 
@@ -276,7 +276,7 @@ class AuthControllerTest {
 
     @Test
     void login_cookieContainsCorrectMaxAge() {
-        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, MOCK_EMAIL, "password123");
+        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, null, MOCK_EMAIL, "password123");
         AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
@@ -295,7 +295,7 @@ class AuthControllerTest {
     void login_cookieIncludesDomainWhenConfigured() throws Exception {
         setField(authController, "cookieDomain", "aurafitness.org");
 
-        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, MOCK_EMAIL, "password123");
+        LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, null, MOCK_EMAIL, "password123");
         AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
@@ -315,9 +315,9 @@ class AuthControllerTest {
 
     @Test
     void loginRequest_isSocialLogin_returnsCorrectValues() {
-        assertTrue(new LoginRequest(AuthProvider.GOOGLE, "token", null, null).isSocialLogin());
-        assertTrue(new LoginRequest(AuthProvider.APPLE, "token", null, null).isSocialLogin());
-        assertFalse(new LoginRequest(AuthProvider.LOCAL, null, "e@e.com", "pass").isSocialLogin());
+        assertTrue(new LoginRequest(AuthProvider.GOOGLE, "token", null, null, null).isSocialLogin());
+        assertTrue(new LoginRequest(AuthProvider.APPLE, "token", null, null, null).isSocialLogin());
+        assertFalse(new LoginRequest(AuthProvider.LOCAL, null, null, "e@e.com", "pass").isSocialLogin());
     }
 
     @Test

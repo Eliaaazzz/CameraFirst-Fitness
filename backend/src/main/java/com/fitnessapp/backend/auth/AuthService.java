@@ -57,6 +57,11 @@ public class AuthService {
      */
     @Transactional
     public AuthResult loginSocial(AuthProvider provider, String idToken) {
+        return loginSocial(provider, idToken, null);
+    }
+
+    @Transactional
+    public AuthResult loginSocial(AuthProvider provider, String idToken, String fullName) {
         if (provider == AuthProvider.LOCAL) {
             throw new UnsupportedProviderException(provider);
         }
@@ -71,12 +76,15 @@ public class AuthService {
 
         Optional<User> existingUser = userRepository.findByEmail(userInfo.email());
         boolean isNewUser = existingUser.isEmpty();
+        String preferredUsername = normalizePreferredUsername(fullName, userInfo.name());
+        String explicitUsername = normalizePreferredUsername(fullName);
 
         User user;
         if (isNewUser) {
             user = User.builder()
                     .email(userInfo.email())
                     .authProvider(provider)
+                    .username(preferredUsername)
                     .timeBucket(0)
                     .level("beginner")
                     .build();
@@ -95,10 +103,30 @@ public class AuthService {
                 log.info("User {} logged in via {} (was {})",
                         userInfo.email(), provider, user.getAuthProvider());
             }
+            if ((user.getUsername() == null || user.getUsername().isBlank()) && explicitUsername != null) {
+                user.setUsername(explicitUsername);
+                user = userRepository.save(user);
+            }
         }
 
         String jwt = jwtUtils.generateToken(user.getId(), user.getEmail());
         return new AuthResult(jwt, user.getEmail(), isNewUser);
+    }
+
+    private String normalizePreferredUsername(String... candidates) {
+        for (String candidate : candidates) {
+            if (candidate == null) {
+                continue;
+            }
+
+            String normalized = candidate.trim().replaceAll("\\s+", " ");
+            if (normalized.isBlank()) {
+                continue;
+            }
+
+            return normalized.length() > 100 ? normalized.substring(0, 100) : normalized;
+        }
+        return null;
     }
 
     /**
@@ -162,7 +190,5 @@ public class AuthService {
         return new AuthResult(jwt, user.getEmail(), true);
     }
 }
-
-
 
 

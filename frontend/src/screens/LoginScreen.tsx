@@ -94,6 +94,30 @@ declare global {
 
 const APPLE_WEB_BUTTON_ID = 'apple-signin-official-button';
 
+type AppleWebSignInPayload = {
+  authorization?: {
+    code?: string;
+    id_token?: string;
+    state?: string;
+  };
+  user?: {
+    email?: string;
+    name?: {
+      firstName?: string;
+      lastName?: string;
+    };
+  };
+};
+
+const getAppleFullName = (payload?: AppleWebSignInPayload['user']): string | undefined => {
+  const firstName = payload?.name?.firstName?.trim();
+  const lastName = payload?.name?.lastName?.trim();
+  if (!firstName && !lastName) {
+    return undefined;
+  }
+  return `${firstName || ''} ${lastName || ''}`.trim() || undefined;
+};
+
 // ============================================================================
 // Design Tokens - Modern Light Theme (Orange)
 // ============================================================================
@@ -205,8 +229,9 @@ export default function LoginScreen() {
   // Auth state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAppleNativeAvailable, setIsAppleNativeAvailable] = useState(Platform.OS !== 'ios');
   const [isAppleWebReady, setIsAppleWebReady] = useState(Platform.OS !== 'web');
-  const shouldShowAppleButton = Platform.OS === 'ios' || Platform.OS === 'web';
+  const shouldShowAppleButton = Platform.OS === 'web' || (Platform.OS === 'ios' && isAppleNativeAvailable);
   const legalBaseUrl = useMemo(() => {
     if (Platform.OS === 'web' && typeof globalThis.window !== 'undefined') {
       return globalThis.window.location.origin;
@@ -291,6 +316,31 @@ export default function LoginScreen() {
     }
   }, [handleLoginSuccess]);
 
+  useEffect(() => {
+    if (Platform.OS !== 'ios') {
+      return;
+    }
+
+    let cancelled = false;
+
+    AppleAuthentication.isAvailableAsync()
+      .then((isAvailable) => {
+        if (!cancelled) {
+          setIsAppleNativeAvailable(isAvailable);
+        }
+      })
+      .catch((availabilityError) => {
+        console.warn('[AppleAuth] Failed to detect native Apple Sign In availability', availabilityError);
+        if (!cancelled) {
+          setIsAppleNativeAvailable(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Handle Google OAuth response
   useEffect(() => {
     if (googleResponse?.type === 'success') {
@@ -317,41 +367,29 @@ export default function LoginScreen() {
     await promptGoogleAsync();
   }, [googleRequest, promptGoogleAsync]);
 
+  const handleAppleWebSuccess = useCallback(async (payload?: AppleWebSignInPayload) => {
+    const identityToken = payload?.authorization?.id_token;
+    if (!identityToken) {
+      setIsLoading(false);
+      setError('No identity token received from Apple.');
+      return;
+    }
+
+    await sendAppleTokenToBackend(identityToken, getAppleFullName(payload?.user));
+  }, [sendAppleTokenToBackend]);
+
   // Web Apple Sign-In: official JS SDK + official rendered button.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
     const onSuccess = async (event: Event) => {
-      const detail = (event as Event & {
-        detail?: {
-          authorization?: { id_token?: string };
-          user?: {
-            name?: {
-              firstName?: string;
-              lastName?: string;
-            };
-          };
-        };
-      }).detail;
-
-      const identityToken = detail?.authorization?.id_token;
-      if (!identityToken) {
-        setError('No identity token received from Apple.');
-        return;
-      }
-
-      let fullName: string | undefined;
-      const firstName = detail?.user?.name?.firstName;
-      const lastName = detail?.user?.name?.lastName;
-      if (firstName || lastName) {
-        fullName = `${firstName || ''} ${lastName || ''}`.trim() || undefined;
-      }
-
-      await sendAppleTokenToBackend(identityToken, fullName);
+      const detail = (event as Event & { detail?: AppleWebSignInPayload }).detail;
+      await handleAppleWebSuccess(detail);
     };
 
     const onFailure = (event: Event) => {
       const detail = (event as Event & { detail?: { error?: string } }).detail;
+      setIsLoading(false);
       if (detail?.error === 'popup_closed_by_user') {
         return;
       }
@@ -385,6 +423,7 @@ export default function LoginScreen() {
           height: 54,
         });
         setIsAppleWebReady(true);
+        setError(null);
       } catch (error) {
         console.warn('[AppleAuth] Failed to render official Apple button', error);
         setIsAppleWebReady(false);
@@ -432,7 +471,7 @@ export default function LoginScreen() {
       document.removeEventListener('AppleIDSignInOnSuccess', onSuccess as EventListener);
       document.removeEventListener('AppleIDSignInOnFailure', onFailure as EventListener);
     };
-  }, [sendAppleTokenToBackend]);
+  }, [handleAppleWebSuccess]);
 
   // Handle Apple login (iOS native only)
   const handleAppleLogin = async () => {
@@ -441,8 +480,20 @@ export default function LoginScreen() {
 
     try {
       if (Platform.OS === 'web') {
-        // Web flow uses Apple official button + event callbacks.
-        setIsLoading(false);
+        if (!APPLE_SERVICE_ID) {
+          setIsLoading(false);
+          setError('Apple sign-in is not configured for web yet.');
+          return;
+        }
+
+        if (!globalThis.window?.AppleID?.auth) {
+          setIsLoading(false);
+          setError('Apple sign-in is still loading. Please try again.');
+          return;
+        }
+
+        const webResult = await globalThis.window.AppleID.auth.signIn();
+        await handleAppleWebSuccess(webResult);
         return;
       }
 
@@ -464,7 +515,7 @@ export default function LoginScreen() {
       await sendAppleTokenToBackend(identityToken, fullName);
     } catch (err: any) {
       setIsLoading(false);
-      if (err.code === 'ERR_REQUEST_CANCELED') {
+      if (err?.code === 'ERR_REQUEST_CANCELED' || err?.error === 'popup_closed_by_user') {
         return;
       }
       setError(err instanceof Error ? err.message : 'Apple sign-in failed.');
@@ -551,10 +602,18 @@ export default function LoginScreen() {
                         {isLoading && <View pointerEvents="none" style={styles.appleWebButtonOverlay} />}
                       </View>
                     ) : (
-                      <View style={styles.appleWebFallbackButton}>
+                      <Pressable
+                        onPress={handleAppleLogin}
+                        disabled={isLoading}
+                        style={({ pressed }) => [
+                          styles.appleWebFallbackButton,
+                          pressed && styles.socialButtonPressed,
+                          isLoading && styles.buttonDisabled,
+                        ]}
+                      >
                         <Ionicons name="logo-apple" size={20} color={COLORS.white} />
                         <Text style={[styles.socialButtonText, styles.whiteSocialButtonText]}>Continue with Apple</Text>
-                      </View>
+                      </Pressable>
                     )
                   )}
                   <View style={styles.divider}>

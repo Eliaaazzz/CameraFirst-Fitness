@@ -46,14 +46,13 @@ interface NavItemConfig {
   key: string;
   label: string;
   Icon: React.ComponentType<IconProps>;
-  color: string; // Theme color for this item
 }
 
 const NAV_ITEMS: NavItemConfig[] = [
-  { key: 'Dashboard', label: 'Home', Icon: HouseSimple, color: BRAND_COLORS.primary }, // Orange (Main)
-  { key: 'Workouts', label: 'Workouts', Icon: Barbell, color: colors.light.success }, // Emerald - energy
-  { key: 'Recipes', label: 'Recipes', Icon: BookOpenText, color: colors.light.warning }, // Amber - food
-  { key: 'Profile', label: 'Profile', Icon: UserCircle, color: '#4B5563' }, // Neutral Gray (Removes violet conflict)
+  { key: 'Dashboard', label: 'Home', Icon: HouseSimple },
+  { key: 'Workouts', label: 'Workouts', Icon: Barbell },
+  { key: 'Recipes', label: 'Recipes', Icon: BookOpenText },
+  { key: 'Profile', label: 'Profile', Icon: UserCircle },
 ];
 const NAV_KEYS = NAV_ITEMS.map(item => item.key);
 
@@ -108,30 +107,29 @@ function NavItemButton({
   // Inactive: Transparent + Gray Text/Icon
   // Hover: Light Orange Tint + Orange Text/Icon
   
-  const iconColor = isActive 
-    ? BRAND_COLORS.primaryDark // Dark Orange
-    : isHovered 
-      ? item.color 
+  const iconColor = isActive
+    ? BRAND_COLORS.primaryDark
+    : isHovered
+      ? BRAND_COLORS.primary
       : colors.light.textSecondary;
 
-  const labelColor = isActive 
-    ? BRAND_COLORS.primaryDark // Dark Orange
-    : isHovered 
-      ? item.color 
+  const labelColor = isActive
+    ? BRAND_COLORS.primaryDark
+    : isHovered
+      ? BRAND_COLORS.primary
       : colors.light.textSecondary;
 
   const rowBg = isActive
-    ? 'rgba(255,255,255,0.62)'
+    ? 'rgba(255, 245, 235, 0.92)'
     : isHovered
-      ? 'rgba(255,255,255,0.46)'
+      ? 'rgba(255, 247, 239, 0.84)'
       : 'transparent';
 
-  // Chip background with warm tint even in idle state
   const chipBg = isActive
-    ? tint(item.color, 0.26)
+    ? tint(BRAND_COLORS.primary, 0.18)
     : isHovered
-      ? tint(item.color, 0.18)
-      : 'rgba(255,244,231,0.82)';
+      ? tint(BRAND_COLORS.primary, 0.12)
+      : 'rgba(255,247,239,0.76)';
 
   return (
     <AnimatedPressable
@@ -142,12 +140,16 @@ function NavItemButton({
         styles.navItem,
         {
           backgroundColor: rowBg,
-          borderColor: isActive ? 'rgba(255, 181, 133, 0.56)' : isHovered ? 'rgba(249, 217, 182, 0.55)' : 'transparent',
+          borderColor: isActive
+            ? 'rgba(249, 115, 22, 0.22)'
+            : isHovered
+              ? 'rgba(249, 115, 22, 0.14)'
+              : 'transparent',
           ...(Platform.OS === 'web' && ({
             backdropFilter: isActive ? 'blur(18px)' : isHovered ? 'blur(12px)' : 'blur(0px)',
             WebkitBackdropFilter: isActive ? 'blur(18px)' : isHovered ? 'blur(12px)' : 'blur(0px)',
             boxShadow: isActive
-              ? 'inset 0 1px 0 rgba(255,255,255,0.76), 0 8px 20px rgba(15,23,42,0.05), 0 0 0 1px rgba(255,170,120,0.2)'
+              ? 'inset 0 1px 0 rgba(255,255,255,0.76), 0 8px 20px rgba(15,23,42,0.05), 0 0 0 1px rgba(249,115,22,0.14)'
               : isHovered
                 ? 'inset 0 1px 0 rgba(255,255,255,0.66), 0 6px 14px rgba(15,23,42,0.03)'
                 : 'none',
@@ -162,7 +164,15 @@ function NavItemButton({
       })}
     >
       {/* Icon chip */}
-      <View style={[styles.chip, { backgroundColor: chipBg, borderColor: isActive ? '#F6C28F' : '#F5DDC3' }]}>
+      <View
+        style={[
+          styles.chip,
+          {
+            backgroundColor: chipBg,
+            borderColor: isActive ? 'rgba(249, 115, 22, 0.22)' : 'rgba(249, 115, 22, 0.1)',
+          },
+        ]}
+      >
         <item.Icon
           size={20}
           weight={isActive ? 'fill' : 'regular'} // Filled icon for active state
@@ -327,15 +337,15 @@ const styles = StyleSheet.create({
   container: {
     width: LAYOUT_DIMENSIONS.sidebarWidth,
     height: '100%',
-    backgroundColor: 'rgba(255,252,247,0.58)',
+    backgroundColor: 'rgba(251,247,242,0.84)',
     borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.62)',
+    borderRightColor: 'rgba(249,115,22,0.12)',
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.sm,
     ...(Platform.OS === 'web' && ({
-      backdropFilter: 'blur(22px)',
-      WebkitBackdropFilter: 'blur(22px)',
-      boxShadow: 'inset -1px 0 0 rgba(255,170,120,0.18), inset 0 1px 0 rgba(255,255,255,0.7)',
+      backdropFilter: 'blur(18px)',
+      WebkitBackdropFilter: 'blur(18px)',
+      boxShadow: 'inset -1px 0 0 rgba(249,115,22,0.1), inset 0 1px 0 rgba(255,255,255,0.56)',
     } as any)),
   },
 
@@ -361,15 +371,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
   },
   headerPressed: {
-    backgroundColor: 'rgba(255,255,255,0.56)',
+    backgroundColor: 'rgba(255,247,239,0.86)',
   },
   toggleIcon: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.62)',
+    backgroundColor: 'rgba(255,250,246,0.92)',
     borderWidth: 1,
-    borderColor: 'rgba(255,188,144,0.56)',
+    borderColor: 'rgba(249,115,22,0.14)',
     justifyContent: 'center',
     alignItems: 'center',
     ...(Platform.OS === 'web' && ({
@@ -444,7 +454,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     marginHorizontal: spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.62)',
+    borderTopColor: 'rgba(249,115,22,0.1)',
     marginTop: spacing.md,
     gap: spacing.sm,
     ...(Platform.OS === 'web' && {
@@ -460,9 +470,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.64)',
+    backgroundColor: 'rgba(255,250,246,0.92)',
     borderWidth: 1,
-    borderColor: 'rgba(255,188,144,0.56)',
+    borderColor: 'rgba(249,115,22,0.14)',
     justifyContent: 'center',
     alignItems: 'center',
     ...(Platform.OS === 'web' && ({

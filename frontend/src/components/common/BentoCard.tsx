@@ -27,7 +27,7 @@ export const BENTO_CARD_STYLES: ViewStyle = {
 };
 
 // Web-specific box-shadow with backdrop blur (glassmorphism)
-const webShadow =
+export const BENTO_CARD_WEB_STYLES =
   Platform.OS === 'web'
     ? ({
         boxShadow: '0 8px 28px rgba(15, 23, 42, 0.06)',
@@ -44,7 +44,7 @@ interface BentoCardProps {
 
 export function BentoCard({ children, style, noPadding }: BentoCardProps) {
   return (
-    <View style={[styles.card, webShadow as ViewStyle, noPadding && styles.noPadding, style]}>
+    <View style={[styles.card, BENTO_CARD_WEB_STYLES as ViewStyle, noPadding && styles.noPadding, style]}>
       {children}
     </View>
   );

@@ -1,6 +1,6 @@
 /**
  * Goal-based Recipe API
- * Fetches recipes filtered by fitness goals (Build Muscle, Fat Loss, Blood Sugar Control)
+ * Fetches recipes filtered by fitness goals (Build Muscle, Fat Loss, Nutrition Balance)
  */
 
 import { RecipeCard } from '@/types';
@@ -53,10 +53,10 @@ export const FITNESS_GOALS: GoalConfig[] = [
   },
   {
     id: 'BLOOD_SUGAR',
-    label: 'Blood Sugar',
-    shortLabel: 'Blood Sugar',
-    description: 'Low carb recipes for blood sugar control',
-    icon: 'water-outline',
+    label: 'Nutrition Balance',
+    shortLabel: 'Balanced',
+    description: 'Lighter carb recipes for steadier energy',
+    icon: 'leaf',
     color: '#06B6D4',  // Cyan
     nutritionFocus: 'Low Carb',
   },

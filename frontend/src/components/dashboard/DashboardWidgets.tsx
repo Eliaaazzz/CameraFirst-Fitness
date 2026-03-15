@@ -14,6 +14,7 @@ import {
     CaretRight,
     Drop,
     FlagCheckered,
+    Leaf,
     Plus,
     Target,
 } from 'phosphor-react-native';
@@ -32,7 +33,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const GOAL_TYPE_CONFIG: Record<GoalType, { labelKey: 'fatLoss' | 'buildMuscle' | 'glucoseControl'; Icon: React.ComponentType<any>; color: string }> = {
   fat_loss: { labelKey: 'fatLoss', Icon: Target, color: '#EF4444' },
   muscle_gain: { labelKey: 'buildMuscle', Icon: FlagCheckered, color: BRAND_COLORS.macros.protein }, // Use Emerald for growth
-  diabetes_control: { labelKey: 'glucoseControl', Icon: Drop, color: BRAND_COLORS.macros.carbs },
+  diabetes_control: { labelKey: 'glucoseControl', Icon: Leaf, color: BRAND_COLORS.macros.carbs },
 };
 
 interface DashboardWidgetsProps {

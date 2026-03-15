@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Size;
  * <p>For social login (GOOGLE, APPLE):
  * - Set loginType to GOOGLE or APPLE
  * - Provide idToken
+ * - fullName is optional and is mainly used for Apple Sign In first-run profile setup
  * - email and password should be null
  *
  * <p>For email/password login:
@@ -23,6 +24,8 @@ public record LoginRequest(
     AuthProvider loginType,
 
     String idToken,
+
+    String fullName,
 
     @Email(message = "Invalid email format")
     String email,

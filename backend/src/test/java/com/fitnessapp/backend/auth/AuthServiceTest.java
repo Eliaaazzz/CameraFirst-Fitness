@@ -88,6 +88,33 @@ class AuthServiceTest {
     }
 
     @Test
+    void loginSocial_newUser_usesProvidedFullNameAsUsername() {
+        String idToken = "apple-id-token";
+        String email = "apple@privaterelay.appleid.com";
+        UUID userId = UUID.randomUUID();
+
+        when(googleValidator.validate(idToken))
+                .thenReturn(Optional.of(new SocialUserInfo(email, null)));
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        User savedUser = User.builder()
+                .id(userId)
+                .email(email)
+                .username("Taylor Swift")
+                .authProvider(AuthProvider.GOOGLE)
+                .build();
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(jwtUtils.generateToken(userId, email)).thenReturn("jwt-apple");
+
+        AuthService.AuthResult result = authService.loginSocial(AuthProvider.GOOGLE, idToken, "Taylor   Swift");
+
+        assertEquals("jwt-apple", result.token());
+        verify(userRepository).save(argThat(user ->
+                "Taylor Swift".equals(user.getUsername()) &&
+                user.getAuthProvider() == AuthProvider.GOOGLE));
+    }
+
+    @Test
     void loginSocial_invalidToken_throwsException() {
         String idToken = "bad-token";
         when(googleValidator.validate(idToken)).thenReturn(Optional.empty());
