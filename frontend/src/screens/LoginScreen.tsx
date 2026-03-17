@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import {
+  API_BASE_URL,
   EXPO_PUBLIC_APPLE_SERVICE_ID,
   EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
   EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
@@ -37,6 +38,7 @@ const GOOGLE_IOS_CLIENT_ID = EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || process.env.EXP
 const GOOGLE_ANDROID_CLIENT_ID = EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 const GOOGLE_WEB_CLIENT_ID = EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const APPLE_SERVICE_ID = EXPO_PUBLIC_APPLE_SERVICE_ID || process.env.EXPO_PUBLIC_APPLE_SERVICE_ID;
+const APPLE_API_BASE_URL = API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL || 'https://aurafitness.org';
 const LOGO_VARIANT: CuteAuraLogoVariant = 'sparkle';
 
 // Debug: Log OAuth config status (not values) in development
@@ -60,6 +62,10 @@ declare global {
           scope: string;
           redirectURI: string;
           usePopup: boolean;
+          state?: string;
+          nonce?: string;
+          responseType?: string;
+          responseMode?: string;
         }) => void;
         renderButton: (
           element: string | HTMLElement,
@@ -93,6 +99,8 @@ declare global {
 }
 
 const APPLE_WEB_BUTTON_ID = 'apple-signin-official-button';
+const APPLE_STATE_KEY = 'apple_signin_state';
+const APPLE_NONCE_KEY = 'apple_signin_nonce';
 
 type AppleWebSignInPayload = {
   authorization?: {
@@ -116,6 +124,38 @@ const getAppleFullName = (payload?: AppleWebSignInPayload['user']): string | und
     return undefined;
   }
   return `${firstName || ''} ${lastName || ''}`.trim() || undefined;
+};
+
+/**
+ * Generate a cryptographically random string for state/nonce parameters.
+ * Uses Web Crypto API (available in all modern browsers and React Native).
+ */
+const generateRandomString = (length = 32): string => {
+  const array = new Uint8Array(length);
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(array);
+  } else {
+    // Fallback for environments without crypto API
+    for (let i = 0; i < length; i++) {
+      array[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
+};
+
+/**
+ * SHA-256 hash a string. Apple requires the nonce to be hashed before
+ * passing it to the JS SDK; the raw nonce is sent to our backend for
+ * verification against the hashed value in the id_token.
+ */
+const sha256 = async (input: string): Promise<string> => {
+  if (typeof globalThis.crypto?.subtle?.digest === 'function') {
+    const buffer = new TextEncoder().encode(input);
+    const hash = await globalThis.crypto.subtle.digest('SHA-256', buffer);
+    return Array.from(new Uint8Array(hash), (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  // Fallback: return raw nonce (server-side hash check will be skipped)
+  return input;
 };
 
 // ============================================================================
@@ -300,7 +340,7 @@ export default function LoginScreen() {
     }
   }, [handleLoginSuccess]);
 
-  const sendAppleTokenToBackend = useCallback(async (idToken: string, fullName?: string) => {
+  const sendAppleTokenToBackend = useCallback(async (idToken: string, fullName?: string, nonce?: string, authorizationCode?: string) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -308,6 +348,8 @@ export default function LoginScreen() {
         loginType: 'APPLE',
         idToken,
         fullName,
+        ...(nonce ? { nonce } : {}),
+        ...(authorizationCode ? { authorizationCode } : {}),
       });
       await handleLoginSuccess(data);
     } catch (err) {
@@ -375,7 +417,26 @@ export default function LoginScreen() {
       return;
     }
 
-    await sendAppleTokenToBackend(identityToken, getAppleFullName(payload?.user));
+    // Verify state parameter to prevent CSRF attacks
+    if (Platform.OS === 'web') {
+      const expectedState = sessionStorage.getItem(APPLE_STATE_KEY);
+      const receivedState = payload?.authorization?.state;
+      if (expectedState && receivedState && expectedState !== receivedState) {
+        setIsLoading(false);
+        setError('Sign-in verification failed. Please try again.');
+        return;
+      }
+      // Retrieve raw nonce to send to backend for verification
+      const rawNonce = sessionStorage.getItem(APPLE_NONCE_KEY) ?? undefined;
+      sessionStorage.removeItem(APPLE_STATE_KEY);
+      sessionStorage.removeItem(APPLE_NONCE_KEY);
+      const authCode = payload?.authorization?.code ?? undefined;
+      await sendAppleTokenToBackend(identityToken, getAppleFullName(payload?.user), rawNonce, authCode);
+      return;
+    }
+
+    const authCode = payload?.authorization?.code ?? undefined;
+    await sendAppleTokenToBackend(identityToken, getAppleFullName(payload?.user), undefined, authCode);
   }, [sendAppleTokenToBackend]);
 
   // Web Apple Sign-In: official JS SDK + official rendered button.
@@ -396,7 +457,7 @@ export default function LoginScreen() {
       setError('Apple sign-in failed.');
     };
 
-    const initAppleAuth = () => {
+    const initAppleAuth = async () => {
       if (!globalThis.window?.AppleID) return false;
 
       if (!APPLE_SERVICE_ID) {
@@ -405,12 +466,28 @@ export default function LoginScreen() {
         return false;
       }
 
-      const redirectURI = `${globalThis.window.location.origin}/auth/apple/callback`;
+      // Generate CSRF state and nonce for replay-attack prevention per Apple's guidelines
+      const state = generateRandomString(32);
+      const rawNonce = generateRandomString(32);
+      const hashedNonce = await sha256(rawNonce);
+
+      // Store raw values for verification when response arrives
+      sessionStorage.setItem(APPLE_STATE_KEY, state);
+      sessionStorage.setItem(APPLE_NONCE_KEY, rawNonce);
+
+      // Point redirectURI at backend callback endpoint.
+      // Apple POSTs form data here; the backend validates, sets JWT cookie, and redirects back.
+      const apiBase = APPLE_API_BASE_URL.replace(/\/+$/, '');
+      const redirectURI = `${apiBase}/api/v1/auth/apple/callback`;
       globalThis.window.AppleID.auth.init({
         clientId: APPLE_SERVICE_ID,
         scope: 'email name',
         redirectURI,
         usePopup: true,
+        state,
+        nonce: hashedNonce,
+        responseType: 'code id_token',
+        responseMode: 'form_post',
       });
 
       try {
@@ -435,42 +512,39 @@ export default function LoginScreen() {
     document.addEventListener('AppleIDSignInOnSuccess', onSuccess as EventListener);
     document.addEventListener('AppleIDSignInOnFailure', onFailure as EventListener);
 
-    if (initAppleAuth()) {
-      return () => {
-        document.removeEventListener('AppleIDSignInOnSuccess', onSuccess as EventListener);
-        document.removeEventListener('AppleIDSignInOnFailure', onFailure as EventListener);
-      };
-    }
-
-    if (typeof document === 'undefined') return;
-
-    const existingScript = document.getElementById('apple-signin-script') as HTMLScriptElement | null;
-    if (existingScript) {
-      existingScript.addEventListener('load', initAppleAuth, { once: true });
-      return () => {
-        document.removeEventListener('AppleIDSignInOnSuccess', onSuccess as EventListener);
-        document.removeEventListener('AppleIDSignInOnFailure', onFailure as EventListener);
-      };
-    }
-
-    const script = document.createElement('script');
-    script.id = 'apple-signin-script';
-    script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
-    script.async = true;
-    script.onload = () => {
-      if (!initAppleAuth()) {
-        setIsAppleWebReady(false);
-      }
-    };
-    script.onerror = () => {
-      setIsAppleWebReady(false);
-    };
-    document.head.appendChild(script);
-
-    return () => {
+    const cleanup = () => {
       document.removeEventListener('AppleIDSignInOnSuccess', onSuccess as EventListener);
       document.removeEventListener('AppleIDSignInOnFailure', onFailure as EventListener);
     };
+
+    // Try to initialise immediately (SDK may already be loaded)
+    void initAppleAuth().then((ok) => {
+      if (ok) return; // SDK was ready, init complete
+
+      if (typeof document === 'undefined') return;
+
+      const existingScript = document.getElementById('apple-signin-script') as HTMLScriptElement | null;
+      if (existingScript) {
+        existingScript.addEventListener('load', () => void initAppleAuth(), { once: true });
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.id = 'apple-signin-script';
+      script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+      script.async = true;
+      script.onload = () => {
+        void initAppleAuth().then((result) => {
+          if (!result) setIsAppleWebReady(false);
+        });
+      };
+      script.onerror = () => {
+        setIsAppleWebReady(false);
+      };
+      document.head.appendChild(script);
+    });
+
+    return cleanup;
   }, [handleAppleWebSuccess]);
 
   // Handle Apple login (iOS native only)
@@ -497,12 +571,16 @@ export default function LoginScreen() {
         return;
       }
 
-      // iOS: Use native Apple Authentication
+      // iOS: Use native Apple Authentication with nonce for replay-attack prevention
+      const rawNonce = generateRandomString(32);
+      const hashedNonce = await sha256(rawNonce);
+
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
+        nonce: hashedNonce,
       });
 
       const identityToken = credential.identityToken;
@@ -512,7 +590,8 @@ export default function LoginScreen() {
       const fullName = credential.fullName
         ? `${credential.fullName.givenName || ''} ${credential.fullName.familyName || ''}`.trim()
         : undefined;
-      await sendAppleTokenToBackend(identityToken, fullName);
+      const authCode = credential.authorizationCode ?? undefined;
+      await sendAppleTokenToBackend(identityToken, fullName, rawNonce, authCode);
     } catch (err: any) {
       setIsLoading(false);
       if (err?.code === 'ERR_REQUEST_CANCELED' || err?.error === 'popup_closed_by_user') {

@@ -2,6 +2,7 @@ import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
+import { useAppleCredentialCheck } from '@/hooks/useAppleCredentialCheck';
 import { useAuthStore } from '@/stores';
 
 /**
@@ -15,6 +16,9 @@ export default function SplashScreen() {
   const navigation = useNavigation();
   const { isRestoringToken, isAuthenticated, restoreToken } = useAuthStore();
   const hasStartedRestoreRef = useRef(false);
+
+  // Check Apple credential state after auth is restored (iOS only)
+  useAppleCredentialCheck();
 
   useEffect(() => {
     if (hasStartedRestoreRef.current) {

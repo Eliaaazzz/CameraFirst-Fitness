@@ -71,6 +71,19 @@ app:
     # Comma-separated allowed audiences for Apple ID tokens.
     # Example: APPLE_CLIENT_ID=com.fitnessapp.mvp,com.aurafitness.web
     client-id: ${APPLE_CLIENT_ID:}
+    # Required for authorization code exchange and refresh token support.
+    # Generate these in Apple Developer > Certificates, Identifiers & Profiles.
+    team-id: ${APPLE_TEAM_ID:}
+    key-id: ${APPLE_KEY_ID:}
+    # Option 1: Inline .p8 private key content (PEM format, including headers).
+    # Set via APPLE_PRIVATE_KEY env var with newlines preserved.
+    private-key: ${APPLE_PRIVATE_KEY:}
+    # Option 2: Path to .p8 private key file on disk.
+    # Example: /etc/secrets/AuthKey_ABC123XYZ.p8
+    private-key-path: ${APPLE_PRIVATE_KEY_PATH:}
+    # Where to redirect after Apple's server-side callback completes.
+    # Defaults to https://aurafitness.org if not set.
+    web-redirect-uri: ${APPLE_WEB_REDIRECT_URI:}
   jwt:
     secret: ${JWT_SECRET:change-me-in-production-this-needs-to-be-at-least-256-bits-long}
     expiration-days: ${JWT_EXPIRATION_DAYS:30}

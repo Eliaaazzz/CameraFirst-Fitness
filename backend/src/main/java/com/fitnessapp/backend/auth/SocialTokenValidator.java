@@ -20,4 +20,16 @@ public interface SocialTokenValidator {
      * @return user info if token is valid, empty otherwise
      */
     Optional<SocialUserInfo> validate(String idToken);
+
+    /**
+     * Validates the given ID token with nonce verification.
+     * Providers that don't support nonce (e.g. Google) fall back to {@link #validate(String)}.
+     *
+     * @param idToken the ID token from the social provider
+     * @param nonce   raw nonce to verify against the token's hashed nonce claim (nullable)
+     * @return user info if token is valid, empty otherwise
+     */
+    default Optional<SocialUserInfo> validate(String idToken, String nonce) {
+        return validate(idToken);
+    }
 }

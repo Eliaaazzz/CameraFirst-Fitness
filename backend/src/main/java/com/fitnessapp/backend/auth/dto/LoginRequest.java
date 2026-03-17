@@ -27,6 +27,12 @@ public record LoginRequest(
 
     String fullName,
 
+    /** Raw nonce for Apple Sign In replay-attack prevention. */
+    String nonce,
+
+    /** Apple authorization code for refresh token exchange. */
+    String authorizationCode,
+
     @Email(message = "Invalid email format")
     String email,
 

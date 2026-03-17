@@ -12,13 +12,21 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyFactory;
+import java.security.MessageDigest;
+import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Base64;
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,8 +41,10 @@ import org.springframework.stereotype.Component;
 public class AppleTokenValidator implements SocialTokenValidator {
 
     private static final String APPLE_KEYS_URL = "https://appleid.apple.com/auth/keys";
+    private static final String APPLE_TOKEN_URL = "https://appleid.apple.com/auth/token";
     private static final String APPLE_ISSUER = "https://appleid.apple.com";
     private static final Duration KEY_CACHE_DURATION = Duration.ofHours(24);
+    private static final Duration CLIENT_SECRET_LIFETIME = Duration.ofDays(180); // max 6 months
 
     private final Map<String, RSAPublicKey> keyCache = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -45,6 +55,18 @@ public class AppleTokenValidator implements SocialTokenValidator {
     @Value("${app.apple.client-id:}")
     private String clientIdConfig;
 
+    @Value("${app.apple.team-id:}")
+    private String teamId;
+
+    @Value("${app.apple.key-id:}")
+    private String keyId;
+
+    @Value("${app.apple.private-key:}")
+    private String privateKeyPem;
+
+    @Value("${app.apple.private-key-path:}")
+    private String privateKeyPath;
+
     private volatile long lastKeyFetch = 0;
 
     @Override
@@ -54,6 +76,11 @@ public class AppleTokenValidator implements SocialTokenValidator {
 
     @Override
     public Optional<SocialUserInfo> validate(String idToken) {
+        return validate(idToken, null);
+    }
+
+    @Override
+    public Optional<SocialUserInfo> validate(String idToken, String rawNonce) {
         try {
             DecodedJWT jwt = JWT.decode(idToken);
             String kid = jwt.getKeyId();
@@ -75,17 +102,33 @@ public class AppleTokenValidator implements SocialTokenValidator {
                 return Optional.empty();
             }
 
+            // Verify nonce if provided (replay-attack prevention per Apple's guidelines)
+            if (rawNonce != null && !rawNonce.isBlank()) {
+                String tokenNonce = verified.getClaim("nonce").asString();
+                if (tokenNonce == null || tokenNonce.isBlank()) {
+                    log.warn("Apple token missing nonce claim but client sent nonce");
+                    return Optional.empty();
+                }
+                String expectedHash = sha256Hex(rawNonce);
+                if (!tokenNonce.equals(expectedHash)) {
+                    log.warn("Apple token nonce mismatch");
+                    return Optional.empty();
+                }
+            }
+
             String email = verified.getClaim("email").asString();
             if (email == null || email.isBlank()) {
                 log.warn("Apple token missing email");
                 return Optional.empty();
             }
 
+            String sub = verified.getSubject();
+
             // Apple doesn't always provide name in the token
             // Name is only provided on first sign-in via the authorization response
             String name = null;
 
-            return Optional.of(new SocialUserInfo(email, name));
+            return Optional.of(new SocialUserInfo(email, name, sub));
 
         } catch (JWTVerificationException e) {
             log.debug("Apple token verification failed: {}", e.getMessage());
@@ -93,6 +136,198 @@ public class AppleTokenValidator implements SocialTokenValidator {
         } catch (Exception e) {
             log.error("Failed to validate Apple token", e);
             return Optional.empty();
+        }
+    }
+
+    /**
+     * Verify a JWS payload signed by Apple (used for server-to-server notifications).
+     * Returns the decoded JWT if valid, empty otherwise.
+     */
+    public Optional<DecodedJWT> verifyAppleJws(String jws) {
+        try {
+            DecodedJWT jwt = JWT.decode(jws);
+            String kid = jwt.getKeyId();
+
+            RSAPublicKey publicKey = getPublicKey(kid);
+            if (publicKey == null) {
+                log.warn("Could not find Apple public key for kid: {}", kid);
+                return Optional.empty();
+            }
+
+            Algorithm algorithm = Algorithm.RSA256(publicKey, null);
+            JWTVerifier verifier = JWT.require(algorithm)
+                    .withIssuer(APPLE_ISSUER)
+                    .build();
+
+            return Optional.of(verifier.verify(jws));
+        } catch (JWTVerificationException e) {
+            log.warn("Apple JWS verification failed: {}", e.getMessage());
+            return Optional.empty();
+        } catch (Exception e) {
+            log.error("Failed to verify Apple JWS", e);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Exchange an authorization code for tokens via Apple's token endpoint.
+     * Returns the refresh token if successful.
+     *
+     * @param authorizationCode the single-use authorization code from Apple (valid 5 min)
+     * @return the refresh token, or empty if exchange is not configured or fails
+     */
+    public Optional<String> exchangeAuthorizationCode(String authorizationCode) {
+        if (!isCodeExchangeConfigured()) {
+            log.debug("Apple auth code exchange not configured (missing team-id, key-id, or private-key)");
+            return Optional.empty();
+        }
+
+        try {
+            String clientSecret = generateClientSecret();
+            String clientId = getPrimaryClientId();
+            if (clientId == null) {
+                log.warn("Cannot exchange auth code: no client ID configured");
+                return Optional.empty();
+            }
+
+            String requestBody = "client_id=" + clientId
+                    + "&client_secret=" + clientSecret
+                    + "&code=" + authorizationCode
+                    + "&grant_type=authorization_code";
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(APPLE_TOKEN_URL))
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                log.warn("Apple token exchange failed: HTTP {} - {}", response.statusCode(), response.body());
+                return Optional.empty();
+            }
+
+            JsonNode body = objectMapper.readTree(response.body());
+            String refreshToken = body.has("refresh_token") ? body.get("refresh_token").asText() : null;
+
+            if (refreshToken != null && !refreshToken.isBlank()) {
+                log.info("Successfully exchanged Apple authorization code for refresh token");
+                return Optional.of(refreshToken);
+            }
+
+            log.warn("Apple token response missing refresh_token");
+            return Optional.empty();
+
+        } catch (Exception e) {
+            log.error("Failed to exchange Apple authorization code", e);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Verify a refresh token is still valid by calling Apple's token endpoint.
+     *
+     * @param refreshToken the stored refresh token
+     * @return true if the token is still valid
+     */
+    public boolean verifyRefreshToken(String refreshToken) {
+        if (!isCodeExchangeConfigured()) {
+            return false;
+        }
+
+        try {
+            String clientSecret = generateClientSecret();
+            String clientId = getPrimaryClientId();
+            if (clientId == null) {
+                return false;
+            }
+
+            String requestBody = "client_id=" + clientId
+                    + "&client_secret=" + clientSecret
+                    + "&refresh_token=" + refreshToken
+                    + "&grant_type=refresh_token";
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(APPLE_TOKEN_URL))
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return response.statusCode() == 200;
+
+        } catch (Exception e) {
+            log.error("Failed to verify Apple refresh token", e);
+            return false;
+        }
+    }
+
+    boolean isCodeExchangeConfigured() {
+        return teamId != null && !teamId.isBlank()
+                && keyId != null && !keyId.isBlank()
+                && hasPrivateKey();
+    }
+
+    private boolean hasPrivateKey() {
+        return (privateKeyPem != null && !privateKeyPem.isBlank())
+                || (privateKeyPath != null && !privateKeyPath.isBlank());
+    }
+
+    private String resolvePrivateKeyPem() throws Exception {
+        // Prefer inline PEM content, fall back to file path
+        if (privateKeyPem != null && !privateKeyPem.isBlank()) {
+            return privateKeyPem;
+        }
+        if (privateKeyPath != null && !privateKeyPath.isBlank()) {
+            return Files.readString(Path.of(privateKeyPath));
+        }
+        throw new IllegalStateException("No Apple private key configured (set private-key or private-key-path)");
+    }
+
+    private String generateClientSecret() throws Exception {
+        ECPrivateKey ecPrivateKey = loadPrivateKey(resolvePrivateKeyPem());
+        String clientId = getPrimaryClientId();
+
+        Instant now = Instant.now();
+
+        return JWT.create()
+                .withKeyId(keyId)
+                .withIssuer(teamId)
+                .withSubject(clientId)
+                .withAudience(APPLE_ISSUER)
+                .withIssuedAt(Date.from(now))
+                .withExpiresAt(Date.from(now.plus(CLIENT_SECRET_LIFETIME)))
+                .sign(Algorithm.ECDSA256(null, ecPrivateKey));
+    }
+
+    private ECPrivateKey loadPrivateKey(String keyContent) throws Exception {
+        String cleanedKey = keyContent
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("\\s", "");
+        byte[] keyBytes = Base64.getDecoder().decode(cleanedKey);
+        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
+        KeyFactory kf = KeyFactory.getInstance("EC");
+        return (ECPrivateKey) kf.generatePrivate(spec);
+    }
+
+    private String getPrimaryClientId() {
+        List<String> ids = getAllowedClientIds();
+        return ids.isEmpty() ? null : ids.get(0);
+    }
+
+    private static String sha256Hex(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("SHA-256 not available", e);
         }
     }
 
@@ -160,6 +395,11 @@ public class AppleTokenValidator implements SocialTokenValidator {
         } else {
             // Pre-fetch keys on startup
             refreshKeysIfNeeded();
+        }
+        if (isCodeExchangeConfigured()) {
+            log.info("Apple auth code exchange is configured (team-id, key-id, private-key present)");
+        } else {
+            log.info("Apple auth code exchange not configured - refresh token features disabled");
         }
     }
 

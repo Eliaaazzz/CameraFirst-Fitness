@@ -51,6 +51,12 @@ public class User {
   @Column(name = "last_active_date")
   private LocalDate lastActiveDate;
 
+  @Column(name = "apple_user_id", length = 255)
+  private String appleUserId;
+
+  @Column(name = "apple_refresh_token", columnDefinition = "TEXT")
+  private String appleRefreshToken;
+
   @Column(name = "created_at", insertable = false, updatable = false)
   private OffsetDateTime createdAt;
 }

@@ -25,17 +25,20 @@ public class AuthService {
     private final JwtUtils jwtUtils;
     private final PasswordEncoder passwordEncoder;
     private final Map<AuthProvider, SocialTokenValidator> validators;
+    private final AppleTokenValidator appleTokenValidator;
 
     public AuthService(
             UserRepository userRepository,
             UserProfileRepository userProfileRepository,
             JwtUtils jwtUtils,
             PasswordEncoder passwordEncoder,
-            List<SocialTokenValidator> validatorList) {
+            List<SocialTokenValidator> validatorList,
+            AppleTokenValidator appleTokenValidator) {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
         this.jwtUtils = jwtUtils;
         this.passwordEncoder = passwordEncoder;
+        this.appleTokenValidator = appleTokenValidator;
 
         // Build the strategy map from injected validators
         this.validators = new EnumMap<>(AuthProvider.class);
@@ -57,11 +60,21 @@ public class AuthService {
      */
     @Transactional
     public AuthResult loginSocial(AuthProvider provider, String idToken) {
-        return loginSocial(provider, idToken, null);
+        return loginSocial(provider, idToken, null, null, null);
     }
 
     @Transactional
     public AuthResult loginSocial(AuthProvider provider, String idToken, String fullName) {
+        return loginSocial(provider, idToken, fullName, null, null);
+    }
+
+    @Transactional
+    public AuthResult loginSocial(AuthProvider provider, String idToken, String fullName, String nonce) {
+        return loginSocial(provider, idToken, fullName, nonce, null);
+    }
+
+    @Transactional
+    public AuthResult loginSocial(AuthProvider provider, String idToken, String fullName, String nonce, String authorizationCode) {
         if (provider == AuthProvider.LOCAL) {
             throw new UnsupportedProviderException(provider);
         }
@@ -71,7 +84,7 @@ public class AuthService {
             throw new UnsupportedProviderException(provider);
         }
 
-        SocialUserInfo userInfo = validator.validate(idToken)
+        SocialUserInfo userInfo = validator.validate(idToken, nonce)
                 .orElseThrow(() -> new InvalidTokenException(provider));
 
         Optional<User> existingUser = userRepository.findByEmail(userInfo.email());
@@ -88,9 +101,15 @@ public class AuthService {
                     .timeBucket(0)
                     .level("beginner")
                     .build();
+
+            // Store Apple user ID (sub claim) for credential state tracking
+            if (provider == AuthProvider.APPLE && userInfo.sub() != null) {
+                user.setAppleUserId(userInfo.sub());
+            }
+
             user = userRepository.save(user);
             log.info("Created new user via {}: {}", provider, userInfo.email());
-            
+
             // Create empty UserProfile for new users (required for nutrition tracking)
             UserProfile profile = new UserProfile();
             profile.setUser(user);
@@ -105,7 +124,22 @@ public class AuthService {
             }
             if ((user.getUsername() == null || user.getUsername().isBlank()) && explicitUsername != null) {
                 user.setUsername(explicitUsername);
+            }
+            // Update Apple user ID if not yet stored
+            if (provider == AuthProvider.APPLE && userInfo.sub() != null
+                    && (user.getAppleUserId() == null || user.getAppleUserId().isBlank())) {
+                user.setAppleUserId(userInfo.sub());
+            }
+            user = userRepository.save(user);
+        }
+
+        // Exchange Apple authorization code for refresh token (best-effort)
+        if (provider == AuthProvider.APPLE && authorizationCode != null && !authorizationCode.isBlank()) {
+            Optional<String> refreshToken = appleTokenValidator.exchangeAuthorizationCode(authorizationCode);
+            if (refreshToken.isPresent()) {
+                user.setAppleRefreshToken(refreshToken.get());
                 user = userRepository.save(user);
+                log.info("Stored Apple refresh token for user: {}", user.getEmail());
             }
         }
 
@@ -178,7 +212,7 @@ public class AuthService {
                 .level("beginner")
                 .build();
         user = userRepository.save(user);
-        
+
         // Create empty UserProfile for new users (required for nutrition tracking)
         UserProfile profile = new UserProfile();
         profile.setUser(user);
@@ -190,5 +224,3 @@ public class AuthService {
         return new AuthResult(jwt, user.getEmail(), true);
     }
 }
-
-
