@@ -1,8 +1,7 @@
 # syntax=docker/dockerfile:1
 
-# This Dockerfile exists at repo root so CI systems (e.g., Cloud Build triggers configured
-# for `Dockerfile` at `/workspace/Dockerfile`) can build the backend without extra config.
-# It builds the Gradle Spring Boot app under `backend/`.
+# This repo-root Dockerfile is kept for local tooling that expects a Dockerfile at the
+# repository root. It builds the Gradle Spring Boot app under `backend/`.
 
 # Build stage
 FROM gradle:8.10.2-jdk21-alpine AS build

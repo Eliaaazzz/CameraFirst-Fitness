@@ -47,7 +47,6 @@ AuraFitness/
 │
 ├── package.json               # Root workspace configuration
 ├── firebase.json              # Firebase Hosting config (frontend + API proxy)
-├── cloudbuild.yaml            # Google Cloud Build (backend)
 ├── .env                       # Environment variables (gitignored)
 └── .gitignore                 # Git ignore rules
 ```
