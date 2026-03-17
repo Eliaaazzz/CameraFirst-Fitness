@@ -1,0 +1,72 @@
+name: Deploy Backend to Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "Dockerfile"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: aurafitness
+  REGION: australia-southeast2
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker --quiet
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t gcr.io/$PROJECT_ID/aurafitness-backend:${{ github.sha }} \
+            -t gcr.io/$PROJECT_ID/aurafitness-backend:latest \
+            -f backend/Dockerfile \
+            backend
+
+      - name: Push Docker image
+        run: |
+          docker push gcr.io/$PROJECT_ID/aurafitness-backend:${{ github.sha }}
+          docker push gcr.io/$PROJECT_ID/aurafitness-backend:latest
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: gcr.io/${{ env.PROJECT_ID }}/aurafitness-backend:${{ github.sha }}
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Run tests
+        working-directory: backend
+        run: ./gradlew test -x testcontainers --no-daemon
