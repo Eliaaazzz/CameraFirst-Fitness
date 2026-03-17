@@ -1,4 +1,5 @@
 steps:
+  # Build Docker image
   - name: "gcr.io/cloud-builders/docker"
     args:
       - "build"
@@ -9,6 +10,28 @@ steps:
       - "-f"
       - "backend/Dockerfile"
       - "backend"
+
+  # Push images to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/aurafitness-backend:$SHORT_SHA"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/aurafitness-backend:latest"]
+
+  # Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "aurafitness"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/aurafitness-backend:$SHORT_SHA"
+      - "--region"
+      - "australia-southeast2"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
 
 images:
   - "gcr.io/$PROJECT_ID/aurafitness-backend:$SHORT_SHA"

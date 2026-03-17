@@ -10,8 +10,8 @@
       {
         "source": "/api/**",
         "run": {
-          "serviceId": "aurafitv",
-          "region": "australia-southeast1"
+          "serviceId": "aurafitness",
+          "region": "australia-southeast2"
         }
       },
       {
