@@ -67,18 +67,6 @@ declare global {
           responseType?: string;
           responseMode?: string;
         }) => void;
-        renderButton: (
-          element: string | HTMLElement,
-          options: {
-            type?: 'sign in' | 'continue' | 'sign-up';
-            color?: 'black' | 'white';
-            border?: boolean;
-            border_radius?: number;
-            width?: number | string;
-            height?: number | string;
-            locale?: string;
-          }
-        ) => void;
         signIn: () => Promise<{
           authorization: {
             code: string;
@@ -98,7 +86,6 @@ declare global {
   }
 }
 
-const APPLE_WEB_BUTTON_ID = 'apple-signin-official-button';
 const APPLE_STATE_KEY = 'apple_signin_state';
 const APPLE_NONCE_KEY = 'apple_signin_nonce';
 
@@ -270,7 +257,6 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAppleNativeAvailable, setIsAppleNativeAvailable] = useState(Platform.OS !== 'ios');
-  const [isAppleWebReady, setIsAppleWebReady] = useState(Platform.OS !== 'web');
   const shouldShowAppleButton = Platform.OS === 'web' || (Platform.OS === 'ios' && isAppleNativeAvailable);
   const legalBaseUrl = useMemo(() => {
     if (Platform.OS === 'web' && typeof globalThis.window !== 'undefined') {
@@ -383,7 +369,7 @@ export default function LoginScreen() {
     };
   }, []);
 
-  // Handle Google OAuth response
+  // Handle Google OAuth response (popup flow — works on non-Safari browsers)
   useEffect(() => {
     if (googleResponse?.type === 'success') {
       const { id_token } = googleResponse.params;
@@ -395,13 +381,46 @@ export default function LoginScreen() {
     }
   }, [googleResponse, sendGoogleTokenToBackend]);
 
+  // Handle Google OAuth redirect response (full-page redirect flow for Safari).
+  // After window.location.href redirect, the page reloads with id_token in the
+  // URL hash. expo-auth-session's popup flow can't process this, so we handle
+  // it manually.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const hash = window.location.hash;
+    if (!hash || hash.length < 2) return;
+
+    const params = new URLSearchParams(hash.substring(1));
+    const idToken = params.get('id_token');
+
+    if (!idToken) return;
+
+    // Verify state to prevent CSRF
+    const expectedState = sessionStorage.getItem('google_oauth_state');
+    const receivedState = params.get('state');
+    if (expectedState && receivedState && expectedState !== receivedState) {
+      setError('Google sign-in verification failed. Please try again.');
+      window.history.replaceState(null, '', window.location.pathname);
+      sessionStorage.removeItem('google_oauth_state');
+      return;
+    }
+    sessionStorage.removeItem('google_oauth_state');
+
+    // Clean up URL to prevent re-processing on subsequent renders
+    window.history.replaceState(null, '', window.location.pathname);
+
+    sendGoogleTokenToBackend(idToken);
+  }, [sendGoogleTokenToBackend]);
+
   const handleGoogleLogin = useCallback(async () => {
     if (!googleRequest?.url) return;
 
     if (Platform.OS === 'web') {
       // Safari blocks window.open() called from async functions.
-      // Use a full-page redirect instead — expo-auth-session handles the
-      // response when the app reloads after Google redirects back.
+      // Use a full-page redirect instead and manually handle the response
+      // from the URL hash when the page reloads (see useEffect above).
+      sessionStorage.setItem('google_oauth_state', googleRequest.state ?? '');
       window.location.href = googleRequest.url;
       return;
     }
@@ -439,29 +458,16 @@ export default function LoginScreen() {
     await sendAppleTokenToBackend(identityToken, getAppleFullName(payload?.user), undefined, authCode);
   }, [sendAppleTokenToBackend]);
 
-  // Web Apple Sign-In: official JS SDK + official rendered button.
+  // Web Apple Sign-In: load JS SDK and init auth for popup flow.
+  // We use our own custom button (not Apple's renderButton) to avoid DOM timing issues.
+  // The signIn() Promise handles the response directly.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-
-    const onSuccess = async (event: Event) => {
-      const detail = (event as Event & { detail?: AppleWebSignInPayload }).detail;
-      await handleAppleWebSuccess(detail);
-    };
-
-    const onFailure = (event: Event) => {
-      const detail = (event as Event & { detail?: { error?: string } }).detail;
-      setIsLoading(false);
-      if (detail?.error === 'popup_closed_by_user') {
-        return;
-      }
-      setError('Apple sign-in failed.');
-    };
 
     const initAppleAuth = async () => {
       if (!globalThis.window?.AppleID) return false;
 
       if (!APPLE_SERVICE_ID) {
-        setIsAppleWebReady(false);
         console.warn('[AppleAuth] EXPO_PUBLIC_APPLE_SERVICE_ID is missing on web');
         return false;
       }
@@ -475,8 +481,8 @@ export default function LoginScreen() {
       sessionStorage.setItem(APPLE_STATE_KEY, state);
       sessionStorage.setItem(APPLE_NONCE_KEY, rawNonce);
 
-      // Point redirectURI at backend callback endpoint.
-      // Apple POSTs form data here; the backend validates, sets JWT cookie, and redirects back.
+      // redirectURI must be registered in Apple Developer Console.
+      // With usePopup: true, Apple communicates via postMessage (no actual redirect).
       const apiBase = APPLE_API_BASE_URL.replace(/\/+$/, '');
       const redirectURI = `${apiBase}/api/v1/auth/apple/callback`;
       globalThis.window.AppleID.auth.init({
@@ -487,39 +493,14 @@ export default function LoginScreen() {
         state,
         nonce: hashedNonce,
         responseType: 'code id_token',
-        responseMode: 'form_post',
       });
-
-      try {
-        globalThis.window.AppleID.auth.renderButton(`#${APPLE_WEB_BUTTON_ID}`, {
-          type: 'continue',
-          color: 'black',
-          border: false,
-          border_radius: 12,
-          width: '100%',
-          height: 54,
-        });
-        setIsAppleWebReady(true);
-        setError(null);
-      } catch (error) {
-        console.warn('[AppleAuth] Failed to render official Apple button', error);
-        setIsAppleWebReady(false);
-      }
 
       return true;
     };
 
-    document.addEventListener('AppleIDSignInOnSuccess', onSuccess as EventListener);
-    document.addEventListener('AppleIDSignInOnFailure', onFailure as EventListener);
-
-    const cleanup = () => {
-      document.removeEventListener('AppleIDSignInOnSuccess', onSuccess as EventListener);
-      document.removeEventListener('AppleIDSignInOnFailure', onFailure as EventListener);
-    };
-
     // Try to initialise immediately (SDK may already be loaded)
     void initAppleAuth().then((ok) => {
-      if (ok) return; // SDK was ready, init complete
+      if (ok) return;
 
       if (typeof document === 'undefined') return;
 
@@ -533,19 +514,10 @@ export default function LoginScreen() {
       script.id = 'apple-signin-script';
       script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
       script.async = true;
-      script.onload = () => {
-        void initAppleAuth().then((result) => {
-          if (!result) setIsAppleWebReady(false);
-        });
-      };
-      script.onerror = () => {
-        setIsAppleWebReady(false);
-      };
+      script.onload = () => void initAppleAuth();
       document.head.appendChild(script);
     });
-
-    return cleanup;
-  }, [handleAppleWebSuccess]);
+  }, []);
 
   // Handle Apple login (iOS native only)
   const handleAppleLogin = async () => {
@@ -675,25 +647,18 @@ export default function LoginScreen() {
                     />
                   )}
                   {shouldShowAppleButton && Platform.OS === 'web' && (
-                    isAppleWebReady ? (
-                      <View style={styles.appleWebButtonHost}>
-                        <View nativeID={APPLE_WEB_BUTTON_ID} style={styles.appleWebButton} />
-                        {isLoading && <View pointerEvents="none" style={styles.appleWebButtonOverlay} />}
-                      </View>
-                    ) : (
-                      <Pressable
-                        onPress={handleAppleLogin}
-                        disabled={isLoading}
-                        style={({ pressed }) => [
-                          styles.appleWebFallbackButton,
-                          pressed && styles.socialButtonPressed,
-                          isLoading && styles.buttonDisabled,
-                        ]}
-                      >
-                        <Ionicons name="logo-apple" size={20} color={COLORS.white} />
-                        <Text style={[styles.socialButtonText, styles.whiteSocialButtonText]}>Continue with Apple</Text>
-                      </Pressable>
-                    )
+                    <Pressable
+                      onPress={handleAppleLogin}
+                      disabled={isLoading}
+                      style={({ pressed }) => [
+                        styles.appleWebFallbackButton,
+                        pressed && styles.socialButtonPressed,
+                        isLoading && styles.buttonDisabled,
+                      ]}
+                    >
+                      <Ionicons name="logo-apple" size={20} color={COLORS.white} />
+                      <Text style={[styles.socialButtonText, styles.whiteSocialButtonText]}>Continue with Apple</Text>
+                    </Pressable>
                   )}
                   <View style={styles.divider}>
                     <View style={styles.dividerLine} />
@@ -908,15 +873,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 54,
   },
-  appleWebButtonHost: {
-    position: 'relative',
-    height: 54,
-    borderRadius: RADII.md,
-    overflow: 'hidden',
-  },
-  appleWebButton: {
-    height: 54,
-  },
   appleWebFallbackButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -925,11 +881,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: RADII.md,
     backgroundColor: '#000000',
-  },
-  appleWebButtonOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000000',
-    opacity: 0.2,
   },
   socialButton: {
     flexDirection: 'row',
