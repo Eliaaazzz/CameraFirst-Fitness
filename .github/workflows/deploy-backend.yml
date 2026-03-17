@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - "backend/**"
-      - "Dockerfile"
       - ".github/workflows/deploy-backend.yml"
   workflow_dispatch:
 
@@ -17,6 +16,9 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-backend-${{ github.ref }}
+      cancel-in-progress: true
 
     permissions:
       contents: read
@@ -24,6 +26,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Run tests
+        working-directory: backend
+        run: ./gradlew test -x testcontainers --no-daemon
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -55,18 +67,3 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: gcr.io/${{ env.PROJECT_ID }}/aurafitness-backend:${{ github.sha }}
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: "21"
-          distribution: "temurin"
-
-      - name: Run tests
-        working-directory: backend
-        run: ./gradlew test -x testcontainers --no-daemon
