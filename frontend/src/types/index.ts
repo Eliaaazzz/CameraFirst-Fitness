@@ -95,6 +95,8 @@ export interface CurrentUserResponse {
   level: string;
   timeBucket: number;
   profile?: UserProfileResponse | null;
+  authProvider?: string | null;
+  appleUserId?: string | null;
 }
 
 export interface ApiResponse<T> {

@@ -10,6 +10,7 @@ debug.log*
 *.zip
 .DS_Store
 *.pem
+*.p8
 .env
 .env.dev
 .env.prod
@@ -45,6 +46,7 @@ backend/system.log*
 backend/application.log*
 backend/spring.log*
 backend/src/main/resources/application-dev.yml
+backend/secrets/
 !backend/gradle/wrapper/gradle-wrapper.jar
 !backend/**/src/main/**/build/
 !backend/**/src/test/**/build/

@@ -2,6 +2,7 @@ package com.fitnessapp.backend.auth;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.fitnessapp.backend.user.entity.User;
@@ -25,13 +26,16 @@ class AuthServiceTest {
     @Mock private JwtUtils jwtUtils;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private SocialTokenValidator googleValidator;
+    @Mock private AppleTokenValidator appleTokenValidator;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         when(googleValidator.getProvider()).thenReturn(AuthProvider.GOOGLE);
-        authService = new AuthService(userRepository, userProfileRepository, jwtUtils, passwordEncoder, List.of(googleValidator));
+        when(appleTokenValidator.getProvider()).thenReturn(AuthProvider.APPLE);
+        authService = new AuthService(userRepository, userProfileRepository, jwtUtils, passwordEncoder,
+                List.of(googleValidator, appleTokenValidator), appleTokenValidator);
     }
 
     @Test
@@ -40,7 +44,7 @@ class AuthServiceTest {
         String email = "exists@example.com";
         UUID userId = UUID.randomUUID();
 
-        when(googleValidator.validate(idToken))
+        when(googleValidator.validate(eq(idToken), any()))
                 .thenReturn(Optional.of(new SocialUserInfo(email, "Test User")));
 
         User user = User.builder()
@@ -49,6 +53,7 @@ class AuthServiceTest {
                 .authProvider(AuthProvider.GOOGLE)
                 .build();
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenReturn(user);
         when(jwtUtils.generateToken(userId, email)).thenReturn("jwt-token");
 
         AuthService.AuthResult result = authService.loginSocial(AuthProvider.GOOGLE, idToken);
@@ -57,7 +62,6 @@ class AuthServiceTest {
         assertEquals("jwt-token", result.token());
         assertEquals(email, result.email());
         assertFalse(result.isNewUser());
-        verify(userRepository, never()).save(any());
     }
 
     @Test
@@ -66,7 +70,7 @@ class AuthServiceTest {
         String email = "new@example.com";
         UUID userId = UUID.randomUUID();
 
-        when(googleValidator.validate(idToken))
+        when(googleValidator.validate(eq(idToken), any()))
                 .thenReturn(Optional.of(new SocialUserInfo(email, "New User")));
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
@@ -93,31 +97,61 @@ class AuthServiceTest {
         String email = "apple@privaterelay.appleid.com";
         UUID userId = UUID.randomUUID();
 
-        when(googleValidator.validate(idToken))
-                .thenReturn(Optional.of(new SocialUserInfo(email, null)));
+        when(appleTokenValidator.validate(eq(idToken), any()))
+                .thenReturn(Optional.of(new SocialUserInfo(email, null, "apple-sub-123")));
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
         User savedUser = User.builder()
                 .id(userId)
                 .email(email)
                 .username("Taylor Swift")
-                .authProvider(AuthProvider.GOOGLE)
+                .authProvider(AuthProvider.APPLE)
+                .appleUserId("apple-sub-123")
                 .build();
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
         when(jwtUtils.generateToken(userId, email)).thenReturn("jwt-apple");
 
-        AuthService.AuthResult result = authService.loginSocial(AuthProvider.GOOGLE, idToken, "Taylor   Swift");
+        AuthService.AuthResult result = authService.loginSocial(AuthProvider.APPLE, idToken, "Taylor   Swift");
 
         assertEquals("jwt-apple", result.token());
         verify(userRepository).save(argThat(user ->
                 "Taylor Swift".equals(user.getUsername()) &&
-                user.getAuthProvider() == AuthProvider.GOOGLE));
+                user.getAuthProvider() == AuthProvider.APPLE));
+    }
+
+    @Test
+    void loginSocial_apple_exchangesAuthCode() {
+        String idToken = "apple-id-token";
+        String authCode = "apple-auth-code";
+        String email = "apple@privaterelay.appleid.com";
+        UUID userId = UUID.randomUUID();
+
+        when(appleTokenValidator.validate(eq(idToken), any()))
+                .thenReturn(Optional.of(new SocialUserInfo(email, null, "apple-sub-456")));
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        User savedUser = User.builder()
+                .id(userId)
+                .email(email)
+                .authProvider(AuthProvider.APPLE)
+                .appleUserId("apple-sub-456")
+                .build();
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(jwtUtils.generateToken(userId, email)).thenReturn("jwt-apple");
+        when(appleTokenValidator.exchangeAuthorizationCode(authCode))
+                .thenReturn(Optional.of("refresh-token-abc"));
+
+        AuthService.AuthResult result = authService.loginSocial(
+                AuthProvider.APPLE, idToken, null, null, authCode);
+
+        assertEquals("jwt-apple", result.token());
+        verify(appleTokenValidator).exchangeAuthorizationCode(authCode);
     }
 
     @Test
     void loginSocial_invalidToken_throwsException() {
         String idToken = "bad-token";
-        when(googleValidator.validate(idToken)).thenReturn(Optional.empty());
+        when(googleValidator.validate(eq(idToken), any())).thenReturn(Optional.empty());
 
         assertThrows(InvalidTokenException.class, () ->
                 authService.loginSocial(AuthProvider.GOOGLE, idToken));

@@ -176,7 +176,7 @@ const tabBarStyles = StyleSheet.create({
     lineHeight: 14,
     fontWeight: '800',
     letterSpacing: 0.15,
-    marginTop: 6,
+    marginTop: 2,
     paddingBottom: 1,
     textAlign: 'center',
   },
@@ -437,7 +437,7 @@ const MainTabs = () => {
   const tabBarLabelLineHeight = tabBarLabelFontSize + 2;
   // Calculate safe tab bar height with proper bottom inset
   // Keep extra vertical room for the custom glass icon shell and tab label stack.
-  const baseTabBarHeight = isDesktop ? 68 : isTablet ? 72 : 72;
+  const baseTabBarHeight = isDesktop ? 68 : isTablet ? 76 : 76;
   const tabBarPaddingBottom = Platform.select({
     ios: Math.max(insets.bottom, 4) + 2,
     android: Math.max(insets.bottom, 4) + 2,

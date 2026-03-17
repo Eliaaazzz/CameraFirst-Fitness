@@ -68,7 +68,9 @@ public class CurrentUserController {
         validatedStreak,
         user.getLevel(),
         user.getTimeBucket(),
-        profile.map(UserProfileMapper::toResponse).orElse(null)
+        profile.map(UserProfileMapper::toResponse).orElse(null),
+        user.getAuthProvider() != null ? user.getAuthProvider().name() : null,
+        user.getAppleUserId()
     ));
   }
 
@@ -131,7 +133,9 @@ public class CurrentUserController {
         user.getCurrentStreak(),
         user.getLevel(),
         user.getTimeBucket(),
-        profile.map(UserProfileMapper::toResponse).orElse(null)
+        profile.map(UserProfileMapper::toResponse).orElse(null),
+        user.getAuthProvider() != null ? user.getAuthProvider().name() : null,
+        user.getAppleUserId()
     ));
   }
 
@@ -157,6 +161,8 @@ public class CurrentUserController {
       Integer currentStreak,
       String level,
       Integer timeBucket,
-      UserProfileResponse profile
+      UserProfileResponse profile,
+      String authProvider,
+      String appleUserId
   ) {}
 }

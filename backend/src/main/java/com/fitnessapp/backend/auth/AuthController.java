@@ -1,31 +1,40 @@
 package com.fitnessapp.backend.auth;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitnessapp.backend.auth.dto.AuthResponse;
 import com.fitnessapp.backend.auth.dto.LoginRequest;
 import com.fitnessapp.backend.auth.dto.RegisterRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthController {
 
     public static final String JWT_COOKIE_NAME = "__session";
 
     private final AuthService authService;
+    private final ObjectMapper objectMapper;
 
     @Value("${app.jwt.expiration-days:30}")
     private long jwtExpirationDays;
@@ -41,6 +50,9 @@ public class AuthController {
 
     @Value("${app.google.client-id:}")
     private String googleClientId;
+
+    @Value("${app.apple.web-redirect-uri:}")
+    private String appleWebRedirectUri;
 
     /**
      * Exposes Google OAuth client ID for web clients that fetch config dynamically.
@@ -62,7 +74,7 @@ public class AuthController {
         AuthService.AuthResult result;
 
         if (request.isSocialLogin()) {
-            result = authService.loginSocial(request.loginType(), request.idToken(), request.fullName());
+            result = authService.loginSocial(request.loginType(), request.idToken(), request.fullName(), request.nonce(), request.authorizationCode());
         } else {
             result = authService.loginEmail(request.email(), request.password());
         }
@@ -119,6 +131,73 @@ public class AuthController {
         setJwtCookie(response, result.token());
 
         return ResponseEntity.ok(toResponse(result));
+    }
+
+    /**
+     * Apple Sign In backend callback endpoint.
+     *
+     * Apple POSTs form data here after the user authenticates (server-redirect flow).
+     * The backend validates the id_token, exchanges the authorization code,
+     * sets the JWT as an HttpOnly cookie, and redirects to the frontend.
+     *
+     * Register this URL as the Return URL in your Apple Services ID configuration:
+     *   https://your-api-domain/api/v1/auth/apple/callback
+     */
+    @PostMapping(value = "/apple/callback", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<Void> appleCallback(
+            @RequestParam("id_token") String idToken,
+            @RequestParam(value = "code", required = false) String code,
+            @RequestParam(value = "state", required = false) String state,
+            @RequestParam(value = "user", required = false) String userJson,
+            HttpServletResponse response) {
+
+        // Extract full name from Apple's user JSON (only sent on first sign-in)
+        String fullName = null;
+        if (userJson != null && !userJson.isBlank()) {
+            try {
+                var userNode = objectMapper.readTree(userJson);
+                var nameNode = userNode.get("name");
+                if (nameNode != null) {
+                    String first = nameNode.has("firstName") ? nameNode.get("firstName").asText("") : "";
+                    String last = nameNode.has("lastName") ? nameNode.get("lastName").asText("") : "";
+                    String combined = (first + " " + last).trim();
+                    if (!combined.isBlank()) {
+                        fullName = combined;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to parse Apple user JSON: {}", e.getMessage());
+            }
+        }
+
+        try {
+            AuthService.AuthResult result = authService.loginSocial(
+                    AuthProvider.APPLE, idToken, fullName, null, code);
+
+            setJwtCookie(response, result.token());
+
+            // Redirect to frontend
+            String redirectTarget = resolveAppleRedirectTarget();
+            return ResponseEntity.status(302)
+                    .location(URI.create(redirectTarget))
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Apple callback authentication failed: {}", e.getMessage());
+            String redirectTarget = resolveAppleRedirectTarget();
+            String errorRedirect = redirectTarget + "?error=" +
+                    URLEncoder.encode("Apple sign-in failed", StandardCharsets.UTF_8);
+            return ResponseEntity.status(302)
+                    .location(URI.create(errorRedirect))
+                    .build();
+        }
+    }
+
+    private String resolveAppleRedirectTarget() {
+        if (appleWebRedirectUri != null && !appleWebRedirectUri.isBlank()) {
+            return appleWebRedirectUri;
+        }
+        return "https://aurafitness.org";
     }
 
     /**

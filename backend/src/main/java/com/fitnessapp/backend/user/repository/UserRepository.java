@@ -12,6 +12,8 @@ import org.springframework.data.repository.query.Param;
 public interface UserRepository extends JpaRepository<User, UUID> {
   Optional<User> findByEmail(String email);
 
+  Optional<User> findByAppleUserId(String appleUserId);
+
   /**
    * Find user by ID with pessimistic write lock (SELECT ... FOR UPDATE).
    * Use this for streak updates to prevent race conditions when user rapidly clicks "Post".
