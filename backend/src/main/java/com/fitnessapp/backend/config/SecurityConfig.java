@@ -79,6 +79,19 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .headers(headers -> headers
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives(
+                        "default-src 'self'; "
+                        + "script-src 'self' https://appleid.cdn-apple.com https://accounts.google.com https://apis.google.com; "
+                        + "style-src 'self' 'unsafe-inline'; "
+                        + "frame-src https://appleid.apple.com https://accounts.google.com; "
+                        + "connect-src 'self' https://appleid.apple.com; "
+                        + "img-src 'self' data:; "
+                        + "font-src 'self'"
+                    )
+                )
+            )
             // Layer 1: API Key validation (Access Card)
             // Checks X-API-Key header first - this is the first line of defense
             .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
