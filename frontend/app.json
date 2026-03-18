@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "FitnessMVP",
-    "slug": "fitness-mvp",
-    "scheme": "com.fitnessapp.mvp",
+    "name": "AuraFitness",
+    "slug": "aurafitness",
+    "scheme": "com.elia.aurafit",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/app-icon-1024.png",
@@ -19,14 +19,14 @@
       "backgroundColor": "#FF6B6B"
     },
     "ios": {
-      "bundleIdentifier": "com.fitnessapp.mvp",
+      "bundleIdentifier": "com.elia.aurafit",
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "infoPlist": {
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
-              "com.fitnessapp.mvp", 
+              "com.elia.aurafit",
               "com.googleusercontent.apps.113023901864-n9pe3iu6v0s0f3gq2u0mu6d9rfqbke8l"
             ]
           }
@@ -91,7 +91,7 @@
       "icon": "./assets/icon.png",
       "color": "#FF6B6B",
       "androidMode": "default",
-      "androidCollapsedTitle": "FitnessMVP"
+      "androidCollapsedTitle": "AuraFitness"
     }
   }
 }

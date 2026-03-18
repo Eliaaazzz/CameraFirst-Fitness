@@ -58,6 +58,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -74,6 +75,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const scaleHintCm = typeof imgWcm === 'number' ? imgWcm : DEFAULT_MEAL_IMAGE_WIDTH_CM;
 
   const insets = useSafeAreaInsets();
+  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(!isViewingExisting); // Don't show loading for existing meals
   const [phase, setPhase] = useState<1 | 2 | 3>(1);
@@ -116,15 +118,25 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const [retryCount, setRetryCount] = useState(0);
   const [mealId] = useState<number | undefined>(meal?.id);
   const MAX_RETRIES = 3;
+  const contentMaxWidth = Platform.OS === 'web' ? 760 : viewportWidth;
+  const previewWidth = Math.max(0, Math.min(viewportWidth - 32, contentMaxWidth - 32));
+  const imagePreviewHeight = Math.max(
+    220,
+    Math.min(
+      Math.round(previewWidth * 0.75),
+      Platform.OS === 'web' ? Math.round(viewportHeight * 0.38) : Math.round(viewportHeight * 0.42)
+    )
+  );
 
   // High-performance image compression (Web Worker on web, expo-image-manipulator on native)
-  // Keep uploads around ~1.5MB for lower model latency while preserving recognition quality.
+  // Keep uploads close to the backend's 1024px optimization target.
+  // Portion/scale reasoning still uses img_w_cm metadata, so smaller images do not remove the
+  // 3D volume estimate path.
   const { compress: compressImage } = useImageCompressor({
     defaultOptions: {
-      // 1280px is a strong latency/accuracy tradeoff for food recognition.
-      maxDimension: 1280,
-      quality: 0.82,
-      targetSize: 1_500_000, // ~1.5MB target to reduce model processing latency
+      maxDimension: 1024,
+      quality: 0.76,
+      targetSize: 900_000,
     },
   });
 
@@ -243,7 +255,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
               if (navigation.canGoBack()) {
                 navigation.goBack();
               } else {
-                navigation.navigate('Dashboard');
+                navigation.navigate('Main', { screen: 'Dashboard' });
               }
             },
           },
@@ -318,7 +330,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
             <Pressable
               onPress={() => {
                 if (navigation.canGoBack()) navigation.goBack();
-                else navigation.navigate('Dashboard');
+                else navigation.navigate('Main', { screen: 'Dashboard' });
               }}
               style={styles.permissionTertiaryBtn}
             >
@@ -335,7 +347,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
           onCapture={(uri) => navigation.setParams({ imageUri: uri, openCamera: false, imgWcm: scaleHintCm })}
           onCancel={() => {
             if (navigation.canGoBack()) navigation.goBack();
-            else navigation.navigate('Dashboard');
+            else navigation.navigate('Main', { screen: 'Dashboard' });
           }}
           onGalleryPress={openGallery}
           guideText="Align food here"
@@ -426,7 +438,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
         if (navigation.canGoBack()) {
           navigation.goBack();
         } else {
-          navigation.navigate('Dashboard');
+          navigation.navigate('Main', { screen: 'Dashboard' });
         }
         return;
       }
@@ -458,11 +470,28 @@ export function ReviewMealScreen({ route, navigation }: any) {
         Animated.delay(800),
       ]).start(() => {
         // Navigate to Dashboard after animation
-        navigation.navigate('Dashboard');
+        navigation.navigate('Main', { screen: 'Dashboard' });
       });
     } catch (error) {
       console.error('Save failed:', error);
-      Alert.alert('Error', 'Failed to save meal. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const status = typeof (error as any)?.status === 'number' ? (error as any).status : undefined;
+
+      let title = 'Save failed';
+      let message = 'Failed to save meal. Please try again.';
+
+      if (status === 401 || status === 403 || errorMessage.includes('session has expired')) {
+        title = 'Sign in required';
+        message = 'Your session is no longer valid. Please sign in again, then retry saving this meal.';
+      } else if (status === 408 || errorMessage.toLowerCase().includes('timeout')) {
+        title = 'Save timed out';
+        message = 'The server took too long to save this meal. This usually points to a backend issue rather than the photo itself. Please retry in a moment.';
+      } else if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
+        title = 'Connection error';
+        message = 'Could not reach the server while saving. Check your connection and try again.';
+      }
+
+      Alert.alert(title, message);
       setSaving(false);
     }
   };
@@ -471,8 +500,14 @@ export function ReviewMealScreen({ route, navigation }: any) {
     phase === 1
       ? 'Detecting food…'
       : phase === 2
-      ? 'Estimating portion size…'
+      ? 'Estimating 3D portion volume…'
       : 'Calculating nutrition…';
+  const loadingSubtitle =
+    phase === 1
+      ? 'Reading the visible ingredients and dish boundaries.'
+      : phase === 2
+      ? 'Using plate scale to estimate depth and portion size.'
+      : 'Turning the portion estimate into calories and macros.';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -482,7 +517,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
             if (navigation.canGoBack()) {
               navigation.goBack();
             } else {
-              navigation.navigate('Dashboard');
+              navigation.navigate('Main', { screen: 'Dashboard' });
             }
           }} 
           style={styles.backButton}
@@ -497,35 +532,48 @@ export function ReviewMealScreen({ route, navigation }: any) {
         style={[styles.scrollView, Platform.OS === 'web' && styles.scrollViewWeb]}
         contentContainerStyle={[styles.content, { paddingBottom: 140 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        showsVerticalScrollIndicator
       >
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: processedImageUri }} style={styles.image} />
-          <View style={styles.photoTag}>
-            <Text style={styles.photoTagText}>Photo</Text>
+        <View style={[styles.reviewBody, { maxWidth: contentMaxWidth }]}>
+          <View style={[styles.imageContainer, { height: imagePreviewHeight }]}>
+            <Image source={{ uri: processedImageUri }} style={styles.image} resizeMode="cover" />
+            {loading && (
+              <View style={styles.imageLoadingOverlay}>
+                <ActivityIndicator size="large" color="#FFFFFF" />
+                <Text style={styles.imageLoadingTitle}>{loadingText}</Text>
+                <Text style={styles.imageLoadingSubtitle}>{loadingSubtitle}</Text>
+              </View>
+            )}
+            <View style={styles.photoTag}>
+              <Text style={styles.photoTagText}>Photo</Text>
+            </View>
           </View>
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#9C27B0" />
+              <View style={styles.loadingCopy}>
+                <Text style={styles.loadingTitle}>{loadingText}</Text>
+                <Text style={styles.loadingSubtitle}>{loadingSubtitle}</Text>
+              </View>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.sectionTitle}>Detected items</Text>
+              {items.map((item) => (
+                <DetectedItemRow
+                  key={item.id}
+                  item={item}
+                  onIncrease={() => handleAmountChange(item.id, 1)}
+                  onDecrease={() => handleAmountChange(item.id, -1)}
+                />
+              ))}
+
+              {total && <NutritionSummaryCard total={total} />}
+            </>
+          )}
         </View>
-
-        {loading ? (
-          // Purple spinner loading UI
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#9C27B0" />
-            <Text style={styles.loadingTitle}>{loadingText}</Text>
-          </View>
-        ) : (
-          <>
-            <Text style={styles.sectionTitle}>Detected items</Text>
-            {items.map((item) => (
-              <DetectedItemRow
-                key={item.id}
-                item={item}
-                onIncrease={() => handleAmountChange(item.id, 1)}
-                onDecrease={() => handleAmountChange(item.id, -1)}
-              />
-            ))}
-
-            {total && <NutritionSummaryCard total={total} />}
-          </>
-        )}
       </ScrollView>
 
       {/* Hide save button when viewing existing meal details */}
@@ -557,7 +605,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
           onPress={() => {
             // Allow tap to dismiss and navigate
             setShowSuccess(false);
-            navigation.navigate('Dashboard');
+            navigation.navigate('Main', { screen: 'Dashboard' });
           }}
         >
           <Animated.View
@@ -705,23 +753,54 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 120, // Extra space for absolute positioned bottom bar
   },
+  reviewBody: {
+    width: '100%',
+    alignSelf: 'center',
+  },
   scrollView: {
     flex: 1,
+    minHeight: 0,
   },
   scrollViewWeb: {
     height: 0,
     minHeight: 0,
-    overflow: 'scroll',
+    overflow: 'auto',
+    overflowX: 'hidden',
+    overflowY: 'auto',
+    touchAction: 'pan-y',
+    WebkitOverflowScrolling: 'touch',
   } as any,
   imageContainer: {
     margin: 16,
     borderRadius: 20,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#111827',
   },
   image: {
     width: '100%',
-    aspectRatio: 4 / 3,
+    height: '100%',
+  },
+  imageLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: 'rgba(17,24,39,0.42)',
+  },
+  imageLoadingTitle: {
+    marginTop: 18,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  imageLoadingSubtitle: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 19,
+    color: 'rgba(255,255,255,0.88)',
+    textAlign: 'center',
   },
   photoTag: {
     position: 'absolute',
@@ -739,14 +818,31 @@ const styles = StyleSheet.create({
   },
   // Loading styles - purple spinner
   loadingContainer: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E5D5FF',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 60,
+    gap: 14,
+  },
+  loadingCopy: {
+    flex: 1,
   },
   loadingTitle: {
-    marginTop: 20,
-    fontSize: 17,
-    fontWeight: '500',
-    color: '#9C27B0',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#7C3AED',
+  },
+  loadingSubtitle: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#6B7280',
   },
   sectionTitle: {
     fontSize: 20,

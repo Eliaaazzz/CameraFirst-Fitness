@@ -18,6 +18,8 @@ public interface MealLogRepository extends JpaRepository<MealLog, Long> {
 
   List<MealLog> findByUserIdAndConsumedAtBetweenOrderByConsumedAtAsc(UUID userId, OffsetDateTime start, OffsetDateTime end);
 
+  List<MealLog> findByUserIdAndConsumedAtBetweenOrderByConsumedAtDesc(UUID userId, OffsetDateTime start, OffsetDateTime end);
+
   @Query("select coalesce(sum(coalesce(m.calories, 0) + coalesce(m.totalCalories, 0)), 0) from MealLog m where m.userId = :userId and m.consumedAt between :start and :end")
   Long sumCalories(@Param("userId") UUID userId, @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
 

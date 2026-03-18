@@ -156,7 +156,7 @@ public class MealController {
     OffsetDateTime end = targetDate.plusDays(1).atStartOfDay(zone).toOffsetDateTime();
 
     List<MealLog> meals = mealLogRepository
-        .findByUserIdAndConsumedAtBetweenOrderByConsumedAtAsc(userId, start, end);
+        .findByUserIdAndConsumedAtBetweenOrderByConsumedAtDesc(userId, start, end);
 
     List<MealResponse> responses = meals.stream()
         .map(this::toResponse)
@@ -189,7 +189,7 @@ public class MealController {
     OffsetDateTime end = targetDate.plusDays(1).atStartOfDay(zone).toOffsetDateTime();
 
     List<MealLog> meals = mealLogRepository
-        .findByUserIdAndConsumedAtBetweenOrderByConsumedAtAsc(userId, start, end);
+        .findByUserIdAndConsumedAtBetweenOrderByConsumedAtDesc(userId, start, end);
 
     int totalCalories = meals.stream()
         .mapToInt(m -> firstNonNull(m.getTotalCalories(), m.getCalories()))

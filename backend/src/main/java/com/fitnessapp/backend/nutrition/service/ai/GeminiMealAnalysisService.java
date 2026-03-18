@@ -7,7 +7,12 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.math.BigDecimal;
+import java.net.ConnectException;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -51,14 +56,19 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
     
     // Must be large enough for multi-dish scenes with many items; truncated JSON causes parse failures.
     private static final int MAX_OUTPUT_TOKENS = 4096;
-    private static final int TIMEOUT_SECONDS = 25;
-    private static final int MAX_RETRIES = 1;
+    // Meal capture is an interactive UX path. Allow one fast retry for transient transport errors,
+    // but avoid broad multi-retry stalls for deterministic failures.
+    private static final int PRIMARY_TIMEOUT_SECONDS = 18;
+    private static final int RETRY_TIMEOUT_SECONDS = 8;
+    private static final int MAX_ATTEMPTS = 2;
+    private static final long TRANSIENT_RETRY_DELAY_MS = 350L;
     private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;
     private static final Set<String> SUPPORTED_IMAGE_TYPES = Set.of(
             "image/jpeg", "image/png", "image/gif", "image/webp"
     );
 
     private final OkHttpClient httpClient;
+    private final OkHttpClient retryHttpClient;
     private final ObjectMapper objectMapper;
     private final String apiKey;
     private final String model;
@@ -81,11 +91,8 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
             log.info("✅ GeminiMealAnalysisService initialized: {}", this.model);
         }
 
-        this.httpClient = new OkHttpClient.Builder()
-                .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
-                .readTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
-                .writeTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
-                .build();
+        this.httpClient = buildHttpClient(PRIMARY_TIMEOUT_SECONDS);
+        this.retryHttpClient = buildHttpClient(RETRY_TIMEOUT_SECONDS);
     }
 
     // ==================== FoodRecognitionProvider Interface ====================
@@ -152,25 +159,35 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
         log.info("Gemini stage=image_optimize latencyMs={}, originalChars={}, optimizedChars={}",
                 compressMs, base64Image.length(), optimizedImage.length());
 
-        while (attempt < MAX_RETRIES) {
+        while (attempt < MAX_ATTEMPTS) {
             attempt++;
             try {
-                FoodRecognitionResult result = executeApiCall(optimizedImage, optimizedMediaType, metadata);
+                FoodRecognitionResult result = executeApiCall(
+                        optimizedImage,
+                        optimizedMediaType,
+                        metadata,
+                        attempt > 1
+                );
                 long totalMs = (System.nanoTime() - start) / 1_000_000;
                 log.info("Gemini stage=complete attempts={}, totalLatencyMs={}", attempt, totalMs);
                 return result;
             } catch (Exception e) {
                 lastException = e;
-                log.warn("Gemini API failed (attempt {}/{}): {}", attempt, MAX_RETRIES, e.getMessage());
-                if (attempt < MAX_RETRIES) {
-                    try { Thread.sleep(1000L * attempt); } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
+                boolean retryable = isRetryableException(e);
+                log.warn("Gemini API failed (attempt {}/{}, retryable={}): {}",
+                        attempt, MAX_ATTEMPTS, retryable, e.getMessage());
+                if (!retryable || attempt >= MAX_ATTEMPTS) {
+                    break;
+                }
+                try {
+                    Thread.sleep(TRANSIENT_RETRY_DELAY_MS * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
         }
-        throw new FoodRecognitionException("Failed after " + MAX_RETRIES + " attempts", lastException);
+        throw new FoodRecognitionException("Failed after " + attempt + " attempt(s)", lastException);
     }
 
     /**
@@ -247,10 +264,12 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
     private FoodRecognitionResult executeApiCall(
             String base64Image,
             String mediaType,
-            FoodRecognitionRequestMetadata metadata
+            FoodRecognitionRequestMetadata metadata,
+            boolean retryAttempt
     ) throws IOException {
         long start = System.nanoTime();
         String requestBody = buildRequestBody(base64Image, mediaType, metadata);
+        OkHttpClient client = retryAttempt ? retryHttpClient : httpClient;
 
         Request request = new Request.Builder()
                 .url(geminiApiUrl + "?key=" + apiKey)
@@ -258,7 +277,7 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
                 .post(RequestBody.create(requestBody, MediaType.parse("application/json")))
                 .build();
 
-        try (Response response = httpClient.newCall(request).execute()) {
+        try (Response response = client.newCall(request).execute()) {
             String responseBody = response.body() != null ? response.body().string() : "";
             long latencyMs = (System.nanoTime() - start) / 1_000_000;
             log.info("Gemini stage=api_call status={}, latencyMs={}, responseChars={}",
@@ -270,8 +289,8 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
 
             if (!response.isSuccessful()) {
                 log.error("Gemini API error ({}): {}", response.code(), responseBody);
-                if (response.code() == 429) {
-                    throw new FoodRecognitionException("Rate limit exceeded");
+                if (response.code() == 408 || response.code() == 429 || response.code() >= 500) {
+                    throw new RetryableGeminiException("Transient Gemini API error: " + response.code());
                 }
                 throw new FoodRecognitionException("API error: " + response.code());
             }
@@ -503,5 +522,35 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
             base = "food";
         }
         return base + "_" + index;
+    }
+
+    private boolean isRetryableException(Exception exception) {
+        Throwable current = exception;
+        while (current != null) {
+            if (current instanceof RetryableGeminiException
+                    || current instanceof SocketTimeoutException
+                    || current instanceof ConnectException
+                    || current instanceof SocketException
+                    || current instanceof UnknownHostException
+                    || current instanceof InterruptedIOException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private static final class RetryableGeminiException extends IOException {
+        private RetryableGeminiException(String message) {
+            super(message);
+        }
+    }
+
+    private OkHttpClient buildHttpClient(int timeoutSeconds) {
+        return new OkHttpClient.Builder()
+                .connectTimeout(Duration.ofSeconds(timeoutSeconds))
+                .readTimeout(Duration.ofSeconds(timeoutSeconds))
+                .writeTimeout(Duration.ofSeconds(timeoutSeconds))
+                .build();
     }
 }

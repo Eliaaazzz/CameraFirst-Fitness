@@ -83,12 +83,15 @@ public class SecurityConfig {
                 .contentSecurityPolicy(csp -> csp
                     .policyDirectives(
                         "default-src 'self'; "
-                        + "script-src 'self' https://appleid.cdn-apple.com https://accounts.google.com https://apis.google.com; "
+                        + "base-uri 'self'; "
+                        + "form-action 'self' https://appleid.apple.com https://accounts.google.com; "
+                        + "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://appleid.cdn-apple.com https://accounts.google.com https://apis.google.com; "
                         + "style-src 'self' 'unsafe-inline'; "
-                        + "frame-src https://appleid.apple.com https://accounts.google.com; "
-                        + "connect-src 'self' https://appleid.apple.com; "
-                        + "img-src 'self' data:; "
-                        + "font-src 'self'"
+                        + "frame-src 'self' https://appleid.apple.com https://accounts.google.com https://www.youtube.com https://www.youtube-nocookie.com; "
+                        + "connect-src 'self' data: blob: https: wss: http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*; "
+                        + "img-src 'self' data: blob: https:; "
+                        + "font-src 'self' data: https:; "
+                        + "media-src 'self' blob: https:;"
                     )
                 )
             )
