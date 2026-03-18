@@ -494,8 +494,9 @@ export function ReviewMealScreen({ route, navigation }: any) {
       </View>
 
       <ScrollView
-        style={{ flex: 1 }}
+        style={[styles.scrollView, Platform.OS === 'web' && styles.scrollViewWeb]}
         contentContainerStyle={[styles.content, { paddingBottom: 140 + insets.bottom }]}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.imageContainer}>
           <Image source={{ uri: processedImageUri }} style={styles.image} />
@@ -701,8 +702,17 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   content: {
+    flexGrow: 1,
     paddingBottom: 120, // Extra space for absolute positioned bottom bar
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewWeb: {
+    height: 0,
+    minHeight: 0,
+    overflow: 'scroll',
+  } as any,
   imageContainer: {
     margin: 16,
     borderRadius: 20,
