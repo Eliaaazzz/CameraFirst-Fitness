@@ -4,7 +4,7 @@ import {
   createBottomTabNavigator,
   type BottomTabBarButtonProps,
 } from '@react-navigation/bottom-tabs';
-import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer, useIsFocused } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -432,6 +432,7 @@ const cameraButtonStyles = StyleSheet.create({
 const MainTabs = () => {
   const { isDesktop, isTablet, isWeb } = useResponsive();
   const showSidebar = useSidebarVisible();
+  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const tabBarLabelFontSize = isDesktop ? 11 : 12;
   const tabBarLabelLineHeight = tabBarLabelFontSize + 2;
@@ -452,6 +453,7 @@ const MainTabs = () => {
   // React Navigation's internal BottomTabBar root still carries start/end positioning,
   // so keeping width on a parent frame avoids the right-shift drift.
   const renderTabBar = (props: React.ComponentProps<typeof BottomTabBar>) => (
+    !isFocused ? null : (
     <View
       pointerEvents="box-none"
       style={{
@@ -469,6 +471,7 @@ const MainTabs = () => {
         <BottomTabBar {...props} />
       </View>
     </View>
+    )
   );
 
   const getTabBarIcon = (routeName: string, focused: boolean, color: string) => {
@@ -616,7 +619,7 @@ export const AppNavigator = () => {
     <NavigationContainer ref={navigationRef} theme={LightNavigationTheme}>
       <Stack.Navigator
         initialRouteName="Splash"
-        screenOptions={{ headerShown: false }}
+        screenOptions={webCompatibleStackScreenOptions}
       >
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
