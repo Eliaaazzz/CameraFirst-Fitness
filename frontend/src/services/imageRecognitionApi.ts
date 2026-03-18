@@ -325,6 +325,7 @@ export async function searchRecipes(query: string): Promise<RecipeCard[]> {
 }
 
 const MAX_RECOMMENDATIONS = 6;
+const DEFAULT_RECIPE_RECOMMENDATION_GOAL = 'BUILD_MUSCLE';
 
 /**
  * Normalize goal for API (match backend normalization)
@@ -595,7 +596,9 @@ export async function getRecommendedWorkouts(fitnessGoal?: string | null, userId
  */
 export async function getRecommendedRecipes(fitnessGoal?: string | null, userId?: string): Promise<RecipeCard[]> {
   try {
-    const goals = normalizeGoalForApi(fitnessGoal);
+    const goals = fitnessGoal
+      ? normalizeGoalForApi(fitnessGoal)
+      : [DEFAULT_RECIPE_RECOMMENDATION_GOAL];
     const response = await generateRecommendations(goals, userId, MAX_RECOMMENDATIONS);
 
     if (response && Array.isArray(response.recipes) && response.recipes.length > 0) {
@@ -611,7 +614,7 @@ export async function getRecommendedRecipes(fitnessGoal?: string | null, userId?
       }));
     }
 
-    const fallbackGoal = goals[0] ?? 'MAINTAIN';
+    const fallbackGoal = goals[0] ?? DEFAULT_RECIPE_RECOMMENDATION_GOAL;
     const fallback = await get<any>(
       `/api/v1/recipes/by-goal?goal=${encodeURIComponent(fallbackGoal)}&limit=${MAX_RECOMMENDATIONS}`
     );
