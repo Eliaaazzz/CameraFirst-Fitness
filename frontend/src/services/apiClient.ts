@@ -47,7 +47,7 @@ const normalizeBaseUrl = (url: string) => {
 
 const BASE_URL = normalizeBaseUrl(RAW_API_BASE_URL);
 const TIMEOUT = 30000; // 30 seconds default
-const UPLOAD_TIMEOUT = 90000; // 90 seconds for image uploads (AI analysis can take time)
+const UPLOAD_TIMEOUT = 45000; // Fail faster for interactive AI flows instead of hanging for 90s
 
 console.log('[APIClient Init] Final BASE_URL:', BASE_URL);
 
@@ -307,11 +307,20 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
     // Mobile only: Add Authorization header with Bearer token from Zustand store
     // Web: JWT is in HttpOnly cookie, sent automatically with credentials: 'include'
     if (!isWebPlatform) {
-      // Use dynamic import to avoid circular dependency
-      const { getAuthState } = await import('../stores/useAuthStore');
-      const token = getAuthState().userToken;
+      // Use dynamic imports to avoid circular dependency and recover from cold-start
+      // races where SecureStore has the token but Zustand memory has not been hydrated yet.
+      const [{ getAuthState, useAuthStore }, { getJWT }] = await Promise.all([
+        import('../stores/useAuthStore'),
+        import('../utils/jwtStorage'),
+      ]);
+      const inMemoryToken = getAuthState().userToken;
+      const token = inMemoryToken || await getJWT();
       console.log('[APIClient Request] Mobile JWT check - exists:', !!token, 'length:', token?.length);
       if (token) {
+        if (!inMemoryToken) {
+          useAuthStore.setState({ userToken: token });
+          console.log('[APIClient Request] Mobile: Rehydrated JWT from secure storage');
+        }
         headers['Authorization'] = `Bearer ${token}`;
         console.log('[APIClient Request] Mobile: Authorization header added');
       } else {
@@ -565,8 +574,8 @@ export async function uploadImage<T>(
         // compressImage uses ImageManipulator with SaveFormat.JPEG
         // This converts HEIC → JPEG and also compresses for faster upload
         const result = await compressImage(imageUri, {
-          maxDimension: 1536,  // Good quality for AI analysis
-          quality: 0.85
+          maxDimension: 1024,
+          quality: 0.78
         });
         processedUri = result.uri;
         finalMimeType = 'image/jpeg';

@@ -69,7 +69,7 @@ app:
     client-id: ${GOOGLE_CLIENT_ID:}
   apple:
     # Comma-separated allowed audiences for Apple ID tokens.
-    # Example: APPLE_CLIENT_ID=com.fitnessapp.mvp,com.aurafitness.web
+    # Example: APPLE_CLIENT_ID=com.elia.aurafit,org.aurafitness.web
     client-id: ${APPLE_CLIENT_ID:}
     # Required for authorization code exchange and refresh token support.
     # Generate these in Apple Developer > Certificates, Identifiers & Profiles.

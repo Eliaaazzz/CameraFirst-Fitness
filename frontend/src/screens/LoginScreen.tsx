@@ -270,7 +270,7 @@ export default function LoginScreen() {
   // On Web, this defaults to the current origin (e.g., http://localhost:8081).
   // On Native, it uses the provided scheme.
   const redirectUri = AuthSession.makeRedirectUri({
-    scheme: 'com.fitnessapp.mvp',
+    scheme: 'com.elia.aurafit',
     preferLocalhost: true,
   });
 
