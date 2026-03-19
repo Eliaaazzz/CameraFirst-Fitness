@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AuraFit Support</title>
+  <style>
+    :root {
+      --bg: #fff7ed;
+      --bg-2: #ffedd5;
+      --card: #ffffff;
+      --line: #fed7aa;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --brand: #ea580c;
+      --brand-dark: #9a3412;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 85% 10%, rgba(56, 189, 248, 0.20), transparent 36%),
+        radial-gradient(circle at 15% 85%, rgba(251, 146, 60, 0.2), transparent 30%),
+        linear-gradient(155deg, var(--bg), #ffffff 68%);
+      min-height: 100vh;
+      padding: 40px 18px;
+    }
+
+    .shell {
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 30px 28px;
+      box-shadow: 0 22px 44px rgba(17, 24, 39, 0.08);
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #fff7ed;
+      color: var(--brand-dark);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.2;
+    }
+
+    .sub {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin: 32px 0 12px;
+      color: var(--brand-dark);
+    }
+
+    p, li {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+
+    a {
+      color: var(--brand);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .contact-card {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    .contact-card h3 {
+      margin: 0 0 6px;
+      font-size: 16px;
+      color: var(--brand-dark);
+    }
+
+    .contact-card p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .contact-card a {
+      font-weight: 600;
+    }
+
+    .faq-item {
+      margin-bottom: 18px;
+    }
+
+    .faq-item h3 {
+      font-size: 16px;
+      margin: 0 0 4px;
+      color: var(--text);
+    }
+
+    .faq-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .footer a {
+      color: var(--brand);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="card">
+      <span class="eyebrow">Support</span>
+      <h1>How can we help?</h1>
+      <p class="sub">We're here to make sure you get the most out of AuraFit. Find answers below or reach out directly.</p>
+
+      <h2>Contact Us</h2>
+      <div class="contact-grid">
+        <div class="contact-card">
+          <h3>Email Support</h3>
+          <p>For account issues, bug reports, or general questions:</p>
+          <p style="margin-top:8px"><a href="mailto:support@aurafitness.app">support@aurafitness.app</a></p>
+        </div>
+        <div class="contact-card">
+          <h3>Response Time</h3>
+          <p>We aim to respond to all inquiries within <strong>24 hours</strong> on business days.</p>
+        </div>
+      </div>
+
+      <h2>Frequently Asked Questions</h2>
+
+      <div class="faq-item">
+        <h3>How does meal recognition work?</h3>
+        <p>Take a photo of your meal and our AI will identify the foods and estimate nutritional information including calories, protein, carbs, and fats.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Is my data secure?</h3>
+        <p>Yes. We use encryption in transit and at rest. We never sell your personal data. See our <a href="/privacy-policy.html">Privacy Policy</a> for details.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>How do I delete my account?</h3>
+        <p>Go to Profile &gt; Settings &gt; Delete Account. All your data will be permanently removed. You can also request deletion via our <a href="/data-deletion.html">Data Deletion</a> page.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>The app is not recognizing my food correctly</h3>
+        <p>For best results, ensure good lighting and capture the full plate. You can manually edit any recognized items after scanning.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>How do I reset my password?</h3>
+        <p>AuraFit uses Google Sign-In and Apple Sign-In for authentication. To manage your credentials, visit your Google or Apple account settings.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Which platforms are supported?</h3>
+        <p>AuraFit is available on iOS, Android, and the web at <a href="https://aurafitness.app">aurafitness.app</a>.</p>
+      </div>
+    </div>
+
+    <p class="footer">
+      <a href="/privacy-policy.html">Privacy Policy</a> &middot;
+      <a href="/terms-of-service.html">Terms of Service</a> &middot;
+      <a href="/data-deletion.html">Data Deletion</a>
+    </p>
+  </div>
+</body>
+</html>
