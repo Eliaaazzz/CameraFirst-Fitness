@@ -153,13 +153,10 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const MAX_RETRIES = 3;
   const contentMaxWidth = Platform.OS === 'web' ? 760 : viewportWidth;
   const previewWidth = Math.max(0, Math.min(viewportWidth - 32, contentMaxWidth - 32));
-  const imagePreviewHeight = Math.max(
-    220,
-    Math.min(
-      Math.round(previewWidth * 0.75),
-      Platform.OS === 'web' ? Math.round(viewportHeight * 0.38) : Math.round(viewportHeight * 0.42)
-    )
-  );
+  const imagePreviewHeight =
+    Platform.OS === 'web'
+      ? Math.max(220, Math.min(Math.round(previewWidth * 0.58), 360, Math.round(viewportHeight * 0.34)))
+      : Math.max(220, Math.min(Math.round(previewWidth * 0.75), Math.round(viewportHeight * 0.42)));
   const hasDetectedResults = hasBreakdownItems(items);
   const hasVisibleTotals = hasMeaningfulNutrition(total);
   const canSaveMeal = hasDetectedResults && hasVisibleTotals;
@@ -751,42 +748,42 @@ export function ReviewMealScreen({ route, navigation }: any) {
         showsVerticalScrollIndicator
       >
         <View style={[styles.reviewBody, { maxWidth: contentMaxWidth }]}>
-          <Animated.View
-            style={[styles.imageContainer, { height: imagePreviewHeight }, heroAnimatedStyle]}
-          >
-            {processedImageUri ? (
-              Platform.OS === 'web' ? (
-                <ExpoImage
-                  source={{ uri: processedImageUri }}
-                  style={styles.image}
-                  contentFit="cover"
-                  transition={120}
-                  cachePolicy="memory-disk"
-                />
+          <View style={[styles.imageFrame, { height: imagePreviewHeight }]}>
+            <Animated.View style={[styles.imageContainer, heroAnimatedStyle]}>
+              {processedImageUri ? (
+                Platform.OS === 'web' ? (
+                  <ExpoImage
+                    source={{ uri: processedImageUri }}
+                    style={styles.image}
+                    contentFit="cover"
+                    transition={120}
+                    cachePolicy="memory-disk"
+                  />
+                ) : (
+                  <Image source={{ uri: processedImageUri }} style={styles.image} resizeMode="cover" />
+                )
               ) : (
-                <Image source={{ uri: processedImageUri }} style={styles.image} resizeMode="cover" />
-              )
-            ) : (
-              <View style={styles.image} />
-            )}
-            {loading && (
-              <View style={styles.imageLoadingOverlay} pointerEvents="none">
-                <ActivityIndicator size="large" color="#FFFFFF" />
-                <Text style={styles.imageLoadingTitle}>{loadingText}</Text>
-                <Text style={styles.imageLoadingSubtitle}>{loadingSubtitle}</Text>
-              </View>
-            )}
-            <View style={styles.photoBadgeRow} pointerEvents="none">
-              <View style={styles.photoTag}>
-                <Text style={styles.photoTagText}>{loading ? 'Analyzing' : 'Photo ready'}</Text>
-              </View>
-              {!loading && (
-                <View style={styles.previewBadge}>
-                  <Text style={styles.previewBadgeText}>Instant preview</Text>
+                <View style={styles.image} />
+              )}
+              {loading && (
+                <View style={styles.imageLoadingOverlay} pointerEvents="none">
+                  <ActivityIndicator size="large" color="#FFFFFF" />
+                  <Text style={styles.imageLoadingTitle}>{loadingText}</Text>
+                  <Text style={styles.imageLoadingSubtitle}>{loadingSubtitle}</Text>
                 </View>
               )}
-            </View>
-          </Animated.View>
+              <View style={styles.photoBadgeRow} pointerEvents="none">
+                <View style={styles.photoTag}>
+                  <Text style={styles.photoTagText}>{loading ? 'Analyzing' : 'Photo ready'}</Text>
+                </View>
+                {!loading && (
+                  <View style={styles.previewBadge}>
+                    <Text style={styles.previewBadgeText}>Instant preview</Text>
+                  </View>
+                )}
+              </View>
+            </Animated.View>
+          </View>
 
           {!isViewingExisting && (
             <Animated.View style={[styles.imageActionRow, statusAnimatedStyle]}>
@@ -1151,7 +1148,7 @@ const styles = StyleSheet.create({
     touchAction: 'pan-y',
     WebkitOverflowScrolling: 'touch',
   } as any,
-  imageContainer: {
+  imageFrame: {
     margin: 16,
     borderRadius: 28,
     overflow: 'hidden',
@@ -1159,7 +1156,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
     ...CARD_SHADOW,
   },
+  imageContainer: {
+    flex: 1,
+    minHeight: 0,
+  },
   image: {
+    flex: 1,
     width: '100%',
     height: '100%',
   },
