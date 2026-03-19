@@ -397,6 +397,7 @@ const cameraButtonStyles = StyleSheet.create({
     borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
+    alignSelf: 'center',
     backgroundColor: 'transparent',
     // Deeper, more diffused shadow for glass float
     shadowColor: '#0F172A',
