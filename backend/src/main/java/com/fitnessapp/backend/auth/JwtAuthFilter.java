@@ -65,19 +65,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(auth);
             log.debug("JWT authentication successful for user: {}", userId);
         } catch (JwtException e) {
-            // JWT token provided but invalid - immediately return 401 and clear authentication
-            // This ensures users are logged out when JWT has any problems (format, signature, expiration)
-            log.warn("Invalid JWT token provided - returning 401. Error: {}, Token prefix: {}",
+            // JWT is invalid/expired — don't hard-fail the entire request.
+            // Keep any existing API key authentication so endpoints that don't need
+            // user identity (e.g., /nutrition/analyze) can still proceed.
+            // Endpoints that DO need user identity use @AuthenticationPrincipal which
+            // will resolve to null, and their resolveUserId() throws 401.
+            log.warn("Invalid JWT token — falling back to API key auth. Error: {}, Token prefix: {}",
                     e.getMessage(), token.length() > 10 ? token.substring(0, 10) + "..." : token);
 
-            // Clear any existing authentication to log out the user
-            SecurityContextHolder.clearContext();
-
-            // Return 401 Unauthorized
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"message\":\"Invalid or expired JWT token\"}");
-            return;
+            // Signal the client that its JWT is stale so it can refresh/clear the token.
+            response.addHeader("X-JWT-Status", "expired");
         }
 
         chain.doFilter(request, response);

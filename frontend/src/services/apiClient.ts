@@ -368,6 +368,25 @@ async function request<T>(endpoint: string, config: RequestConfig = { method: 'G
       ok: response.ok,
     });
 
+    // If backend signals that our JWT is stale, clear it from storage so future
+    // requests don't keep sending an expired token.  The current request still
+    // succeeds (backend falls back to API key auth for endpoints that don't need
+    // user identity).  User-specific endpoints will return 401 in the body, which
+    // is handled below.
+    if (!isWebPlatform && response.headers.get('X-JWT-Status') === 'expired') {
+      console.warn('[APIClient] JWT expired — clearing stale token from storage');
+      try {
+        const [{ useAuthStore }, { clearJWT }] = await Promise.all([
+          import('../stores/useAuthStore'),
+          import('../utils/jwtStorage'),
+        ]);
+        useAuthStore.setState({ userToken: null });
+        await clearJWT();
+      } catch (cleanupErr) {
+        console.warn('[APIClient] Failed to clear stale JWT:', cleanupErr);
+      }
+    }
+
     if (!response.ok) {
       const rawError = await response.json().catch(() => ({ message: response.statusText }));
       const errorEnvelope = isApiEnvelope<any>(rawError) ? rawError : null;

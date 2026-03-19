@@ -67,7 +67,16 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
     private static final long TRANSIENT_RETRY_DELAY_MS = 350L;
     private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;
     private static final Set<String> SUPPORTED_IMAGE_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/gif", "image/webp"
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+            "image/heic",
+            "image/heif"
+    );
+    private static final Set<String> IMAGEIO_UNSUPPORTED_BUT_GEMINI_SUPPORTED_TYPES = Set.of(
+            "image/heic",
+            "image/heif"
     );
 
     private final OkHttpClient httpClient;
@@ -130,8 +139,8 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
             throw new IllegalArgumentException("Image too large. Max 10MB");
         }
 
-        String contentType = image.getContentType();
-        if (contentType == null || !SUPPORTED_IMAGE_TYPES.contains(contentType.toLowerCase())) {
+        String contentType = normalizeContentType(image.getContentType());
+        if (contentType == null || !SUPPORTED_IMAGE_TYPES.contains(contentType)) {
             throw new IllegalArgumentException("Unsupported image type: " + contentType);
         }
 
@@ -154,9 +163,10 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
 
         // Compress image before sending to Gemini API - reduces upload time by 50%+
         long compressStart = System.nanoTime();
-        String optimizedImage = compressImage(base64Image);
+        String normalizedMediaType = normalizeContentType(mediaType);
+        String optimizedImage = compressImage(base64Image, normalizedMediaType);
         long compressMs = (System.nanoTime() - compressStart) / 1_000_000;
-        String optimizedMediaType = optimizedImage.equals(base64Image) ? mediaType : "image/jpeg";
+        String optimizedMediaType = optimizedImage.equals(base64Image) ? normalizedMediaType : "image/jpeg";
         log.info("Gemini stage=image_optimize latencyMs={}, originalChars={}, optimizedChars={}",
                 compressMs, base64Image.length(), optimizedImage.length());
 
@@ -200,10 +210,15 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
      * Compress image to max 1024px dimension for faster API calls.
      * Gemini doesn't need full resolution for food recognition.
      * 
-     * IMPORTANT: Java ImageIO does NOT support HEIC format (iPhone default).
-     * The frontend must convert HEIC to JPEG before sending.
+     * IMPORTANT: Java ImageIO does not decode HEIC/HEIF out of the box.
+     * Gemini supports those MIME types directly, so we bypass local optimization for them.
      */
-    private String compressImage(String base64Image) {
+    private String compressImage(String base64Image, String mediaType) {
+        if (mediaType != null && IMAGEIO_UNSUPPORTED_BUT_GEMINI_SUPPORTED_TYPES.contains(mediaType)) {
+            log.info("Skipping backend image optimization for {} and forwarding original bytes to Gemini", mediaType);
+            return base64Image;
+        }
+
         try {
             byte[] imageBytes = Base64.getDecoder().decode(base64Image);
             log.info("🖼️ Attempting to decode image: {} bytes", imageBytes.length);
@@ -216,7 +231,7 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
                         "This usually means HEIC format or corrupted image. " +
                         "First 4 bytes (magic number): {}",
                         bytesToHex(imageBytes, 4));
-                log.warn("📱 iPhone HEIC images must be converted to JPEG by the frontend before upload!");
+                log.warn("Forwarding original bytes to Gemini because local optimization could not decode the image");
                 return base64Image; // Return original, let Gemini try to handle it
             }
 
@@ -263,6 +278,13 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
             log.error("Image compression failed, using original", e);
             return base64Image;
         }
+    }
+
+    private String normalizeContentType(String mediaType) {
+        if (mediaType == null || mediaType.isBlank()) {
+            return null;
+        }
+        return mediaType.toLowerCase().trim();
     }
 
     // ==================== API Implementation ====================
