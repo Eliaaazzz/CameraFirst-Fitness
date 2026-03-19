@@ -125,7 +125,7 @@ class MealControllerFlowTest {
         .build();
 
     when(userProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
-    when(mealLogRepository.findByUserIdAndConsumedAtBetweenOrderByConsumedAtAsc(
+    when(mealLogRepository.findByUserIdAndConsumedAtBetweenOrderByConsumedAtDesc(
         eq(userId),
         any(OffsetDateTime.class),
         any(OffsetDateTime.class)
