@@ -7,8 +7,9 @@ import nutritionApi, {
   DetectedFood,
   TotalNutrition,
 } from '@/services/nutritionApi';
-import { DEFAULT_MEAL_IMAGE_WIDTH_CM } from '@/utils';
+import { BRAND_COLORS, DEFAULT_MEAL_IMAGE_WIDTH_CM } from '@/utils';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image as ExpoImage } from 'expo-image';
 
 /**
  * Merge duplicate food items by name, combining their nutritional values.
@@ -52,7 +53,6 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -63,7 +63,21 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const SUCCESS_GRADIENT = ['#A78BFA', '#F472B6'] as const;
+const SUCCESS_GRADIENT = [BRAND_COLORS.secondary, BRAND_COLORS.primary] as const;
+const CARD_SHADOW = {
+  shadowColor: '#0F172A',
+  shadowOffset: { width: 0, height: 10 },
+  shadowOpacity: 0.06,
+  shadowRadius: 18,
+  elevation: 3,
+} as const;
+
+const hasMeaningfulNutrition = (value: TotalNutrition | null): boolean => {
+  if (!value) return false;
+  return [value.calories, value.protein, value.carbs, value.fat].some((metric) => Number(metric) > 0);
+};
+
+const hasBreakdownItems = (foods: DetectedFood[]): boolean => foods.some((food) => Number(food.amount) > 0);
 
 export function ReviewMealScreen({ route, navigation }: any) {
   // Support both new image analysis and viewing/editing saved meals
@@ -127,6 +141,9 @@ export function ReviewMealScreen({ route, navigation }: any) {
       Platform.OS === 'web' ? Math.round(viewportHeight * 0.38) : Math.round(viewportHeight * 0.42)
     )
   );
+  const hasDetectedResults = hasBreakdownItems(items);
+  const hasVisibleTotals = hasMeaningfulNutrition(total);
+  const canSaveMeal = hasDetectedResults && hasVisibleTotals;
 
   // High-performance image compression (Web Worker on web, expo-image-manipulator on native)
   // Keep uploads close to the backend's 1024px optimization target.
@@ -134,9 +151,9 @@ export function ReviewMealScreen({ route, navigation }: any) {
   // 3D volume estimate path.
   const { compress: compressImage } = useImageCompressor({
     defaultOptions: {
-      maxDimension: 1024,
-      quality: 0.76,
-      targetSize: 900_000,
+      maxDimension: Platform.OS === 'web' ? 1024 : 896,
+      quality: Platform.OS === 'web' ? 0.76 : 0.68,
+      targetSize: Platform.OS === 'web' ? 900_000 : 650_000,
     },
   });
 
@@ -285,9 +302,9 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
+        allowsEditing: Platform.OS === 'web',
         aspect: [4, 3],
-        quality: 0.85,
+        quality: Platform.OS === 'web' ? 0.82 : 0.65,
       });
 
       if (result.canceled || !result.assets?.[0]?.uri) {
@@ -508,6 +525,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
       : phase === 2
       ? 'Using plate scale to estimate depth and portion size.'
       : 'Turning the portion estimate into calories and macros.';
+  const phaseLabels = ['Scan', 'Portion', 'Macros'] as const;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -537,7 +555,13 @@ export function ReviewMealScreen({ route, navigation }: any) {
       >
         <View style={[styles.reviewBody, { maxWidth: contentMaxWidth }]}>
           <View style={[styles.imageContainer, { height: imagePreviewHeight }]}>
-            <Image source={{ uri: processedImageUri }} style={styles.image} resizeMode="cover" />
+            <ExpoImage
+              source={processedImageUri ? { uri: processedImageUri } : undefined}
+              style={styles.image}
+              contentFit="cover"
+              transition={150}
+              cachePolicy="memory-disk"
+            />
             {loading && (
               <View style={styles.imageLoadingOverlay}>
                 <ActivityIndicator size="large" color="#FFFFFF" />
@@ -545,22 +569,100 @@ export function ReviewMealScreen({ route, navigation }: any) {
                 <Text style={styles.imageLoadingSubtitle}>{loadingSubtitle}</Text>
               </View>
             )}
-            <View style={styles.photoTag}>
-              <Text style={styles.photoTagText}>Photo</Text>
+            <View style={styles.photoBadgeRow}>
+              <View style={styles.photoTag}>
+                <Text style={styles.photoTagText}>{loading ? 'Analyzing' : 'Photo ready'}</Text>
+              </View>
+              {!loading && (
+                <View style={styles.previewBadge}>
+                  <Text style={styles.previewBadgeText}>Instant preview</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {!isViewingExisting && (
+            <View style={styles.imageActionRow}>
+              <Pressable
+                style={styles.imageActionBtn}
+                onPress={() => navigation.setParams({ openCamera: true, imageUri: undefined, imgWcm: scaleHintCm })}
+              >
+                <MaterialCommunityIcons name="camera-retake-outline" size={18} color="#0F172A" />
+                <Text style={styles.imageActionBtnText}>Retake</Text>
+              </Pressable>
+              <Pressable style={styles.imageActionBtn} onPress={openGallery}>
+                <MaterialCommunityIcons name="image-outline" size={18} color="#0F172A" />
+                <Text style={styles.imageActionBtnText}>Choose another</Text>
+              </Pressable>
+            </View>
+          )}
+
+          <View style={styles.statusCard}>
+            <View style={styles.statusHeader}>
+              <View
+                style={[
+                  styles.statusIconWrap,
+                  loading
+                    ? styles.statusIconWrapLoading
+                    : canSaveMeal
+                    ? styles.statusIconWrapSuccess
+                    : styles.statusIconWrapWarning,
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={loading ? 'image-search-outline' : canSaveMeal ? 'check-decagram-outline' : 'alert-circle-outline'}
+                  size={22}
+                  color={loading ? '#0E7490' : canSaveMeal ? '#047857' : '#B45309'}
+                />
+              </View>
+              <View style={styles.statusCopy}>
+                <Text style={styles.loadingTitle}>
+                  {loading
+                    ? loadingText
+                    : canSaveMeal
+                    ? 'Analysis complete'
+                    : 'No reliable result yet'}
+                </Text>
+                <Text style={styles.loadingSubtitle}>
+                  {loading
+                    ? loadingSubtitle
+                    : canSaveMeal
+                    ? `${items.length} detected ${items.length === 1 ? 'item' : 'items'} ready to review and save.`
+                    : 'Try a brighter top-down photo with the whole meal visible. You can retake or choose another image below.'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.phaseRow}>
+              {phaseLabels.map((label, index) => {
+                const isActive = loading ? phase >= index + 1 : canSaveMeal;
+                return (
+                  <View key={label} style={[styles.phasePill, isActive && styles.phasePillActive]}>
+                    <Text style={[styles.phasePillText, isActive && styles.phasePillTextActive]}>{label}</Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#9C27B0" />
+              <ActivityIndicator size="small" color={BRAND_COLORS.secondary} />
               <View style={styles.loadingCopy}>
-                <Text style={styles.loadingTitle}>{loadingText}</Text>
-                <Text style={styles.loadingSubtitle}>{loadingSubtitle}</Text>
+                <Text style={styles.loadingTitle}>Preparing your meal breakdown</Text>
+                <Text style={styles.loadingSubtitle}>
+                  Preview is already visible while the nutrition analysis finishes in the background.
+                </Text>
               </View>
             </View>
-          ) : (
+          ) : canSaveMeal ? (
             <>
-              <Text style={styles.sectionTitle}>Detected items</Text>
+              {total && <NutritionSummaryCard total={total} />}
+
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Detected items</Text>
+                <Text style={styles.sectionCaption}>Adjust portions before saving</Text>
+              </View>
               {items.map((item) => (
                 <DetectedItemRow
                   key={item.id}
@@ -570,14 +672,79 @@ export function ReviewMealScreen({ route, navigation }: any) {
                 />
               ))}
 
-              {total && <NutritionSummaryCard total={total} />}
+              {total?.glycemicLoad != null && (
+                <View style={styles.glCard}>
+                  <Text style={styles.glCardTitle}>Estimated Blood Sugar Impact</Text>
+                  <View style={styles.glRow}>
+                    <View style={styles.glBarBg}>
+                      <View
+                        style={[
+                          styles.glBarFill,
+                          {
+                            width: `${Math.min(100, (total.glycemicLoad / 40) * 100)}%`,
+                            backgroundColor:
+                              total.glycemicLoad <= 10
+                                ? '#22C55E'
+                                : total.glycemicLoad <= 20
+                                ? '#F59E0B'
+                                : '#EF4444',
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.glValue,
+                        {
+                          color:
+                            total.glycemicLoad <= 10
+                              ? '#16A34A'
+                              : total.glycemicLoad <= 20
+                              ? '#D97706'
+                              : '#DC2626',
+                        },
+                      ]}
+                    >
+                      GL {Math.round(total.glycemicLoad)}
+                    </Text>
+                  </View>
+                  <Text style={styles.glLabel}>
+                    {total.glycemicLoad <= 10
+                      ? 'Low — gentle on blood sugar'
+                      : total.glycemicLoad <= 20
+                      ? 'Medium — moderate blood sugar rise'
+                      : 'High — significant blood sugar spike'}
+                  </Text>
+                </View>
+              )}
             </>
+          ) : (
+            <View style={styles.emptyStateCard}>
+              <View style={styles.emptyStateIconWrap}>
+                <MaterialCommunityIcons name="image-search-outline" size={28} color="#B45309" />
+              </View>
+              <Text style={styles.emptyStateTitle}>We could not confirm the meal contents</Text>
+              <Text style={styles.emptyStateBody}>
+                Try a photo with stronger lighting, less background clutter, and the entire plate visible from above.
+              </Text>
+              <View style={styles.emptyActionRow}>
+                <Pressable
+                  style={[styles.inlineActionBtn, styles.inlineActionBtnPrimary]}
+                  onPress={() => navigation.setParams({ openCamera: true, imageUri: undefined, imgWcm: scaleHintCm })}
+                >
+                  <Text style={styles.inlineActionBtnPrimaryText}>Retake photo</Text>
+                </Pressable>
+                <Pressable style={styles.inlineActionBtn} onPress={openGallery}>
+                  <Text style={styles.inlineActionBtnText}>Pick another</Text>
+                </Pressable>
+              </View>
+            </View>
           )}
         </View>
       </ScrollView>
 
       {/* Hide save button when viewing existing meal details */}
-      {!loading && !showSuccess && !isViewingExisting && (
+      {!loading && !showSuccess && !isViewingExisting && canSaveMeal && (
         <View style={[styles.bottomBar, { paddingBottom: 16 + insets.bottom }]}>
           <Pressable
             onPress={handleSave}
@@ -632,7 +799,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
             <View style={styles.successBody}>
               <View style={styles.successIconCircle}>
-                <MaterialCommunityIcons name="check" size={44} color="#7C3AED" />
+                <MaterialCommunityIcons name="check" size={44} color="#0E7490" />
               </View>
               <Text style={styles.successTitle}>Meal Saved!</Text>
               <View style={styles.successStats}>
@@ -664,7 +831,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8FAFC',
   },
   cameraContainer: {
     flex: 1,
@@ -736,26 +903,30 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#E5E7EB',
   },
   backButton: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: '700',
+    color: '#0F172A',
   },
   content: {
     flexGrow: 1,
     paddingBottom: 120, // Extra space for absolute positioned bottom bar
+    paddingTop: 8,
   },
   reviewBody: {
     width: '100%',
     alignSelf: 'center',
+    gap: 2,
   },
   scrollView: {
     flex: 1,
@@ -772,10 +943,11 @@ const styles = StyleSheet.create({
   } as any,
   imageContainer: {
     margin: 16,
-    borderRadius: 20,
+    borderRadius: 28,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#111827',
+    backgroundColor: '#0F172A',
+    ...CARD_SHADOW,
   },
   image: {
     width: '100%',
@@ -802,27 +974,126 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.88)',
     textAlign: 'center',
   },
-  photoTag: {
+  photoBadgeRow: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    top: 14,
+    left: 14,
+    right: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
+  },
+  photoTag: {
+    backgroundColor: 'rgba(15,23,42,0.74)',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 999,
   },
   photoTagText: {
     color: '#FFF',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '700',
   },
-  // Loading styles - purple spinner
+  previewBadge: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  previewBadgeText: {
+    color: '#0F172A',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  imageActionRow: {
+    marginHorizontal: 16,
+    marginTop: -4,
+    marginBottom: 8,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  imageActionBtn: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    ...CARD_SHADOW,
+  },
+  imageActionBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  statusCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 18,
+    gap: 16,
+    ...CARD_SHADOW,
+  },
+  statusHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+  },
+  statusIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusIconWrapLoading: {
+    backgroundColor: 'rgba(6, 182, 212, 0.14)',
+  },
+  statusIconWrapSuccess: {
+    backgroundColor: 'rgba(16, 185, 129, 0.14)',
+  },
+  statusIconWrapWarning: {
+    backgroundColor: 'rgba(245, 158, 11, 0.16)',
+  },
+  statusCopy: {
+    flex: 1,
+  },
+  phaseRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  phasePill: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: '#F1F5F9',
+  },
+  phasePillActive: {
+    backgroundColor: 'rgba(6, 182, 212, 0.14)',
+  },
+  phasePillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  phasePillTextActive: {
+    color: '#0E7490',
+  },
   loadingContainer: {
     marginHorizontal: 16,
-    marginTop: 4,
-    borderRadius: 18,
+    marginTop: 12,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E5D5FF',
+    borderColor: '#DBEAFE',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 18,
     paddingVertical: 16,
@@ -836,7 +1107,7 @@ const styles = StyleSheet.create({
   loadingTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: '#0F172A',
   },
   loadingSubtitle: {
     marginTop: 4,
@@ -844,13 +1115,130 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     color: '#6B7280',
   },
+  glCard: {
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 20,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 16,
+    ...CARD_SHADOW,
+  },
+  glCardTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 10,
+  },
+  glRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  glBarBg: {
+    flex: 1,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#F3F4F6',
+    overflow: 'hidden',
+  },
+  glBarFill: {
+    height: '100%',
+    borderRadius: 5,
+  },
+  glValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    minWidth: 50,
+  },
+  glLabel: {
+    marginTop: 8,
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  sectionHeader: {
+    marginHorizontal: 16,
+    marginTop: 18,
+    marginBottom: 6,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   sectionTitle: {
     fontSize: 20,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  sectionCaption: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#000',
+    color: '#64748B',
+  },
+  emptyStateCard: {
     marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 12,
+    marginTop: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    backgroundColor: '#FFFBEB',
+    padding: 20,
+    alignItems: 'center',
+    ...CARD_SHADOW,
+  },
+  emptyStateIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyStateTitle: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#78350F',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptyStateBody: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#92400E',
+    textAlign: 'center',
+  },
+  emptyActionRow: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 18,
+  },
+  inlineActionBtn: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  inlineActionBtnPrimary: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  inlineActionBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  inlineActionBtnPrimaryText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   bottomBar: {
     position: 'absolute',
@@ -860,11 +1248,11 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#FFF',
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: '#E5E7EB',
   },
   saveButton: {
-    backgroundColor: '#9C27B0',
-    borderRadius: 16,
+    backgroundColor: BRAND_COLORS.primary,
+    borderRadius: 18,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -875,7 +1263,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   // Success overlay styles - 淡粉色弹窗
   successOverlay: {
@@ -893,6 +1281,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
+    ...CARD_SHADOW,
   },
   successHeader: {
     height: 72,
@@ -907,7 +1296,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: 'rgba(6, 182, 212, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -915,14 +1304,14 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: '#0F172A',
     marginTop: 4,
   },
   successStats: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 8,
-    backgroundColor: 'rgba(124,58,237,0.08)',
+    backgroundColor: 'rgba(6, 182, 212, 0.08)',
     borderRadius: 16,
     padding: 12,
   },
@@ -933,7 +1322,7 @@ const styles = StyleSheet.create({
   successStatValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: '#0F172A',
   },
   successStatLabel: {
     fontSize: 12,
@@ -943,7 +1332,7 @@ const styles = StyleSheet.create({
   successStatDivider: {
     width: 1,
     height: 32,
-    backgroundColor: 'rgba(124,58,237,0.2)',
+    backgroundColor: 'rgba(15,23,42,0.12)',
   },
   successSubtitle: {
     fontSize: 14,

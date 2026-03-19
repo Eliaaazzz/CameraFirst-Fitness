@@ -107,7 +107,7 @@ export const CameraView = ({
       setShowFlashOverlay(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
       const photo: CameraCapturedPicture | undefined = await cameraRef.current.takePictureAsync({
-        quality: 0.7,
+        quality: 0.62,
         skipProcessing: true,
       });
       if (photo?.uri) {

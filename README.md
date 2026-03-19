@@ -161,6 +161,9 @@ npm run docker:up
 
 # Optional: local Supabase stack (if you're developing against Supabase)
 npm run docker:supabase:up
+
+# Equivalent explicit compose command
+docker compose -f infrastructure/docker-compose.yml up -d
 ```
 
 ### Production (Google Cloud + Firebase)

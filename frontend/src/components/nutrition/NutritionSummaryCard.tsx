@@ -7,6 +7,7 @@ import Animated, {
   withDelay,
 } from 'react-native-reanimated';
 import { SugarStackVisualizer } from './SugarStackVisualizer';
+import { BRAND_COLORS } from '@/utils';
 
 interface Total {
   calories: number;
@@ -40,15 +41,33 @@ export function NutritionSummaryCard({ total }: NutritionSummaryCardProps) {
   // Calculate sugar cubes if not provided (1 cube = 4g sugar)
   const sugarCubes = total.sugarCubes ?? (total.sugar ? total.sugar / 4 : 0);
   const hasSugarData = sugarCubes > 0;
+  const macroCards = [
+    { label: 'Protein', value: `${Math.round(total.protein)}g`, tone: '#EEF2FF', text: '#4338CA' },
+    { label: 'Carbs', value: `${Math.round(total.carbs)}g`, tone: '#ECFDF5', text: '#047857' },
+    { label: 'Fat', value: `${Math.round(total.fat)}g`, tone: '#FFF7ED', text: '#C2410C' },
+  ];
 
   return (
     <Animated.View style={[styles.card, animatedStyle]}>
-      <Text style={styles.title}>Total for this meal</Text>
-      <Text style={styles.calories}>{Math.round(total.calories)} kcal</Text>
-      <Text style={styles.macros}>
-        Protein {Math.round(total.protein)}g · Carbs {Math.round(total.carbs)}g · Fat{' '}
-        {Math.round(total.fat)}g
-      </Text>
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.eyebrow}>Meal summary</Text>
+          <Text style={styles.title}>Estimated nutrition</Text>
+        </View>
+        <View style={styles.calorieBadge}>
+          <Text style={styles.calorieBadgeValue}>{Math.round(total.calories)}</Text>
+          <Text style={styles.calorieBadgeLabel}>kcal</Text>
+        </View>
+      </View>
+
+      <View style={styles.macroGrid}>
+        {macroCards.map((macro) => (
+          <View key={macro.label} style={[styles.macroCard, { backgroundColor: macro.tone }]}>
+            <Text style={[styles.macroValue, { color: macro.text }]}>{macro.value}</Text>
+            <Text style={styles.macroLabel}>{macro.label}</Text>
+          </View>
+        ))}
+      </View>
 
       {hasSugarData && (
         <View style={styles.sugarSection}>
@@ -67,31 +86,77 @@ export function NutritionSummaryCard({ total }: NutritionSummaryCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFF',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 20,
     marginHorizontal: 16,
     marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#111827',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
     elevation: 3,
   },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 8,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 16,
   },
-  calories: {
-    fontSize: 36,
+  eyebrow: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#9C27B0',
-    marginBottom: 8,
+    color: '#0891B2',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginBottom: 6,
   },
-  macros: {
-    fontSize: 14,
-    color: '#999',
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  calorieBadge: {
+    minWidth: 96,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: BRAND_COLORS.primaryTint,
+  },
+  calorieBadgeValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: BRAND_COLORS.primaryDark,
+  },
+  calorieBadgeLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: BRAND_COLORS.primaryDark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  macroGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+  },
+  macroCard: {
+    flex: 1,
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+  },
+  macroValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  macroLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
   },
   sugarSection: {
     marginTop: 16,

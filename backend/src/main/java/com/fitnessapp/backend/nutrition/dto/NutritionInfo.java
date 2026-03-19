@@ -26,6 +26,10 @@ public class NutritionInfo {
   private BigDecimal netCarbs;
   private BigDecimal sugarCubes;
 
+  // Glycemic impact
+  private Integer glycemicIndex;   // 0-100 (per food item, from AI)
+  private BigDecimal glycemicLoad; // (GI × net carbs) / 100
+
   public static NutritionInfo zero() {
     return NutritionInfo.builder()
         .calories(BigDecimal.ZERO)
@@ -48,6 +52,7 @@ public class NutritionInfo {
     this.sugar = safeAdd(this.sugar, other.sugar);
     this.netCarbs = safeAdd(this.netCarbs, other.netCarbs);
     this.sugarCubes = safeAdd(this.sugarCubes, other.sugarCubes);
+    this.glycemicLoad = safeAdd(this.glycemicLoad, other.glycemicLoad);
   }
 
   private BigDecimal safeAdd(BigDecimal a, BigDecimal b) {

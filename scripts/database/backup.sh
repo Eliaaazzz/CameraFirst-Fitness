@@ -25,7 +25,7 @@ echo -e "${YELLOW}=== AuraFitness Database Backup ===${NC}"
 # 检查容器是否运行
 if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     echo -e "${RED}Error: Container '${CONTAINER_NAME}' is not running${NC}"
-    echo "Please start Docker first: cd infrastructure && docker compose up -d"
+    echo "Please start Docker first: npm run docker:up"
     exit 1
 fi
 
