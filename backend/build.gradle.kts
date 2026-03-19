@@ -77,6 +77,15 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+
+    // In CI without Docker, skip Testcontainers-based integration tests
+    if (project.hasProperty("skipContainerTests")) {
+        exclude("**/DatabaseSchemaIntegrationTest*")
+        exclude("**/RepositoryTests*")
+        exclude("**/FitnessAppApplicationTests*")
+        exclude("**/*IntegrationTest*")
+        exclude("**/*RepositoryTest*")
+    }
 }
 
 tasks.jacocoTestReport {
