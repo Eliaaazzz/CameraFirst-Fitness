@@ -66,7 +66,7 @@ npm run type-check     # TypeScript validation
 
 **Docker Compose (from project root):**
 ```bash
-docker-compose up -d   # Starts postgres + redis + backend
+docker compose -f infrastructure/docker-compose.yml up -d   # Starts postgres + redis + backend
 ```
 
 ### Environment Setup
@@ -74,7 +74,7 @@ docker-compose up -d   # Starts postgres + redis + backend
 **CRITICAL:** Copy `.env.example` to `.env` before running anything. Required keys:
 - `GEMINI_API_KEY` - Primary AI provider for food recognition
 - `JWT_SECRET` - Generate with: `openssl rand -base64 64`
-- Database credentials match `docker-compose.yml`
+- Database credentials match `infrastructure/docker-compose.yml`
 
 Backend reads from `application.yml` with fallbacks to env vars. Frontend reads from `.env` via `@env` module (see `babel.config.js` module resolver).
 

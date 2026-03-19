@@ -5,6 +5,13 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+COMPOSE_FILE="$PROJECT_ROOT/infrastructure/docker-compose.yml"
+dc() {
+    docker compose -f "$COMPOSE_FILE" "$@"
+}
+
 echo "🚀 Starting CameraFirst Fitness Application..."
 echo ""
 
@@ -17,14 +24,14 @@ echo ""
 
 # Step 2: Start Docker containers
 echo "2️⃣ Starting Docker containers (PostgreSQL & Redis)..."
-docker compose up -d postgres redis
+dc up -d postgres redis
 sleep 3
 echo "✅ Containers started"
 echo ""
 
 # Step 3: Verify database connection
 echo "3️⃣ Verifying database connection..."
-docker compose exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT 1;" > /dev/null 2>&1
+dc exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT 1;" > /dev/null 2>&1
 if [ $? -eq 0 ]; then
     echo "✅ Database connection successful"
 else
@@ -36,10 +43,10 @@ echo ""
 # Step 4: Check current data counts
 echo "4️⃣ Checking current data counts..."
 echo "📊 Recipes:"
-docker compose exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COUNT(*) as recipe_count FROM recipe;" 2>/dev/null | grep -A1 "recipe_count" | tail -1
+dc exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COUNT(*) as recipe_count FROM recipe;" 2>/dev/null | grep -A1 "recipe_count" | tail -1
 echo ""
 echo "📹 Videos:"
-docker compose exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COUNT(*) as video_count FROM workout_video;" 2>/dev/null | grep -A1 "video_count" | tail -1
+dc exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COUNT(*) as video_count FROM workout_video;" 2>/dev/null | grep -A1 "video_count" | tail -1
 echo ""
 
 # Step 5: Check API keys from environment

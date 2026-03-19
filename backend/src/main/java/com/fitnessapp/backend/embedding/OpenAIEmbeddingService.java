@@ -3,6 +3,7 @@ package com.fitnessapp.backend.embedding;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -141,10 +142,11 @@ public class OpenAIEmbeddingService implements EmbeddingService {
                 log.warn("Embedding request failed (attempt {}/{}), retrying in {}ms: {}",
                         attempt + 1, MAX_RETRIES, backoffMs, e.getMessage());
 
+                // Non-blocking delay — no thread is occupied during the wait
                 try {
-                    Thread.sleep(backoffMs);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
+                    CompletableFuture.supplyAsync(() -> null,
+                            CompletableFuture.delayedExecutor(backoffMs, TimeUnit.MILLISECONDS)).join();
+                } catch (CompletionException ce) {
                     throw e;
                 }
 
@@ -226,23 +228,18 @@ public class OpenAIEmbeddingService implements EmbeddingService {
         log.warn("Async embedding request failed (attempt {}/{}), retrying in {}ms",
                 attempt + 1, MAX_RETRIES, backoffMs);
 
-        executorService.submit(() -> {
-            try {
-                Thread.sleep(backoffMs);
-                executeAsyncWithRetry(text, attempt + 1)
-                        .whenComplete((result, ex) -> {
-                            if (ex != null) {
-                                originalFuture.completeExceptionally(ex);
-                            } else {
-                                originalFuture.complete(result);
-                            }
-                        });
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                originalFuture.completeExceptionally(
-                        EmbeddingGenerationException.networkError(e));
-            }
-        });
+        // Non-blocking scheduled delay instead of Thread.sleep
+        CompletableFuture
+                .supplyAsync(() -> null,
+                        CompletableFuture.delayedExecutor(backoffMs, TimeUnit.MILLISECONDS))
+                .thenCompose(v -> executeAsyncWithRetry(text, attempt + 1))
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        originalFuture.completeExceptionally(ex);
+                    } else {
+                        originalFuture.complete(result);
+                    }
+                });
     }
 
     // ============================================================================

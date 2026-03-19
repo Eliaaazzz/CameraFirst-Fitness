@@ -30,6 +30,8 @@ export interface DetectedFood {
   fiber?: number;
   sugar?: number;
   confidence?: number;
+  glycemicIndex?: number;
+  glycemicLoad?: number;
 }
 
 export interface TotalNutrition {
@@ -41,6 +43,7 @@ export interface TotalNutrition {
   sugar?: number;
   netCarbs?: number;
   sugarCubes?: number;
+  glycemicLoad?: number;
 }
 
 export interface FoodRecognitionResponse {
@@ -57,14 +60,16 @@ export interface FoodRecognitionRequestMetadata {
 
 // Backend API types (matching Java @JsonProperty snake_case)
 interface BackendNutritionInfo {
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-  fiber?: number;
-  sugar?: number;
-  netCarbs?: number;
-  sugarCubes?: number;
+  calories?: number | string | null;
+  protein?: number | string | null;
+  fat?: number | string | null;
+  carbs?: number | string | null;
+  fiber?: number | string | null;
+  sugar?: number | string | null;
+  netCarbs?: number | string | null;
+  sugarCubes?: number | string | null;
+  glycemicIndex?: number | string | null;
+  glycemicLoad?: number | string | null;
 }
 
 interface BackendRecognizedFood {
@@ -79,11 +84,27 @@ interface BackendRecognizedFood {
 }
 
 interface BackendFoodRecognitionResponse {
-  items: BackendRecognizedFood[];
-  totalNutrition: BackendNutritionInfo;
+  items?: BackendRecognizedFood[] | null;
+  totalNutrition?: BackendNutritionInfo | null;
   suggestedMealType?: string;
   imageUrl?: string;
 }
+
+const toNumber = (value: number | string | null | undefined): number | undefined => {
+  if (value == null || value === '') return undefined;
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const hasMeaningfulNutrition = (nutrition: TotalNutrition): boolean => {
+  return [nutrition.calories, nutrition.protein, nutrition.carbs, nutrition.fat].some(
+    (value) => Number(value) > 0
+  );
+};
 
 export interface SaveMealPayload {
   imageUri: string;
@@ -180,7 +201,9 @@ const getWeeklyInsight = async (userId: string, weekStart?: string): Promise<Nut
 
 // Transform backend response to frontend format (legacy endpoint)
 const transformBackendResponse = (backendResponse: BackendFoodRecognitionResponse): FoodRecognitionResponse => {
-  const items: DetectedFood[] = backendResponse.items.map((item, index) => {
+  const rawItems = Array.isArray(backendResponse.items) ? backendResponse.items : [];
+
+  const items: DetectedFood[] = rawItems.map((item, index) => {
     // Use quantity for piece/bowl/serving units, grams for 'g' unit
     const unit = item.unit || 'g';
     const isCountableUnit = ['piece', 'bowl', 'serving', 'slice', 'cup'].includes(unit);
@@ -193,26 +216,45 @@ const transformBackendResponse = (backendResponse: BackendFoodRecognitionRespons
       name: item.display_name || 'Unknown Food',
       amount,
       unit,
-      calories: item.nutrition?.calories || 0,
-      protein: item.nutrition?.protein || 0,
-      carbs: item.nutrition?.carbs || 0,
-      fat: item.nutrition?.fat || 0,
-      fiber: item.nutrition?.fiber,
-      sugar: item.nutrition?.sugar,
+      calories: toNumber(item.nutrition?.calories) || 0,
+      protein: toNumber(item.nutrition?.protein) || 0,
+      carbs: toNumber(item.nutrition?.carbs) || 0,
+      fat: toNumber(item.nutrition?.fat) || 0,
+      fiber: toNumber(item.nutrition?.fiber),
+      sugar: toNumber(item.nutrition?.sugar),
       confidence: item.confidence,
+      glycemicIndex: toNumber(item.nutrition?.glycemicIndex),
+      glycemicLoad: toNumber(item.nutrition?.glycemicLoad),
     };
   });
 
   const totalNutrition: TotalNutrition = {
-    calories: backendResponse.totalNutrition?.calories || 0,
-    protein: backendResponse.totalNutrition?.protein || 0,
-    carbs: backendResponse.totalNutrition?.carbs || 0,
-    fat: backendResponse.totalNutrition?.fat || 0,
-    fiber: backendResponse.totalNutrition?.fiber,
-    sugar: backendResponse.totalNutrition?.sugar,
-    netCarbs: backendResponse.totalNutrition?.netCarbs,
-    sugarCubes: backendResponse.totalNutrition?.sugarCubes,
+    calories: toNumber(backendResponse.totalNutrition?.calories) || 0,
+    protein: toNumber(backendResponse.totalNutrition?.protein) || 0,
+    carbs: toNumber(backendResponse.totalNutrition?.carbs) || 0,
+    fat: toNumber(backendResponse.totalNutrition?.fat) || 0,
+    fiber: toNumber(backendResponse.totalNutrition?.fiber),
+    sugar: toNumber(backendResponse.totalNutrition?.sugar),
+    netCarbs: toNumber(backendResponse.totalNutrition?.netCarbs),
+    sugarCubes: toNumber(backendResponse.totalNutrition?.sugarCubes),
+    glycemicLoad: toNumber(backendResponse.totalNutrition?.glycemicLoad),
   };
+
+  if (items.length === 0 && hasMeaningfulNutrition(totalNutrition)) {
+    items.push({
+      id: 'detected-meal-summary',
+      name: backendResponse.suggestedMealType || 'Detected meal',
+      amount: 1,
+      unit: 'serving',
+      calories: totalNutrition.calories,
+      protein: totalNutrition.protein,
+      carbs: totalNutrition.carbs,
+      fat: totalNutrition.fat,
+      fiber: totalNutrition.fiber,
+      sugar: totalNutrition.sugar,
+      glycemicLoad: totalNutrition.glycemicLoad,
+    });
+  }
 
   return {
     items,

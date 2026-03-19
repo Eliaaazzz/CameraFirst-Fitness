@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>FitnessMVP</string>
+	<string>AuraFitness</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,7 +27,8 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.fitnessapp.mvp</string>
+				<string>com.elia.aurafit</string>
+				<string>com.googleusercontent.apps.113023901864-n9pe3iu6v0s0f3gq2u0mu6d9rfqbke8l</string>
 			</array>
 		</dict>
 	</array>

@@ -3,6 +3,13 @@
 # Recipe Import Test Script
 # This script tests the recipe import functionality after API quota reset
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+COMPOSE_FILE="$PROJECT_ROOT/infrastructure/docker-compose.yml"
+dc() {
+    docker compose -f "$COMPOSE_FILE" "$@"
+}
+
 echo "🍽️  Testing Recipe Import..."
 echo "================================"
 echo ""
@@ -22,7 +29,7 @@ echo ""
 
 # Check current recipe count
 echo "📊 Current recipe count in database:"
-docker compose exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COUNT(*) as recipe_count FROM recipe;" 2>/dev/null
+dc exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COUNT(*) as recipe_count FROM recipe;" 2>/dev/null
 echo ""
 
 # Execute recipe import
@@ -46,12 +53,12 @@ if [ "$HTTP_CODE" = "200" ]; then
     
     # Check updated recipe count
     echo "📊 Updated recipe count:"
-    docker compose exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COUNT(*) as recipe_count FROM recipe;" 2>/dev/null
+    dc exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COUNT(*) as recipe_count FROM recipe;" 2>/dev/null
     echo ""
     
     # Show recipe distribution by ingredient
     echo "📊 Recipe distribution by primary ingredient:"
-    docker compose exec -T postgres psql -U fitnessuser -d fitness_mvp -c "
+    dc exec -T postgres psql -U fitnessuser -d fitness_mvp -c "
         SELECT 
             COALESCE(nutrition_summary->>'primaryIngredient', 'unknown') as ingredient,
             COUNT(*) as count

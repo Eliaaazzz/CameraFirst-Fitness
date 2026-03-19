@@ -19,6 +19,9 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 
@@ -148,8 +151,6 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
     @Override
     public FoodRecognitionResult recognizeFoods(String base64Image, String mediaType, FoodRecognitionRequestMetadata metadata) {
         long start = System.nanoTime();
-        int attempt = 0;
-        Exception lastException = null;
 
         // Compress image before sending to Gemini API - reduces upload time by 50%+
         long compressStart = System.nanoTime();
@@ -159,35 +160,40 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
         log.info("Gemini stage=image_optimize latencyMs={}, originalChars={}, optimizedChars={}",
                 compressMs, base64Image.length(), optimizedImage.length());
 
-        while (attempt < MAX_ATTEMPTS) {
-            attempt++;
-            try {
-                FoodRecognitionResult result = executeApiCall(
-                        optimizedImage,
-                        optimizedMediaType,
-                        metadata,
-                        attempt > 1
-                );
-                long totalMs = (System.nanoTime() - start) / 1_000_000;
-                log.info("Gemini stage=complete attempts={}, totalLatencyMs={}", attempt, totalMs);
-                return result;
-            } catch (Exception e) {
-                lastException = e;
-                boolean retryable = isRetryableException(e);
-                log.warn("Gemini API failed (attempt {}/{}, retryable={}): {}",
-                        attempt, MAX_ATTEMPTS, retryable, e.getMessage());
-                if (!retryable || attempt >= MAX_ATTEMPTS) {
-                    break;
-                }
-                try {
-                    Thread.sleep(TRANSIENT_RETRY_DELAY_MS * attempt);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
+        try {
+            return retryApiCall(optimizedImage, optimizedMediaType, metadata, 1, start).join();
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof FoodRecognitionException fre) {
+                throw fre;
             }
+            throw new FoodRecognitionException("Failed after retries", cause);
         }
-        throw new FoodRecognitionException("Failed after " + attempt + " attempt(s)", lastException);
+    }
+
+    private CompletableFuture<FoodRecognitionResult> retryApiCall(
+            String image, String mediaType, FoodRecognitionRequestMetadata metadata,
+            int attempt, long startNanos) {
+        try {
+            FoodRecognitionResult result = executeApiCall(image, mediaType, metadata, attempt > 1);
+            long totalMs = (System.nanoTime() - startNanos) / 1_000_000;
+            log.info("Gemini stage=complete attempts={}, totalLatencyMs={}", attempt, totalMs);
+            return CompletableFuture.completedFuture(result);
+        } catch (Exception e) {
+            boolean retryable = isRetryableException(e);
+            log.warn("Gemini API failed (attempt {}/{}, retryable={}): {}",
+                    attempt, MAX_ATTEMPTS, retryable, e.getMessage());
+            if (!retryable || attempt >= MAX_ATTEMPTS) {
+                return CompletableFuture.failedFuture(
+                        new FoodRecognitionException("Failed after " + attempt + " attempt(s)", e));
+            }
+            // Non-blocking delay before retry — no thread is occupied during the wait
+            return CompletableFuture
+                    .supplyAsync(() -> null,
+                            CompletableFuture.delayedExecutor(
+                                    TRANSIENT_RETRY_DELAY_MS * attempt, TimeUnit.MILLISECONDS))
+                    .thenCompose(v -> retryApiCall(image, mediaType, metadata, attempt + 1, startNanos));
+        }
     }
 
     /**
@@ -341,7 +347,9 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
                   "calories": number,
                   "protein_g": number,
                   "carbs_g": number,
-                  "fat_g": number
+                  "fat_g": number,
+                  "fiber_g": number,
+                  "estimated_gi": number  // glycemic index 0-100
                 }
               ]
             }
@@ -434,6 +442,12 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
                         food.path("carbs").asInt(0));
                 int fat = food.path("fat_g").asInt(
                         food.path("fat").asInt(0));
+                int fiber = food.path("fiber_g").asInt(
+                        food.path("fiber").asInt(0));
+                int estimatedGi = food.path("estimated_gi").asInt(50);
+                // Glycemic Load = (GI × net carbs per serving) / 100
+                int netCarbs = Math.max(0, carbs - fiber);
+                double glycemicLoad = (estimatedGi * netCarbs) / 100.0;
                 double confidence = food.path("confidence").asDouble(0.85);
                 boolean isRestaurantStyle = food.path("is_restaurant_style").asBoolean(false);
                 String cookingNote = food.path("cooking_note").asText(null);
@@ -444,6 +458,9 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
                         .protein(BigDecimal.valueOf(protein))
                         .carbs(BigDecimal.valueOf(carbs))
                         .fat(BigDecimal.valueOf(fat))
+                        .fiber(BigDecimal.valueOf(fiber))
+                        .glycemicIndex(estimatedGi)
+                        .glycemicLoad(BigDecimal.valueOf(glycemicLoad).setScale(1, java.math.RoundingMode.HALF_UP))
                         .build();
 
                 // Keep displayName clean - no quantity suffix!

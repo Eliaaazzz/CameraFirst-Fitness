@@ -316,9 +316,9 @@ const DashboardScreen = () => {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
+        allowsEditing: Platform.OS === 'web',
         aspect: [4, 3],
-        quality: 0.8,
+        quality: Platform.OS === 'web' ? 0.8 : 0.65,
       });
 
       if (!result.canceled && result.assets?.[0]) {

@@ -6,6 +6,10 @@ echo "================================"
 # Load API keys from environment or .env file
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+COMPOSE_FILE="$PROJECT_ROOT/infrastructure/docker-compose.yml"
+dc() {
+    docker compose -f "$COMPOSE_FILE" "$@"
+}
 
 if [ -f "$PROJECT_ROOT/.env.local" ]; then
     set -a; source "$PROJECT_ROOT/.env.local"; set +a
@@ -27,7 +31,7 @@ sleep 3
 
 # Start Docker if not running
 echo "2️⃣ Checking Docker containers..."
-docker compose up -d postgres redis
+dc up -d postgres redis
 sleep 5
 
 # Start the application in background with API keys
@@ -50,7 +54,7 @@ echo ""
 
 # Check current recipe count
 echo "5️⃣ Current recipe count:"
-docker compose exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COUNT(*) FROM recipe;"
+dc exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COUNT(*) FROM recipe;"
 
 # Execute import
 echo "6️⃣ Starting recipe import..."
@@ -63,10 +67,10 @@ sleep 30
 
 # Check final recipe count
 echo "8️⃣ Final recipe count:"
-docker compose exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COUNT(*) FROM recipe;"
+dc exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COUNT(*) FROM recipe;"
 
 # Show distribution
 echo "9️⃣ Recipe distribution by ingredient:"
-docker compose exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COALESCE(nutrition_summary->>'primaryIngredient', 'unknown') as ingredient, COUNT(*) FROM recipe GROUP BY ingredient ORDER BY count DESC;"
+dc exec -T postgres psql -U fitnessuser -d fitness_mvp -c "SELECT COALESCE(nutrition_summary->>'primaryIngredient', 'unknown') as ingredient, COUNT(*) FROM recipe GROUP BY ingredient ORDER BY count DESC;"
 
 echo "✅ Import complete! Check the logs at /tmp/fitness-app.log for details."
