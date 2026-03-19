@@ -322,7 +322,11 @@ const DashboardScreen = () => {
       });
 
       if (!result.canceled && result.assets?.[0]) {
-        navigation.navigate('ReviewMeal', { imageUri: result.assets[0].uri });
+        navigation.navigate('ReviewMeal', {
+          imageUri: result.assets[0].uri,
+          imageMimeType: result.assets[0].mimeType,
+          imageFileName: result.assets[0].fileName,
+        });
       }
     } catch (err) {
       console.error('Gallery pick failed', err);
