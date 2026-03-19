@@ -81,6 +81,23 @@ async function detectImageMimeType(blob: Blob): Promise<string | null> {
       return 'image/webp';
     }
 
+    // HEIC / HEIF: bytes 4-7 = "ftyp", major brand at 8-11.
+    if (
+      bytes.length >= 12 &&
+      bytes[4] === 0x66 &&
+      bytes[5] === 0x74 &&
+      bytes[6] === 0x79 &&
+      bytes[7] === 0x70
+    ) {
+      const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]).toLowerCase();
+      if (['heic', 'heix', 'hevc', 'hevx'].includes(brand)) {
+        return 'image/heic';
+      }
+      if (['heif', 'mif1', 'msf1'].includes(brand)) {
+        return 'image/heif';
+      }
+    }
+
     return null;
   } catch {
     return null;
@@ -103,21 +120,38 @@ function filenameForMimeType(mimeType: string): string {
       return 'image.gif';
     case 'image/webp':
       return 'image.webp';
+    case 'image/heic':
+      return 'image.heic';
+    case 'image/heif':
+      return 'image.heif';
     case 'image/jpeg':
     default:
       return 'image.jpg';
   }
 }
 
-const SUPPORTED_UPLOAD_MIME_TYPES = new Set([
+const BACKEND_ACCEPTED_UPLOAD_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+]);
+
+const DIRECT_UPLOAD_MIME_TYPES = new Set([
   'image/jpeg',
   'image/png',
   'image/gif',
   'image/webp',
 ]);
 
-function isSupportedUploadMimeType(type: string | undefined | null): boolean {
-  return SUPPORTED_UPLOAD_MIME_TYPES.has(normalizeMimeType(type));
+function isBackendAcceptedUploadMimeType(type: string | undefined | null): boolean {
+  return BACKEND_ACCEPTED_UPLOAD_MIME_TYPES.has(normalizeMimeType(type));
+}
+
+function isDirectUploadMimeType(type: string | undefined | null): boolean {
+  return DIRECT_UPLOAD_MIME_TYPES.has(normalizeMimeType(type));
 }
 
 function inferMimeTypeFromUri(uri: string): string {
@@ -238,6 +272,8 @@ type UploadImageOptions = {
    * the image (for example in ReviewMealScreen).
    */
   skipMobileCompression?: boolean;
+  sourceMimeType?: string;
+  sourceFileName?: string;
 };
 
 type ApiEnvelope<T> = {
@@ -503,8 +539,8 @@ export async function del<T>(endpoint: string, options?: GetDeleteOptions): Prom
 /**
  * Upload image file
  *
- * IMPORTANT: On iOS, photos may be in HEIC format which Java ImageIO cannot read.
- * This function automatically converts HEIC to JPEG before uploading.
+ * IMPORTANT: HEIC/HEIF may fail in client-side transcode paths.
+ * We prefer raw upload when the backend/Gemini can accept the format directly.
  */
 export async function uploadImage<T>(
   endpoint: string,
@@ -513,6 +549,11 @@ export async function uploadImage<T>(
   options?: UploadImageOptions
 ): Promise<T> {
   const formData = new FormData();
+  const hintedMimeType = normalizeMimeType(options?.sourceMimeType);
+  const inferredSourceMimeType =
+    hintedMimeType ||
+    inferMimeTypeFromUri(options?.sourceFileName || '') ||
+    inferMimeTypeFromUri(imageUri);
 
   // Platform-specific image handling
   if (Platform.OS === 'web') {
@@ -527,7 +568,7 @@ export async function uploadImage<T>(
       );
     }
 
-    let mimeType = normalizeMimeType(blob.type);
+    let mimeType = normalizeMimeType(blob.type) || inferredSourceMimeType;
     const detectedType = await detectImageMimeType(blob);
 
     // Prefer detected signature when browser did not provide a concrete image MIME.
@@ -538,15 +579,15 @@ export async function uploadImage<T>(
     }
 
     // Fix mismatched browser metadata if signature is recognized and supported.
-    if (!isSupportedUploadMimeType(mimeType) && isSupportedUploadMimeType(detectedType)) {
+    if (!isBackendAcceptedUploadMimeType(mimeType) && isBackendAcceptedUploadMimeType(detectedType)) {
       mimeType = normalizeMimeType(detectedType);
       blob = new Blob([blob], { type: mimeType });
       console.warn('[APIClient] Corrected web image MIME using magic bytes:', mimeType);
     }
 
-    // Last resort for unsupported/unknown browser types (e.g., image/heic):
-    // decode and transcode to JPEG in-browser so backend + Gemini accept it.
-    if (!isSupportedUploadMimeType(mimeType)) {
+    // Last resort for browser formats the backend still cannot accept:
+    // decode and transcode to JPEG in-browser when possible.
+    if (!isBackendAcceptedUploadMimeType(mimeType)) {
       const converted = await convertBlobToJpegOnWeb(blob);
       if (converted) {
         blob = converted;
@@ -555,9 +596,9 @@ export async function uploadImage<T>(
       }
     }
 
-    if (!isSupportedUploadMimeType(mimeType)) {
+    if (!isBackendAcceptedUploadMimeType(mimeType)) {
       throw new APIError(
-        `Unsupported image format${mimeType ? `: ${mimeType}` : ''}. Please use JPG, PNG, GIF, or WebP.`,
+        `Unsupported image format${mimeType ? `: ${mimeType}` : ''}. Please use JPG, PNG, GIF, WebP, HEIC, or HEIF.`,
         400
       );
     }
@@ -569,10 +610,10 @@ export async function uploadImage<T>(
     formData.append('image', blob, filenameForMimeType(mimeType));
   } else {
     // On mobile (iOS/Android), skip compression only when URI clearly points to a
-    // backend-supported format. Unknown/HEIC URIs must be converted to JPEG.
-    const inferredMimeType = inferMimeTypeFromUri(imageUri);
+    // stable direct-upload format. HEIC/HEIF should still try JPEG conversion first.
+    const inferredMimeType = inferredSourceMimeType;
     const skipCompressionSafely =
-      Boolean(options?.skipMobileCompression) && isSupportedUploadMimeType(inferredMimeType);
+      Boolean(options?.skipMobileCompression) && isDirectUploadMimeType(inferredMimeType);
 
     let processedUri = imageUri;
     let finalMimeType = skipCompressionSafely
@@ -605,17 +646,21 @@ export async function uploadImage<T>(
           size: `${Math.round(result.size / 1024)}KB`
         });
       } catch (error) {
-        if (!isSupportedUploadMimeType(inferredMimeType)) {
+        if (isBackendAcceptedUploadMimeType(inferredMimeType)) {
+          processedUri = imageUri;
+          finalMimeType = normalizeMimeType(inferredMimeType);
+          console.warn(
+            '[APIClient] JPEG conversion failed, falling back to original backend-supported format:',
+            finalMimeType,
+            error
+          );
+        } else {
           throw new APIError(
-            'Unable to prepare image for upload. Please choose a JPG/PNG image or retake the photo.',
+            'Unable to prepare image for upload. Please choose a JPG/PNG/HEIC image or retake the photo.',
             400,
             error
           );
         }
-
-        // Fallback to original URI only when it is already in a supported format.
-        finalMimeType = normalizeMimeType(inferredMimeType);
-        console.warn('[APIClient] JPEG conversion failed, uploading original supported format:', error);
       }
     } else {
       console.log('[APIClient] Skipping extra mobile compression for preprocessed image');

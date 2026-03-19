@@ -58,6 +58,11 @@ export interface FoodRecognitionRequestMetadata {
   real_world_width_cm?: number;
 }
 
+export interface AnalyzeFoodImageOptions {
+  sourceMimeType?: string;
+  sourceFileName?: string;
+}
+
 // Backend API types (matching Java @JsonProperty snake_case)
 interface BackendNutritionInfo {
   calories?: number | string | null;
@@ -267,7 +272,8 @@ const transformBackendResponse = (backendResponse: BackendFoodRecognitionRespons
 // Analyze food image with Gemini 3 Pro AI (Elite Sports Nutritionist)
 const analyzeFoodImage = async (
   imageUri: string,
-  metadata?: FoodRecognitionRequestMetadata
+  metadata?: FoodRecognitionRequestMetadata,
+  options?: AnalyzeFoodImageOptions
 ): Promise<FoodRecognitionResponse> => {
   console.log('[NutritionApi] Analyzing with Gemini 3 Pro Elite Sports Nutritionist...');
 
@@ -275,7 +281,11 @@ const analyzeFoodImage = async (
     '/api/v1/nutrition/analyze',
     imageUri,
     metadata,
-    { skipMobileCompression: true }
+    {
+      skipMobileCompression: true,
+      sourceMimeType: options?.sourceMimeType,
+      sourceFileName: options?.sourceFileName,
+    }
   );
 
   console.log('[NutritionApi] Gemini 3 Pro response:', JSON.stringify(backendResponse, null, 2));

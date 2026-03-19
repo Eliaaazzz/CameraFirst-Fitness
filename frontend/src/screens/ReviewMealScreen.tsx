@@ -74,6 +74,7 @@ const CARD_SHADOW = {
   elevation: 3,
 } as const;
 const ENTRANCE_EASING = Easing.bezier(0.2, 0.8, 0.2, 1);
+const HEIC_MIME_TYPES = new Set(['image/heic', 'image/heif']);
 
 const hasMeaningfulNutrition = (value: TotalNutrition | null): boolean => {
   if (!value) return false;
@@ -81,10 +82,18 @@ const hasMeaningfulNutrition = (value: TotalNutrition | null): boolean => {
 };
 
 const hasBreakdownItems = (foods: DetectedFood[]): boolean => foods.some((food) => Number(food.amount) > 0);
+const normalizeRouteMimeType = (value?: string | null): string => (value || '').split(';')[0].trim().toLowerCase();
+const looksLikeHeicPath = (value?: string | null): boolean => {
+  const normalized = (value || '').split('?')[0].split('#')[0].toLowerCase();
+  return normalized.endsWith('.heic') || normalized.endsWith('.heif');
+};
+const isHeicLikeSource = (mimeType?: string | null, path?: string | null): boolean => {
+  return HEIC_MIME_TYPES.has(normalizeRouteMimeType(mimeType)) || looksLikeHeicPath(path);
+};
 
 export function ReviewMealScreen({ route, navigation }: any) {
   // Support both new image analysis and viewing/editing saved meals
-  const { imageUri, meal, openCamera, imgWcm } = route.params ?? {};
+  const { imageUri, imageMimeType, imageFileName, meal, openCamera, imgWcm } = route.params ?? {};
   const isViewingExisting = !!meal;
   const shouldShowCamera = !!openCamera && !imageUri && !isViewingExisting;
 
@@ -288,32 +297,46 @@ export function ReviewMealScreen({ route, navigation }: any) {
     const analyze = async () => {
       try {
         let uploadUri = imageUri;
+        let uploadMimeType = normalizeRouteMimeType(imageMimeType);
+        let uploadFileName = imageFileName;
         let retriedWithOriginal = false;
+        const isHeicSource = isHeicLikeSource(uploadMimeType, imageFileName || imageUri);
 
-        // Compress the image using off-main-thread processing
-        // This keeps the analyzing animation smooth at 60fps even for 4K photos
-        try {
-          console.log('[ReviewMealScreen] Starting off-thread compression...');
-          const compressed = await compressImage(imageUri);
-          console.log('[ReviewMealScreen] Compression complete:', {
-            originalSize: compressed.originalSize,
-            compressedSize: compressed.size,
-            ratio: (compressed.ratio * 100).toFixed(1) + '%',
-            duration: compressed.duration.toFixed(0) + 'ms',
-          });
+        // HEIC/HEIF is unstable in browser/native client-side transcode paths.
+        // Send the original file and let uploadImage / backend handle it directly.
+        if (isHeicSource) {
+          console.log('[ReviewMealScreen] Skipping client-side compression for HEIC/HEIF source');
+        } else {
+          // Compress the image using off-main-thread processing
+          // This keeps the analyzing animation smooth at 60fps even for 4K photos
+          try {
+            console.log('[ReviewMealScreen] Starting off-thread compression...');
+            const compressed = await compressImage(imageUri);
+            console.log('[ReviewMealScreen] Compression complete:', {
+              originalSize: compressed.originalSize,
+              compressedSize: compressed.size,
+              ratio: (compressed.ratio * 100).toFixed(1) + '%',
+              duration: compressed.duration.toFixed(0) + 'ms',
+            });
 
-          // Use the compressed URI for upload
-          if (compressed.uri) {
-            uploadUri = compressed.uri;
-            setProcessedImageUri(compressed.uri);
+            // Use the compressed URI for upload
+            if (compressed.uri) {
+              uploadUri = compressed.uri;
+              uploadMimeType = 'image/jpeg';
+              setProcessedImageUri(compressed.uri);
+            }
+          } catch (compressionError) {
+            console.warn('Image compression failed, using original image', compressionError);
           }
-        } catch (compressionError) {
-          console.warn('Image compression failed, using original image', compressionError);
         }
 
         let response;
         try {
-          response = await nutritionApi.analyzeFoodImage(uploadUri, { img_w_cm: scaleHintCm });
+          response = await nutritionApi.analyzeFoodImage(
+            uploadUri,
+            { img_w_cm: scaleHintCm },
+            { sourceMimeType: uploadMimeType, sourceFileName: uploadFileName }
+          );
         } catch (analysisError) {
           const shouldRetryOriginal = uploadUri !== imageUri;
           if (!shouldRetryOriginal) {
@@ -326,7 +349,13 @@ export function ReviewMealScreen({ route, navigation }: any) {
             analysisError
           );
           setProcessedImageUri(imageUri);
-          response = await nutritionApi.analyzeFoodImage(imageUri, { img_w_cm: scaleHintCm });
+          uploadMimeType = normalizeRouteMimeType(imageMimeType);
+          uploadFileName = imageFileName;
+          response = await nutritionApi.analyzeFoodImage(
+            imageUri,
+            { img_w_cm: scaleHintCm },
+            { sourceMimeType: uploadMimeType, sourceFileName: uploadFileName }
+          );
         }
 
         // Only update state if not cancelled (component still mounted)
@@ -416,7 +445,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
-  }, [imageUri, retryCount, isViewingExisting]);
+  }, [imageFileName, imageMimeType, imageUri, retryCount, isViewingExisting]);
 
   const openGallery = async () => {
     try {
@@ -439,7 +468,13 @@ export function ReviewMealScreen({ route, navigation }: any) {
         return;
       }
 
-      navigation.setParams({ imageUri: result.assets[0].uri, openCamera: false, imgWcm: scaleHintCm });
+      navigation.setParams({
+        imageUri: result.assets[0].uri,
+        imageMimeType: result.assets[0].mimeType,
+        imageFileName: result.assets[0].fileName,
+        openCamera: false,
+        imgWcm: scaleHintCm,
+      });
     } catch (err) {
       console.error('Gallery pick failed', err);
       Alert.alert('Error', 'Could not open gallery: ' + (err as Error)?.message);
@@ -489,7 +524,13 @@ export function ReviewMealScreen({ route, navigation }: any) {
     return (
       <View style={styles.cameraContainer}>
         <CameraView
-          onCapture={(uri) => navigation.setParams({ imageUri: uri, openCamera: false, imgWcm: scaleHintCm })}
+          onCapture={(uri) => navigation.setParams({
+            imageUri: uri,
+            imageMimeType: undefined,
+            imageFileName: undefined,
+            openCamera: false,
+            imgWcm: scaleHintCm,
+          })}
           onCancel={() => {
             if (navigation.canGoBack()) navigation.goBack();
             else navigation.navigate('Main', { screen: 'Dashboard' });
@@ -751,7 +792,13 @@ export function ReviewMealScreen({ route, navigation }: any) {
             <Animated.View style={[styles.imageActionRow, statusAnimatedStyle]}>
               <Pressable
                 style={styles.imageActionBtn}
-                onPress={() => navigation.setParams({ openCamera: true, imageUri: undefined, imgWcm: scaleHintCm })}
+                onPress={() => navigation.setParams({
+                  openCamera: true,
+                  imageUri: undefined,
+                  imageMimeType: undefined,
+                  imageFileName: undefined,
+                  imgWcm: scaleHintCm,
+                })}
               >
                 <MaterialCommunityIcons name="camera-retake-outline" size={18} color="#0F172A" />
                 <Text style={styles.imageActionBtnText}>Retake</Text>
@@ -888,7 +935,13 @@ export function ReviewMealScreen({ route, navigation }: any) {
               <View style={styles.emptyActionRow}>
                 <Pressable
                   style={[styles.inlineActionBtn, styles.inlineActionBtnPrimary]}
-                  onPress={() => navigation.setParams({ openCamera: true, imageUri: undefined, imgWcm: scaleHintCm })}
+                  onPress={() => navigation.setParams({
+                    openCamera: true,
+                    imageUri: undefined,
+                    imageMimeType: undefined,
+                    imageFileName: undefined,
+                    imgWcm: scaleHintCm,
+                  })}
                 >
                   <Text style={styles.inlineActionBtnPrimaryText}>Retake photo</Text>
                 </Pressable>

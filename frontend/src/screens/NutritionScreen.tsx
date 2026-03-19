@@ -89,7 +89,11 @@ export function NutritionScreen({ navigation }: any) {
       });
 
       if (!result.canceled && result.assets?.[0]) {
-        navigation.navigate('ReviewMeal', { imageUri: result.assets[0].uri });
+        navigation.navigate('ReviewMeal', {
+          imageUri: result.assets[0].uri,
+          imageMimeType: result.assets[0].mimeType,
+          imageFileName: result.assets[0].fileName,
+        });
       } else {
         Alert.alert('No image selected', 'Please pick a photo to continue.');
       }
