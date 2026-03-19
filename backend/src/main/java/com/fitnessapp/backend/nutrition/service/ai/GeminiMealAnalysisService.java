@@ -16,6 +16,7 @@ import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,7 +24,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -53,6 +58,10 @@ import okhttp3.Response;
 @Slf4j
 @Service
 public class GeminiMealAnalysisService implements FoodRecognitionProvider {
+
+    static {
+        ImageIO.setUseCache(false);
+    }
 
     private static final String PROVIDER_NAME = "gemini";
     private static final String DEFAULT_MODEL = "gemini-2.5-flash";
@@ -212,6 +221,8 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
      * 
      * IMPORTANT: Java ImageIO does not decode HEIC/HEIF out of the box.
      * Gemini supports those MIME types directly, so we bypass local optimization for them.
+     * For other formats we keep the whole transcode path in memory to avoid Cloud Run temp-file
+     * cache issues inside ImageIO.
      */
     private String compressImage(String base64Image, String mediaType) {
         if (mediaType != null && IMAGEIO_UNSUPPORTED_BUT_GEMINI_SUPPORTED_TYPES.contains(mediaType)) {
@@ -222,8 +233,8 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
         try {
             byte[] imageBytes = Base64.getDecoder().decode(base64Image);
             log.info("🖼️ Attempting to decode image: {} bytes", imageBytes.length);
-            
-            BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(imageBytes));
+
+            BufferedImage originalImage = decodeImage(imageBytes);
 
             if (originalImage == null) {
                 // ImageIO.read() returns null for unsupported formats (HEIC, some iPhone JPEGs)
@@ -263,20 +274,50 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
             g.dispose();
 
             // Encode as JPEG for smaller size
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(resizedImage, "jpg", baos);
-            String compressed = Base64.getEncoder().encodeToString(baos.toByteArray());
+            byte[] compressedBytes = encodeJpeg(resizedImage);
+            String compressed = Base64.getEncoder().encodeToString(compressedBytes);
 
             log.info("🗜️ Image compressed: {}x{} -> {}x{}, {} KB -> {} KB",
                     originalImage.getWidth(), originalImage.getHeight(),
                     width, height,
-                    imageBytes.length / 1024, baos.size() / 1024);
+                    imageBytes.length / 1024, compressedBytes.length / 1024);
 
             return compressed;
 
         } catch (Exception e) {
             log.error("Image compression failed, using original", e);
             return base64Image;
+        }
+    }
+
+    private BufferedImage decodeImage(byte[] imageBytes) throws IOException {
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes)) {
+            return ImageIO.read(inputStream);
+        }
+    }
+
+    private byte[] encodeJpeg(BufferedImage image) throws IOException {
+        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpg");
+        if (!writers.hasNext()) {
+            throw new IOException("JPEG writer not available");
+        }
+
+        ImageWriter writer = writers.next();
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                MemoryCacheImageOutputStream imageOutput = new MemoryCacheImageOutputStream(outputStream)) {
+            writer.setOutput(imageOutput);
+
+            ImageWriteParam params = writer.getDefaultWriteParam();
+            if (params.canWriteCompressed()) {
+                params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                params.setCompressionQuality(0.82f);
+            }
+
+            writer.write(null, new IIOImage(image, null, null), params);
+            imageOutput.flush();
+            return outputStream.toByteArray();
+        } finally {
+            writer.dispose();
         }
     }
 
