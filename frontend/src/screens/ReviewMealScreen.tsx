@@ -53,6 +53,8 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Easing,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -71,6 +73,7 @@ const CARD_SHADOW = {
   shadowRadius: 18,
   elevation: 3,
 } as const;
+const ENTRANCE_EASING = Easing.bezier(0.2, 0.8, 0.2, 1);
 
 const hasMeaningfulNutrition = (value: TotalNutrition | null): boolean => {
   if (!value) return false;
@@ -129,6 +132,9 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successAnim] = useState(new Animated.Value(0));
+  const [heroAnim] = useState(new Animated.Value(isViewingExisting ? 1 : 0));
+  const [statusAnim] = useState(new Animated.Value(isViewingExisting ? 1 : 0));
+  const [detailsAnim] = useState(new Animated.Value(isViewingExisting ? 1 : 0));
   const [retryCount, setRetryCount] = useState(0);
   const [mealId] = useState<number | undefined>(meal?.id);
   const MAX_RETRIES = 3;
@@ -156,6 +162,45 @@ export function ReviewMealScreen({ route, navigation }: any) {
       targetSize: Platform.OS === 'web' ? 900_000 : 650_000,
     },
   });
+
+  useEffect(() => {
+    if (shouldShowCamera) {
+      return;
+    }
+
+    heroAnim.setValue(0);
+    statusAnim.setValue(0);
+    detailsAnim.setValue(isViewingExisting ? 1 : 0);
+
+    Animated.stagger(90, [
+      Animated.timing(heroAnim, {
+        toValue: 1,
+        duration: 360,
+        easing: ENTRANCE_EASING,
+        useNativeDriver: true,
+      }),
+      Animated.timing(statusAnim, {
+        toValue: 1,
+        duration: 320,
+        easing: ENTRANCE_EASING,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [detailsAnim, heroAnim, isViewingExisting, shouldShowCamera, statusAnim, imageUri]);
+
+  useEffect(() => {
+    if (loading) {
+      detailsAnim.setValue(0);
+      return;
+    }
+
+    Animated.timing(detailsAnim, {
+      toValue: 1,
+      duration: 340,
+      easing: ENTRANCE_EASING,
+      useNativeDriver: true,
+    }).start();
+  }, [detailsAnim, loading, canSaveMeal]);
 
   useEffect(() => {
     // Skip analysis if viewing existing meal
@@ -526,6 +571,45 @@ export function ReviewMealScreen({ route, navigation }: any) {
       ? 'Using plate scale to estimate depth and portion size.'
       : 'Turning the portion estimate into calories and macros.';
   const phaseLabels = ['Scan', 'Portion', 'Macros'] as const;
+  const heroAnimatedStyle = {
+    opacity: heroAnim,
+    transform: [
+      {
+        translateY: heroAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [18, 0],
+        }),
+      },
+      {
+        scale: heroAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.985, 1],
+        }),
+      },
+    ],
+  };
+  const statusAnimatedStyle = {
+    opacity: statusAnim,
+    transform: [
+      {
+        translateY: statusAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [20, 0],
+        }),
+      },
+    ],
+  };
+  const detailsAnimatedStyle = {
+    opacity: detailsAnim,
+    transform: [
+      {
+        translateY: detailsAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [24, 0],
+        }),
+      },
+    ],
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -554,22 +638,32 @@ export function ReviewMealScreen({ route, navigation }: any) {
         showsVerticalScrollIndicator
       >
         <View style={[styles.reviewBody, { maxWidth: contentMaxWidth }]}>
-          <View style={[styles.imageContainer, { height: imagePreviewHeight }]}>
-            <ExpoImage
-              source={processedImageUri ? { uri: processedImageUri } : undefined}
-              style={styles.image}
-              contentFit="cover"
-              transition={150}
-              cachePolicy="memory-disk"
-            />
+          <Animated.View
+            style={[styles.imageContainer, { height: imagePreviewHeight }, heroAnimatedStyle]}
+          >
+            {processedImageUri ? (
+              Platform.OS === 'web' ? (
+                <ExpoImage
+                  source={{ uri: processedImageUri }}
+                  style={styles.image}
+                  contentFit="cover"
+                  transition={120}
+                  cachePolicy="memory-disk"
+                />
+              ) : (
+                <Image source={{ uri: processedImageUri }} style={styles.image} resizeMode="cover" />
+              )
+            ) : (
+              <View style={styles.image} />
+            )}
             {loading && (
-              <View style={styles.imageLoadingOverlay}>
+              <View style={styles.imageLoadingOverlay} pointerEvents="none">
                 <ActivityIndicator size="large" color="#FFFFFF" />
                 <Text style={styles.imageLoadingTitle}>{loadingText}</Text>
                 <Text style={styles.imageLoadingSubtitle}>{loadingSubtitle}</Text>
               </View>
             )}
-            <View style={styles.photoBadgeRow}>
+            <View style={styles.photoBadgeRow} pointerEvents="none">
               <View style={styles.photoTag}>
                 <Text style={styles.photoTagText}>{loading ? 'Analyzing' : 'Photo ready'}</Text>
               </View>
@@ -579,10 +673,10 @@ export function ReviewMealScreen({ route, navigation }: any) {
                 </View>
               )}
             </View>
-          </View>
+          </Animated.View>
 
           {!isViewingExisting && (
-            <View style={styles.imageActionRow}>
+            <Animated.View style={[styles.imageActionRow, statusAnimatedStyle]}>
               <Pressable
                 style={styles.imageActionBtn}
                 onPress={() => navigation.setParams({ openCamera: true, imageUri: undefined, imgWcm: scaleHintCm })}
@@ -594,59 +688,51 @@ export function ReviewMealScreen({ route, navigation }: any) {
                 <MaterialCommunityIcons name="image-outline" size={18} color="#0F172A" />
                 <Text style={styles.imageActionBtnText}>Choose another</Text>
               </Pressable>
-            </View>
+            </Animated.View>
           )}
 
-          <View style={styles.statusCard}>
-            <View style={styles.statusHeader}>
-              <View
-                style={[
-                  styles.statusIconWrap,
-                  loading
-                    ? styles.statusIconWrapLoading
-                    : canSaveMeal
-                    ? styles.statusIconWrapSuccess
-                    : styles.statusIconWrapWarning,
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={loading ? 'image-search-outline' : canSaveMeal ? 'check-decagram-outline' : 'alert-circle-outline'}
-                  size={22}
-                  color={loading ? '#0E7490' : canSaveMeal ? '#047857' : '#B45309'}
-                />
+          {(loading || canSaveMeal) && (
+            <Animated.View style={[styles.statusCard, statusAnimatedStyle]}>
+              <View style={styles.statusHeader}>
+                <View
+                  style={[
+                    styles.statusIconWrap,
+                    loading ? styles.statusIconWrapLoading : styles.statusIconWrapSuccess,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={loading ? 'image-search-outline' : 'check-decagram-outline'}
+                    size={22}
+                    color={loading ? '#0E7490' : '#047857'}
+                  />
+                </View>
+                <View style={styles.statusCopy}>
+                  <Text style={styles.loadingTitle}>
+                    {loading ? loadingText : 'Analysis complete'}
+                  </Text>
+                  <Text style={styles.loadingSubtitle}>
+                    {loading
+                      ? loadingSubtitle
+                      : `${items.length} detected ${items.length === 1 ? 'item' : 'items'} ready to review and save.`}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.statusCopy}>
-                <Text style={styles.loadingTitle}>
-                  {loading
-                    ? loadingText
-                    : canSaveMeal
-                    ? 'Analysis complete'
-                    : 'No reliable result yet'}
-                </Text>
-                <Text style={styles.loadingSubtitle}>
-                  {loading
-                    ? loadingSubtitle
-                    : canSaveMeal
-                    ? `${items.length} detected ${items.length === 1 ? 'item' : 'items'} ready to review and save.`
-                    : 'Try a brighter top-down photo with the whole meal visible. You can retake or choose another image below.'}
-                </Text>
-              </View>
-            </View>
 
-            <View style={styles.phaseRow}>
-              {phaseLabels.map((label, index) => {
-                const isActive = loading ? phase >= index + 1 : canSaveMeal;
-                return (
-                  <View key={label} style={[styles.phasePill, isActive && styles.phasePillActive]}>
-                    <Text style={[styles.phasePillText, isActive && styles.phasePillTextActive]}>{label}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
+              <View style={styles.phaseRow}>
+                {phaseLabels.map((label, index) => {
+                  const isActive = loading ? phase >= index + 1 : canSaveMeal;
+                  return (
+                    <View key={label} style={[styles.phasePill, isActive && styles.phasePillActive]}>
+                      <Text style={[styles.phasePillText, isActive && styles.phasePillTextActive]}>{label}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </Animated.View>
+          )}
 
           {loading ? (
-            <View style={styles.loadingContainer}>
+            <Animated.View style={[styles.loadingContainer, detailsAnimatedStyle]}>
               <ActivityIndicator size="small" color={BRAND_COLORS.secondary} />
               <View style={styles.loadingCopy}>
                 <Text style={styles.loadingTitle}>Preparing your meal breakdown</Text>
@@ -654,9 +740,9 @@ export function ReviewMealScreen({ route, navigation }: any) {
                   Preview is already visible while the nutrition analysis finishes in the background.
                 </Text>
               </View>
-            </View>
+            </Animated.View>
           ) : canSaveMeal ? (
-            <>
+            <Animated.View style={detailsAnimatedStyle}>
               {total && <NutritionSummaryCard total={total} />}
 
               <View style={styles.sectionHeader}>
@@ -717,9 +803,9 @@ export function ReviewMealScreen({ route, navigation }: any) {
                   </Text>
                 </View>
               )}
-            </>
+            </Animated.View>
           ) : (
-            <View style={styles.emptyStateCard}>
+            <Animated.View style={[styles.emptyStateCard, detailsAnimatedStyle]}>
               <View style={styles.emptyStateIconWrap}>
                 <MaterialCommunityIcons name="image-search-outline" size={28} color="#B45309" />
               </View>
@@ -738,7 +824,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
                   <Text style={styles.inlineActionBtnText}>Pick another</Text>
                 </Pressable>
               </View>
-            </View>
+            </Animated.View>
           )}
         </View>
       </ScrollView>
@@ -919,7 +1005,6 @@ const styles = StyleSheet.create({
     color: '#0F172A',
   },
   content: {
-    flexGrow: 1,
     paddingBottom: 120, // Extra space for absolute positioned bottom bar
     paddingTop: 8,
   },
@@ -933,11 +1018,9 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   scrollViewWeb: {
-    height: 0,
     minHeight: 0,
-    overflow: 'auto',
-    overflowX: 'hidden',
-    overflowY: 'auto',
+    overflowY: 'auto' as any,
+    overflowX: 'hidden' as any,
     touchAction: 'pan-y',
     WebkitOverflowScrolling: 'touch',
   } as any,
