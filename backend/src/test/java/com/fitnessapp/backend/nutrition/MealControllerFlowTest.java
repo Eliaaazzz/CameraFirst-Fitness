@@ -124,9 +124,9 @@ class MealControllerFlowTest {
         .dailyFatTarget(70)
         .build();
 
-    when(userProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
-    when(mealLogRepository.findByUserIdAndConsumedAtBetweenOrderByConsumedAtAsc(
-        eq(userId),
+    when(userProfileRepository.findByUserId(any(UUID.class))).thenReturn(Optional.of(profile));
+    when(mealLogRepository.findByUserIdAndConsumedAtBetweenOrderByConsumedAtDesc(
+        any(UUID.class),
         any(OffsetDateTime.class),
         any(OffsetDateTime.class)
     )).thenReturn(List.of(savedMeal));

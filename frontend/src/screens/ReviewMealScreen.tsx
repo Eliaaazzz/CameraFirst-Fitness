@@ -127,6 +127,10 @@ export function ReviewMealScreen({ route, navigation }: any) {
     }
     return null;
   });
+
+  // Keep track of base nutrition values (per 1 unit) to avoid NaN when amount goes to 0 and back
+  const [baseNutrition] = useState<Map<string, any>>(new Map());
+
   const [processedImageUri, setProcessedImageUri] = useState<string>(imageUri || meal?.imageUrl || '');
   const [serverImageUrl, setServerImageUrl] = useState<string | undefined>(meal?.imageUrl || undefined);
   const [saving, setSaving] = useState(false);
@@ -150,6 +154,34 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const hasDetectedResults = hasBreakdownItems(items);
   const hasVisibleTotals = hasMeaningfulNutrition(total);
   const canSaveMeal = hasDetectedResults && hasVisibleTotals;
+
+  // Recalculate total nutrition whenever items change
+  useEffect(() => {
+    if (items.length === 0) return;
+
+    const newTotal: TotalNutrition = items.reduce(
+      (acc, item) => ({
+        calories: acc.calories + (item.calories || 0),
+        protein: acc.protein + (item.protein || 0),
+        carbs: acc.carbs + (item.carbs || 0),
+        fat: acc.fat + (item.fat || 0),
+        fiber: (acc.fiber || 0) + (item.fiber || 0),
+        sugar: (acc.sugar || 0) + (item.sugar || 0),
+        glycemicLoad: (acc.glycemicLoad || 0) + (item.glycemicLoad || 0),
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, glycemicLoad: 0 }
+    );
+
+    // Apply calculated values
+    if (newTotal.sugar) {
+      newTotal.sugarCubes = newTotal.sugar / 4;
+    }
+    if (newTotal.fiber) {
+      newTotal.netCarbs = Math.max(0, newTotal.carbs - newTotal.fiber);
+    }
+
+    setTotal(newTotal);
+  }, [items]);
 
   // High-performance image compression (Web Worker on web, expo-image-manipulator on native)
   // Keep uploads close to the backend's 1024px optimization target.
@@ -205,6 +237,20 @@ export function ReviewMealScreen({ route, navigation }: any) {
   useEffect(() => {
     // Skip analysis if viewing existing meal
     if (isViewingExisting) {
+      // For existing meals, pre-populate base nutrition
+      items.forEach(item => {
+        if (!baseNutrition.has(item.id) && item.amount > 0) {
+          baseNutrition.set(item.id, {
+            calories: item.calories / item.amount,
+            protein: item.protein / item.amount,
+            carbs: item.carbs / item.amount,
+            fat: item.fat / item.amount,
+            fiber: item.fiber ? item.fiber / item.amount : 0,
+            sugar: item.sugar ? item.sugar / item.amount : 0,
+            glycemicLoad: item.glycemicLoad ? item.glycemicLoad / item.amount : 0,
+          });
+        }
+      });
       return;
     }
 
@@ -221,6 +267,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
     setSaving(false);
     setProcessedImageUri(imageUri);
     setServerImageUrl(undefined);
+    baseNutrition.clear();
 
     setShowSuccess(false);
     successAnim.setValue(0);
@@ -241,6 +288,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
     const analyze = async () => {
       try {
         let uploadUri = imageUri;
+        let retriedWithOriginal = false;
 
         // Compress the image using off-main-thread processing
         // This keeps the analyzing animation smooth at 60fps even for 4K photos
@@ -263,10 +311,45 @@ export function ReviewMealScreen({ route, navigation }: any) {
           console.warn('Image compression failed, using original image', compressionError);
         }
 
-        const response = await nutritionApi.analyzeFoodImage(uploadUri, { img_w_cm: scaleHintCm });
+        let response;
+        try {
+          response = await nutritionApi.analyzeFoodImage(uploadUri, { img_w_cm: scaleHintCm });
+        } catch (analysisError) {
+          const shouldRetryOriginal = uploadUri !== imageUri;
+          if (!shouldRetryOriginal) {
+            throw analysisError;
+          }
+
+          retriedWithOriginal = true;
+          console.warn(
+            '[ReviewMealScreen] Compressed upload failed, retrying with original image URI',
+            analysisError
+          );
+          setProcessedImageUri(imageUri);
+          response = await nutritionApi.analyzeFoodImage(imageUri, { img_w_cm: scaleHintCm });
+        }
 
         // Only update state if not cancelled (component still mounted)
         if (!isCancelled) {
+          if (retriedWithOriginal) {
+            setProcessedImageUri(imageUri);
+          }
+
+          // Store base nutrition for adjustment math
+          response.items.forEach(item => {
+            if (item.amount > 0) {
+              baseNutrition.set(item.id, {
+                calories: item.calories / item.amount,
+                protein: item.protein / item.amount,
+                carbs: item.carbs / item.amount,
+                fat: item.fat / item.amount,
+                fiber: item.fiber ? item.fiber / item.amount : 0,
+                sugar: item.sugar ? item.sugar / item.amount : 0,
+                glycemicLoad: item.glycemicLoad ? item.glycemicLoad / item.amount : 0,
+              });
+            }
+          });
+
           setItems(response.items);
           setTotal(response.totalNutrition);
           setServerImageUrl(response.imageUrl);
@@ -427,50 +510,39 @@ export function ReviewMealScreen({ route, navigation }: any) {
       prev.map((item) => {
         if (item.id === id) {
           const newAmount = Math.max(0, item.amount + delta);
-          const ratio = newAmount / item.amount;
+          const base = baseNutrition.get(id);
+
+          if (!base) {
+            // Fallback to ratio if base not stored (unlikely)
+            const ratio = item.amount > 0 ? newAmount / item.amount : 0;
+            return {
+              ...item,
+              amount: newAmount,
+              calories: item.calories * ratio,
+              protein: item.protein * ratio,
+              carbs: item.carbs * ratio,
+              fat: item.fat * ratio,
+              fiber: item.fiber ? item.fiber * ratio : undefined,
+              sugar: item.sugar ? item.sugar * ratio : undefined,
+              glycemicLoad: item.glycemicLoad ? item.glycemicLoad * ratio : undefined,
+            };
+          }
 
           return {
             ...item,
             amount: newAmount,
-            calories: item.calories * ratio,
-            protein: item.protein * ratio,
-            carbs: item.carbs * ratio,
-            fat: item.fat * ratio,
-            fiber: item.fiber ? item.fiber * ratio : undefined,
-            sugar: item.sugar ? item.sugar * ratio : undefined,
+            calories: base.calories * newAmount,
+            protein: base.protein * newAmount,
+            carbs: base.carbs * newAmount,
+            fat: base.fat * newAmount,
+            fiber: base.fiber ? base.fiber * newAmount : undefined,
+            sugar: base.sugar ? base.sugar * newAmount : undefined,
+            glycemicLoad: base.glycemicLoad ? base.glycemicLoad * newAmount : undefined,
           };
         }
         return item;
       })
     );
-
-    // Recalculate total
-    const newTotal = items.reduce(
-      (acc, item) => {
-        if (item.id === id) {
-          const newAmount = Math.max(0, item.amount + delta);
-          const ratio = newAmount / item.amount;
-          const deltaSugar = item.sugar ? item.sugar * (ratio - 1) : 0;
-          const deltaFiber = item.fiber ? item.fiber * (ratio - 1) : 0;
-          const newSugar = (acc.sugar || 0) + deltaSugar;
-          const newFiber = (acc.fiber || 0) + deltaFiber;
-          return {
-            calories: acc.calories + item.calories * (ratio - 1),
-            protein: acc.protein + item.protein * (ratio - 1),
-            carbs: acc.carbs + item.carbs * (ratio - 1),
-            fat: acc.fat + item.fat * (ratio - 1),
-            fiber: newFiber > 0 ? newFiber : undefined,
-            sugar: newSugar > 0 ? newSugar : undefined,
-            sugarCubes: newSugar > 0 ? newSugar / 4 : undefined,
-            netCarbs: acc.carbs + item.carbs * (ratio - 1) - newFiber,
-          };
-        }
-        return acc;
-      },
-      total || { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
-
-    setTotal(newTotal);
   };
 
   const handleSave = async () => {
@@ -632,7 +704,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
       <ScrollView
         style={[styles.scrollView, Platform.OS === 'web' && styles.scrollViewWeb]}
-        contentContainerStyle={[styles.content, { paddingBottom: 140 + insets.bottom }]}
+        contentContainerStyle={[styles.content, { paddingBottom: 160 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
         nestedScrollEnabled
         showsVerticalScrollIndicator
@@ -829,9 +901,9 @@ export function ReviewMealScreen({ route, navigation }: any) {
         </View>
       </ScrollView>
 
-      {/* Hide save button when viewing existing meal details */}
-      {!loading && !showSuccess && !isViewingExisting && canSaveMeal && (
-        <View style={[styles.bottomBar, { paddingBottom: 16 + insets.bottom }]}>
+      {/* Show save/update button */}
+      {!loading && !showSuccess && canSaveMeal && (
+        <View style={[styles.bottomBar, { paddingBottom: Math.max(16, insets.bottom) }]}>
           <Pressable
             onPress={handleSave}
             disabled={saving}
@@ -840,27 +912,29 @@ export function ReviewMealScreen({ route, navigation }: any) {
             {saving ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.saveButtonText}>Save to today</Text>
+              <Text style={styles.saveButtonText}>
+                {isViewingExisting ? 'Save Changes' : 'Save to today'}
+              </Text>
             )}
           </Pressable>
         </View>
       )}
 
-      {/* Success Animation Overlay - 淡粉色弹窗 */}
+      {/* Success Animation Overlay */}
       {showSuccess && total && (
-        <Pressable
+        <Animated.View
           style={[
             styles.successOverlay,
-            {
-              opacity: successAnim,
-            },
+            { opacity: successAnim },
           ]}
-          onPress={() => {
-            // Allow tap to dismiss and navigate
-            setShowSuccess(false);
-            navigation.navigate('Main', { screen: 'Dashboard' });
-          }}
         >
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => {
+              setShowSuccess(false);
+              navigation.navigate('Main', { screen: 'Dashboard' });
+            }}
+          />
           <Animated.View
             style={[
               styles.successCard,
@@ -908,7 +982,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
               <Text style={styles.successTapHint}>Tap anywhere to continue</Text>
             </View>
           </Animated.View>
-        </Pressable>
+        </Animated.View>
       )}
     </SafeAreaView>
   );
@@ -1332,6 +1406,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
+    zIndex: 10,
+    elevation: 12,
   },
   saveButton: {
     backgroundColor: BRAND_COLORS.primary,
@@ -1358,6 +1434,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',
+    zIndex: 30,
+    elevation: 20,
   },
   successCard: {
     width: '85%',
