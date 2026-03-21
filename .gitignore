@@ -116,3 +116,17 @@ docs/**/.DS_Store
 # OS
 # ==========================================
 Thumbs.db
+
+# Sensitive files
+frontend/credentials/
+frontend/credentials.json
+*.p12
+*.mobileprovision
+android/app/debug.keystore
+
+# Temp files
+*.save
+current-login.png
+google-apple-current.png
+tmp-*.png
+.expo/
