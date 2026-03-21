@@ -1,7 +1,7 @@
 /**
  * Zustand Language Store
  *
- * Centralized language state management for AuraFitness.
+ * Centralized language state management for FitnessMind.
  * Supports English and Chinese translations.
  */
 

@@ -1,7 +1,7 @@
 /**
  * Zustand Auth Store
  *
- * Centralized authentication state management for AuraFitness.
+ * Centralized authentication state management for FitnessMind.
  * Handles token storage, user info, and auth lifecycle across platforms.
  *
  * Platform-aware design:
@@ -103,6 +103,16 @@ async function clearPersistedUserInfo(): Promise<void> {
   }
 }
 
+function hasCanonicalUserInfo(userInfo?: UserInfo | null): userInfo is UserInfo {
+  return Boolean(
+    userInfo &&
+    typeof userInfo.userId === 'string' &&
+    userInfo.userId.trim().length > 0 &&
+    typeof userInfo.username === 'string' &&
+    userInfo.username.trim().length > 0
+  );
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   // Initial state
   userToken: null,
@@ -129,20 +139,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await saveJWT(token, undefined, userInfo?.email);
     }
 
-    // If userInfo provided, use it for instant UI.
-    // Continue to canonical /me fetch when values are partial placeholders.
-    if (userInfo) {
+    // Only persist complete userInfo objects.
+    // Placeholder auth payloads from social login can race the first /me fetch and
+    // briefly put the app into an inconsistent "authenticated but incomplete" state.
+    if (hasCanonicalUserInfo(userInfo)) {
       set({ userInfo, isAuthenticated: true, isLoading: false });
       await persistUserInfo(userInfo);
+      return;
+    }
 
-      const hasValidUserId = typeof userInfo.userId === 'string' && userInfo.userId.trim().length > 0;
-      const hasValidUsername = typeof userInfo.username === 'string' && userInfo.username.trim().length > 0;
-
-      if (hasValidUserId && hasValidUsername) {
-        return;
-      }
-
-      console.log('[AuthStore] Partial userInfo provided, fetching canonical profile from /api/v1/me');
+    if (userInfo) {
+      console.log('[AuthStore] Partial userInfo provided, fetching canonical profile from /api/v1/me before updating auth state');
     }
 
     // Otherwise fetch from backend
@@ -153,8 +160,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await persistUserInfo(fetchedUser);
     } catch (error) {
       console.error('[AuthStore] Failed to fetch user after signIn:', error);
-      // Still mark as authenticated since token is valid
-      set({ isAuthenticated: true, isLoading: false });
+      // Still mark as authenticated since token is valid, but avoid persisting
+      // placeholder userInfo that can confuse the initial post-login render.
+      set({ isAuthenticated: true, isLoading: false, userInfo: hasCanonicalUserInfo(userInfo) ? userInfo : null });
     }
   },
 

@@ -11,7 +11,7 @@ PODS:
     - React-Core
   - EXNotifications (0.32.16):
     - ExpoModulesCore
-  - Expo (54.0.31):
+  - Expo (54.0.33):
     - ExpoModulesCore
     - hermes-engine
     - RCTRequired
@@ -52,7 +52,7 @@ PODS:
     - ExpoModulesCore
   - ExpoFileSystem (19.0.21):
     - ExpoModulesCore
-  - ExpoFont (14.0.10):
+  - ExpoFont (14.0.11):
     - ExpoModulesCore
   - ExpoHaptics (15.0.8):
     - ExpoModulesCore
@@ -1493,7 +1493,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-worklets-core (1.6.2):
+  - react-native-worklets-core (1.6.3):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2052,7 +2052,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - RNSVG (15.15.1):
+  - RNSVG (15.15.4):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2073,9 +2073,9 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNSVG/common (= 15.15.1)
+    - RNSVG/common (= 15.15.4)
     - Yoga
-  - RNSVG/common (15.15.1):
+  - RNSVG/common (15.15.4):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2097,31 +2097,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - RNWorklets (0.7.2):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-hermes
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - RNWorklets/worklets (= 0.7.2)
-    - Yoga
-  - RNWorklets/worklets (0.7.2):
+  - RNWorklets (0.7.4):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2143,9 +2119,33 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNWorklets/worklets/apple (= 0.7.2)
+    - RNWorklets/worklets (= 0.7.4)
     - Yoga
-  - RNWorklets/worklets/apple (0.7.2):
+  - RNWorklets/worklets (0.7.4):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - RNWorklets/worklets/apple (= 0.7.4)
+    - Yoga
+  - RNWorklets/worklets/apple (0.7.4):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2200,28 +2200,28 @@ PODS:
 
 DEPENDENCIES:
   - EXApplication (from `../../node_modules/expo-application/ios`)
-  - EXAV (from `../node_modules/expo-av/ios`)
+  - EXAV (from `../../node_modules/expo-av/ios`)
   - EXConstants (from `../../node_modules/expo-constants/ios`)
   - EXImageLoader (from `../../node_modules/expo-image-loader/ios`)
   - EXNotifications (from `../../node_modules/expo-notifications/ios`)
   - Expo (from `../../node_modules/expo`)
-  - ExpoAppleAuthentication (from `../node_modules/expo-apple-authentication/ios`)
+  - ExpoAppleAuthentication (from `../../node_modules/expo-apple-authentication/ios`)
   - ExpoAsset (from `../../node_modules/expo-asset/ios`)
   - ExpoBlur (from `../../node_modules/expo-blur/ios`)
-  - ExpoCamera (from `../node_modules/expo-camera/ios`)
+  - ExpoCamera (from `../../node_modules/expo-camera/ios`)
   - ExpoCrypto (from `../../node_modules/expo-crypto/ios`)
   - ExpoDevice (from `../../node_modules/expo-device/ios`)
   - ExpoFileSystem (from `../../node_modules/expo-file-system/ios`)
   - ExpoFont (from `../../node_modules/expo-font/ios`)
-  - ExpoHaptics (from `../node_modules/expo-haptics/ios`)
-  - ExpoImage (from `../node_modules/expo-image/ios`)
-  - ExpoImageManipulator (from `../node_modules/expo-image-manipulator/ios`)
+  - ExpoHaptics (from `../../node_modules/expo-haptics/ios`)
+  - ExpoImage (from `../../node_modules/expo-image/ios`)
+  - ExpoImageManipulator (from `../../node_modules/expo-image-manipulator/ios`)
   - ExpoImagePicker (from `../../node_modules/expo-image-picker/ios`)
   - ExpoKeepAwake (from `../../node_modules/expo-keep-awake/ios`)
-  - ExpoLinearGradient (from `../node_modules/expo-linear-gradient/ios`)
-  - ExpoLinking (from `../node_modules/expo-auth-session/node_modules/expo-linking/ios`)
+  - ExpoLinearGradient (from `../../node_modules/expo-linear-gradient/ios`)
+  - ExpoLinking (from `../../node_modules/expo-linking/ios`)
   - ExpoModulesCore (from `../../node_modules/expo-modules-core`)
-  - ExpoSecureStore (from `../node_modules/expo-secure-store/ios`)
+  - ExpoSecureStore (from `../../node_modules/expo-secure-store/ios`)
   - ExpoWebBrowser (from `../../node_modules/expo-web-browser/ios`)
   - FBLazyVector (from `../../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
@@ -2259,8 +2259,8 @@ DEPENDENCIES:
   - React-logger (from `../../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
-  - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
-  - react-native-webview (from `../node_modules/react-native-webview`)
+  - react-native-safe-area-context (from `../../node_modules/react-native-safe-area-context`)
+  - react-native-webview (from `../../node_modules/react-native-webview`)
   - react-native-worklets-core (from `../../node_modules/react-native-worklets-core`)
   - React-NativeModulesApple (from `../../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-oscompat (from `../../node_modules/react-native/ReactCommon/oscompat`)
@@ -2293,11 +2293,11 @@ DEPENDENCIES:
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../../node_modules/react-native/ReactCommon`)
   - ReactNativeDependencies (from `../../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
-  - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
-  - "RNDateTimePicker (from `../node_modules/@react-native-community/datetimepicker`)"
-  - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
-  - RNReanimated (from `../node_modules/react-native-reanimated`)
-  - RNScreens (from `../node_modules/react-native-screens`)
+  - "RNCAsyncStorage (from `../../node_modules/@react-native-async-storage/async-storage`)"
+  - "RNDateTimePicker (from `../../node_modules/@react-native-community/datetimepicker`)"
+  - RNGestureHandler (from `../../node_modules/react-native-gesture-handler`)
+  - RNReanimated (from `../../node_modules/react-native-reanimated`)
+  - RNScreens (from `../../node_modules/react-native-screens`)
   - RNSVG (from `../../node_modules/react-native-svg`)
   - RNWorklets (from `../../node_modules/react-native-worklets`)
   - VisionCamera (from `../../node_modules/react-native-vision-camera`)
@@ -2318,7 +2318,7 @@ EXTERNAL SOURCES:
   EXApplication:
     :path: "../../node_modules/expo-application/ios"
   EXAV:
-    :path: "../node_modules/expo-av/ios"
+    :path: "../../node_modules/expo-av/ios"
   EXConstants:
     :path: "../../node_modules/expo-constants/ios"
   EXImageLoader:
@@ -2328,13 +2328,13 @@ EXTERNAL SOURCES:
   Expo:
     :path: "../../node_modules/expo"
   ExpoAppleAuthentication:
-    :path: "../node_modules/expo-apple-authentication/ios"
+    :path: "../../node_modules/expo-apple-authentication/ios"
   ExpoAsset:
     :path: "../../node_modules/expo-asset/ios"
   ExpoBlur:
     :path: "../../node_modules/expo-blur/ios"
   ExpoCamera:
-    :path: "../node_modules/expo-camera/ios"
+    :path: "../../node_modules/expo-camera/ios"
   ExpoCrypto:
     :path: "../../node_modules/expo-crypto/ios"
   ExpoDevice:
@@ -2344,23 +2344,23 @@ EXTERNAL SOURCES:
   ExpoFont:
     :path: "../../node_modules/expo-font/ios"
   ExpoHaptics:
-    :path: "../node_modules/expo-haptics/ios"
+    :path: "../../node_modules/expo-haptics/ios"
   ExpoImage:
-    :path: "../node_modules/expo-image/ios"
+    :path: "../../node_modules/expo-image/ios"
   ExpoImageManipulator:
-    :path: "../node_modules/expo-image-manipulator/ios"
+    :path: "../../node_modules/expo-image-manipulator/ios"
   ExpoImagePicker:
     :path: "../../node_modules/expo-image-picker/ios"
   ExpoKeepAwake:
     :path: "../../node_modules/expo-keep-awake/ios"
   ExpoLinearGradient:
-    :path: "../node_modules/expo-linear-gradient/ios"
+    :path: "../../node_modules/expo-linear-gradient/ios"
   ExpoLinking:
-    :path: "../node_modules/expo-auth-session/node_modules/expo-linking/ios"
+    :path: "../../node_modules/expo-linking/ios"
   ExpoModulesCore:
     :path: "../../node_modules/expo-modules-core"
   ExpoSecureStore:
-    :path: "../node_modules/expo-secure-store/ios"
+    :path: "../../node_modules/expo-secure-store/ios"
   ExpoWebBrowser:
     :path: "../../node_modules/expo-web-browser/ios"
   FBLazyVector:
@@ -2435,9 +2435,9 @@ EXTERNAL SOURCES:
   React-microtasksnativemodule:
     :path: "../../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
   react-native-safe-area-context:
-    :path: "../node_modules/react-native-safe-area-context"
+    :path: "../../node_modules/react-native-safe-area-context"
   react-native-webview:
-    :path: "../node_modules/react-native-webview"
+    :path: "../../node_modules/react-native-webview"
   react-native-worklets-core:
     :path: "../../node_modules/react-native-worklets-core"
   React-NativeModulesApple:
@@ -2503,15 +2503,15 @@ EXTERNAL SOURCES:
   ReactNativeDependencies:
     :podspec: "../../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec"
   RNCAsyncStorage:
-    :path: "../node_modules/@react-native-async-storage/async-storage"
+    :path: "../../node_modules/@react-native-async-storage/async-storage"
   RNDateTimePicker:
-    :path: "../node_modules/@react-native-community/datetimepicker"
+    :path: "../../node_modules/@react-native-community/datetimepicker"
   RNGestureHandler:
-    :path: "../node_modules/react-native-gesture-handler"
+    :path: "../../node_modules/react-native-gesture-handler"
   RNReanimated:
-    :path: "../node_modules/react-native-reanimated"
+    :path: "../../node_modules/react-native-reanimated"
   RNScreens:
-    :path: "../node_modules/react-native-screens"
+    :path: "../../node_modules/react-native-screens"
   RNSVG:
     :path: "../../node_modules/react-native-svg"
   RNWorklets:
@@ -2527,7 +2527,7 @@ SPEC CHECKSUMS:
   EXConstants: fce59a631a06c4151602843667f7cfe35f81e271
   EXImageLoader: 189e3476581efe3ad4d1d3fb4735b7179eb26f05
   EXNotifications: 9eec98712cc814ceff916d876cb53859003b0597
-  Expo: 04993fbd7b06dc98ffac58da8847298470dc3db1
+  Expo: aadbcc8c6c14ff3105a9154f1683cb1424ff0d2a
   ExpoAppleAuthentication: 9413ae9a5e631a424cc04c1b13b0694dbab7d594
   ExpoAsset: f867e55ceb428aab99e1e8c082b5aee7c159ea18
   ExpoBlur: 392c1207f71d0ecf22371621c1fbd44ba84d9742
@@ -2535,7 +2535,7 @@ SPEC CHECKSUMS:
   ExpoCrypto: b6105ebaa15d6b38a811e71e43b52cd934945322
   ExpoDevice: 6327c3c200816795708885adf540d26ecab83d1a
   ExpoFileSystem: 858a44267a3e6e9057e0888ad7c7cfbf55d52063
-  ExpoFont: 35ac6191ed86bbf56b3ebd2d9154eda9fad5b509
+  ExpoFont: f543ce20a228dd702813668b1a07b46f51878d47
   ExpoHaptics: d3a6375d8dcc3a1083d003bc2298ff654fafb536
   ExpoImage: 686f972bff29525733aa13357f6691dc90aa03d8
   ExpoImageManipulator: 607a5c8c88085381639458a46cc55fb9d3869148
@@ -2586,7 +2586,7 @@ SPEC CHECKSUMS:
   React-microtasksnativemodule: f775db9e991c6f3b8ccbc02bfcde22770f96e23b
   react-native-safe-area-context: 37e680fc4cace3c0030ee46e8987d24f5d3bdab2
   react-native-webview: b29007f4723bca10872028067b07abacfa1cb35a
-  react-native-worklets-core: f4ac400fe6a0df6cd303a7d2fa3b595f7ac2beac
+  react-native-worklets-core: 3a098cd17188379c1a0ecbdea1f7d28f70dbb2a0
   React-NativeModulesApple: 8969913947d5b576de4ed371a939455a8daf28aa
   React-oscompat: ce47230ed20185e91de62d8c6d139ae61763d09c
   React-perflogger: 02b010e665772c7dcb859d85d44c1bfc5ac7c0e4
@@ -2621,10 +2621,10 @@ SPEC CHECKSUMS:
   RNCAsyncStorage: 3a4f5e2777dae1688b781a487923a08569e27fe4
   RNDateTimePicker: be0e44bcb9ed0607c7c5f47dbedd88cf091f6791
   RNGestureHandler: 2914750df066d89bf9d8f48a10ad5f0051108ac3
-  RNReanimated: 34c7700e8ac3f45664ea83bd6ed7ce3bb260367b
+  RNReanimated: 33fdfe85c14923bb7899f3feec966bf45c32c7e0
   RNScreens: d8d6f1792f6e7ac12b0190d33d8d390efc0c1845
-  RNSVG: cf9ae78f2edf2988242c71a6392d15ff7dd62522
-  RNWorklets: b85f9a4d16984de19c4875c4be6231ffe460ce45
+  RNSVG: f2641bf17a3e397882659348d7668667a0805f00
+  RNWorklets: 1e1500fff226532fff7e651176f317aac639b1de
   SDWebImage: 1bb6a1b84b6fe87b972a102bdc77dd589df33477
   SDWebImageAVIFCoder: afe194a084e851f70228e4be35ef651df0fc5c57
   SDWebImageSVGCoder: 15a300a97ec1c8ac958f009c02220ac0402e936c
@@ -2633,6 +2633,6 @@ SPEC CHECKSUMS:
   Yoga: 5934998fbeaef7845dbf698f698518695ab4cd1a
   ZXingObjC: 8898711ab495761b2dbbdec76d90164a6d7e14c5
 
-PODFILE CHECKSUM: d3726c21e9f8244b913d3136fe0343a97674d3c1
+PODFILE CHECKSUM: f81a51d32aee8960b88c5fd48f5fbdebcd8b7a4d
 
 COCOAPODS: 1.16.2

@@ -57,6 +57,15 @@ const MOCK_FETCHED_USER: UserInfo = {
   timeBucket: 1,
 };
 
+const MOCK_PARTIAL_USER_INFO: UserInfo = {
+  userId: '',
+  email: 'partial@example.com',
+  username: '',
+  currentStreak: 0,
+  level: '',
+  timeBucket: 0,
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function resetStore() {
@@ -148,6 +157,19 @@ describe('useAuthStore', () => {
       await useAuthStore.getState().signIn(MOCK_TOKEN, MOCK_USER_INFO);
 
       expect(mockSaveJWT).toHaveBeenCalledWith(MOCK_TOKEN, undefined, MOCK_USER_INFO.email);
+    });
+
+    it('should not persist partial userInfo placeholders', async () => {
+      await useAuthStore.getState().signIn(MOCK_TOKEN, MOCK_PARTIAL_USER_INFO);
+
+      const state = useAuthStore.getState();
+      expect(state.isAuthenticated).toBe(true);
+      expect(state.userInfo).toBeNull();
+      expect(AsyncStorage.setItem).not.toHaveBeenCalledWith(
+        'aura_user_info',
+        JSON.stringify(MOCK_PARTIAL_USER_INFO)
+      );
+      expect(mockSaveJWT).toHaveBeenCalledWith(MOCK_TOKEN, undefined, MOCK_PARTIAL_USER_INFO.email);
     });
   });
 

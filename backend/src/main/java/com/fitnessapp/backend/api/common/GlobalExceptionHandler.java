@@ -15,6 +15,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import com.fitnessapp.backend.embedding.EmbeddingGenerationException;
+import com.fitnessapp.backend.auth.AuthenticationException;
 import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
 import com.fitnessapp.backend.recommendation.exception.RecommendationException;
 
@@ -126,6 +127,21 @@ public class GlobalExceptionHandler {
     }
 
     // ========== Validation Exceptions ==========
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiEnvelope<Void>> handleAuthenticationException(
+            AuthenticationException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("Authentication error at {}: {}", request.getRequestURI(), ex.getMessage());
+
+        ApiEnvelope<Void> response = ApiEnvelope.error(
+                ErrorCode.UNAUTHORIZED,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiEnvelope<Void>> handleValidationErrors(

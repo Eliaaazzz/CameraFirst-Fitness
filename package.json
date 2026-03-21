@@ -27,7 +27,9 @@
     "docker:supabase:down": "docker compose -f infrastructure/docker-compose.supabase.yml down",
     "test": "npm run frontend:test && npm run backend:test",
     "clean": "npm run backend:clean && rm -rf frontend/node_modules shared/node_modules node_modules",
-    "deploy:hosting": "npm run frontend:build && firebase deploy --only hosting"
+    "deploy:hosting": "npm run frontend:build && firebase deploy --only hosting",
+    "android": "npm run android --workspace=frontend",
+    "ios": "npm run ios --workspace=frontend"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -47,5 +49,14 @@
   "license": "UNLICENSED",
   "devDependencies": {
     "typescript": "~5.9.2"
+  },
+  "dependencies": {
+    "expo": "~54.0.31",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
+  },
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
   }
 }

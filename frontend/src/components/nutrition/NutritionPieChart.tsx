@@ -26,7 +26,7 @@ interface NutritionPieChartProps {
   showFat?: boolean;
 }
 
-// Tuned palette for AuraFit's light dashboard while preserving ring semantics.
+// Tuned palette for FitnessMind's light dashboard while preserving ring semantics.
 const RING_COLORS = {
   protein: '#0EA5B7', // Soft cyan
   // Distinct from calories accent (primary orange) while staying warm.

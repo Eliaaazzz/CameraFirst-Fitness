@@ -284,7 +284,7 @@ export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
         {!isCollapsed && (
           <Animated.View style={[styles.brandContainer, textStyle]}>
             <Text variant="heading3" weight="bold" style={styles.brandText}>
-              AuraFit
+              FitnessMind
             </Text>
           </Animated.View>
         )}

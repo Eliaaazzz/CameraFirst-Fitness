@@ -142,7 +142,7 @@ export const WelcomeTourCard: React.FC<WelcomeTourCardProps> = ({
           <View style={styles.contentColumn}>
             <View style={styles.textContainer}>
               <Text variant="heading3" weight="bold" style={styles.title}>
-                Welcome to AuraFit!
+                Welcome to FitnessMind!
               </Text>
               <Text variant="body" style={styles.subtitle} numberOfLines={3}>
                 Track meals with our AI camera, discover workouts, and hit your goals.
@@ -158,12 +158,13 @@ export const WelcomeTourCard: React.FC<WelcomeTourCardProps> = ({
                 ]}
                 onPress={handleStartTour}
               >
-                            <LinearGradient
-                              colors={['#FFFFFF', '#FFFFFF']} // White background for outline style
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 1, y: 0 }}
-                              style={styles.tourButtonGradientCompact}
-                            >                  <MaterialCommunityIcons name="play-circle-outline" size={16} color="#111827" />
+                <LinearGradient
+                  colors={['#FFFFFF', '#FFFFFF']} // White background for outline style
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.tourButtonGradientCompact}
+                >
+                  <MaterialCommunityIcons name="play-circle-outline" size={16} color="#111827" />
                   <Text variant="caption" weight="bold" style={styles.tourButtonTextCompact}>
                     Take Tour
                   </Text>

@@ -24,7 +24,10 @@ public class GoogleTokenValidator implements SocialTokenValidator {
         try {
             GoogleIdToken googleIdToken = verifier.verify(idToken);
             if (googleIdToken == null) {
-                log.debug("Invalid Google ID token");
+                log.warn("Google ID token verification failed — token is invalid, expired, "
+                        + "or its audience does not match GOOGLE_CLIENT_ID. "
+                        + "Ensure GOOGLE_CLIENT_ID includes all platform client IDs "
+                        + "(web, iOS, Android) comma-separated.");
                 return Optional.empty();
             }
 

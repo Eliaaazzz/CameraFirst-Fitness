@@ -13,8 +13,6 @@ import com.facebook.react.common.ReleaseLevel
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint
 import com.facebook.react.defaults.DefaultReactNativeHost
 
-import com.mrousavy.camera.frameprocessors.FrameProcessorPluginRegistry
-
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
 
@@ -47,12 +45,6 @@ class MainApplication : Application(), ReactApplication {
     } catch (e: IllegalArgumentException) {
       ReleaseLevel.STABLE
     }
-
-    // Register VisionCamera Frame Processor plugins
-    FrameProcessorPluginRegistry.addFrameProcessorPlugin("getDepthAtCenter") { proxy, options ->
-      DepthFrameProcessorPlugin(proxy, options)
-    }
-
     loadReactNative(this)
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
   }

@@ -3,6 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
+import * as Crypto from 'expo-crypto';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -136,6 +137,16 @@ const generateRandomString = (length = 32): string => {
  * verification against the hashed value in the id_token.
  */
 const sha256 = async (input: string): Promise<string> => {
+  try {
+    return await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      input,
+      { encoding: Crypto.CryptoEncoding.HEX }
+    );
+  } catch (error) {
+    console.warn('[OAuth] Failed to hash nonce with expo-crypto, falling back to Web Crypto', error);
+  }
+
   if (typeof globalThis.crypto?.subtle?.digest === 'function') {
     const buffer = new TextEncoder().encode(input);
     const hash = await globalThis.crypto.subtle.digest('SHA-256', buffer);
@@ -266,17 +277,29 @@ export default function LoginScreen() {
   }, []);
 
   // Google OAuth setup
-  // Use AuthSession.makeRedirectUri() for all platforms to ensure consistency.
-  // On Web, this defaults to the current origin (e.g., http://localhost:8081).
-  // On Native, it uses the provided scheme.
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: 'com.elia.aurafit',
-    preferLocalhost: true,
-  });
+  // expo-auth-session defaults to using applicationId (bundle ID) as redirect
+  // scheme, but Google iOS OAuth clients require the reversed client ID scheme.
+  // We explicitly construct the correct redirect URI for each platform.
+  const redirectUri = useMemo(() => {
+    if (Platform.OS === 'web') {
+      return AuthSession.makeRedirectUri({ preferLocalhost: true });
+    }
+    if (Platform.OS === 'ios' && GOOGLE_IOS_CLIENT_ID) {
+      // Google requires reversed client ID as redirect scheme for iOS
+      // e.g., com.googleusercontent.apps.113023901864-xxx:/oauthredirect
+      const reversedClientId = GOOGLE_IOS_CLIENT_ID.split('.').reverse().join('.');
+      return `${reversedClientId}:/oauthredirect`;
+    }
+    if (Platform.OS === 'android' && GOOGLE_ANDROID_CLIENT_ID) {
+      const reversedClientId = GOOGLE_ANDROID_CLIENT_ID.split('.').reverse().join('.');
+      return `${reversedClientId}:/oauthredirect`;
+    }
+    return AuthSession.makeRedirectUri({ scheme: 'com.elia.aurafit' });
+  }, []);
 
   // Debug: Log the calculated redirectUri in development
   if (__DEV__) {
-    console.log('[OAuth] Calculated redirectUri:', redirectUri);
+    console.log('[OAuth] redirectUri:', redirectUri);
     console.log('[OAuth] Platform:', Platform.OS);
   }
 
@@ -286,6 +309,7 @@ export default function LoginScreen() {
     webClientId: GOOGLE_WEB_CLIENT_ID,
     redirectUri,
     scopes: ['profile', 'email'],
+    prompt: AuthSession.Prompt.Login,
   });
 
   // Handle successful login - use Zustand store signIn
@@ -372,12 +396,25 @@ export default function LoginScreen() {
   // Handle Google OAuth response (popup flow — works on non-Safari browsers)
   useEffect(() => {
     if (googleResponse?.type === 'success') {
-      const { id_token } = googleResponse.params;
-      if (id_token) {
-        sendGoogleTokenToBackend(id_token);
+      const idToken = googleResponse.params?.id_token || googleResponse.authentication?.idToken;
+      if (__DEV__) {
+        console.log('[OAuth DEBUG] Google response keys:', {
+          paramKeys: Object.keys(googleResponse.params ?? {}),
+          hasAuthentication: !!googleResponse.authentication,
+          hasIdTokenInParams: !!googleResponse.params?.id_token,
+          hasIdTokenInAuthentication: !!googleResponse.authentication?.idToken,
+        });
+      }
+      if (idToken) {
+        sendGoogleTokenToBackend(idToken);
+      } else {
+        setError('Google sign-in did not return an ID token. Please try again.');
       }
     } else if (googleResponse?.type === 'error') {
+      console.error('[OAuth] Google auth error:', googleResponse.error);
       setError(googleResponse.error?.message || 'Google sign-in failed.');
+    } else if (__DEV__ && googleResponse) {
+      console.log('[OAuth DEBUG] Google response type:', googleResponse.type);
     }
   }, [googleResponse, sendGoogleTokenToBackend]);
 
@@ -416,6 +453,15 @@ export default function LoginScreen() {
   const handleGoogleLogin = useCallback(async () => {
     if (!googleRequest?.url) return;
 
+    // DEBUG: Log full Google auth URL
+    if (__DEV__) {
+      console.log('[OAuth DEBUG] Full Google Auth URL:', googleRequest.url);
+      console.log('[OAuth DEBUG] clientId:', googleRequest.clientId);
+      console.log('[OAuth DEBUG] redirectUri:', googleRequest.redirectUri);
+      console.log('[OAuth DEBUG] responseType:', googleRequest.responseType);
+      console.log('[OAuth DEBUG] codeVerifier:', googleRequest.codeVerifier ? 'present' : 'missing');
+    }
+
     if (Platform.OS === 'web') {
       // Safari blocks window.open() called from async functions.
       // Use a full-page redirect instead and manually handle the response
@@ -425,7 +471,22 @@ export default function LoginScreen() {
       return;
     }
 
-    await promptGoogleAsync();
+    try {
+      const result = await promptGoogleAsync({
+        preferEphemeralSession: true,
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+      });
+      if (__DEV__) {
+        console.log('[OAuth DEBUG] promptGoogleAsync result:', result?.type, 'params' in (result ?? {}) ? Object.keys((result as any)?.params ?? {}) : 'no params');
+      }
+    } catch (err: any) {
+      // User cancelled — ignore silently
+      if (err?.code === 'ERR_REQUEST_CANCELED' || err?.code === 'ERR_CANCELED') {
+        return;
+      }
+      console.error('[OAuth] Google auth session error:', err);
+      setError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.');
+    }
   }, [googleRequest, promptGoogleAsync]);
 
   const handleAppleWebSuccess = useCallback(async (payload?: AppleWebSignInPayload) => {
@@ -569,7 +630,15 @@ export default function LoginScreen() {
       if (err?.code === 'ERR_REQUEST_CANCELED' || err?.error === 'popup_closed_by_user') {
         return;
       }
-      setError(err instanceof Error ? err.message : 'Apple sign-in failed.');
+      const message = err instanceof Error ? err.message : 'Apple sign-in failed.';
+      const isSimulatorAppleAuthError =
+        Platform.OS === 'ios' &&
+        (String(err?.code) === '1000' || message.includes('AuthorizationError error 1000'));
+      if (isSimulatorAppleAuthError) {
+        setError('Apple Sign In is unavailable in this simulator session. Make sure the iPad simulator is signed in to an Apple ID, then try again.');
+        return;
+      }
+      setError(message);
     }
   };
 
@@ -619,7 +688,7 @@ export default function LoginScreen() {
               {/* Logo Section */}
               <View style={styles.logoSection}>
                 <CuteAuraLogo size={116} variant={LOGO_VARIANT} />
-                <Text style={styles.title}>AuraFit</Text>
+                <Text style={styles.title}>FitnessMind</Text>
                 <Text style={styles.subtitle}>Continue with Apple or Google.</Text>
               </View>
 

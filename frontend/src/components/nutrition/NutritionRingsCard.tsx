@@ -1,6 +1,6 @@
 import { Flame } from 'phosphor-react-native';
 import React, { useEffect } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedProps,
@@ -285,6 +285,8 @@ export function NutritionRingsCard({
 
   // Breakpoint: below 600px = mobile (vertical stack)
   const isMobile = width < 600;
+  // On tablets (iPad), constrain the card width for a balanced look
+  const isTablet = !isMobile && Platform.OS !== 'web' && width >= 700;
 
   const ringConfigs = showFat
     ? RING_CONFIGS
@@ -312,13 +314,13 @@ export function NutritionRingsCard({
   };
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, isTablet && styles.cardTablet]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text variant="heading3" weight="bold" style={styles.title}>
+        <Text variant="heading3" weight="bold" style={styles.title} numberOfLines={1}>
           {displayTitle}
         </Text>
-        <Text variant="caption" style={styles.headerSubtitle}>
+        <Text variant="caption" style={styles.headerSubtitle} numberOfLines={1}>
           {Math.round(data.calories.current)} / {data.calories.target} kcal
         </Text>
       </View>
@@ -354,10 +356,18 @@ export function NutritionRingsCard({
                   delay={index * 100}
                 />
               ))}
+              {/* White circle to mask ring tracks behind center content */}
+              <Circle
+                cx={centerX}
+                cy={centerY}
+                r={36}
+                fill="white"
+                opacity={0.97}
+              />
             </Svg>
 
             {/* Center content - Calories display (NOT a ring) */}
-            <Pressable 
+            <Pressable
               style={({ pressed }) => [
                 styles.centerContent,
                 pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }
@@ -365,7 +375,7 @@ export function NutritionRingsCard({
               onPress={() => onMacroPress?.('calories')}
             >
               <Flame
-                size={isMobile ? 24 : 28}
+                size={isMobile ? 20 : 22}
                 weight="fill"
                 color="#F97316"
               />
@@ -383,7 +393,7 @@ export function NutritionRingsCard({
                   ? [styles.centerSubtext, styles.centerSubtextMobile]
                   : styles.centerSubtext
               }>
-                kcal
+                KCAL
               </Text>
             </Pressable>
           </View>
@@ -450,6 +460,12 @@ const styles = StyleSheet.create({
   card: {
     ...BENTO_CARD_STYLES,
     ...(BENTO_CARD_WEB_STYLES as object),
+    overflow: 'hidden' as const,
+  },
+  cardTablet: {
+    maxWidth: 700,
+    alignSelf: 'center' as const,
+    width: '100%' as any,
   },
   header: {
     flexDirection: 'row',
@@ -460,9 +476,12 @@ const styles = StyleSheet.create({
   title: {
     color: BRAND_COLORS.textPrimary,
     fontWeight: '700',
+    flex: 1,
   },
   headerSubtitle: {
     color: '#6B7280',
+    flexShrink: 0,
+    marginLeft: spacing.sm,
   },
 
   // ========== FLEX CONTAINER ==========
@@ -514,20 +533,22 @@ const styles = StyleSheet.create({
   },
   centerCalories: {
     color: '#F97316', // Orange Primary
-    fontSize: 36,
-    fontWeight: '700',
-    marginTop: 2,
+    fontSize: 32,
+    lineHeight: 38,
+    fontWeight: '800',
+    marginTop: 1,
     textAlign: 'center',
   },
   centerCaloriesMobile: {
-    fontSize: 28,
+    fontSize: 26,
+    lineHeight: 32,
   },
   centerDivider: {
-    height: 2,
-    width: 24,
+    height: 1.5,
+    width: 20,
     backgroundColor: '#06B6D433', // Cyan with opacity
     borderRadius: 1,
-    marginVertical: 4,
+    marginVertical: 2,
   },
   centerSubtext: {
     color: '#06B6D4', // Cyan Secondary

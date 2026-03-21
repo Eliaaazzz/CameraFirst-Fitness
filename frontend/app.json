@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "AuraFitness",
+    "name": "FitnessMind",
     "slug": "aurafitness",
     "scheme": "com.elia.aurafit",
     "version": "1.0.0",
@@ -19,7 +19,7 @@
       "backgroundColor": "#FF6B6B"
     },
     "ios": {
-      "bundleIdentifier": "com.elia.aurafit",
+      "bundleIdentifier": "com.elia.aurafitness",
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "infoPlist": {
@@ -27,7 +27,7 @@
           {
             "CFBundleURLSchemes": [
               "com.elia.aurafit",
-              "com.googleusercontent.apps.113023901864-n9pe3iu6v0s0f3gq2u0mu6d9rfqbke8l"
+              "com.googleusercontent.apps.113023901864-0nla6f5g1kpnf1qhc6euas47n5oi63nb"
             ]
           }
         ],
@@ -91,7 +91,12 @@
       "icon": "./assets/icon.png",
       "color": "#FF6B6B",
       "androidMode": "default",
-      "androidCollapsedTitle": "AuraFitness"
+      "androidCollapsedTitle": "FitnessMind"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c268af3a-8690-4e79-b3d1-1b2c5554d3fc"
+      }
     }
   }
 }

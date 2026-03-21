@@ -110,7 +110,9 @@ public class AppleTokenValidator implements SocialTokenValidator {
                     return Optional.empty();
                 }
                 String expectedHash = sha256Hex(rawNonce);
-                if (!tokenNonce.equals(expectedHash)) {
+                boolean matchesHashedNonce = tokenNonce.equalsIgnoreCase(expectedHash);
+                boolean matchesRawNonce = tokenNonce.equals(rawNonce);
+                if (!matchesHashedNonce && !matchesRawNonce) {
                     log.warn("Apple token nonce mismatch");
                     return Optional.empty();
                 }
@@ -409,7 +411,12 @@ public class AppleTokenValidator implements SocialTokenValidator {
         }
         List<String> allowedClientIds = getAllowedClientIds();
         if (allowedClientIds.isEmpty()) {
-            return false;
+            // No client IDs configured — skip audience validation (like Google's verifier).
+            // This allows local development without setting APPLE_CLIENT_ID.
+            // In production, APPLE_CLIENT_ID MUST be set for proper audience validation.
+            log.warn("No Apple client IDs configured — skipping audience validation. "
+                    + "Set APPLE_CLIENT_ID env var for production security.");
+            return true;
         }
         return audience.stream().anyMatch(allowedClientIds::contains);
     }

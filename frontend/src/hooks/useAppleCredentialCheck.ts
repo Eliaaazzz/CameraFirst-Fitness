@@ -8,6 +8,7 @@
  * This is a local, inexpensive check that doesn't hit Apple's servers.
  */
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Device from 'expo-device';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
@@ -17,8 +18,15 @@ export function useAppleCredentialCheck() {
   const { isAuthenticated, userInfo, signOut } = useAuthStore();
 
   useEffect(() => {
-    // Only runs on iOS, only for authenticated Apple users
+    // Only runs on physical iOS devices, only for authenticated Apple users.
+    // The simulator frequently reports stale/revoked credential state for
+    // otherwise valid Apple sessions, which immediately signs the user out
+    // after a successful login.
     if (Platform.OS !== 'ios') return;
+    if (!Device.isDevice) {
+      console.log('[AppleCredentialCheck] Skipping credential state check on iOS simulator');
+      return;
+    }
     if (!isAuthenticated) return;
     if (userInfo?.authProvider !== 'APPLE') return;
     if (!userInfo?.appleUserId) return;
