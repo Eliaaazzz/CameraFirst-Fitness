@@ -1,7 +1,7 @@
 /**
  * Zustand Auth Store
  *
- * Centralized authentication state management for FitnessMind.
+ * Centralized authentication state management for Metriful.
  * Handles token storage, user info, and auth lifecycle across platforms.
  *
  * Platform-aware design:

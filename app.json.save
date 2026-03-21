@@ -1,0 +1,14 @@
+
+
+{
+  "android": {
+    "package": "com.anonymous.aurafitness"
+  },
+  "ios": {
+    "bundleIdentifier": "com.elia.aurafitness"
+  },
+  "extra": {
+    "eas": {
+      "projectId": "c95a83ae-58bd-4d76-9abf-56b20b194568"
+    }  }
+}

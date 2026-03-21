@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "FitnessMind",
+    "name": "Metriful",
     "slug": "aurafitness",
     "scheme": "com.elia.aurafit",
     "version": "1.0.0",
@@ -91,7 +91,7 @@
       "icon": "./assets/icon.png",
       "color": "#FF6B6B",
       "androidMode": "default",
-      "androidCollapsedTitle": "FitnessMind"
+      "androidCollapsedTitle": "Metriful"
     },
     "extra": {
       "eas": {

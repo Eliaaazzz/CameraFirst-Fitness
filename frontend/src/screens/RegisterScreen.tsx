@@ -234,7 +234,7 @@ export default function RegisterScreen() {
             <View style={styles.logoSection}>
               <CuteAuraLogo size={116} variant={LOGO_VARIANT} />
               <Text style={styles.title}>Create Account</Text>
-              <Text style={styles.subtitle}>Join FitnessMind today!</Text>
+              <Text style={styles.subtitle}>Join Metriful today!</Text>
             </View>
 
             {/* Error Message */}

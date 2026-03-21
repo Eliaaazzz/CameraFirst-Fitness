@@ -1,7 +1,7 @@
 /**
  * Zustand Language Store
  *
- * Centralized language state management for FitnessMind.
+ * Centralized language state management for Metriful.
  * Supports English and Chinese translations.
  */
 

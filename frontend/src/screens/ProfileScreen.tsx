@@ -670,7 +670,7 @@ const ProfileScreen = () => {
   const handleLogout = () => {
     // On web, fall back to native confirm since Alert can be ignored by browsers
     if (Platform.OS === 'web') {
-      const confirmed = typeof window !== 'undefined' ? window.confirm('Logout of FitnessMind?') : true;
+      const confirmed = typeof window !== 'undefined' ? window.confirm('Logout of Metriful?') : true;
       if (confirmed) {
         performLogout();
       }
