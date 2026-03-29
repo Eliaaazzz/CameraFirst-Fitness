@@ -8,6 +8,7 @@ import com.fitnessapp.backend.auth.dto.LoginRequest;
 import com.fitnessapp.backend.auth.dto.RegisterRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.lang.reflect.Field;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +30,11 @@ class AuthControllerTest {
 
     private static final String MOCK_JWT = "eyJhbGciOiJIUzI1NiJ9.mock-jwt";
     private static final String MOCK_EMAIL = "test@example.com";
+    private static final UUID MOCK_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
+    private static AuthService.AuthResult mockResult(String token, String email, boolean isNewUser) {
+        return new AuthService.AuthResult(token, email, isNewUser, MOCK_USER_ID, email.split("@")[0], 0, "beginner", 0);
+    }
 
     @BeforeEach
     void setUp() throws Exception {
@@ -53,7 +59,7 @@ class AuthControllerTest {
     @Test
     void login_emailPassword_returnsAuthResponse() {
         LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, null, null, null, MOCK_EMAIL, "password123");
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
@@ -69,7 +75,7 @@ class AuthControllerTest {
     @Test
     void login_emailPassword_setsCookieForAllClients() {
         LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, null, null, null, MOCK_EMAIL, "password123");
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
@@ -81,7 +87,7 @@ class AuthControllerTest {
     @Test
     void login_emailPassword_setsCookieForWebClient() {
         LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, null, null, null, MOCK_EMAIL, "password123");
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
@@ -105,7 +111,7 @@ class AuthControllerTest {
     @Test
     void login_google_routesToSocialLogin() {
         LoginRequest request = new LoginRequest(AuthProvider.GOOGLE, "google-id-token", null, null, null, null, null);
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, "google@gmail.com", true);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, "google@gmail.com", true);
         when(authService.loginSocial(AuthProvider.GOOGLE, "google-id-token", null, null, null)).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
@@ -125,7 +131,7 @@ class AuthControllerTest {
     @Test
     void login_apple_routesToSocialLogin() {
         LoginRequest request = new LoginRequest(AuthProvider.APPLE, "apple-id-token", "Taylor Swift", null, null, null, null);
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, "apple@privaterelay.appleid.com", false);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, "apple@privaterelay.appleid.com", false);
         when(authService.loginSocial(AuthProvider.APPLE, "apple-id-token", "Taylor Swift", null, null)).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
@@ -143,7 +149,7 @@ class AuthControllerTest {
     @Test
     void login_localType_routesToLoginEmail() {
         LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, null, null, null, MOCK_EMAIL, "password123");
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
@@ -156,7 +162,7 @@ class AuthControllerTest {
     @Test
     void login_googleType_routesToLoginSocial() {
         LoginRequest request = new LoginRequest(AuthProvider.GOOGLE, "id-token", null, null, null, null, null);
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginSocial(AuthProvider.GOOGLE, "id-token", null, null, null)).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
@@ -173,7 +179,7 @@ class AuthControllerTest {
     @Test
     void register_returnsAuthResponseWithNewUser() {
         RegisterRequest request = new RegisterRequest(MOCK_EMAIL, "password123");
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, true);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, MOCK_EMAIL, true);
         when(authService.registerEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
@@ -189,7 +195,7 @@ class AuthControllerTest {
     @Test
     void register_setsCookieForWebClient() {
         RegisterRequest request = new RegisterRequest(MOCK_EMAIL, "password123");
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, true);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, MOCK_EMAIL, true);
         when(authService.registerEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
@@ -206,7 +212,7 @@ class AuthControllerTest {
     @Test
     void register_setsCookieForAllClients() {
         RegisterRequest request = new RegisterRequest(MOCK_EMAIL, "password123");
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, true);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, MOCK_EMAIL, true);
         when(authService.registerEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
@@ -242,7 +248,7 @@ class AuthControllerTest {
 
     @Test
     void googleLogin_legacyEndpoint_works() {
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, "g@gmail.com", false);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, "g@gmail.com", false);
         when(authService.loginSocial(AuthProvider.GOOGLE, "google-token")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
@@ -257,7 +263,7 @@ class AuthControllerTest {
 
     @Test
     void appleLogin_legacyEndpoint_works() {
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, "a@apple.com", true);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, "a@apple.com", true);
         when(authService.loginSocial(AuthProvider.APPLE, "apple-token", "Taylor Swift")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
@@ -277,7 +283,7 @@ class AuthControllerTest {
     @Test
     void login_cookieContainsCorrectMaxAge() {
         LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, null, null, null, MOCK_EMAIL, "password123");
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);
@@ -296,7 +302,7 @@ class AuthControllerTest {
         setField(authController, "cookieDomain", "aurafitness.org");
 
         LoginRequest request = new LoginRequest(AuthProvider.LOCAL, null, null, null, null, MOCK_EMAIL, "password123");
-        AuthService.AuthResult result = new AuthService.AuthResult(MOCK_JWT, MOCK_EMAIL, false);
+        AuthService.AuthResult result = mockResult(MOCK_JWT, MOCK_EMAIL, false);
         when(authService.loginEmail(MOCK_EMAIL, "password123")).thenReturn(result);
 
         HttpServletResponse servletResponse = mock(HttpServletResponse.class);

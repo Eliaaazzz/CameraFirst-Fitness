@@ -57,9 +57,9 @@ public class AuthService {
                 token, user.getEmail(), isNewUser,
                 user.getId(),
                 user.getUsername(),
-                user.getCurrentStreak(),
+                user.getCurrentStreak() != null ? user.getCurrentStreak() : 0,
                 user.getLevel() != null ? user.getLevel() : "beginner",
-                user.getTimeBucket()
+                user.getTimeBucket() != null ? user.getTimeBucket() : 0
             );
         }
     }
