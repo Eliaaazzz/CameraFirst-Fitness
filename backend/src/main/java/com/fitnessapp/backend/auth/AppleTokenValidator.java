@@ -133,7 +133,7 @@ public class AppleTokenValidator implements SocialTokenValidator {
             return Optional.of(new SocialUserInfo(email, name, sub));
 
         } catch (JWTVerificationException e) {
-            log.debug("Apple token verification failed: {}", e.getMessage());
+            log.warn("Apple token verification failed: {}", e.getMessage());
             return Optional.empty();
         } catch (Exception e) {
             log.error("Failed to validate Apple token", e);
