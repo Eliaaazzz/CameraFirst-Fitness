@@ -20,6 +20,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.elia.aurafitness",
+      "buildNumber": "2",
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "infoPlist": {
