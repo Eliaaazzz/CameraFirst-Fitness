@@ -361,7 +361,11 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
                 if (response.code() == 408 || response.code() == 429 || response.code() >= 500) {
                     throw new RetryableGeminiException("Transient Gemini API error: " + response.code());
                 }
-                throw new FoodRecognitionException("API error: " + response.code());
+                // Extract meaningful error message from Gemini response for better diagnostics
+                String detail = extractGeminiErrorMessage(responseBody);
+                throw new FoodRecognitionException(
+                        detail != null ? "Gemini error " + response.code() + ": " + detail
+                                       : "API error: " + response.code());
             }
 
             long parseStart = System.nanoTime();
@@ -618,6 +622,25 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
             current = current.getCause();
         }
         return false;
+    }
+
+    /**
+     * Extract a human-readable error message from a Gemini API error response body.
+     */
+    private String extractGeminiErrorMessage(String responseBody) {
+        try {
+            JsonNode root = objectMapper.readTree(responseBody);
+            JsonNode error = root.path("error");
+            if (!error.isMissingNode()) {
+                String message = error.path("message").asText(null);
+                if (message != null && !message.isBlank()) {
+                    return message;
+                }
+            }
+        } catch (Exception ignored) {
+            // Fall through
+        }
+        return null;
     }
 
     private static final class RetryableGeminiException extends IOException {

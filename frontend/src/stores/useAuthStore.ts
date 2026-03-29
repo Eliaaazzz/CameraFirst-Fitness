@@ -152,17 +152,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.log('[AuthStore] Partial userInfo provided, fetching canonical profile from /api/v1/me before updating auth state');
     }
 
-    // Otherwise fetch from backend
-    try {
-      set({ isLoading: true });
-      const fetchedUser = await fetchCurrentUser();
+    // Fetch canonical profile from backend with polling-style retry.
+    // Serverless cold starts (especially Java) can take 3-5s, so retry
+    // up to 3 times with 1.5s intervals to cover the worst case.
+    const MAX_FETCH_ATTEMPTS = 3;
+    const RETRY_DELAY_MS = 1500;
+    set({ isLoading: true });
+    let fetchedUser: UserInfo | null = null;
+    for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
+      try {
+        fetchedUser = await fetchCurrentUser(attempt === 1 ? 60000 : 15000);
+        if (fetchedUser) break;
+      } catch (error) {
+        console.warn(`[AuthStore] Fetch user attempt ${attempt}/${MAX_FETCH_ATTEMPTS} failed:`, error);
+        if (attempt < MAX_FETCH_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+        }
+      }
+    }
+
+    if (fetchedUser) {
       set({ userInfo: fetchedUser, isAuthenticated: true, isLoading: false });
       await persistUserInfo(fetchedUser);
-    } catch (error) {
-      console.error('[AuthStore] Failed to fetch user after signIn:', error);
-      // Still mark as authenticated since token is valid, but avoid persisting
-      // placeholder userInfo that can confuse the initial post-login render.
-      set({ isAuthenticated: true, isLoading: false, userInfo: hasCanonicalUserInfo(userInfo) ? userInfo : null });
+    } else {
+      console.error('[AuthStore] Failed to fetch user after signIn (all attempts exhausted)');
+      // Still mark as authenticated since token is valid.
+      // Use whatever userInfo was provided (even if partial) so the app
+      // can display the user's name/email. useCurrentUser hook will
+      // fetch canonical data in the background once the user reaches
+      // the main screen.
+      set({ isAuthenticated: true, isLoading: false, userInfo: userInfo || null });
+      if (userInfo) {
+        await persistUserInfo(userInfo);
+      }
     }
   },
 

@@ -19,9 +19,10 @@ public class GoogleAuthConfig {
 
     @Bean
     GoogleIdTokenVerifier googleIdTokenVerifier(GoogleProperties properties) {
+        NetHttpTransport transport = new NetHttpTransport.Builder().build();
+
         GoogleIdTokenVerifier.Builder builder = new GoogleIdTokenVerifier.Builder(
-                new NetHttpTransport(),
-                GsonFactory.getDefaultInstance());
+                transport, GsonFactory.getDefaultInstance());
 
         List<String> clientIds = properties.getClientIds();
         if (!clientIds.isEmpty()) {

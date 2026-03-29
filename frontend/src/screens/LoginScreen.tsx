@@ -264,6 +264,18 @@ export default function LoginScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
+  // Pre-warm the backend on mount so serverless cold start is absorbed
+  // before the user finishes tapping a login button.
+  // Retry once after 3s if the first attempt fails (backend still booting).
+  useEffect(() => {
+    const warmUp = () => fetch(`${APPLE_API_BASE_URL}/api/v1/auth/google/client-id`).catch(() => null);
+    warmUp().then((res) => {
+      if (!res || !res.ok) {
+        setTimeout(warmUp, 3000);
+      }
+    });
+  }, []);
+
   // Auth state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -313,59 +325,125 @@ export default function LoginScreen() {
   });
 
   // Handle successful login - use Zustand store signIn
-  const handleLoginSuccess = useCallback(async (data: { token: string; email: string; isNewUser?: boolean }) => {
-    // Clear React Query cache
-    queryClient.clear();
+  const handleLoginSuccess = useCallback(async (data: {
+    token: string;
+    email: string;
+    isNewUser?: boolean;
+    user?: { userId: string; username: string; currentStreak: number; level: string; timeBucket: number };
+  }) => {
+    try {
+      // Clear React Query cache
+      queryClient.clear();
 
-    // Sign in via Zustand store (handles token storage + user info fetch)
-    await useAuthStore.getState().signIn(data.token, {
-      userId: '', // Will be populated by /api/v1/me call in signIn
-      email: data.email,
-      username: '', // Will be populated by /api/v1/me call
-      currentStreak: 0, // Will be populated by /api/v1/me call
-      level: '',
-      timeBucket: 0,
-    });
+      // Build userInfo from inline user snapshot (returned by login endpoint).
+      // This eliminates the need for a separate /me fetch and the cold-start race.
+      const inlineUserInfo = data.user ? {
+        userId: data.user.userId,
+        email: data.email,
+        username: data.user.username,
+        currentStreak: data.user.currentStreak,
+        level: data.user.level,
+        timeBucket: data.user.timeBucket,
+      } : {
+        // Fallback for older backend that doesn't return user snapshot
+        userId: '',
+        email: data.email,
+        username: '',
+        currentStreak: 0,
+        level: '',
+        timeBucket: 0,
+      };
 
-    setIsLoading(false);
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Main' } as any],
-    });
+      await useAuthStore.getState().signIn(data.token, inlineUserInfo);
+
+      // Verify authentication state was set before navigating.
+      // We only require isAuthenticated — userInfo may still be loading
+      // from /me endpoint (cold start), but the user should proceed to
+      // the main screen where it will resolve via useCurrentUser hook.
+      const authState = useAuthStore.getState();
+      if (!authState.isAuthenticated) {
+        throw new Error('Login succeeded but authentication state was not set. Please try again.');
+      }
+
+      setIsLoading(false);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main' } as any],
+      });
+    } catch (err) {
+      setIsLoading(false);
+      console.error('[LoginScreen] handleLoginSuccess failed:', err);
+      setError(err instanceof Error ? err.message : 'Sign-in completed but navigation failed. Please try again.');
+    }
   }, [navigation]);
 
-  // Send Google token to backend
+  // Send Google token to backend with retry for cold-start / transient errors
   const sendGoogleTokenToBackend = useCallback(async (idToken: string) => {
     setIsLoading(true);
     setError(null);
-    try {
-      const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
-        loginType: 'GOOGLE',
-        idToken,
-      });
-      await handleLoginSuccess(data);
-    } catch (err) {
-      setIsLoading(false);
-      setError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.');
+
+    const MAX_ATTEMPTS = 2;
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const data = await api.post<{ token: string; email: string; isNewUser?: boolean; user?: any }>('/api/v1/auth/login', {
+          loginType: 'GOOGLE',
+          idToken,
+        }, { timeout: 60000 }); // 60s for GCP cold start
+        await handleLoginSuccess(data);
+        return;
+      } catch (err: any) {
+        lastError = err;
+        const isRetryable = err?.status === 408 || err?.status === 503 || err?.status === 502 || !err?.status;
+        if (attempt < MAX_ATTEMPTS && isRetryable) {
+          console.warn(`[LoginScreen] Google login attempt ${attempt} failed (retryable), retrying...`, err?.message);
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
+        }
+      }
     }
+
+    setIsLoading(false);
+    const msg = lastError instanceof Error ? lastError.message : 'Google sign-in failed. Please try again.';
+    // Don't append retry hint for auth errors (401/403) — they need a different fix
+    const isAuthError = lastError?.status === 401 || lastError?.status === 403;
+    setError(isAuthError ? msg : `${msg} Please check your internet connection and try again.`);
   }, [handleLoginSuccess]);
 
   const sendAppleTokenToBackend = useCallback(async (idToken: string, fullName?: string, nonce?: string, authorizationCode?: string) => {
     setIsLoading(true);
     setError(null);
-    try {
-      const data = await api.post<{ token: string; email: string; isNewUser?: boolean }>('/api/v1/auth/login', {
-        loginType: 'APPLE',
-        idToken,
-        fullName,
-        ...(nonce ? { nonce } : {}),
-        ...(authorizationCode ? { authorizationCode } : {}),
-      });
-      await handleLoginSuccess(data);
-    } catch (err) {
-      setIsLoading(false);
-      setError(err instanceof Error ? err.message : 'Apple sign-in failed. Please try again.');
+
+    const MAX_ATTEMPTS = 2;
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const data = await api.post<{ token: string; email: string; isNewUser?: boolean; user?: any }>('/api/v1/auth/login', {
+          loginType: 'APPLE',
+          idToken,
+          fullName,
+          ...(nonce ? { nonce } : {}),
+          ...(authorizationCode ? { authorizationCode } : {}),
+        }, { timeout: 60000 }); // 60s for GCP cold start
+        await handleLoginSuccess(data);
+        return;
+      } catch (err: any) {
+        lastError = err;
+        const isRetryable = err?.status === 408 || err?.status === 503 || err?.status === 502 || !err?.status;
+        if (attempt < MAX_ATTEMPTS && isRetryable) {
+          console.warn(`[LoginScreen] Apple login attempt ${attempt} failed (retryable), retrying...`, err?.message);
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
+        }
+      }
     }
+
+    setIsLoading(false);
+    const msg = lastError instanceof Error ? lastError.message : 'Apple sign-in failed. Please try again.';
+    const isAuthError = lastError?.status === 401 || lastError?.status === 403;
+    setError(isAuthError ? msg : `${msg} Please check your internet connection and try again.`);
   }, [handleLoginSuccess]);
 
   useEffect(() => {
@@ -413,6 +491,11 @@ export default function LoginScreen() {
     } else if (googleResponse?.type === 'error') {
       console.error('[OAuth] Google auth error:', googleResponse.error);
       setError(googleResponse.error?.message || 'Google sign-in failed.');
+    } else if (googleResponse?.type === 'dismiss') {
+      // On iPad, auth sessions can be dismissed by tapping outside the sheet.
+      // Reset loading state so the user can retry.
+      console.log('[OAuth] Google auth dismissed (common on iPad sheet presentation)');
+      setIsLoading(false);
     } else if (__DEV__ && googleResponse) {
       console.log('[OAuth DEBUG] Google response type:', googleResponse.type);
     }
@@ -474,7 +557,8 @@ export default function LoginScreen() {
     try {
       const result = await promptGoogleAsync({
         preferEphemeralSession: true,
-        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+        // Let iOS choose the presentation style (PAGE_SHEET on iPad, FULL_SCREEN on iPhone).
+        // Explicitly setting FULL_SCREEN can cause dismissal issues on iPad.
       });
       if (__DEV__) {
         console.log('[OAuth DEBUG] promptGoogleAsync result:', result?.type, 'params' in (result ?? {}) ? Object.keys((result as any)?.params ?? {}) : 'no params');
@@ -627,18 +711,25 @@ export default function LoginScreen() {
       await sendAppleTokenToBackend(identityToken, fullName, rawNonce, authCode);
     } catch (err: any) {
       setIsLoading(false);
-      if (err?.code === 'ERR_REQUEST_CANCELED' || err?.error === 'popup_closed_by_user') {
+      // User cancelled — ignore silently (ERR_CANCELED covers iPad sheet dismiss)
+      if (
+        err?.code === 'ERR_REQUEST_CANCELED' ||
+        err?.code === 'ERR_CANCELED' ||
+        err?.error === 'popup_closed_by_user' ||
+        String(err?.code) === '1001' // Apple: user canceled
+      ) {
         return;
       }
       const message = err instanceof Error ? err.message : 'Apple sign-in failed.';
-      const isSimulatorAppleAuthError =
-        Platform.OS === 'ios' &&
-        (String(err?.code) === '1000' || message.includes('AuthorizationError error 1000'));
-      if (isSimulatorAppleAuthError) {
-        setError('Apple Sign In is unavailable in this simulator session. Make sure the iPad simulator is signed in to an Apple ID, then try again.');
+      const errorCode = String(err?.code);
+      // Error 1000 = unknown error — can occur on both simulator and real devices
+      // when Apple ID is not signed in, or the entitlement is misconfigured.
+      if (Platform.OS === 'ios' && (errorCode === '1000' || message.includes('AuthorizationError error 1000'))) {
+        setError('Apple Sign In encountered an error. Please ensure you are signed in to your Apple ID in Settings, then try again. You can also try Google Sign In.');
         return;
       }
-      setError(message);
+      console.error('[AppleAuth] Sign-in error:', err?.code, message);
+      setError(`${message} Please try again or use Google Sign In.`);
     }
   };
 

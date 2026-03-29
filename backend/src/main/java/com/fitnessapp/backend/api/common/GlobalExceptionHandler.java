@@ -101,6 +101,8 @@ public class GlobalExceptionHandler {
             errorCode = ErrorCode.AI_SERVICE_UNAVAILABLE;
         } else if (ex.getMessage().contains("unavailable")) {
             errorCode = ErrorCode.AI_SERVICE_UNAVAILABLE;
+        } else if (ex.getMessage().contains("API key expired") || ex.getMessage().contains("API_KEY_INVALID")) {
+            errorCode = ErrorCode.AI_SERVICE_UNAVAILABLE;
         } else if (ex.getMessage().contains("timeout")) {
             errorCode = ErrorCode.AI_TIMEOUT;
         } else {

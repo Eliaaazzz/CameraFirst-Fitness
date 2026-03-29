@@ -396,6 +396,9 @@ export function ReviewMealScreen({ route, navigation }: any) {
         if (errorString.includes('too large') || errorString.includes('10MB')) {
           errorTitle = 'Image Too Large';
           errorMessage = 'The image is too large. Please take a photo with lower resolution or try a different image.';
+        } else if (errorString.includes('API key expired') || errorString.includes('API_KEY_INVALID')) {
+          errorTitle = 'Service Temporarily Unavailable';
+          errorMessage = 'The food recognition service is temporarily unavailable. Please try again later or contact support.';
         } else if (errorString.includes('providers failed') || errorString.includes('recognize foods')) {
           errorTitle = 'Recognition Failed';
           errorMessage = 'Could not recognize food in this image. Please try:\n\n• Taking a clearer photo\n• Ensuring good lighting\n• Capturing the food from above\n• Making sure food is visible';

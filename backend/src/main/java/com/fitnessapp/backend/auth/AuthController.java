@@ -223,7 +223,16 @@ public class AuthController {
     }
 
     private AuthResponse toResponse(AuthService.AuthResult result) {
-        return new AuthResponse(result.token(), result.email(), result.isNewUser());
+        var snapshot = new AuthResponse.UserSnapshot(
+                result.userId(),
+                result.username() != null && !result.username().isBlank()
+                        ? result.username()
+                        : result.email().split("@")[0],
+                result.currentStreak(),
+                result.level(),
+                result.timeBucket()
+        );
+        return new AuthResponse(result.token(), result.email(), result.isNewUser(), snapshot);
     }
 
     /**

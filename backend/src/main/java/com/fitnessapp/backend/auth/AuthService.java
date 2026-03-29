@@ -47,7 +47,22 @@ public class AuthService {
         }
     }
 
-    public record AuthResult(String token, String email, boolean isNewUser) {}
+    /** Flattened snapshot — never leak JPA entities past the transaction boundary. */
+    public record AuthResult(
+        String token, String email, boolean isNewUser,
+        java.util.UUID userId, String username, int currentStreak, String level, int timeBucket
+    ) {
+        static AuthResult from(String token, User user, boolean isNewUser) {
+            return new AuthResult(
+                token, user.getEmail(), isNewUser,
+                user.getId(),
+                user.getUsername(),
+                user.getCurrentStreak(),
+                user.getLevel() != null ? user.getLevel() : "beginner",
+                user.getTimeBucket()
+            );
+        }
+    }
 
     /**
      * Authenticates a user via a social provider (Google, Apple).
@@ -144,7 +159,7 @@ public class AuthService {
         }
 
         String jwt = jwtUtils.generateToken(user.getId(), user.getEmail());
-        return new AuthResult(jwt, user.getEmail(), isNewUser);
+        return AuthResult.from(jwt, user, isNewUser);
     }
 
     private String normalizePreferredUsername(String... candidates) {
@@ -187,7 +202,7 @@ public class AuthService {
 
         String jwt = jwtUtils.generateToken(user.getId(), user.getEmail());
         log.info("User {} logged in via email/password", email);
-        return new AuthResult(jwt, user.getEmail(), false);
+        return AuthResult.from(jwt, user, false);
     }
 
     /**
@@ -221,6 +236,6 @@ public class AuthService {
 
         String jwt = jwtUtils.generateToken(user.getId(), user.getEmail());
         log.info("Registered new user via email: {}", email);
-        return new AuthResult(jwt, user.getEmail(), true);
+        return AuthResult.from(jwt, user, true);
     }
 }

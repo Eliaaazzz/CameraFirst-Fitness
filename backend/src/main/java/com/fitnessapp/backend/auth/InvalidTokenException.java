@@ -11,6 +11,7 @@ public class InvalidTokenException extends AuthenticationException {
     }
 
     public InvalidTokenException(AuthProvider provider) {
-        super("Invalid " + provider.name() + " ID token");
+        super("Sign in with " + provider.name().substring(0, 1) + provider.name().substring(1).toLowerCase()
+                + " could not be verified. Please try again.");
     }
 }
