@@ -16,6 +16,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -279,6 +280,9 @@ export default function LoginScreen() {
   // Auth state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showEmailLogin, setShowEmailLogin] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isAppleNativeAvailable, setIsAppleNativeAvailable] = useState(Platform.OS !== 'ios');
   const shouldShowAppleButton = Platform.OS === 'web' || (Platform.OS === 'ios' && isAppleNativeAvailable);
   const legalBaseUrl = useMemo(() => {
@@ -757,6 +761,26 @@ export default function LoginScreen() {
     openLegalPage('privacy-policy.html');
   }, [openLegalPage]);
 
+  const handleEmailLogin = useCallback(async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter your email and password.');
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await api.post<{ token: string; email: string; isNewUser?: boolean; user?: any }>('/api/v1/auth/login', {
+        loginType: 'LOCAL',
+        email: email.trim(),
+        password: password.trim(),
+      }, { timeout: 60000 });
+      await handleLoginSuccess(data);
+    } catch (err: any) {
+      setIsLoading(false);
+      setError(err instanceof Error ? err.message : 'Sign-in failed. Please check your credentials.');
+    }
+  }, [email, password, handleLoginSuccess]);
+
   return (
     <LinearGradient
       colors={[COLORS.brand50, COLORS.brand50, COLORS.white]}
@@ -829,6 +853,62 @@ export default function LoginScreen() {
                     onPress={handleGoogleLogin}
                     disabled={!googleRequest || isLoading}
                   />
+
+                  {/* Email/Password Login (for App Store reviewers and fallback) */}
+                  <Pressable onPress={() => setShowEmailLogin(!showEmailLogin)}>
+                    <Text style={styles.emailToggleText}>
+                      {showEmailLogin ? 'Hide email sign in' : 'Sign in with email'}
+                    </Text>
+                  </Pressable>
+
+                  {showEmailLogin && (
+                    <View style={styles.emailLoginSection}>
+                      <View style={styles.inputContainer}>
+                        <View style={styles.inputIconContainer}>
+                          <Ionicons name="mail-outline" size={18} color={COLORS.gray400} />
+                        </View>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Email"
+                          placeholderTextColor={COLORS.gray400}
+                          value={email}
+                          onChangeText={setEmail}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          editable={!isLoading}
+                        />
+                      </View>
+                      <View style={styles.inputContainer}>
+                        <View style={styles.inputIconContainer}>
+                          <Ionicons name="lock-closed-outline" size={18} color={COLORS.gray400} />
+                        </View>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Password"
+                          placeholderTextColor={COLORS.gray400}
+                          value={password}
+                          onChangeText={setPassword}
+                          secureTextEntry
+                          editable={!isLoading}
+                          onSubmitEditing={handleEmailLogin}
+                        />
+                      </View>
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.signInButton,
+                          pressed && styles.signInButtonPressed,
+                          isLoading && styles.signInButtonDisabled,
+                        ]}
+                        onPress={handleEmailLogin}
+                        disabled={isLoading}
+                      >
+                        <Text style={styles.signInButtonText}>
+                          {isLoading ? 'Signing in...' : 'Sign In'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )}
                 </View>
               </View>
 
@@ -1069,6 +1149,18 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  emailToggleText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.gray500,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+    marginTop: SPACING.sm,
+  },
+  emailLoginSection: {
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
   },
 
   // Footer
