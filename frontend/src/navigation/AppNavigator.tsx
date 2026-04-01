@@ -122,10 +122,9 @@ const TabIconShell = ({ focused, children }: { focused: boolean; children: React
 
   useEffect(() => {
     if (focused) {
+      scale.value = 0.95;
       scale.value = withSpring(1, { damping: 12, stiffness: 150 });
       bgOpacity.value = withTiming(1, { duration: 200 });
-      // Bounce in from slightly smaller
-      scale.value = withSpring(1, { damping: 12, stiffness: 150 });
     } else {
       scale.value = withSpring(1, { damping: 20, stiffness: 200 });
       bgOpacity.value = withTiming(0, { duration: 150 });
@@ -565,7 +564,6 @@ const MainTabs = () => {
     );
   }
 
-  // Mobile layout with bottom tabs
   // Mobile layout with bottom tabs
   return (
     <Tab.Navigator

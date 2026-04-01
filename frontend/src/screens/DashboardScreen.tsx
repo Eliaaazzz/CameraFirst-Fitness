@@ -146,7 +146,8 @@ const buildTrendData = (weeklyData?: { dailyData?: Array<{ date: string; calorie
   if (!weeklyData?.dailyData?.length) return [];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   return weeklyData.dailyData.map((d) => {
-    const dow = new Date(d.date).getDay();
+    const [year, month, day] = d.date.split('-').map(Number);
+    const dow = new Date(year, month - 1, day).getDay();
     return {
       day: dayNames[dow],
       calories: d.calories?.actual ?? 0,
