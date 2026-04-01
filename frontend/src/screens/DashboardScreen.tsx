@@ -202,6 +202,9 @@ const DashboardScreen = () => {
     [currentUser.data?.currentStreak, nutritionData.calories, nutritionData.goal, nutritionData.meals.length]
   );
 
+  // Memoize trend data to avoid recalculating on every render
+  const trendData = useMemo(() => buildTrendData(weeklyInsights.data), [weeklyInsights.data]);
+
   // Staggered enter animation factory
   const staggerEnter = useCallback((index: number) => {
     if (reduceMotion) return undefined;
@@ -715,7 +718,7 @@ const DashboardScreen = () => {
                     {!nutritionLoading && generatedGoals && (
                       <View style={{ marginTop: spacing.lg }}>
                         <NutritionInsightsCard
-                          trendData={buildTrendData(weeklyInsights.data)}
+                          trendData={trendData}
                           target={{
                             calories: nutritionData.goal,
                             protein: nutritionData.protein.goal,

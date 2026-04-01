@@ -1,5 +1,5 @@
 import React from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
 import { SafeAreaWrapper, Text } from '@/components';
@@ -28,13 +28,19 @@ const SOURCES = [
   },
 ];
 
+function openURL(url: string) {
+  Linking.openURL(url).catch(() => {
+    Alert.alert('Unable to open link', 'Please visit the URL manually in your browser.');
+  });
+}
+
 function SourceCard({ title, body, url }: typeof SOURCES[number]) {
   return (
     <View style={styles.sourceCard}>
       <Text style={styles.sourceTitle}>{title}</Text>
       <Text style={styles.sourceBody}>{body}</Text>
       {url && (
-        <Pressable onPress={() => Linking.openURL(url)} style={styles.linkRow}>
+        <Pressable onPress={() => openURL(url)} style={styles.linkRow}>
           <Feather name="external-link" size={14} color={BRAND_COLORS.secondary} />
           <Text style={styles.linkText}>View source</Text>
         </Pressable>
@@ -71,7 +77,7 @@ export function AboutNutritionDataScreen() {
         </Text>
 
         <View style={styles.disclaimerBox}>
-          <Feather name="alert-circle" size={18} color="#D97706" style={styles.disclaimerIcon} />
+          <Feather name="alert-circle" size={18} color={BRAND_COLORS.warning} style={styles.disclaimerIcon} />
           <Text style={styles.disclaimerText}>
             AI-generated nutritional estimates are for informational purposes only and are not
             intended as medical or dietary advice. Always consult a qualified healthcare
@@ -92,40 +98,40 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#111827',
+    color: BRAND_COLORS.textPrimary,
     marginBottom: spacing.lg,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: BRAND_COLORS.textPrimary,
     marginTop: spacing.xl,
     marginBottom: spacing.sm,
   },
   paragraph: {
     fontSize: 14,
     lineHeight: 22,
-    color: '#4B5563',
+    color: BRAND_COLORS.textMuted,
     marginBottom: spacing.md,
   },
   sourceCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: BRAND_COLORS.surfaceVariant,
     borderRadius: 16,
     padding: spacing.md,
     marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: BRAND_COLORS.border,
   },
   sourceTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#111827',
+    color: BRAND_COLORS.textPrimary,
     marginBottom: 6,
   },
   sourceBody: {
     fontSize: 13,
     lineHeight: 20,
-    color: '#6B7280',
+    color: BRAND_COLORS.textDisabled,
   },
   linkRow: {
     flexDirection: 'row',
