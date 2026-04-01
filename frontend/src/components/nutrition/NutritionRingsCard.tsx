@@ -1,3 +1,4 @@
+import { Feather } from '@expo/vector-icons';
 import { Flame } from 'phosphor-react-native';
 import React, { useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -42,6 +43,7 @@ interface NutritionRingsCardProps {
   showFat?: boolean;
   animated?: boolean;
   onMacroPress?: (macro: 'calories' | 'protein' | 'carbs' | 'fat') => void;
+  onSourcesPress?: () => void;
 }
 
 // ============================================================================
@@ -278,6 +280,7 @@ export function NutritionRingsCard({
   showFat = true,
   animated = true,
   onMacroPress,
+  onSourcesPress,
 }: NutritionRingsCardProps) {
   const { t } = useLanguageStore();
   const displayTitle = title || t.todaysNutrition;
@@ -320,9 +323,22 @@ export function NutritionRingsCard({
         <Text variant="heading3" weight="bold" style={styles.title} numberOfLines={1}>
           {displayTitle}
         </Text>
-        <Text variant="caption" style={styles.headerSubtitle} numberOfLines={1}>
-          {Math.round(data.calories.current)} / {data.calories.target} kcal
-        </Text>
+        <View style={styles.headerRight}>
+          {onSourcesPress && (
+            <Pressable
+              onPress={onSourcesPress}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="View nutrition data sources"
+              style={({ pressed }) => pressed && { opacity: 0.5 }}
+            >
+              <Feather name="info" size={18} color="#9CA3AF" />
+            </Pressable>
+          )}
+          <Text variant="caption" style={styles.headerSubtitle} numberOfLines={1}>
+            {Math.round(data.calories.current)} / {data.calories.target} kcal
+          </Text>
+        </View>
       </View>
 
       {/* Content: Flex container that wraps */}
@@ -478,10 +494,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     flex: 1,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexShrink: 0,
+  },
   headerSubtitle: {
     color: '#6B7280',
     flexShrink: 0,
-    marginLeft: spacing.sm,
   },
 
   // ========== FLEX CONTAINER ==========

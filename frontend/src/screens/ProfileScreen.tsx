@@ -1504,6 +1504,12 @@ const ProfileScreen = () => {
             () => setShowEditNameModal(true)
           )}
           {renderMenuItem(
+            'food-apple-outline',
+            'Nutrition Sources',
+            'Data sources & disclaimer',
+            () => navigation.navigate('AboutNutritionData' as any)
+          )}
+          {renderMenuItem(
             'bell-outline',
             'Notifications',
             'Manage reminders',

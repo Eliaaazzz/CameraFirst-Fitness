@@ -5,10 +5,10 @@ import {
   type BottomTabBarButtonProps,
 } from '@react-navigation/bottom-tabs';
 import { DarkTheme, DefaultTheme, NavigationContainer, useIsFocused } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/stack';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Platform,
   Pressable,
@@ -17,6 +17,12 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { navigationRef } from './navigationService';
@@ -35,6 +41,7 @@ import { ReviewMealScreen } from '@/screens/ReviewMealScreen';
 import { SavedRecipesScreen } from '@/screens/SavedRecipesScreen';
 import { SavedWorkoutsScreen } from '@/screens/SavedWorkoutsScreen';
 import SplashScreen from '@/screens/SplashScreen';
+import { AboutNutritionDataScreen } from '@/screens/AboutNutritionDataScreen';
 import { WeeklyInsightsScreen } from '@/screens/WeeklyInsightsScreen';
 import { WorkoutsScreen } from '@/screens/WorkoutsScreen';
 import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive, useSidebarVisible } from '@/utils';
@@ -61,6 +68,7 @@ const SafeMealHistoryScreen = withErrorBoundary(MealHistoryScreen, 'MealHistory'
 const SafeWeeklyInsightsScreen = withErrorBoundary(WeeklyInsightsScreen, 'WeeklyInsights');
 const SafeSavedWorkoutsScreen = withErrorBoundary(SavedWorkoutsScreen, 'SavedWorkouts');
 const SafeSavedRecipesScreen = withErrorBoundary(SavedRecipesScreen, 'SavedRecipes');
+const SafeAboutNutritionDataScreen = withErrorBoundary(AboutNutritionDataScreen, 'AboutNutritionData');
 
 const Tab = createBottomTabNavigator();
 // Use createStackNavigator instead of createNativeStackNavigator for Web compatibility
@@ -106,12 +114,35 @@ const TabBarBackground = () => (
 /**
  * Active tab indicator – a pill-shaped glass capsule behind the icon.
  * Uses a lighter glass fill with inner stroke, matching Apple's tab selection.
+ * Animates with spring scale on focus change.
  */
-const TabIconShell = ({ focused, children }: { focused: boolean; children: React.ReactNode }) => (
-  <View style={[tabBarStyles.iconShell, focused && tabBarStyles.iconShellFocused]}>
-    {children}
-  </View>
-);
+const TabIconShell = ({ focused, children }: { focused: boolean; children: React.ReactNode }) => {
+  const scale = useSharedValue(focused ? 1 : 1);
+  const bgOpacity = useSharedValue(focused ? 1 : 0);
+
+  useEffect(() => {
+    if (focused) {
+      scale.value = withSpring(1, { damping: 12, stiffness: 150 });
+      bgOpacity.value = withTiming(1, { duration: 200 });
+      // Bounce in from slightly smaller
+      scale.value = withSpring(1, { damping: 12, stiffness: 150 });
+    } else {
+      scale.value = withSpring(1, { damping: 20, stiffness: 200 });
+      bgOpacity.value = withTiming(0, { duration: 150 });
+    }
+  }, [focused, scale, bgOpacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: 0.46 + bgOpacity.value * 0.54,
+  }));
+
+  return (
+    <Animated.View style={[tabBarStyles.iconShell, focused && tabBarStyles.iconShellFocused, animatedStyle]}>
+      {children}
+    </Animated.View>
+  );
+};
 
 const TabBarLabel = ({ focused, label }: { focused: boolean; label: string }) => (
   <RNText
@@ -184,7 +215,7 @@ const tabBarStyles = StyleSheet.create({
     color: BRAND_COLORS.primaryDark,
   },
   labelInactive: {
-    color: '#334155',
+    color: BRAND_COLORS.textSecondary,
   },
 });
 
@@ -238,6 +269,8 @@ const DarkNavigationTheme = {
 const webCompatibleStackScreenOptions = {
   headerShown: false,
   cardStyle: { flex: 1 },
+  cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+  gestureEnabled: true,
 };
 
 /**
@@ -285,6 +318,7 @@ const ProfileStackScreen = createTabStackNavigator([
   { name: 'MealHistory', component: SafeMealHistoryScreen },
   { name: 'SavedWorkouts', component: SafeSavedWorkoutsScreen },
   { name: 'SavedRecipes', component: SafeSavedRecipesScreen },
+  { name: 'AboutNutritionData', component: SafeAboutNutritionDataScreen },
 ]);
 
 // Tab configuration for cleaner code
@@ -532,6 +566,7 @@ const MainTabs = () => {
   }
 
   // Mobile layout with bottom tabs
+  // Mobile layout with bottom tabs
   return (
     <Tab.Navigator
       initialRouteName="Dashboard"
@@ -540,7 +575,7 @@ const MainTabs = () => {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: BRAND_COLORS.primaryDark,
-        tabBarInactiveTintColor: '#334155',
+        tabBarInactiveTintColor: BRAND_COLORS.textSecondary,
         tabBarHideOnKeyboard: true,
         tabBarShowLabel: true,
         tabBarLabelPosition: 'below-icon',
@@ -622,12 +657,39 @@ export const AppNavigator = () => {
         initialRouteName="Splash"
         screenOptions={webCompatibleStackScreenOptions}
       >
-        <Stack.Screen name="Splash" component={SplashScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="Main" component={MainTabs} />
-        <Stack.Screen name="Results" component={SafeResultsScreen} />
-        <Stack.Screen name="ReviewMeal" component={SafeReviewMealScreen} />
+        <Stack.Screen
+          name="Splash"
+          component={SplashScreen}
+          options={{ cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter }}
+        />
+        <Stack.Screen
+          name="Register"
+          component={RegisterScreen}
+        />
+        <Stack.Screen
+          name="Main"
+          component={MainTabs}
+          options={{ cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter }}
+        />
+        <Stack.Screen
+          name="Results"
+          component={SafeResultsScreen}
+          options={{ cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS }}
+        />
+        <Stack.Screen
+          name="ReviewMeal"
+          component={SafeReviewMealScreen}
+          options={{ cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS }}
+        />
+        <Stack.Screen
+          name="AboutNutritionData"
+          component={SafeAboutNutritionDataScreen}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
