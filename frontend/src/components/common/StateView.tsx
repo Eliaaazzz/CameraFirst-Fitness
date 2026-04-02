@@ -1,6 +1,6 @@
 import { Card } from '@/components/Card';
 import { Text } from '@/components/Text';
-import { spacing } from '@/utils';
+import { BRAND_COLORS, spacing } from '@/utils';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -42,7 +42,7 @@ export const StateView: React.FC<StateViewProps> = ({
           title: title || 'Loading...',
           message: message || 'Please wait a moment',
           icon: 'loading',
-          iconColor: '#A78BFA',
+          iconColor: BRAND_COLORS.primary,
         };
       case 'error':
         return {
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(167, 139, 250, 0.1)',
+    backgroundColor: BRAND_COLORS.primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
   },

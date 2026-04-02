@@ -16,11 +16,11 @@ export interface TextProps {
   selectable?: boolean;
 }
 
-const variantStyles: Record<TextVariant, { fontSize: number; lineHeight: number; defaultWeight: TextWeight }> = {
-  hero: { fontSize: 40, lineHeight: 48, defaultWeight: 'bold' },
-  heading1: { fontSize: 28, lineHeight: 36, defaultWeight: 'bold' },
-  heading2: { fontSize: 22, lineHeight: 28, defaultWeight: 'semibold' },
-  heading3: { fontSize: 18, lineHeight: 24, defaultWeight: 'semibold' },
+const variantStyles: Record<TextVariant, { fontSize: number; lineHeight: number; defaultWeight: TextWeight; letterSpacing?: number }> = {
+  hero: { fontSize: 40, lineHeight: 48, defaultWeight: 'bold', letterSpacing: -0.8 },
+  heading1: { fontSize: 28, lineHeight: 36, defaultWeight: 'bold', letterSpacing: -0.5 },
+  heading2: { fontSize: 22, lineHeight: 28, defaultWeight: 'semibold', letterSpacing: -0.3 },
+  heading3: { fontSize: 18, lineHeight: 24, defaultWeight: 'semibold', letterSpacing: -0.2 },
   heading4: { fontSize: 16, lineHeight: 22, defaultWeight: 'semibold' },
   body: { fontSize: 15, lineHeight: 22, defaultWeight: 'regular' },
   caption: { fontSize: 13, lineHeight: 18, defaultWeight: 'regular' },
@@ -63,6 +63,7 @@ export const Text = ({
           fontSize: config.fontSize,
           lineHeight: config.lineHeight,
           fontWeight: weightValues[finalWeight],
+          ...(config.letterSpacing !== undefined && { letterSpacing: config.letterSpacing }),
           fontFamily: Platform.select({
             ios: 'System',
             android: 'Roboto',

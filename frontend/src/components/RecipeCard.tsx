@@ -1,12 +1,17 @@
 import { BookmarkButton, Button, Text, useSnackbar } from '@/components';
 import type { RecipeCard as Recipe, RecipeImageUrls } from '@/types';
-import { getTheme, radii, spacing, useResponsiveValue } from '@/utils';
+import { cardStyles, getTheme, radii, spacing, useResponsiveValue } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { SmartRecipeImage } from './RecipeImage';
 
 /**
@@ -102,6 +107,12 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
   const [isHovered, setIsHovered] = useState(false);
   const enableHover = !isSaved && !disableHoverEffect;
 
+  // Spring press animation (mobile)
+  const pressScale = useSharedValue(1);
+  const pressAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pressScale.value }],
+  }));
+
   // Web hover handlers
   const webHoverProps = Platform.OS === 'web' && enableHover ? {
     onMouseEnter: () => setIsHovered(true),
@@ -109,8 +120,18 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
   } : {};
 
   // Mobile press handlers
-  const handlePressIn = () => enableHover && setIsHovered(true);
-  const handlePressOut = () => enableHover && setIsHovered(false);
+  const handlePressIn = useCallback(() => {
+    if (enableHover) setIsHovered(true);
+    if (Platform.OS !== 'web') {
+      pressScale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
+    }
+  }, [enableHover, pressScale]);
+  const handlePressOut = useCallback(() => {
+    if (enableHover) setIsHovered(false);
+    if (Platform.OS !== 'web') {
+      pressScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+    }
+  }, [enableHover, pressScale]);
 
   const time = item.timeMinutes ? `${item.timeMinutes} min` : '—';
   const difficulty = item.difficulty?.toUpperCase() ?? '—';
@@ -176,21 +197,19 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
   // Dynamic styles for hover/press effect
   const showHover = enableHover && isHovered;
   const cardDynamicStyle = {
-    transform: [{ scale: showHover ? 1.05 : 1 }],
+    transform: [{ scale: showHover ? 1.02 : 1 }],
     ...(Platform.OS === 'web' && {
-      transition: 'transform 0.2s ease-out, box-shadow 0.2s ease-out',
-      boxShadow: showHover
-        ? '0 12px 28px rgba(0, 0, 0, 0.35), 0 8px 12px rgba(0, 0, 0, 0.22)'
-        : '0 4px 12px rgba(0, 0, 0, 0.15)',
+      transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease-out',
+      ...(showHover ? cardStyles.hover : cardStyles.rest),
     }),
   };
 
   return (
-    <View style={[styles.card, { backgroundColor: '#FFFFFF' }, cardDynamicStyle]} {...webHoverProps}>
+    <Animated.View style={[styles.card, cardDynamicStyle, Platform.OS !== 'web' && pressAnimatedStyle]} {...webHoverProps}>
       {/* Image - Clickable area */}
       <Pressable
-        onPressIn={Platform.OS !== 'web' ? handlePressIn : undefined}
-        onPressOut={Platform.OS !== 'web' ? handlePressOut : undefined}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
         onPress={handleCardPress}
         style={[styles.imageContainer, { height: imageHeight }]}
       >
@@ -204,7 +223,11 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
         />
 
         {/* Gradient */}
-        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.6)']} style={styles.gradient} />
+        <LinearGradient
+          colors={['transparent', 'transparent', 'rgba(0,0,0,0.7)']}
+          locations={[0, 0.4, 1]}
+          style={styles.gradient}
+        />
 
         {/* Chips */}
         <View style={styles.chipRow}>
@@ -248,18 +271,21 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
           />
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: radii.xl,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderRadius: radii['2xl'],
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.48)',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
     elevation: 3,
   },
   imageContainer: {
@@ -285,8 +311,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
   },
   content: {
-    padding: spacing.md,
-    gap: spacing.xs,
+    padding: spacing.lg,
+    gap: spacing.sm,
   },
   titleContainer: {
     height: 40, // Fixed height for 2 lines of text (body variant ~16px * 1.4 lineHeight * 2)

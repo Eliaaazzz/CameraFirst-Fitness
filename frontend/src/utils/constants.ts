@@ -22,6 +22,7 @@ export const BRAND_COLORS = {
   textPrimary: '#111827',     // Gray-900 (titles, headings)
   textSecondary: '#1F2937',   // Gray-800 (nav, descriptions) - deep, readable
   textMuted: '#374151',       // Gray-700 (hints, dates) - still clear
+  textWarm: '#7A6B5C',        // Warm brown-gray (greetings, ambient text) - pairs with orange primary
   textDisabled: '#9CA3AF',    // Gray-400 (disabled states only)
 
   // Borders

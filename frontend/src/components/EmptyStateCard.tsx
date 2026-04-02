@@ -1,5 +1,6 @@
 import React from 'react';
 import { Platform, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
+import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
 
 import { colors, radii, spacing } from '@/utils';
 import { Text } from './Text';
@@ -16,13 +17,8 @@ interface EmptyStateCardProps {
 
 /**
  * EmptyStateCard - Premium empty state design
- * Inspired by Linear / Arc / Notion dark theme aesthetics
- *
- * Design principles:
- * - Layered surfaces (outer card > inner panel > icon container)
- * - Restrained use of color
- * - Clear visual hierarchy
- * - 8pt spacing grid
+ * Inspired by Linear / Arc / Notion aesthetics
+ * Includes entrance animations for a polished feel.
  */
 export const EmptyStateCard = ({
   icon,
@@ -36,12 +32,12 @@ export const EmptyStateCard = ({
   const contentStyles = variant === 'single' ? styles.singlePanel : styles.innerPanel;
 
   return (
-    <View style={[styles.outerCard, style]}>
-      <View style={contentStyles}>
+    <Animated.View entering={FadeIn.duration(400)} style={[styles.outerCard, style]}>
+      <Animated.View entering={SlideInDown.duration(400).delay(100)} style={contentStyles}>
         {/* Compact icon container */}
-        <View style={styles.iconContainer}>
+        <Animated.View entering={FadeIn.duration(500).delay(200)} style={styles.iconContainer}>
           {icon}
-        </View>
+        </Animated.View>
 
         {/* Text content with clear hierarchy */}
         <View style={styles.textContainer}>
@@ -54,25 +50,27 @@ export const EmptyStateCard = ({
                 </Text>
               ) : null}
         </View>
-      </View>
+      </Animated.View>
 
       {/* CTA Button - render only when provided */}
       {ctaLabel && onCtaPress ? (
-        <Pressable
-          onPress={onCtaPress}
-          style={({ pressed }) => [
-            styles.ctaButton,
-            pressed && styles.ctaButtonPressed,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={ctaLabel}
-        >
-          <Text variant="body" weight="semibold" style={styles.ctaText}>
-            {ctaLabel}
-          </Text>
-        </Pressable>
+        <Animated.View entering={FadeIn.duration(400).delay(300)}>
+          <Pressable
+            onPress={onCtaPress}
+            style={({ pressed }) => [
+              styles.ctaButton,
+              pressed && styles.ctaButtonPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={ctaLabel}
+          >
+            <Text variant="body" weight="semibold" style={styles.ctaText}>
+              {ctaLabel}
+            </Text>
+          </Pressable>
+        </Animated.View>
       ) : null}
-    </View>
+    </Animated.View>
   );
 };
 
@@ -86,7 +84,6 @@ const styles = StyleSheet.create({
     // Subtle border for layering
     borderWidth: 1,
     borderColor: colors.light.border,
-    // Web max-width handled by Container
   },
 
   // Inner panel - slightly elevated surface
@@ -102,12 +99,12 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
 
-  // Compact icon container - not oversized
+  // Compact icon container
   iconContainer: {
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: 'rgba(78, 205, 196, 0.12)',
+    backgroundColor: 'rgba(249, 115, 22, 0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -151,6 +148,6 @@ const styles = StyleSheet.create({
   },
 
   ctaText: {
-    color: '#1A1F2E',
+    color: '#FFFFFF',
   },
 });

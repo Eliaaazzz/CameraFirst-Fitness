@@ -1,6 +1,13 @@
 import { colors, radii, spacing } from '@/utils';
-import React, { useState } from 'react';
+import { MaterialSprings } from '@/utils/materialMotion';
+import React, { useCallback } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { Text } from './Text';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'text' | 'ghost';
@@ -19,9 +26,11 @@ export interface ButtonProps {
   textColor?: string;
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 /**
  * Button - Material Design 3 Style
- * Purple palette, clean design, micro-animations
+ * Spring-based press animation for tactile feedback
  */
 export const Button = ({
   title,
@@ -35,19 +44,36 @@ export const Button = ({
   onPress,
   textColor,
 }: ButtonProps) => {
-  const [isPressed, setIsPressed] = useState(false);
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+
+  const handlePressIn = useCallback(() => {
+    scale.value = withSpring(0.97, MaterialSprings.stiff);
+    opacity.value = withTiming(0.85, { duration: 100 });
+  }, [scale, opacity]);
+
+  const handlePressOut = useCallback(() => {
+    scale.value = withSpring(1, MaterialSprings.stiff);
+    opacity.value = withTiming(1, { duration: 150 });
+  }, [scale, opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
 
   const sizeConfig = SIZE_CONFIG[size];
-  const variantStyle = getVariantStyle(variant, isPressed, disabled);
+  const variantStyle = getVariantStyle(variant, disabled);
 
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
       disabled={disabled || loading}
-      onPressIn={() => setIsPressed(true)}
-      onPressOut={() => setIsPressed(false)}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       style={[
         styles.base,
+        animatedStyle,
         {
           paddingVertical: sizeConfig.paddingVertical,
           paddingHorizontal: sizeConfig.paddingHorizontal,
@@ -56,7 +82,6 @@ export const Button = ({
           borderWidth: variantStyle.borderWidth,
           borderColor: variantStyle.borderColor,
           opacity: disabled ? 0.5 : 1,
-          transform: [{ scale: isPressed ? 0.97 : 1 }],
         },
         fullWidth && styles.fullWidth,
         style,
@@ -82,7 +107,7 @@ export const Button = ({
           </>
         )}
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 };
 
@@ -107,21 +132,21 @@ const SIZE_CONFIG = {
   },
 };
 
-const getVariantStyle = (variant: ButtonVariant, isPressed: boolean, disabled?: boolean) => {
+const getVariantStyle = (variant: ButtonVariant, disabled?: boolean) => {
   const dark = colors.dark;
 
   switch (variant) {
     case 'primary':
       return {
-        backgroundColor: isPressed ? dark.primaryDark : dark.primary,
+        backgroundColor: dark.primary,
         borderWidth: 0,
         borderColor: 'transparent',
-        textColor: '#FFFFFF', // White text on purple button for contrast
+        textColor: '#FFFFFF',
       };
 
     case 'secondary':
       return {
-        backgroundColor: isPressed ? 'rgba(167, 139, 250, 0.25)' : 'rgba(167, 139, 250, 0.15)',
+        backgroundColor: 'rgba(167, 139, 250, 0.15)',
         borderWidth: 0,
         borderColor: 'transparent',
         textColor: dark.primary,
@@ -129,7 +154,7 @@ const getVariantStyle = (variant: ButtonVariant, isPressed: boolean, disabled?: 
 
     case 'outline':
       return {
-        backgroundColor: isPressed ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+        backgroundColor: 'transparent',
         borderWidth: 1,
         borderColor: dark.border,
         textColor: dark.textPrimary,
@@ -137,7 +162,7 @@ const getVariantStyle = (variant: ButtonVariant, isPressed: boolean, disabled?: 
 
     case 'text':
       return {
-        backgroundColor: isPressed ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
+        backgroundColor: 'transparent',
         borderWidth: 0,
         borderColor: 'transparent',
         textColor: dark.primary,
@@ -165,7 +190,6 @@ const styles = StyleSheet.create({
   base: {
     alignSelf: 'flex-start',
     ...(Platform.OS === 'web' && {
-      transition: 'all 0.15s ease',
       cursor: 'pointer',
     }),
   },

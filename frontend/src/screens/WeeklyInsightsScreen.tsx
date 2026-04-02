@@ -85,7 +85,7 @@ export const WeeklyInsightsScreen = () => {
     return (
       <SafeAreaWrapper>
         <View style={styles.errorContainer}>
-          <MaterialCommunityIcons name="alert-circle" size={48} color="#EF4444" />
+          <MaterialCommunityIcons name="alert-circle" size={48} color={BRAND_COLORS.danger} />
           <Text variant="body" style={styles.errorText}>
             Failed to load insights
           </Text>
@@ -268,10 +268,10 @@ export const WeeklyInsightsScreen = () => {
                         width: `${Math.min(day.calories.percentage, 100)}%`,
                         backgroundColor:
                           day.calories.percentage > 110
-                            ? '#EF4444'
+                            ? BRAND_COLORS.danger
                             : day.calories.percentage > 90
-                            ? '#10B981'
-                            : '#F59E0B',
+                            ? BRAND_COLORS.success
+                            : BRAND_COLORS.warning,
                       },
                     ]}
                   />
@@ -288,7 +288,7 @@ export const WeeklyInsightsScreen = () => {
         {sugarWarning.hasWarning && (
           <Card style={[styles.card, styles.warningCard]}>
             <View style={styles.warningHeader}>
-              <MaterialCommunityIcons name="alert" size={24} color="#F59E0B" />
+              <MaterialCommunityIcons name="alert" size={24} color={BRAND_COLORS.warning} />
               <Text variant="body" weight="semibold" style={styles.warningTitle}>
                 Sugar Alert
               </Text>
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   warningCard: {
     backgroundColor: BRAND_COLORS.surface,
     borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
+    borderLeftColor: BRAND_COLORS.warning,
   },
   warningHeader: {
     flexDirection: 'row',
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   warningTitle: {
-    color: '#F59E0B',
+    color: BRAND_COLORS.warning,
     marginLeft: spacing.sm,
   },
   warningMessage: {

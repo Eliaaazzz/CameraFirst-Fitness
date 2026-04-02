@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -19,6 +19,7 @@ import {
     StyleSheet,
     View
 } from 'react-native';
+import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, EditNameModal, SafeAreaWrapper, Text, WheelPicker } from '@/components';
@@ -154,9 +155,15 @@ type Step = 'sex' | 'measurements' | 'goal' | 'generating' | 'complete';
 const ProfileScreen = () => {
   // Always use light mode
   const theme = getTheme('light');
+  const reduceMotion = useReducedMotion();
   const navigation = useNavigation<any>();
   const currentUser = useCurrentUser();
   const queryClient = useQueryClient();
+
+  const staggerEnter = useCallback((index: number) => {
+    if (reduceMotion) return undefined;
+    return FadeInDown.duration(300).delay(index * 80);
+  }, [reduceMotion]);
   const userId = currentUser.data?.userId || '';
   const stats = useGoalStatistics(userId);
 
@@ -1344,7 +1351,7 @@ const ProfileScreen = () => {
         contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
       >
         {/* Profile Header */}
-        <View style={styles.header}>
+        <Animated.View entering={staggerEnter(0)} style={styles.header}>
           {/* Single Pressable for entire avatar area to avoid touch conflicts */}
           <Pressable
             style={({ pressed }) => [
@@ -1392,7 +1399,7 @@ const ProfileScreen = () => {
           </Pressable>
           <Text variant="heading2" weight="bold" style={{ color: theme.colors.textPrimary }}>Hi, {displayName}</Text>
           <Text variant="caption" style={[styles.email, { color: theme.colors.textSecondary }]}>{userEmail}</Text>
-        </View>
+        </Animated.View>
 
         {/* Goals Status */}
         {generatedGoals ? (
@@ -1426,7 +1433,7 @@ const ProfileScreen = () => {
               title="Regenerate Goals"
               variant="primary"
               onPress={() => setShowGoalsModal(true)}
-              style={{ backgroundColor: '#F97316' }}
+              style={{ backgroundColor: BRAND_COLORS.primary }}
               textColor="#FFFFFF"
             />
           </Card>
@@ -1463,7 +1470,7 @@ const ProfileScreen = () => {
         )}
 
         {/* Menu Items */}
-        <View style={styles.menuSection}>
+        <Animated.View entering={staggerEnter(2)} style={styles.menuSection}>
           <Text variant="heading3" weight="semibold" style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
             Your Library
           </Text>
@@ -1491,9 +1498,9 @@ const ProfileScreen = () => {
             'Analyze your nutrition trends',
             () => navigation.navigate('WeeklyInsights' as any)
           )}
-        </View>
+        </Animated.View>
 
-        <View style={styles.menuSection}>
+        <Animated.View entering={staggerEnter(3)} style={styles.menuSection}>
           <Text variant="heading3" weight="semibold" style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
             Settings
           </Text>
@@ -1521,7 +1528,7 @@ const ProfileScreen = () => {
             'Permanently delete your account',
             handleCloseAccount
           )}
-        </View>
+        </Animated.View>
 
         {/* Logout Button */}
         <Pressable

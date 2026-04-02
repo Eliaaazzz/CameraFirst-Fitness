@@ -1,17 +1,19 @@
 import { TourGuideZone } from '@/components/tour/TourProvider';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { FAB } from 'react-native-paper';
 
-import { Container, EmptyStateCard, ListSkeleton, SafeAreaWrapper, SearchBar, SearchSuggestions, Text, WorkoutCard, type SuggestionItem } from '@/components';
+import { Container, EmptyStateCard, ListSkeleton, ResponsiveGrid, SafeAreaWrapper, SearchBar, SearchSuggestions, Text, WorkoutCard, type SuggestionItem } from '@/components';
 import { ScreenLayout } from '@/components/layout';
 import { WORKOUTS_TOUR_STEP } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedWorkouts, useRemoveWorkout, useSavedWorkouts, useSaveWorkout } from '@/services';
 import { searchWorkouts, WorkoutSearchResult } from '@/services/searchApi';
 import type { SavedWorkout } from '@/types';
-import { getTheme, spacing, useContentBottomPadding, useFABBottomPosition, useSidebarVisible } from '@/utils';
+import { BRAND_COLORS, getTheme, spacing, useContentBottomPadding, useFABBottomPosition, useSidebarVisible } from '@/utils';
 
 // Workout search suggestions with fun icons
 const WORKOUT_SUGGESTIONS: SuggestionItem[] = [
@@ -51,7 +53,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   subtitle: {
-    opacity: 0.7,
+    color: BRAND_COLORS.textMuted,
+    marginTop: 2,
   },
   searchContainer: {
     marginTop: spacing.md,
@@ -116,9 +119,15 @@ const ItemSeparator = () => <View style={{ height: spacing.md }} />;
 export const WorkoutsScreen = () => {
   // Always use light mode
   const theme = getTheme('light');
+  const reduceMotion = useReducedMotion();
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const showSidebar = useSidebarVisible();
+
+  const staggerEnter = useCallback((index: number) => {
+    if (reduceMotion) return undefined;
+    return FadeInDown.duration(300).delay(index * 80);
+  }, [reduceMotion]);
   const saved = useSavedWorkouts(userId);
   const recommended = useRecommendedWorkouts(currentUser.data?.profile?.fitnessGoal, userId);
   const saveWorkout = useSaveWorkout(userId);
@@ -239,7 +248,7 @@ export const WorkoutsScreen = () => {
   // Memoize empty component BEFORE any conditional returns
   const listEmptyComponent = useMemo(() => (
     <EmptyStateCard
-      icon={<MaterialCommunityIcons name="arm-flex" size={32} color="#4ECDC4" />}
+      icon={<MaterialCommunityIcons name="arm-flex" size={32} color={BRAND_COLORS.secondary} />}
       title="Your saved workouts will appear here"
       variant="single"
     />
@@ -290,10 +299,10 @@ export const WorkoutsScreen = () => {
       <SafeAreaWrapper>
         <Container>
           <View style={styles.header}>
-            <Text variant="heading1" weight="bold" style={{ color: theme.colors.textPrimary }}>
+            <Text variant="heading1" weight="bold" style={{ color: BRAND_COLORS.textPrimary }}>
               Workouts
             </Text>
-            <Text variant="body" style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
+            <Text variant="body" style={styles.subtitle}>
               Recommended routines and your saved list.
             </Text>
           </View>
@@ -331,32 +340,36 @@ export const WorkoutsScreen = () => {
 
   const listHeaderComponent = (
     <View style={styles.header}>
-      <Text variant="heading1" weight="bold" style={{ color: theme.colors.textPrimary }}>
-        Workouts
-      </Text>
-      <Text variant="body" style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-        Recommended routines and your saved list.
-      </Text>
+      <Animated.View entering={staggerEnter(0)}>
+        <Text variant="heading1" weight="bold" style={{ color: BRAND_COLORS.textPrimary }}>
+          Workouts
+        </Text>
+        <Text variant="body" style={styles.subtitle}>
+          Recommended routines and your saved list.
+        </Text>
+      </Animated.View>
 
       {/* Search Bar - Tour Zone 4 */}
-      <TourGuideZone
-        zone={WORKOUTS_TOUR_STEP.zone}
-        text={WORKOUTS_TOUR_STEP.text}
-        title={WORKOUTS_TOUR_STEP.title}
-        shape="rectangle"
-        borderRadius={12}
-      >
-        <View style={styles.searchContainer}>
-          <SearchBar
-            placeholder="Search workouts..."
-            value={searchQuery}
-            onChangeText={handleSearch}
-            onClear={clearSearch}
-            onFocusChange={handleSearchFocusChange}
-            isLoading={isSearching}
-          />
-        </View>
-      </TourGuideZone>
+      <Animated.View entering={staggerEnter(1)}>
+        <TourGuideZone
+          zone={WORKOUTS_TOUR_STEP.zone}
+          text={WORKOUTS_TOUR_STEP.text}
+          title={WORKOUTS_TOUR_STEP.title}
+          shape="rectangle"
+          borderRadius={12}
+        >
+          <View style={styles.searchContainer}>
+            <SearchBar
+              placeholder="Search workouts..."
+              value={searchQuery}
+              onChangeText={handleSearch}
+              onClear={clearSearch}
+              onFocusChange={handleSearchFocusChange}
+              isLoading={isSearching}
+            />
+          </View>
+        </TourGuideZone>
+      </Animated.View>
 
       {/* Search Suggestions - only when focused and query is empty */}
       {isSearchFocused && !isSearchMode && (
@@ -372,7 +385,7 @@ export const WorkoutsScreen = () => {
       {/* Search Results - only when has query text */}
       {isSearchMode && (
         <View style={styles.section}>
-          <Text variant="heading2" weight="semibold" style={{ color: theme.colors.textPrimary }}>
+          <Text variant="heading2" weight="semibold" style={{ color: BRAND_COLORS.textPrimary }}>
             Search Results
           </Text>
           {isSearching ? (
@@ -384,36 +397,35 @@ export const WorkoutsScreen = () => {
               No workouts found for "{searchQuery}"
             </Text>
           ) : (
-            <View style={styles.searchResults}>
+            <ResponsiveGrid columns={{ mobile: 1, tablet: 2, desktop: 3, wide: 4 }} gap={spacing.md}>
               {searchResults.map((item) => (
-                <View key={item.id} style={styles.searchResultCard}>
-                  <WorkoutCard
-                    item={{
-                      id: item.id,
-                      title: item.exerciseName,
-                      thumbnailUrl: item.thumbnailUrl ?? undefined,
-                      youtubeId: item.youtubeId,
-                      durationMinutes: 5,
-                      level: 'intermediate',
-                      equipment: [],
-                      bodyPart: [item.primaryCategory],
-                    }}
-                    disableHoverEffect
-                    isSaved={savedWorkoutIds.has(item.id)}
-                    onSave={(id) => saveWorkout.mutateAsync(id).then(() => true)}
-                    onRemove={(id) => removeWorkout.mutateAsync(id).then(() => true)}
-                  />
-                </View>
+                <WorkoutCard
+                  key={item.id}
+                  item={{
+                    id: item.id,
+                    title: item.exerciseName,
+                    thumbnailUrl: item.thumbnailUrl ?? undefined,
+                    youtubeId: item.youtubeId,
+                    durationMinutes: 5,
+                    level: 'intermediate',
+                    equipment: [],
+                    bodyPart: [item.primaryCategory],
+                  }}
+                  disableHoverEffect
+                  isSaved={savedWorkoutIds.has(item.id)}
+                  onSave={(id) => saveWorkout.mutateAsync(id).then(() => true)}
+                  onRemove={(id) => removeWorkout.mutateAsync(id).then(() => true)}
+                />
               ))}
-            </View>
+            </ResponsiveGrid>
           )}
         </View>
       )}
 
       {/* Recommended Section - hidden when search UI is active */}
       {!showSearchUI && (
-        <View style={styles.section}>
-          <Text variant="heading2" weight="semibold" style={{ color: theme.colors.textPrimary }}>
+        <Animated.View entering={staggerEnter(2)} style={styles.section}>
+          <Text variant="heading2" weight="semibold" style={{ color: BRAND_COLORS.textPrimary }}>
             Recommended for you
           </Text>
           {recommended.isLoading ? (
@@ -428,6 +440,18 @@ export const WorkoutsScreen = () => {
             <Text variant="caption" style={[styles.recommendedNote, { color: theme.colors.textSecondary }]}>
               No recommendations yet.
             </Text>
+          ) : showSidebar ? (
+            <ResponsiveGrid columns={{ desktop: 3, wide: 4 }} gap={spacing.md}>
+              {recommendedItems.map((item) => (
+                <WorkoutCard
+                  key={item.id}
+                  item={item}
+                  isSaved={savedWorkoutIds.has(item.id)}
+                  onSave={(id) => saveWorkout.mutateAsync(id).then(() => true)}
+                  onRemove={(id) => removeWorkout.mutateAsync(id).then(() => true)}
+                />
+              ))}
+            </ResponsiveGrid>
           ) : (
             <ScrollView
               horizontal
@@ -446,7 +470,7 @@ export const WorkoutsScreen = () => {
               ))}
             </ScrollView>
           )}
-        </View>
+        </Animated.View>
       )}
     </View>
   );
@@ -454,6 +478,19 @@ export const WorkoutsScreen = () => {
   return (
     <SafeAreaWrapper>
       <ScreenLayout scrollable={false}>
+        {/* Ambient gradient background */}
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <LinearGradient
+            colors={
+              Platform.OS === 'web'
+                ? ['rgba(255,248,241,0.6)', 'rgba(246,248,251,0.5)']
+                : ['rgba(255,252,248,0.94)', 'rgba(251,252,255,0.9)']
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
         <Container style={styles.container}>
           <FlatList
             ref={listRef}
