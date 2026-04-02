@@ -12,7 +12,6 @@ type Props = {
   onRequestPermission: () => void;
   onOpenSettings: () => void;
   onChooseGallery: () => void;
-  onDismiss?: () => void;
 };
 
 export const PermissionDialog = ({
