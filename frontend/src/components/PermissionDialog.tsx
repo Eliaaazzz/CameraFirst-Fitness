@@ -12,7 +12,6 @@ type Props = {
   onRequestPermission: () => void;
   onOpenSettings: () => void;
   onChooseGallery: () => void;
-  onDismiss?: () => void;
 };
 
 export const PermissionDialog = ({
@@ -21,11 +20,10 @@ export const PermissionDialog = ({
   onRequestPermission,
   onOpenSettings,
   onChooseGallery,
-  onDismiss,
 }: Props) => {
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss}>
+      <Dialog visible={visible} dismissable={false}>
         <Dialog.Icon icon={() => <Feather name="camera-off" size={28} />} />
         <Dialog.Title>Camera Access Needed</Dialog.Title>
         <Dialog.Content>
@@ -41,10 +39,10 @@ export const PermissionDialog = ({
         <Dialog.Actions>
           <View style={styles.actions}>
             <Button
-              title={permissionDenied ? 'Open Settings' : 'Allow Camera Access'}
+              title={permissionDenied ? 'Open Settings' : 'Continue'}
               onPress={permissionDenied ? onOpenSettings : onRequestPermission}
             />
-            <Button title="Choose from Gallery" variant="outline" onPress={onChooseGallery} />
+            <Button title="Use Photo Library Instead" variant="outline" onPress={onChooseGallery} />
           </View>
         </Dialog.Actions>
       </Dialog>

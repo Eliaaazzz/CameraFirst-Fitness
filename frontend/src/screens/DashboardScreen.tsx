@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { TourGuideZone, TourScrollView, useTourGuideController, useTourNavigation } from '@/components/tour/TourProvider';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -17,6 +17,11 @@ import {
     StyleSheet,
     View
 } from 'react-native';
+import Animated, {
+    FadeInDown,
+    FadeInRight,
+    useReducedMotion,
+} from 'react-native-reanimated';
 
 
 import { Ionicons } from '@expo/vector-icons';
@@ -25,7 +30,7 @@ import { Barbell, Drop, Fire, Grains } from 'phosphor-react-native';
 import { BentoCard, SafeAreaWrapper, Text } from '@/components';
 import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES } from '@/components/common/BentoCard';
 import { StateView } from '@/components/common/StateView';
-import { DashboardWidgets, QuickActionsCard } from '@/components/dashboard';
+import { DailyScoreCard, DailyTasksCard, DashboardWidgets, NutritionInsightsCard, QuickActionsCard, StreakBadge } from '@/components/dashboard';
 import { ScreenLayout } from '@/components/layout';
 import { MealImage } from '@/components/nutrition/MealImage';
 import { NutritionRingsCard } from '@/components/nutrition/NutritionRingsCard';
@@ -33,13 +38,32 @@ import WelcomeTourCard from '@/components/WelcomeTourCard';
 import { SNAP_MEAL_STEP, TODAYS_NUTRITION_STEP } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useDailyNutrition } from '@/hooks/useDailyNutrition';
+import { useWeeklyInsights } from '@/hooks/useMealHistory';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useTourStatus } from '@/hooks/useTourStatus';
 import { GeneratedGoals, getActiveGoal, GoalType } from '@/services/geminiApi';
 import { useGoals, useGoalStatistics } from '@/services/goalsApi';
-import { useLanguageStore } from '@/stores';
+import { useHydrationStore, useLanguageStore } from '@/stores';
 import { BRAND_COLORS, colors, saasShadows, spacing, useContentBottomPadding, useRightPanelVisible, useSidebarVisible } from '@/utils';
 import { GENERATED_GOALS_KEY } from './ProfileScreen';
+
+// Smart time-based greeting
+const getTimeGreeting = (): string => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'Good Morning';
+  if (hour >= 12 && hour < 17) return 'Good Afternoon';
+  if (hour >= 17 && hour < 22) return 'Good Evening';
+  return 'Good Night';
+};
+
+// Generate a contextual sub-line based on current data
+const getContextLine = (streak: number, caloriePercent: number, mealCount: number): string => {
+  if (streak >= 7) return `${streak}-day streak, keep it up!`;
+  if (streak >= 3) return `${streak} days in a row!`;
+  if (caloriePercent >= 75) return `${Math.round(caloriePercent)}% of daily goal reached`;
+  if (mealCount > 0) return `${mealCount} meal${mealCount > 1 ? 's' : ''} logged today`;
+  return "Let's make today count";
+};
 
 // Goal type display config - using target/flag icons to differentiate from streak's fire
 const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; icon: string; color: string }> = {
@@ -117,6 +141,23 @@ const normalizeGoalMacros = (goals: GeneratedGoals): GeneratedGoals => {
   };
 };
 
+/** Build trend data for the NutritionInsightsCard from weekly insights */
+const buildTrendData = (weeklyData?: { dailyData?: Array<{ date: string; calories: { actual: number }; protein: number; carbs: number; fat: number }> }) => {
+  if (!weeklyData?.dailyData?.length) return [];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  return weeklyData.dailyData.map((d) => {
+    const [year, month, day] = d.date.split('-').map(Number);
+    const dow = new Date(year, month - 1, day).getDay();
+    return {
+      day: dayNames[dow],
+      calories: d.calories?.actual ?? 0,
+      protein: d.protein ?? 0,
+      carbs: d.carbs ?? 0,
+      fat: d.fat ?? 0,
+    };
+  });
+};
+
 const DashboardScreen = () => {
   const navigation = useNavigation<any>();
   const currentUser = useCurrentUser();
@@ -131,6 +172,12 @@ const DashboardScreen = () => {
   const goals = useGoals(userId);
   const stats = useGoalStatistics(userId);
 
+  // Hydration state for Daily Score
+  const hydrationCups = useHydrationStore((s) => s.cups);
+  const hydrationGoalCups = useHydrationStore((s) => s.dailyGoalCups);
+
+  // Weekly insights for trend chart (web only)
+  const weeklyInsights = useWeeklyInsights(undefined, true);
 
   // Tour guide controller and navigation
   const { canStart, start, eventEmitter } = useTourGuideController();
@@ -140,6 +187,29 @@ const DashboardScreen = () => {
 
   // Calculate proper bottom padding for tab bar
   const contentBottomPadding = useContentBottomPadding(spacing.lg);
+
+  // Respect accessibility reduce-motion preference
+  const reduceMotion = useReducedMotion();
+
+  // Smart greeting based on time of day
+  const greeting = useMemo(() => getTimeGreeting(), []);
+  const contextLine = useMemo(
+    () => getContextLine(
+      currentUser.data?.currentStreak || 0,
+      nutritionData.goal > 0 ? (nutritionData.calories / nutritionData.goal) * 100 : 0,
+      nutritionData.meals.length,
+    ),
+    [currentUser.data?.currentStreak, nutritionData.calories, nutritionData.goal, nutritionData.meals.length]
+  );
+
+  // Memoize trend data to avoid recalculating on every render
+  const trendData = useMemo(() => buildTrendData(weeklyInsights.data), [weeklyInsights.data]);
+
+  // Staggered enter animation factory
+  const staggerEnter = useCallback((index: number) => {
+    if (reduceMotion) return undefined;
+    return FadeInDown.duration(300).delay(index * 80);
+  }, [reduceMotion]);
 
   // Fetch personalized recommendations based on fitness goal
 
@@ -241,6 +311,7 @@ const DashboardScreen = () => {
       stats.refetch(),
       loadGeneratedGoals(),
       currentUser.refetch(),
+      weeklyInsights.refetch(),
     ]);
     setRefreshing(false);
   };
@@ -499,6 +570,7 @@ const DashboardScreen = () => {
           }}
           showFat={true}
           onMacroPress={handleMacroSearch}
+          onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
         />
       )}
     </TourGuideZone>
@@ -541,24 +613,21 @@ const DashboardScreen = () => {
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
                 tintColor={BRAND_COLORS.primary}
+                progressViewOffset={20}
               />
             }
           >
             {/* Header */}
-            <View style={styles.header}>
+            <Animated.View entering={staggerEnter(0)} style={styles.header}>
               <View style={styles.headerLeft}>
-                <Text variant="caption" style={styles.greeting}>{t.goodDay}</Text>
+                <Text variant="caption" style={styles.greeting}>{greeting}</Text>
                 <View style={styles.nameRow}>
                   <Text variant="heading1" weight="bold" style={styles.userName}>
                     {currentUser.data?.username || 'User'}
                   </Text>
-                  <View style={styles.streakBadge}>
-                    <Ionicons name="flame" size={15} color={BRAND_COLORS.primary} />
-                    <Text style={styles.streakText}>
-                      {currentUser.data?.currentStreak || 0}
-                    </Text>
-                  </View>
+                  <StreakBadge streak={currentUser.data?.currentStreak || 0} compact />
                 </View>
+                <Text variant="caption" style={styles.contextLine}>{contextLine}</Text>
               </View>
               {/* Hide profile button on desktop (use sidebar instead) */}
               {!showRightPanel && (
@@ -571,7 +640,7 @@ const DashboardScreen = () => {
                   </Pressable>
                 </View>
               )}
-            </View>
+            </Animated.View>
 
             {/* Welcome Tour Card for new users */}
             {showWelcomeCard && (
@@ -596,6 +665,41 @@ const DashboardScreen = () => {
                         : undefined
                     }
                   >
+                    {/* Daily Score Card - Whoop/Oura inspired */}
+                    {!nutritionLoading && generatedGoals && (
+                      <Animated.View entering={staggerEnter(1)}>
+                        <DailyScoreCard
+                          data={{
+                            calories: nutritionData.calories,
+                            calorieGoal: nutritionData.goal,
+                            protein: nutritionData.protein,
+                            carbs: nutritionData.carbs,
+                            fat: nutritionData.fat,
+                            hydrationCups,
+                            hydrationGoal: hydrationGoalCups,
+                            streak: currentUser.data?.currentStreak || 0,
+                          }}
+                        />
+                      </Animated.View>
+                    )}
+
+                    {/* Daily Tasks - Noom-inspired checklist */}
+                    {!nutritionLoading && generatedGoals && (
+                      <Animated.View entering={staggerEnter(2)}>
+                        <DailyTasksCard
+                          data={{
+                            calories: nutritionData.calories,
+                            calorieGoal: nutritionData.goal,
+                            protein: nutritionData.protein,
+                            mealCount: nutritionData.meals.length,
+                            hydrationCups,
+                            hydrationGoal: hydrationGoalCups,
+                          }}
+                        />
+                      </Animated.View>
+                    )}
+
+                    <Animated.View entering={staggerEnter(3)}>
                     {showInlineGoalsRow ? (
                       <View style={styles.inlineTopRow}>
                         <View style={styles.inlineColumn}>
@@ -608,6 +712,27 @@ const DashboardScreen = () => {
                     ) : (
                       renderNutritionCard()
                     )}
+                    </Animated.View>
+
+                    {/* Nutrition Insights - Trend & Balance charts */}
+                    {!nutritionLoading && generatedGoals && (
+                      <View style={{ marginTop: spacing.lg }}>
+                        <NutritionInsightsCard
+                          trendData={trendData}
+                          target={{
+                            calories: nutritionData.goal,
+                            protein: nutritionData.protein.goal,
+                            carbs: nutritionData.carbs.goal,
+                            fat: nutritionData.fat.goal,
+                          }}
+                          currentMacros={{
+                            protein: nutritionData.protein.current,
+                            carbs: nutritionData.carbs.current,
+                            fat: nutritionData.fat.current,
+                          }}
+                        />
+                      </View>
+                    )}
 
                     {/* Keep inline quick actions on web only; mobile removes this section */}
                     {Platform.OS === 'web' && !showRightPanel && (
@@ -617,6 +742,7 @@ const DashboardScreen = () => {
                     )}
 
                   {/* Today's Meals */}
+                  <Animated.View entering={staggerEnter(4)}>
                   <BentoCard
                     style={[
                       styles.mealsCard,
@@ -677,8 +803,8 @@ const DashboardScreen = () => {
                 </View>
               ) : (
                 <View style={styles.mealsList}>
-                  {nutritionData.meals.map((meal) => (
-                    <View key={meal.id} style={styles.mealItem}>
+                  {nutritionData.meals.map((meal, mealIndex) => (
+                    <Animated.View key={meal.id} entering={reduceMotion ? undefined : FadeInRight.duration(300).delay(mealIndex * 60)} style={styles.mealItem}>
                       <MealImage
                         imageUrl={meal.imageUrl}
                         size={56}
@@ -717,11 +843,12 @@ const DashboardScreen = () => {
                           </View>
                         </View>
                       </View>
-                    </View>
+                    </Animated.View>
                   ))}
                 </View>
               )}
             </BentoCard>
+            </Animated.View>
           </View>
           </TourScrollView>
         </ScreenLayout>
@@ -864,6 +991,11 @@ const styles = StyleSheet.create({
   userName: {
     color: BRAND_COLORS.textPrimary,
     letterSpacing: -0.7,
+  },
+  contextLine: {
+    color: BRAND_COLORS.textMuted,
+    marginTop: 2,
+    fontSize: 13,
   },
   headerActions: {
     flexDirection: 'row',

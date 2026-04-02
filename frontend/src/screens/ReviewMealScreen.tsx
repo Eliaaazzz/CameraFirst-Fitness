@@ -922,6 +922,16 @@ export function ReviewMealScreen({ route, navigation }: any) {
                   </Text>
                 </View>
               )}
+
+              <Text style={styles.aiDisclaimer}>
+                AI estimate — not medical advice.{' '}
+                <Text
+                  style={styles.aiDisclaimerLink}
+                  onPress={() => navigation.navigate('AboutNutritionData' as any)}
+                >
+                  Learn more
+                </Text>
+              </Text>
             </Animated.View>
           ) : (
             <Animated.View style={[styles.emptyStateCard, detailsAnimatedStyle]}>
@@ -1371,6 +1381,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 13,
     color: '#6B7280',
+  },
+  aiDisclaimer: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    fontSize: 12,
+    color: '#9CA3AF',
+    textAlign: 'center',
+  },
+  aiDisclaimerLink: {
+    fontSize: 12,
+    color: '#0891B2',
+    fontWeight: '600',
   },
   sectionHeader: {
     marginHorizontal: 16,
