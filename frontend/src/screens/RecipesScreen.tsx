@@ -1,18 +1,20 @@
 import { TourGuideZone } from '@/components/tour/TourProvider';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { FAB } from 'react-native-paper';
 
-import { Container, EmptyStateCard, ListSkeleton, RecipeCard, SafeAreaWrapper, SearchBar, SearchSuggestions, Text, type SuggestionItem } from '@/components';
+import { Container, EmptyStateCard, ListSkeleton, RecipeCard, ResponsiveGrid, SafeAreaWrapper, SearchBar, SearchSuggestions, Text, type SuggestionItem } from '@/components';
 import { ScreenLayout } from '@/components/layout';
 import { RECIPES_TOUR_STEP } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecommendedRecipes, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
 import { RecipeSearchResult, searchRecipes } from '@/services/searchApi';
 import type { SavedRecipe } from '@/types';
-import { getTheme, spacing, useContentBottomPadding, useFABBottomPosition, useSidebarVisible } from '@/utils';
+import { BRAND_COLORS, getTheme, spacing, useContentBottomPadding, useFABBottomPosition, useSidebarVisible } from '@/utils';
 
 // Recipe search suggestions with fun icons
 const RECIPE_SUGGESTIONS: SuggestionItem[] = [
@@ -52,7 +54,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   subtitle: {
-    opacity: 0.7,
+    color: BRAND_COLORS.textMuted,
+    marginTop: 2,
   },
   searchContainer: {
     marginTop: spacing.md,
@@ -102,11 +105,17 @@ const ItemSeparator = () => <View style={{ height: spacing.md }} />;
 export const RecipesScreen = () => {
   // Always use light mode
   const theme = getTheme('light');
+  const reduceMotion = useReducedMotion();
   const route = useRoute<any>();
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const userGoal = currentUser.data?.profile?.fitnessGoal;
   const showSidebar = useSidebarVisible();
+
+  const staggerEnter = useCallback((index: number) => {
+    if (reduceMotion) return undefined;
+    return FadeInDown.duration(300).delay(index * 80);
+  }, [reduceMotion]);
 
   const saved = useSavedRecipes(userId);
   // Use dedicated recipe recommendations API
@@ -288,10 +297,10 @@ export const RecipesScreen = () => {
       <SafeAreaWrapper>
         <Container>
           <View style={styles.header}>
-            <Text variant="heading1" weight="bold" style={{ color: theme.colors.textPrimary }}>
+            <Text variant="heading1" weight="bold" style={{ color: BRAND_COLORS.textPrimary }}>
               Recipes
             </Text>
-            <Text variant="body" style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
+            <Text variant="body" style={styles.subtitle}>
               Recommended meals and your saved list.
             </Text>
           </View>
@@ -329,32 +338,36 @@ export const RecipesScreen = () => {
 
   const listHeaderComponent = (
     <View style={styles.header}>
-      <Text variant="heading1" weight="bold" style={{ color: theme.colors.textPrimary }}>
-        Recipes
-      </Text>
-      <Text variant="body" style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-        Healthy meals and your saved list.
-      </Text>
+      <Animated.View entering={staggerEnter(0)}>
+        <Text variant="heading1" weight="bold" style={{ color: BRAND_COLORS.textPrimary }}>
+          Recipes
+        </Text>
+        <Text variant="body" style={styles.subtitle}>
+          Healthy meals and your saved list.
+        </Text>
+      </Animated.View>
 
       {/* Search Bar - Tour Zone 5 */}
-      <TourGuideZone
-        zone={RECIPES_TOUR_STEP.zone}
-        text={RECIPES_TOUR_STEP.text}
-        title={RECIPES_TOUR_STEP.title}
-        shape="rectangle"
-        borderRadius={12}
-      >
-        <View style={styles.searchContainer}>
-          <SearchBar
-            placeholder="Search recipes..."
-            value={searchQuery}
-            onChangeText={handleSearch}
-            onClear={clearSearch}
-            onFocusChange={handleSearchFocusChange}
-            isLoading={isSearching}
-          />
-        </View>
-      </TourGuideZone>
+      <Animated.View entering={staggerEnter(1)}>
+        <TourGuideZone
+          zone={RECIPES_TOUR_STEP.zone}
+          text={RECIPES_TOUR_STEP.text}
+          title={RECIPES_TOUR_STEP.title}
+          shape="rectangle"
+          borderRadius={12}
+        >
+          <View style={styles.searchContainer}>
+            <SearchBar
+              placeholder="Search recipes..."
+              value={searchQuery}
+              onChangeText={handleSearch}
+              onClear={clearSearch}
+              onFocusChange={handleSearchFocusChange}
+              isLoading={isSearching}
+            />
+          </View>
+        </TourGuideZone>
+      </Animated.View>
 
       {/* Search Suggestions - only when focused and query is empty */}
       {isSearchFocused && !isSearchMode && (
@@ -370,7 +383,7 @@ export const RecipesScreen = () => {
       {/* Search Results - only when has query text */}
       {isSearchMode && (
         <View style={styles.section}>
-          <Text variant="heading2" weight="semibold" style={{ color: theme.colors.textPrimary }}>
+          <Text variant="heading2" weight="semibold" style={{ color: BRAND_COLORS.textPrimary }}>
             Search Results
           </Text>
           {isSearching ? (
@@ -382,34 +395,33 @@ export const RecipesScreen = () => {
               No recipes found for "{searchQuery}"
             </Text>
           ) : (
-            <View style={styles.searchResults}>
+            <ResponsiveGrid columns={{ mobile: 1, tablet: 2, desktop: 3, wide: 4 }} gap={spacing.md}>
               {searchResults.map((item) => (
-                <View key={item.id} style={styles.searchResultCard}>
-                  <RecipeCard
-                    item={{
-                      id: item.id,
-                      title: item.title,
-                      imageUrl: item.imageUrl ?? undefined,
-                      timeMinutes: item.timeMinutes,
-                      difficulty: (item.difficulty as 'easy' | 'medium' | 'hard') || 'easy',
-                      calories: item.calories ?? undefined,
-                    }}
-                    disableHoverEffect
-                    isSaved={savedRecipeIds.has(item.id)}
-                    onSave={(id) => saveRecipe.mutateAsync(id).then(() => true)}
-                    onRemove={(id) => removeRecipe.mutateAsync(id).then(() => true)}
-                  />
-                </View>
+                <RecipeCard
+                  key={item.id}
+                  item={{
+                    id: item.id,
+                    title: item.title,
+                    imageUrl: item.imageUrl ?? undefined,
+                    timeMinutes: item.timeMinutes,
+                    difficulty: (item.difficulty as 'easy' | 'medium' | 'hard') || 'easy',
+                    calories: item.calories ?? undefined,
+                  }}
+                  disableHoverEffect
+                  isSaved={savedRecipeIds.has(item.id)}
+                  onSave={(id) => saveRecipe.mutateAsync(id).then(() => true)}
+                  onRemove={(id) => removeRecipe.mutateAsync(id).then(() => true)}
+                />
               ))}
-            </View>
+            </ResponsiveGrid>
           )}
         </View>
       )}
 
       {/* Recommended Recipes Section - hidden when search UI is active */}
       {!showSearchUI && (
-        <View style={styles.section}>
-          <Text variant="heading2" weight="semibold" style={{ color: theme.colors.textPrimary }}>
+        <Animated.View entering={staggerEnter(2)} style={styles.section}>
+          <Text variant="heading2" weight="semibold" style={{ color: BRAND_COLORS.textPrimary }}>
             Recommended for you
           </Text>
           {recommended.isLoading ? (
@@ -424,6 +436,18 @@ export const RecipesScreen = () => {
             <Text variant="caption" style={[styles.recommendedNote, { color: theme.colors.textSecondary }]}>
               No recommendations yet.
             </Text>
+          ) : showSidebar ? (
+            <ResponsiveGrid columns={{ desktop: 3, wide: 4 }} gap={spacing.md}>
+              {recommendedRecipes.map((item) => (
+                <RecipeCard
+                  key={item.id}
+                  item={item}
+                  isSaved={savedRecipeIds.has(item.id)}
+                  onSave={(id) => saveRecipe.mutateAsync(id).then(() => true)}
+                  onRemove={(id) => removeRecipe.mutateAsync(id).then(() => true)}
+                />
+              ))}
+            </ResponsiveGrid>
           ) : (
             <ScrollView
               horizontal
@@ -442,7 +466,7 @@ export const RecipesScreen = () => {
               ))}
             </ScrollView>
           )}
-        </View>
+        </Animated.View>
       )}
     </View>
   );
@@ -450,6 +474,19 @@ export const RecipesScreen = () => {
   return (
     <SafeAreaWrapper>
       <ScreenLayout scrollable={false}>
+        {/* Ambient gradient background */}
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <LinearGradient
+            colors={
+              Platform.OS === 'web'
+                ? ['rgba(255,248,241,0.6)', 'rgba(246,248,251,0.5)']
+                : ['rgba(255,252,248,0.94)', 'rgba(251,252,255,0.9)']
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
         <Container style={styles.container}>
           <FlatList
             ref={listRef}

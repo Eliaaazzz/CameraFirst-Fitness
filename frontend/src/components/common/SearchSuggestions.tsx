@@ -27,6 +27,7 @@ import {
     radii,
     spacing,
 } from '@/utils';
+import { Platform } from 'react-native';
 
 export type SuggestionItem = {
   id: string;
@@ -184,13 +185,18 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BRAND_COLORS.surface,
+    backgroundColor: BRAND_COLORS.glassFillSubtle,
     borderRadius: radii.pill,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
-    borderColor: `${BRAND_COLORS.primary}20`,
+    borderColor: BRAND_COLORS.glassStroke,
     gap: spacing.sm,
+    ...(Platform.OS === 'web' && {
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      transition: 'all 0.15s ease-out',
+    } as any),
   },
   iconContainer: {
     width: 24,

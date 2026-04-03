@@ -30,8 +30,8 @@ const BODY_LINE_HEIGHT = 22;
 // Colors
 const PRIMARY_COLOR = BRAND_COLORS.primary;
 const SECONDARY_COLOR = BRAND_COLORS.secondary;
-const TEXT_PRIMARY = '#1A1A2E';
-const TEXT_SECONDARY = '#6B6B7A';
+const TEXT_PRIMARY = BRAND_COLORS.textPrimary;
+const TEXT_SECONDARY = BRAND_COLORS.textMuted;
 
 // ============================================================================
 // HELPER FUNCTIONS

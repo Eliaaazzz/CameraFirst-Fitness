@@ -21,7 +21,10 @@ import {
 
 import { Text } from '@/components';
 import { BentoCard } from '@/components/common/BentoCard';
+import { InsightCard, generateInsights } from '@/components/dashboard/InsightCard';
 import { QuickActionsCard } from '@/components/dashboard/QuickActionsCard';
+import useCurrentUser from '@/hooks/useCurrentUser';
+import { useDailyNutrition } from '@/hooks/useDailyNutrition';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
 import { useHydrationStore, useLanguageStore } from '@/stores';
 import { BRAND_COLORS, colors, saasShadows, spacing } from '@/utils';
@@ -47,12 +50,25 @@ interface DashboardWidgetsProps {
 export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
   const navigation = useNavigation<any>();
   const { t } = useLanguageStore();
+  const currentUser = useCurrentUser();
+  const { data: nutritionData } = useDailyNutrition();
   const hydrationCups = useHydrationStore((state) => state.cups);
   const hydrationGoalCups = useHydrationStore((state) => state.dailyGoalCups);
   const hydrationLoaded = useHydrationStore((state) => state.isLoaded);
   const loadHydration = useHydrationStore((state) => state.loadHydration);
   const addHydrationCup = useHydrationStore((state) => state.addCup);
   const ensureHydrationToday = useHydrationStore((state) => state.ensureToday);
+
+  // Generate smart insights
+  const insights = React.useMemo(() => generateInsights({
+    calories: nutritionData.calories,
+    calorieGoal: nutritionData.goal,
+    protein: nutritionData.protein,
+    carbs: nutritionData.carbs,
+    fat: nutritionData.fat,
+    mealCount: nutritionData.meals.length,
+    streak: currentUser.data?.currentStreak || 0,
+  }), [nutritionData, currentUser.data?.currentStreak]);
 
   const cardProgress = useSharedValue(0);
   const actionsProgress = useSharedValue(0);
@@ -158,6 +174,15 @@ export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
           </View>
           <HydrationProgress current={hydrationCups} goal={hydrationGoalCups} />
         </BentoCard>
+
+        {/* 4. Smart Insights */}
+        {insights.length > 0 && (
+          <View style={styles.insightsSection}>
+            {insights.map((insight, i) => (
+              <InsightCard key={i} text={insight.text} color={insight.color} icon={insight.icon} />
+            ))}
+          </View>
+        )}
       </Animated.View>
     </View>
   );
@@ -304,6 +329,10 @@ const styles = StyleSheet.create({
   // Bento Section
   bentoSection: {
     gap: 20,
+  },
+  // Smart Insights
+  insightsSection: {
+    gap: 10,
   },
   // Hydration
   hydrationHeader: {

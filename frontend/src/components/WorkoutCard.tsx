@@ -1,11 +1,16 @@
 import { BookmarkButton, Button, Text, useSnackbar, YouTubePlayerModal } from '@/components';
 import type { WorkoutCard as Workout } from '@/types';
-import { getTheme, radii, spacing, useResponsiveValue } from '@/utils';
+import { cardStyles, getTheme, radii, spacing, useResponsiveValue } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
 type Props = {
   item: Workout;
@@ -32,6 +37,12 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved, disableHoverEffec
   const [isHovered, setIsHovered] = useState(false);
   const enableHover = !isSaved && !disableHoverEffect;
 
+  // Spring press animation (mobile)
+  const pressScale = useSharedValue(1);
+  const pressAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pressScale.value }],
+  }));
+
   // Web hover handlers
   const webHoverProps = Platform.OS === 'web' && enableHover ? {
     onMouseEnter: () => setIsHovered(true),
@@ -39,8 +50,18 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved, disableHoverEffec
   } : {};
 
   // Mobile press handlers
-  const handlePressIn = () => enableHover && setIsHovered(true);
-  const handlePressOut = () => enableHover && setIsHovered(false);
+  const handlePressIn = useCallback(() => {
+    if (enableHover) setIsHovered(true);
+    if (Platform.OS !== 'web') {
+      pressScale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
+    }
+  }, [enableHover, pressScale]);
+  const handlePressOut = useCallback(() => {
+    if (enableHover) setIsHovered(false);
+    if (Platform.OS !== 'web') {
+      pressScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+    }
+  }, [enableHover, pressScale]);
 
   const level = item.level?.toUpperCase?.() ?? '—';
   const duration = item.durationMinutes ? `${item.durationMinutes} min` : '—';
@@ -80,20 +101,19 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved, disableHoverEffec
   // Dynamic styles for hover/press effect
   const showHover = enableHover && isHovered;
   const cardDynamicStyle = {
-    transform: [{ scale: showHover ? 1.05 : 1 }],
+    transform: [{ scale: showHover ? 1.02 : 1 }],
     ...(Platform.OS === 'web' && {
-      transition: 'transform 0.2s ease-out, box-shadow 0.2s ease-out',
-      boxShadow: showHover
-        ? '0 12px 28px rgba(0, 0, 0, 0.35), 0 8px 12px rgba(0, 0, 0, 0.22)'
-        : '0 4px 12px rgba(0, 0, 0, 0.15)',
+      transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease-out',
+      ...(showHover ? cardStyles.hover : cardStyles.rest),
     }),
   };
 
   return (
+    <Animated.View style={[Platform.OS !== 'web' && pressAnimatedStyle]}>
     <Pressable
-      onPressIn={Platform.OS !== 'web' ? handlePressIn : undefined}
-      onPressOut={Platform.OS !== 'web' ? handlePressOut : undefined}
-      style={[styles.card, { backgroundColor: '#FFFFFF' }, cardDynamicStyle]}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={[styles.card, cardDynamicStyle]}
       {...webHoverProps}
     >
       {/* Image */}
@@ -159,17 +179,21 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved, disableHoverEffec
         onClose={() => setShowPlayer(false)}
       />
     </Pressable>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: radii.xl,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderRadius: radii['2xl'],
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.48)',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
     elevation: 3,
   },
   imageContainer: {
@@ -192,8 +216,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
   },
   content: {
-    padding: spacing.md,
-    gap: spacing.xs,
+    padding: spacing.lg,
+    gap: spacing.sm,
     minHeight: 120,
   },
   actions: {

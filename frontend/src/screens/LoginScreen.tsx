@@ -19,6 +19,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -799,11 +800,11 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
           onScrollBeginDrag={handleOutsideTap}
         >
-            <View style={styles.card}>
+            <Animated.View entering={FadeInUp.duration(500).delay(100)} style={styles.card}>
               {/* Logo Section */}
               <View style={styles.logoSection}>
                 <CuteAuraLogo size={116} variant={LOGO_VARIANT} />
-                <Text style={styles.title}>Metriful</Text>
+                <Text style={styles.title}>AuraFitness</Text>
                 <Text style={styles.subtitle}>Continue with Apple or Google.</Text>
               </View>
 
@@ -920,7 +921,7 @@ export default function LoginScreen() {
                   <Text style={styles.legalLink} onPress={handleOpenPrivacy}>Privacy Policy</Text>.
                 </Text>
               </View>
-            </View>
+            </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>
     </LinearGradient>

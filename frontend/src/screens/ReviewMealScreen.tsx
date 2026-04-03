@@ -1,3 +1,4 @@
+import { AIDisclaimer } from '@/components/common/AIDisclaimer';
 import { DetectedItemRow } from '@/components/nutrition/DetectedItemRow';
 import { NutritionSummaryCard } from '@/components/nutrition/NutritionSummaryCard';
 import { CameraView } from '@/components/CameraView';
@@ -499,22 +500,12 @@ export function ReviewMealScreen({ route, navigation }: any) {
               style={styles.permissionPrimaryBtn}
             >
               <Text style={styles.permissionPrimaryBtnText}>
-                {permissionDenied ? 'Open Settings' : 'Allow Camera'}
+                {permissionDenied ? 'Open Settings' : 'Continue'}
               </Text>
             </Pressable>
 
             <Pressable onPress={openGallery} style={styles.permissionSecondaryBtn}>
               <Text style={styles.permissionSecondaryBtnText}>Choose from Gallery</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => {
-                if (navigation.canGoBack()) navigation.goBack();
-                else navigation.navigate('Main', { screen: 'Dashboard' });
-              }}
-              style={styles.permissionTertiaryBtn}
-            >
-              <Text style={styles.permissionTertiaryBtnText}>Not now</Text>
             </Pressable>
           </View>
         </SafeAreaView>
@@ -863,6 +854,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
           ) : canSaveMeal ? (
             <Animated.View style={detailsAnimatedStyle}>
               {total && <NutritionSummaryCard total={total} />}
+              <AIDisclaimer />
 
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Detected items</Text>
@@ -1108,14 +1100,6 @@ const styles = StyleSheet.create({
   permissionSecondaryBtnText: {
     color: '#111827',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  permissionTertiaryBtn: {
-    paddingVertical: 10,
-  },
-  permissionTertiaryBtnText: {
-    color: '#6B7280',
-    fontSize: 14,
     fontWeight: '600',
   },
   header: {

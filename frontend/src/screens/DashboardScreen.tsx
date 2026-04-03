@@ -978,7 +978,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   greeting: {
-    color: '#7A6B5C',
+    color: BRAND_COLORS.textWarm,
     marginBottom: 2,
     fontSize: 14,
     letterSpacing: 0.3,

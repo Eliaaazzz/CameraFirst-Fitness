@@ -35,10 +35,11 @@ const ListSkeletonRow: React.FC<{
   const pWidth = getWidth(primaryWidth);
   const sWidth = getWidth(secondaryWidth);
 
+  const isWeb = Platform.OS === 'web';
+
   useEffect(() => {
-    // On Web, useNativeDriver: true with Animated.loop causes thread lock/freeze
-    // Disable animation on Web to prevent browser freeze
-    if (Platform.OS === 'web') {
+    // Web uses CSS animation instead of JS-driven Animated.loop
+    if (isWeb) {
       return;
     }
 
@@ -53,7 +54,7 @@ const ListSkeletonRow: React.FC<{
     return () => {
       animation.stop();
     };
-  }, [shimmer]);
+  }, [shimmer, isWeb]);
 
   const translateX = shimmer.interpolate({
     inputRange: [0, 1],
@@ -69,22 +70,27 @@ const ListSkeletonRow: React.FC<{
           <View style={[styles.line, styles.secondaryLine, { width: sWidth }]} />
         </View>
       </View>
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.shimmerOverlay,
-          {
-            transform: [{ translateX }],
-          },
-        ]}
-      >
-        <LinearGradient
-          colors={['transparent', 'rgba(255,255,255,0.4)', 'transparent']}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
+      {isWeb ? (
+        /* Pure CSS shimmer for web - zero JS thread overhead */
+        <View style={[styles.shimmerOverlay, styles.webShimmer] as any} />
+      ) : (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.shimmerOverlay,
+            {
+              transform: [{ translateX }],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={['transparent', 'rgba(255,255,255,0.4)', 'transparent']}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      )}
     </Card>
   );
 };
@@ -146,4 +152,33 @@ const styles = StyleSheet.create({
   shimmerOverlay: {
     ...StyleSheet.absoluteFillObject,
   },
+  // CSS-based shimmer for web: uses @keyframes via backgroundSize animation
+  webShimmer: Platform.select({
+    web: {
+      background:
+        'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+      backgroundSize: '200% 100%',
+      animationName: 'shimmer',
+      animationDuration: '1.5s',
+      animationTimingFunction: 'ease-in-out',
+      animationIterationCount: 'infinite',
+    } as any,
+    default: {},
+  }),
 });
+
+// Inject CSS keyframes for web shimmer (runs once)
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  const styleId = 'skeleton-shimmer-keyframes';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}

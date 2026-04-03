@@ -296,6 +296,24 @@ export const cardStyles = {
       ...saasShadows.card,
     },
   }),
+  // Hover state for interactive glass cards (web only)
+  hover: Platform.select({
+    web: {
+      boxShadow: '0 2px 8px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.08), 0 0 0 1px rgba(249,115,22,0.08)',
+      transform: 'scale(1.02)',
+      borderColor: 'rgba(249,115,22,0.15)',
+    } as any,
+    default: {},
+  }),
+  // Default resting state shadow for content cards (web only)
+  rest: Platform.select({
+    web: {
+      boxShadow: '0 2px 8px rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.04)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+    } as any,
+    default: {},
+  }),
 };
 
 /**
