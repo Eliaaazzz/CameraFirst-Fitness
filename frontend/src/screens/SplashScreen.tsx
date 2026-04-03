@@ -75,9 +75,9 @@ export default function SplashScreen() {
     hasStartedRestoreRef.current = true;
 
     const initAuth = async () => {
-      console.log('[SplashScreen] Starting auth restoration...');
+      if (__DEV__) console.log('[SplashScreen] Starting auth restoration...');
       await restoreToken();
-      console.log('[SplashScreen] Auth restoration complete');
+      if (__DEV__) console.log('[SplashScreen] Auth restoration complete');
     };
 
     // Small delay to ensure storage is ready
@@ -92,16 +92,16 @@ export default function SplashScreen() {
       return; // Still loading
     }
 
-    console.log('[SplashScreen] Restoration done, isAuthenticated:', isAuthenticated);
+    if (__DEV__) console.log('[SplashScreen] Restoration done, isAuthenticated:', isAuthenticated);
 
     if (isAuthenticated) {
-      console.log('[SplashScreen] User is authenticated, navigating to Main');
+      if (__DEV__) console.log('[SplashScreen] User is authenticated, navigating to Main');
       navigation.reset({
         index: 0,
         routes: [{ name: 'Main' } as any],
       });
     } else {
-      console.log('[SplashScreen] User is NOT authenticated, navigating to Login');
+      if (__DEV__) console.log('[SplashScreen] User is NOT authenticated, navigating to Login');
       navigation.reset({
         index: 0,
         routes: [{ name: 'Login' } as any],

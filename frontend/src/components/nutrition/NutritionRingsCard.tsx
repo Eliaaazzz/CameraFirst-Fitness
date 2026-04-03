@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, G } from 'react-native-svg';
 
+import { AIDisclaimer } from '@/components/common/AIDisclaimer';
 import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES } from '@/components/common/BentoCard';
 import { Text } from '@/components/Text';
 import { useLanguageStore } from '@/stores';
@@ -455,8 +456,27 @@ export function NutritionRingsCard({
               isCompact={isMobile}
             />
           )}
+          {data.bloodSugarRise != null && (
+            <AIDisclaimer compact />
+          )}
         </View>
       </View>
+
+      {/* Citation footer — Apple 1.4.1 requires visible source links */}
+      {onSourcesPress && (
+        <Pressable
+          onPress={onSourcesPress}
+          style={styles.citationFooter}
+          accessibilityRole="link"
+          accessibilityLabel="View nutrition data sources"
+        >
+          <Feather name="book-open" size={12} color="#9CA3AF" />
+          <Text style={styles.citationText}>
+            Sources: USDA Dietary Guidelines, Institute of Medicine DRI
+          </Text>
+          <Feather name="chevron-right" size={12} color="#9CA3AF" />
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -648,6 +668,23 @@ const styles = StyleSheet.create({
   percentText: {
     fontSize: 11,
     fontWeight: '600',
+  },
+
+  // ========== CITATION FOOTER ==========
+  citationFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(156, 163, 175, 0.2)',
+  },
+  citationText: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '500',
   },
 });
 

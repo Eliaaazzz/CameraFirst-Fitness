@@ -5,7 +5,8 @@
  * Provides a structured engagement loop that encourages daily interaction.
  */
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useMemo, useState } from 'react';
+import * as Haptics from 'expo-haptics';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
@@ -93,8 +94,15 @@ function generateTasks(data: TaskData): DailyTask[] {
 
 function TaskItem({ task, index }: { task: DailyTask; index: number }) {
   const checkProgress = useSharedValue(task.completed ? 1 : 0);
+  const prevCompleted = useRef(task.completed);
 
   useEffect(() => {
+    // Fire haptic when task transitions to completed
+    if (task.completed && !prevCompleted.current && Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+    prevCompleted.current = task.completed;
+
     checkProgress.value = withDelay(
       index * 80,
       withTiming(task.completed ? 1 : 0, { duration: 400, easing: Easing.out(Easing.cubic) })

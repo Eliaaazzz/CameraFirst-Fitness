@@ -804,7 +804,7 @@ export default function LoginScreen() {
               {/* Logo Section */}
               <View style={styles.logoSection}>
                 <CuteAuraLogo size={116} variant={LOGO_VARIANT} />
-                <Text style={styles.title}>Metriful</Text>
+                <Text style={styles.title}>AuraFitness</Text>
                 <Text style={styles.subtitle}>Continue with Apple or Google.</Text>
               </View>
 
