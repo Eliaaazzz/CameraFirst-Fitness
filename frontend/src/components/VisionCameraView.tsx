@@ -295,7 +295,7 @@ export const VisionCameraView: React.FC<VisionCameraViewProps> = ({
           <Text variant="body" style={styles.permissionText}>
             We need camera access to scan your meals and estimate portions accurately.
           </Text>
-          <Button title="Grant Permission" variant="primary" onPress={requestPermission} />
+          <Button title="Continue" variant="primary" onPress={requestPermission} />
         </View>
       </View>
     );
