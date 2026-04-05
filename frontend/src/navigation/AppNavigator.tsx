@@ -41,6 +41,7 @@ import { ResultsScreen } from '@/screens/ResultsScreen';
 import { ReviewMealScreen } from '@/screens/ReviewMealScreen';
 import { SavedRecipesScreen } from '@/screens/SavedRecipesScreen';
 import { SavedWorkoutsScreen } from '@/screens/SavedWorkoutsScreen';
+import LandingScreen from '@/screens/LandingScreen';
 import SplashScreen from '@/screens/SplashScreen';
 import { AboutNutritionDataScreen } from '@/screens/AboutNutritionDataScreen';
 import { WeeklyInsightsScreen } from '@/screens/WeeklyInsightsScreen';
@@ -612,6 +613,11 @@ export const AppNavigator = () => {
         <Stack.Screen
           name="Splash"
           component={SplashScreen}
+          options={{ cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter }}
+        />
+        <Stack.Screen
+          name="Landing"
+          component={LandingScreen}
           options={{ cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter }}
         />
         <Stack.Screen

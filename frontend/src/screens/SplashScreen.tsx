@@ -71,9 +71,12 @@ export default function SplashScreen() {
       return;
     }
 
+    // Web: show marketing landing page for unauthenticated users
+    // Mobile: go straight to login
+    const unauthRoute = Platform.OS === 'web' ? 'Landing' : 'Login';
     navigation.reset({
       index: 0,
-      routes: [{ name: isAuthenticated ? 'Main' : 'Login' } as any],
+      routes: [{ name: isAuthenticated ? 'Main' : unauthRoute } as any],
     });
   }, [isAuthenticated, isRestoringToken, navigation]);
 
