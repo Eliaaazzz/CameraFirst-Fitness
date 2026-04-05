@@ -1,5 +1,4 @@
-import { Feather } from '@expo/vector-icons';
-import { Flame } from 'phosphor-react-native';
+import { CaretRight, Flame, Info, BookOpen } from 'phosphor-react-native';
 import React, { useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
@@ -54,12 +53,12 @@ interface NutritionRingsCardProps {
 const RING_COLORS = {
   protein: BRAND_COLORS.secondary, // Cyan
   fat: BRAND_COLORS.primary,       // Primary orange
-  carbs: '#86EFAC',                // Light green
+  carbs: BRAND_COLORS.rings.carbs,  // Olive green
   calories: BRAND_COLORS.macros.calories,
-  bloodSugar: '#E11D48',           // Rose-600 for blood sugar
+  bloodSugar: BRAND_COLORS.rings.bloodSugar, // Blood sugar ring
 };
 
-const TRACK_COLOR = '#E5E7EB';
+const TRACK_COLOR = BRAND_COLORS.rings.track;
 
 // ============================================================================
 // RING CONFIGURATION
@@ -333,7 +332,7 @@ export function NutritionRingsCard({
               accessibilityLabel="View nutrition data sources"
               style={({ pressed }) => pressed && { opacity: 0.5 }}
             >
-              <Feather name="info" size={18} color="#9CA3AF" />
+              <Info size={18} color={BRAND_COLORS.textMuted} />
             </Pressable>
           )}
           <Text variant="caption" style={styles.headerSubtitle} numberOfLines={1}>
@@ -394,7 +393,7 @@ export function NutritionRingsCard({
               <Flame
                 size={isMobile ? 20 : 22}
                 weight="fill"
-                color="#F97316"
+                color={BRAND_COLORS.primary}
               />
               <Text style={
                 isMobile
@@ -470,11 +469,11 @@ export function NutritionRingsCard({
           accessibilityRole="link"
           accessibilityLabel="View nutrition data sources"
         >
-          <Feather name="book-open" size={12} color="#9CA3AF" />
+          <BookOpen size={12} color={BRAND_COLORS.textMuted} />
           <Text style={styles.citationText}>
             Sources: USDA Dietary Guidelines, Institute of Medicine DRI
           </Text>
-          <Feather name="chevron-right" size={12} color="#9CA3AF" />
+          <CaretRight size={12} color={BRAND_COLORS.textMuted} />
         </Pressable>
       )}
     </View>
@@ -521,7 +520,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   headerSubtitle: {
-    color: '#6B7280',
+    color: BRAND_COLORS.textMuted,
     flexShrink: 0,
   },
 
@@ -573,7 +572,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   centerCalories: {
-    color: '#F97316', // Orange Primary
+    color: BRAND_COLORS.primary,
     fontSize: 32,
     lineHeight: 38,
     fontWeight: '800',
@@ -587,12 +586,12 @@ const styles = StyleSheet.create({
   centerDivider: {
     height: 1.5,
     width: 20,
-    backgroundColor: '#06B6D433', // Cyan with opacity
+    backgroundColor: `${BRAND_COLORS.secondary}33`,
     borderRadius: 1,
     marginVertical: 2,
   },
   centerSubtext: {
-    color: '#06B6D4', // Cyan Secondary
+    color: BRAND_COLORS.secondary,
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -639,7 +638,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   legendLabel: {
-    color: '#6B7280',
+    color: BRAND_COLORS.textMuted,
     fontSize: 12,
     fontWeight: '500',
     marginBottom: 1,
@@ -649,12 +648,12 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
   },
   legendCurrent: {
-    color: '#111827',
+    color: BRAND_COLORS.textPrimary,
     fontSize: 15,
     fontWeight: '700',
   },
   legendTarget: {
-    color: '#9CA3AF',
+    color: BRAND_COLORS.textMuted,
     fontSize: 12,
     fontWeight: '400',
     marginLeft: 2,
@@ -683,7 +682,7 @@ const styles = StyleSheet.create({
   },
   citationText: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: BRAND_COLORS.textMuted,
     fontWeight: '500',
   },
 });

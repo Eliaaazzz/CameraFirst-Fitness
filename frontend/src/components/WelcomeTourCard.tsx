@@ -5,7 +5,7 @@
  * Features smooth collapse animation that reflows content below
  */
 
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Camera, PlayCircle, X } from 'phosphor-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -164,7 +164,7 @@ export const WelcomeTourCard: React.FC<WelcomeTourCardProps> = ({
                   end={{ x: 1, y: 0 }}
                   style={styles.tourButtonGradientCompact}
                 >
-                  <MaterialCommunityIcons name="play-circle-outline" size={16} color="#111827" />
+                  <PlayCircle size={16} color="#111827" />
                   <Text variant="caption" weight="bold" style={styles.tourButtonTextCompact}>
                     Take Tour
                   </Text>
@@ -193,11 +193,7 @@ export const WelcomeTourCard: React.FC<WelcomeTourCardProps> = ({
                 colors={['rgba(249, 115, 22, 0.1)', 'rgba(249, 115, 22, 0.2)']} // Light orange tints
                 style={styles.cameraIconBackground}
               >
-                <MaterialCommunityIcons
-                  name="camera"
-                  size={36}
-                  color={BRAND_COLORS.primary}
-                />
+                <Camera size={36} color={BRAND_COLORS.primary} />
               </LinearGradient>
             </Animated.View>
           </View>
@@ -209,7 +205,7 @@ export const WelcomeTourCard: React.FC<WelcomeTourCardProps> = ({
           style={styles.absoluteCloseButton} 
           hitSlop={12}
         >
-          <Feather name="x" size={18} color={BRAND_COLORS.textSecondary} />
+          <X size={18} color={BRAND_COLORS.textSecondary} />
         </Pressable>
       </AnimatedCard>
     </Animated.View>

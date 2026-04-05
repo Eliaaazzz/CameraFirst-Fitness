@@ -1,5 +1,5 @@
 import { TourGuideZone } from '@/components/tour/TourProvider';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { WarningCircle } from 'phosphor-react-native';
 import { useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -112,10 +112,12 @@ export const RecipesScreen = () => {
   const userGoal = currentUser.data?.profile?.fitnessGoal;
   const showSidebar = useSidebarVisible();
 
+  const hasAnimated = useRef(false);
   const staggerEnter = useCallback((index: number) => {
-    if (reduceMotion) return undefined;
+    if (reduceMotion || hasAnimated.current) return undefined;
     return FadeInDown.duration(300).delay(index * 80);
   }, [reduceMotion]);
+  useEffect(() => { hasAnimated.current = true; }, []);
 
   const saved = useSavedRecipes(userId);
   // Use dedicated recipe recommendations API
@@ -316,7 +318,7 @@ export const RecipesScreen = () => {
       <SafeAreaWrapper>
         <Container>
           <EmptyStateCard
-            icon={<MaterialCommunityIcons name="alert-circle-outline" size={32} color={theme.colors.error} />}
+            icon={<WarningCircle size={32} color={theme.colors.error} />}
             title="Unable to load recipes"
             subtitle="Check your network connection and try again."
             ctaLabel="Retry"

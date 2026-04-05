@@ -4,8 +4,8 @@
  * Features smooth animations, stacking, and auto-dismiss
  */
 
-import { Feather } from '@expo/vector-icons';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { CheckCircle, XCircle, Info, Warning, X } from 'phosphor-react-native';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -25,7 +25,7 @@ import { BRAND_COLORS, spacing } from '@/utils';
 // ============================================================================
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
-type FeatherIconName = 'check-circle' | 'x-circle' | 'info' | 'alert-triangle' | 'x';
+type PhosphorIcon = typeof CheckCircle | typeof XCircle | typeof Info | typeof Warning;
 
 interface Toast {
   id: string;
@@ -53,24 +53,24 @@ interface ToastContextValue {
 // TOAST CONFIG
 // ============================================================================
 
-const TOAST_CONFIG: Record<ToastType, { icon: FeatherIconName; color: string; bgColor: string }> = {
+const TOAST_CONFIG: Record<ToastType, { icon: PhosphorIcon; color: string; bgColor: string }> = {
   success: {
-    icon: 'check-circle',
+    icon: CheckCircle,
     color: '#10B981',
     bgColor: 'rgba(16, 185, 129, 0.1)',
   },
   error: {
-    icon: 'x-circle',
+    icon: XCircle,
     color: '#EF4444',
     bgColor: 'rgba(239, 68, 68, 0.1)',
   },
   info: {
-    icon: 'info',
+    icon: Info,
     color: BRAND_COLORS.primary,
     bgColor: 'rgba(167, 139, 250, 0.1)',
   },
   warning: {
-    icon: 'alert-triangle',
+    icon: Warning,
     color: '#F59E0B',
     bgColor: 'rgba(245, 158, 11, 0.1)',
   },
@@ -133,7 +133,7 @@ function ToastItem({ toast, onDismiss, index }: Readonly<ToastItemProps>) {
       >
         {/* Icon */}
         <View style={[styles.iconContainer, { backgroundColor: config.bgColor }]}>
-          <Feather name={config.icon} size={18} color={config.color} />
+          <config.icon size={18} color={config.color} />
         </View>
 
         {/* Text */}
@@ -167,7 +167,7 @@ function ToastItem({ toast, onDismiss, index }: Readonly<ToastItemProps>) {
             onPress={() => onDismiss(toast.id)}
             hitSlop={8}
           >
-            <Feather name="x" size={16} color={BRAND_COLORS.textSecondary} />
+            <X size={16} color={BRAND_COLORS.textSecondary} />
           </Pressable>
         )}
       </Pressable>

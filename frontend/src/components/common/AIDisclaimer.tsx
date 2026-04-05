@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   block: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(249, 115, 22, 0.08)',
+    backgroundColor: BRAND_COLORS.primaryTint,
     padding: spacing.sm,
     borderRadius: spacing.sm,
     gap: spacing.sm,

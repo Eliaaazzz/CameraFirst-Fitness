@@ -2,7 +2,7 @@ import React, { PropsWithChildren, useState } from 'react';
 import { Platform, PressableProps, StyleSheet, ViewProps } from 'react-native';
 import { Card as PaperCard } from 'react-native-paper';
 
-import { radii, saasShadows } from '@/utils';
+import { colors, radii, saasShadows } from '@/utils';
 
 export interface CardProps extends PropsWithChildren<ViewProps> {
   onPress?: PressableProps['onPress'];
@@ -26,8 +26,8 @@ export const Card = ({
   ...rest
 }: CardProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const light = colors.light;
 
-  // Web hover handlers - only for interactive cards
   const webHoverProps =
     Platform.OS === 'web' && enableHover && onPress
       ? {
@@ -40,21 +40,17 @@ export const Card = ({
     Platform.OS === 'web' && enableHover && onPress
       ? {
           cursor: 'pointer' as const,
-          transition: 'border-color 0.2s ease-out',
+          transition: 'border-color 0.18s ease-out, transform 0.18s ease-out',
           ...(isHovered && {
-            borderColor: 'rgba(209, 213, 219, 1)',
+            borderColor: light.borderStrong,
+            transform: 'translateY(-1px)',
           }),
         }
       : {};
 
-  // Add cursor pointer for all interactive cards on web
-  const webInteractiveStyles = Platform.OS === 'web' && onPress
-    ? { cursor: 'pointer' as const }
-    : {};
-
   return (
     <PaperCard
-      style={[styles.base, elevationStyles[elevation], webInteractiveStyles, hoverStyles, style]}
+      style={[styles.base, elevationStyles[elevation], hoverStyles, style]}
       onPress={onPress}
       {...webHoverProps}
       {...(rest as any)}
@@ -66,13 +62,14 @@ export const Card = ({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radii['2xl'],
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.48)',
+    borderRadius: radii.xl,
+    backgroundColor: colors.light.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.light.borderSubtle,
   },
   content: {
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
 });
+

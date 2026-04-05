@@ -1,112 +1,130 @@
 import { Platform } from 'react-native';
 
-/**
- * App theme tokens.
- * Light mode is tuned for a soft "liquid glass" visual language.
- */
+export type ThemeMode = 'light' | 'dark';
+
+const lightColors = {
+  primary: '#C96A34',
+  primaryDark: '#A7552A',
+  primaryLight: '#E6B799',
+  primaryContainer: '#F7E8DC',
+  primaryTint: 'rgba(201, 106, 52, 0.10)',
+
+  secondary: '#2F7A6A',
+  secondaryContainer: '#E4F0EB',
+
+  background: '#F6F2EC',
+  backgroundGradient: ['#F6F2EC', '#FBF7F2', '#FFFDFA'],
+  surface: '#FFFCF8',
+  surfaceElevated: '#FFFFFF',
+  surfaceVariant: '#F3EEE6',
+  surfaceMuted: '#ECE6DE',
+
+  textPrimary: '#171511',
+  textSecondary: '#4E473E',
+  textMuted: '#7B7368',
+  textWarm: '#8C6B4E',
+  textDisabled: '#A79F94',
+
+  error: '#D05C41',
+  success: '#2F855A',
+  warning: '#B88428',
+  info: '#4A6FA5',
+
+  border: '#E3DCD2',
+  borderStrong: '#D6CEBF',
+  borderSubtle: '#EEE7DD',
+  borderHover: '#CFC6B8',
+
+  shadow: 'rgba(23, 21, 17, 0.08)',
+  overlay: 'rgba(15, 13, 10, 0.42)',
+};
+
+const darkColors = {
+  primary: '#E2A479',
+  primaryDark: '#C68457',
+  primaryLight: '#F3C6A7',
+  primaryContainer: '#3A2618',
+  primaryTint: 'rgba(226, 164, 121, 0.12)',
+
+  secondary: '#78B6A5',
+  secondaryContainer: '#183A33',
+
+  background: '#12100E',
+  backgroundGradient: ['#12100E', '#181614', '#1F1C19'],
+  surface: '#1B1815',
+  surfaceElevated: '#221E1B',
+  surfaceVariant: '#2B2521',
+  surfaceMuted: '#312A25',
+
+  textPrimary: '#F7F2EC',
+  textSecondary: '#D2C8BD',
+  textMuted: '#A79C8E',
+  textWarm: '#D6B18E',
+  textDisabled: '#7E756A',
+
+  error: '#F28D72',
+  success: '#69C08C',
+  warning: '#D5AC5D',
+  info: '#86A7D5',
+
+  border: 'rgba(255, 248, 239, 0.12)',
+  borderStrong: 'rgba(255, 248, 239, 0.18)',
+  borderSubtle: 'rgba(255, 248, 239, 0.08)',
+  borderHover: 'rgba(255, 248, 239, 0.22)',
+
+  shadow: 'rgba(0, 0, 0, 0.32)',
+  overlay: 'rgba(0, 0, 0, 0.62)',
+};
+
 export const colors = {
-  light: {
-    // Primary - Orange (Vibrant, Fitness-focused)
-    primary: '#F97316',           // Orange-500
-    primaryDark: '#EA580C',       // Orange-600 (pressed state, text)
-    primaryLight: '#FDBA74',      // Orange-300
-    primaryContainer: '#FFF7ED',  // Orange-50
-    primaryTint: 'rgba(249, 115, 22, 0.10)', // 10% primary for hover backgrounds
-
-    secondary: '#06B6D4',         // Cyan-500
-    secondaryContainer: '#CFFAFE',
-
-    // Surfaces - warm-neutral white
-    background: '#FFFFFF',
-    backgroundGradient: ['#FFFFFF', '#FFF9F2', '#F8FCFF'],
-    surface: '#FFFFFF',
-    surfaceVariant: '#F8FAFC',
-
-    // Text - Strong hierarchy, readable on neutral background
-    // Using deeper grays for clarity - hierarchy via weight/size, not fading
-    textPrimary: '#111827',       // Gray-900 (titles, headings)
-    textSecondary: '#1F2937',     // Gray-800 (nav, descriptions) - deep, not faded
-    textMuted: '#374151',         // Gray-700 (hints, dates) - still readable
-    textDisabled: '#9CA3AF',      // Gray-400 (disabled states only)
-
-    // States - Playful accents only for streak/actions
-    error: '#EF4444',             // danger
-    success: '#10B981',           // protein color
-    warning: '#F59E0B',           // streak/carbs color
-    info: '#3B82F6',
-
-    // Borders - clean neutral
-    border: '#E6ECF2',
-    borderSubtle: '#EEF3F8',
-
-    // Shadow color for consistency
-    shadow: 'rgba(15, 23, 42, 0.06)',
-
-    overlay: 'rgba(0, 0, 0, 0.5)',
-  },
-  dark: {
-    // Primary - Purple (brighter on dark background)
-    primary: '#A78BFA',           // Violet-400
-    primaryDark: '#8B5CF6',       // Violet-500
-    primaryLight: '#C4B5FD',      // Violet-300
-    primaryContainer: '#4C1D95',  // Violet-900
-    
-    secondary: '#22D3EE',         // Cyan-400
-    secondaryContainer: '#164E63', // Cyan-900
-    
-    // Surfaces - Material Dark
-    background: '#1A1A1A',        // Dark Gray (Not pure black)
-    surface: '#252525',           // Elevated surface
-    surfaceVariant: '#333333',    // Higher elevation
-    
-    // Text
-    textPrimary: '#F9FAFB',       // Gray-50
-    textSecondary: '#D1D5DB',     // Gray-300
-    textMuted: '#9CA3AF',         // Gray-400
-    
-    // States
-    error: '#F87171',
-    success: '#34D399',
-    warning: '#FBBF24',
-    info: '#60A5FA',
-    
-    // Borders - subtle
-    border: 'rgba(255, 255, 255, 0.12)',
-    borderHover: 'rgba(255, 255, 255, 0.2)',
-    borderSubtle: 'rgba(255, 255, 255, 0.06)',
-    
-    overlay: 'rgba(0, 0, 0, 0.7)',
-  },
+  light: lightColors,
+  dark: darkColors,
 };
 
 export const typography = {
   fontFamily: {
-    // System fonts with better fallbacks
-    regular: Platform.select({ ios: 'System', android: 'Roboto', default: '-apple-system, BlinkMacSystemFont, Inter, sans-serif' }),
-    medium: Platform.select({ ios: 'System', android: 'Roboto-Medium', default: '-apple-system, BlinkMacSystemFont, Inter, sans-serif' }),
-    bold: Platform.select({ ios: 'System', android: 'Roboto-Bold', default: '-apple-system, BlinkMacSystemFont, Inter, sans-serif' }),
+    regular: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    }),
+    medium: Platform.select({
+      ios: 'System',
+      android: 'Roboto-Medium',
+      default: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    }),
+    bold: Platform.select({
+      ios: 'System',
+      android: 'Roboto-Bold',
+      default: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    }),
   },
   size: {
     xs: 12,
-    sm: 14,
-    md: 16,
-    lg: 18,
+    sm: 13,
+    md: 15,
+    lg: 17,
     xl: 20,
     '2xl': 24,
     '3xl': 32,
-    '4xl': 40,
-  },
-  // Letter spacing for premium feel
-  letterSpacing: {
-    tight: -0.5,    // For headlines - compact, powerful
-    normal: 0,
-    wide: 0.5,      // For labels - elegant
-    widest: 1.5,    // For small caps - luxurious
+    '4xl': 42,
   },
   lineHeight: {
-    tight: 1.2,
-    normal: 1.5,
-    relaxed: 1.75,
+    xs: 16,
+    sm: 18,
+    md: 22,
+    lg: 24,
+    xl: 28,
+    '2xl': 32,
+    '3xl': 40,
+    '4xl': 50,
+  },
+  letterSpacing: {
+    tight: -0.7,
+    medium: -0.35,
+    normal: 0,
+    wide: 0.25,
+    caps: 1.2,
   },
 };
 
@@ -117,62 +135,61 @@ export const spacing = {
   lg: 16,
   xl: 24,
   '2xl': 32,
-  '3xl': 48,
-  '4xl': 64,
+  '3xl': 40,
+  '4xl': 56,
 };
 
 export const radii = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
-  '2xl': 22,
-  pill: 24,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  '2xl': 28,
+  pill: 999,
   full: 9999,
 };
 
-/**
- * Liquid Glass Shadows
- * Deeper offsets & wider radii create the "floating above content" feel
- * central to Apple's Liquid Glass language.
- */
+export const motion = {
+  fast: 150,
+  base: 220,
+  slow: 300,
+};
+
 export const shadows = {
   light: {
     light: {
-      shadowColor: '#0F172A',
+      shadowColor: '#171511',
       shadowOffset: { width: 0, height: 2 },
-      shadowRadius: 10,
-      shadowOpacity: 0.04,
-      elevation: 2,
+      shadowRadius: 6,
+      shadowOpacity: 0.05,
+      elevation: 1,
     },
     medium: {
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 6 },
-      shadowRadius: 18,
-      shadowOpacity: 0.06,
+      shadowColor: '#171511',
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 22,
+      shadowOpacity: 0.07,
       elevation: 4,
     },
     heavy: {
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 10 },
-      shadowRadius: 28,
-      shadowOpacity: 0.08,
+      shadowColor: '#171511',
+      shadowOffset: { width: 0, height: 18 },
+      shadowRadius: 34,
+      shadowOpacity: 0.1,
       elevation: 8,
     },
-    // Liquid glass floating shadow for elevated controls (tab bar, FAB)
     glass: {
-      shadowColor: '#0F172A',
+      shadowColor: '#171511',
       shadowOffset: { width: 0, height: 12 },
-      shadowRadius: 32,
-      shadowOpacity: 0.12,
-      elevation: 10,
+      shadowRadius: 30,
+      shadowOpacity: 0.09,
+      elevation: 6,
     },
-    // Premium glow effect for cards
     glow: {
-      shadowColor: '#10B981',
+      shadowColor: '#C96A34',
       shadowOffset: { width: 0, height: 0 },
-      shadowRadius: 40,
-      shadowOpacity: 0.15,
+      shadowRadius: 28,
+      shadowOpacity: 0.16,
       elevation: 0,
     },
   },
@@ -180,158 +197,114 @@ export const shadows = {
     light: {
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 4 },
-      shadowRadius: 16,
-      shadowOpacity: 0.3,
-      elevation: 4,
+      shadowRadius: 12,
+      shadowOpacity: 0.22,
+      elevation: 2,
     },
     medium: {
       shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 8 },
+      shadowOffset: { width: 0, height: 10 },
       shadowRadius: 24,
-      shadowOpacity: 0.4,
-      elevation: 8,
+      shadowOpacity: 0.28,
+      elevation: 6,
     },
     heavy: {
       shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 12 },
-      shadowRadius: 32,
-      shadowOpacity: 0.5,
-      elevation: 12,
+      shadowOffset: { width: 0, height: 18 },
+      shadowRadius: 34,
+      shadowOpacity: 0.34,
+      elevation: 10,
     },
-    // Premium glow effect for dark mode
+    glass: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 12 },
+      shadowRadius: 28,
+      shadowOpacity: 0.3,
+      elevation: 8,
+    },
     glow: {
-      shadowColor: '#34D399',
+      shadowColor: '#E2A479',
       shadowOffset: { width: 0, height: 0 },
-      shadowRadius: 60,
-      shadowOpacity: 0.2,
+      shadowRadius: 38,
+      shadowOpacity: 0.18,
       elevation: 0,
     },
   },
 };
 
-export const getTheme = (mode: 'light' | 'dark') => ({
+export const chartColors = [
+  '#C96A34',
+  '#2F7A6A',
+  '#8A9B4F',
+  '#B88428',
+  '#8F5E7C',
+];
+
+export const glass = {
+  shell: 'rgba(255, 250, 244, 0.72)',
+  shellStrong: 'rgba(255, 252, 248, 0.84)',
+  shellSubtle: 'rgba(255, 250, 244, 0.56)',
+  stroke: 'rgba(201, 106, 52, 0.08)',
+  edge: 'rgba(23, 21, 17, 0.06)',
+};
+
+export const getTheme = (mode: ThemeMode) => ({
   colors: colors[mode],
   typography,
   spacing,
   radii,
+  motion,
   shadows: shadows[mode],
+  chartColors,
+  glass,
 });
 
-/**
- * Liquid Glass Shadows
- * Floating glass elements need soft, diffused shadows to feel elevated.
- */
 export const saasShadows = {
-  // Standard card shadow - soft floating
-  card: Platform.select({
-    web: {
-      boxShadow: '0 4px 16px rgba(15, 23, 42, 0.05)',
-    } as any,
-    default: {
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 4 },
-      shadowRadius: 16,
-      shadowOpacity: 0.05,
-      elevation: 3,
-    },
-  }),
-  // Elevated card shadow - more prominent float
-  cardElevated: Platform.select({
-    web: {
-      boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
-    } as any,
-    default: {
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 8 },
-      shadowRadius: 24,
-      shadowOpacity: 0.08,
-      elevation: 6,
-    },
-  }),
-  // Subtle shadow - barely there
   subtle: Platform.select({
     web: {
-      boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
+      boxShadow: '0 3px 10px rgba(23, 21, 17, 0.04)',
     } as any,
     default: {
-      shadowColor: '#0F172A',
+      shadowColor: '#171511',
       shadowOffset: { width: 0, height: 2 },
       shadowRadius: 8,
-      shadowOpacity: 0.03,
+      shadowOpacity: 0.04,
       elevation: 1,
     },
   }),
-};
-
-/**
- * Liquid Glass Card Styles
- * Semi-transparent backgrounds with soft borders create the glass layer effect.
- * Content shows through subtly, reinforcing depth & elevation.
- */
-export const cardStyles = {
-  // Standard card - translucent glass surface
-  standard: {
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
-    borderRadius: radii['2xl'],
-    ...saasShadows.card,
-  },
-  // Interactive card - glass with hover feedback
-  interactive: Platform.select({
+  card: Platform.select({
     web: {
-      backgroundColor: 'rgba(255,255,255,0.78)',
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.5)',
-      borderRadius: radii['2xl'],
-      cursor: 'pointer' as const,
-      transition: 'border-color 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out',
-      ...saasShadows.card,
+      boxShadow: '0 14px 34px rgba(23, 21, 17, 0.06)',
     } as any,
     default: {
-      backgroundColor: 'rgba(255,255,255,0.78)',
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.5)',
-      borderRadius: radii['2xl'],
-      ...saasShadows.card,
+      shadowColor: '#171511',
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 22,
+      shadowOpacity: 0.07,
+      elevation: 4,
     },
   }),
-  // Hover state for interactive glass cards (web only)
-  hover: Platform.select({
+  cardElevated: Platform.select({
     web: {
-      boxShadow: '0 2px 8px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.08), 0 0 0 1px rgba(249,115,22,0.08)',
-      transform: 'scale(1.02)',
-      borderColor: 'rgba(249,115,22,0.15)',
+      boxShadow: '0 22px 42px rgba(23, 21, 17, 0.08)',
     } as any,
-    default: {},
-  }),
-  // Default resting state shadow for content cards (web only)
-  rest: Platform.select({
-    web: {
-      boxShadow: '0 2px 8px rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.04)',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-    } as any,
-    default: {},
+    default: {
+      shadowColor: '#171511',
+      shadowOffset: { width: 0, height: 16 },
+      shadowRadius: 30,
+      shadowOpacity: 0.09,
+      elevation: 8,
+    },
   }),
 };
 
-/**
- * Premium Animation Timing
- * Smooth, not snappy - feels more luxurious
- */
-export const animation = {
-  duration: {
-    fast: 150,
-    normal: 250,
-    slow: 400,
-    verySlow: 600,
+export const cardStyles = {
+  rest: {
+    boxShadow: '0 12px 24px rgba(23, 21, 17, 0.05)',
+    borderColor: colors.light.borderSubtle,
   },
-  easing: {
-    // Bezier curves for smooth animations
-    default: 'cubic-bezier(0.4, 0, 0.2, 1)',
-    in: 'cubic-bezier(0.4, 0, 1, 1)',
-    out: 'cubic-bezier(0, 0, 0.2, 1)',
-    bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+  hover: {
+    boxShadow: '0 18px 32px rgba(23, 21, 17, 0.08)',
+    borderColor: colors.light.border,
   },
 };

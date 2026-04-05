@@ -17,7 +17,7 @@ import {
     radii,
     spacing,
 } from '@/utils';
-import { Ionicons } from '@expo/vector-icons';
+import { BookmarkSimple } from 'phosphor-react-native';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, ViewStyle } from 'react-native';
@@ -139,10 +139,10 @@ export const BookmarkButton = ({
       {isLoading ? (
         <ActivityIndicator size="small" color={color} />
       ) : (
-        <Ionicons
-          name={isSaved ? 'bookmark' : 'bookmark-outline'}
+        <BookmarkSimple
           size={size}
           color={iconColor}
+          weight={isSaved ? 'fill' : 'regular'}
         />
       )}
     </AnimatedPressable>

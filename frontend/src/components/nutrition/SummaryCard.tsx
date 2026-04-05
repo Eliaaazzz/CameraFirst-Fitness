@@ -1,11 +1,12 @@
-import { BRAND_COLORS, getTheme } from '@/utils';
-import React, { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
-} from 'react-native-reanimated';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+
+import { BRAND_COLORS, spacing } from '@/utils';
+
+import { Card } from '@/components/Card';
+import { ProgressViz } from '@/components/common/ProgressViz';
+import { Text } from '@/components/Text';
+
 import { MacroPill } from './MacroPill';
 
 interface SummaryCardProps {
@@ -19,25 +20,21 @@ interface SummaryCardProps {
 }
 
 export function SummaryCard({ calories, goal, protein, carbs, fat, netCarbs, sugar }: SummaryCardProps) {
-  // Always use light mode
-  const theme = getTheme('light');
-  const progressWidth = useSharedValue(0);
-
-  useEffect(() => {
-    const percentage = Math.min((calories / goal) * 100, 100);
-    progressWidth.value = withTiming(percentage, { duration: 600 });
-  }, [calories, goal]);
-
-  const progressStyle = useAnimatedStyle(() => ({
-    width: `${progressWidth.value}%`,
-    backgroundColor: theme.colors.primary,
-  }));
+  const remaining = Math.max(goal - calories, 0);
+  const progressLabel = calories >= goal ? 'Goal reached' : `${Math.round(remaining)} kcal left`;
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+    <Card elevation="medium" style={styles.card}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Today</Text>
-        <Text style={[styles.date, { color: theme.colors.textSecondary }]}>
+        <View>
+          <Text variant="label" color={BRAND_COLORS.textMuted}>
+            Today
+          </Text>
+          <Text variant="heading2" weight="bold">
+            Nutrition summary
+          </Text>
+        </View>
+        <Text variant="caption" color={BRAND_COLORS.textSecondary}>
           {new Date().toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
@@ -45,80 +42,66 @@ export function SummaryCard({ calories, goal, protein, carbs, fat, netCarbs, sug
         </Text>
       </View>
 
-      <Text style={[styles.calories, { color: theme.colors.textPrimary }]}>
-        {Math.round(calories)} <Text style={[styles.caloriesGoal, { color: theme.colors.textSecondary }]}>of {goal} kcal</Text>
-      </Text>
-
-      <View style={styles.progressBar}>
-        <Animated.View style={[styles.progressFill, progressStyle]} />
+      <View style={styles.calorieRow}>
+        <View>
+          <Text variant="hero" weight="bold" style={styles.calorieValue}>
+            {Math.round(calories)}
+          </Text>
+          <Text variant="caption" color={BRAND_COLORS.textSecondary}>
+            of {goal} kcal
+          </Text>
+        </View>
+        <View style={styles.statusChip}>
+          <Text variant="caption" weight="semibold" color={BRAND_COLORS.primaryDark}>
+            {progressLabel}
+          </Text>
+        </View>
       </View>
+
+      <ProgressViz value={calories} max={goal} color={BRAND_COLORS.primary} style={styles.progressBar} />
 
       <View style={styles.macros}>
         <MacroPill label="Protein" {...protein} color={BRAND_COLORS.macros.protein} />
         <MacroPill label="Fat" {...fat} color={BRAND_COLORS.macros.fat} />
-        {netCarbs && (
-          <MacroPill label="Net Carbs" {...netCarbs} color={BRAND_COLORS.macros.carbs} />
-        )}
-        {sugar && (
-          <MacroPill label="Sugar" {...sugar} color={BRAND_COLORS.macros.sugar} />
-        )}
+        {netCarbs ? <MacroPill label="Net carbs" {...netCarbs} color={BRAND_COLORS.macros.carbs} /> : null}
+        {sugar ? <MacroPill label="Sugar" {...sugar} color={BRAND_COLORS.macros.sugar} /> : null}
       </View>
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFF',
-    borderRadius: 24,
-    padding: 20,
-    marginHorizontal: 16,
-    marginVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    marginBottom: spacing.lg,
+    padding: spacing.xl,
+    gap: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    gap: spacing.md,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+  calorieRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: spacing.md,
   },
-  date: {
-    fontSize: 14,
-    color: '#999',
+  calorieValue: {
+    letterSpacing: -1,
   },
-  calories: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#000',
-    marginBottom: 12,
-  },
-  caloriesGoal: {
-    fontSize: 18,
-    fontWeight: '400',
-    color: '#999',
+  statusChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: BRAND_COLORS.primaryTint,
   },
   progressBar: {
-    height: 8,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#9C27B0',
-    borderRadius: 4,
+    marginTop: -4,
   },
   macros: {
-    gap: 8,
+    gap: spacing.sm,
   },
 });
+

@@ -8,10 +8,24 @@
  * - Haptic feedback on tap
  */
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  Barbell,
+  BowlFood,
+  CookingPot,
+  Egg,
+  Fire,
+  Fish,
+  IconProps,
+  Leaf,
+  Person,
+  PersonArmsSpread,
+  PersonSimpleRun,
+  PersonSimpleWalk,
+} from 'phosphor-react-native';
+import type { ComponentType } from 'react';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -27,7 +41,28 @@ import {
     radii,
     spacing,
 } from '@/utils';
-import { Platform } from 'react-native';
+
+/** Map of MaterialCommunityIcons names to Phosphor components */
+const ICON_MAP: Record<string, ComponentType<IconProps>> = {
+  // Workout suggestions
+  'fire': Fire,
+  'yoga': PersonArmsSpread,
+  'dumbbell': Barbell,
+  'run-fast': PersonSimpleRun,
+  'human': Person,
+  'human-handsup': PersonArmsSpread,
+  'walk': PersonSimpleWalk,
+  'arm-flex': Barbell,
+  // Recipe suggestions
+  'food-apple': Leaf,
+  'food-drumstick': CookingPot,
+  'cup-water': CookingPot,
+  'pasta': BowlFood,
+  'egg-fried': Egg,
+  'bowl-mix': BowlFood,
+  'fish': Fish,
+  'leaf': Leaf,
+};
 
 export type SuggestionItem = {
   id: string;
@@ -112,11 +147,10 @@ const SuggestionChip = ({
       accessibilityLabel={`Search for ${item.label}`}
     >
       <View style={[styles.iconContainer, { backgroundColor: `${chipColor}20` }]}>
-        <MaterialCommunityIcons
-          name={item.icon}
-          size={16}
-          color={chipColor}
-        />
+        {(() => {
+          const IconComponent = ICON_MAP[item.icon] || Fire;
+          return <IconComponent size={16} color={chipColor} />;
+        })()}
       </View>
       <Text variant="caption" weight="medium" style={styles.chipLabel}>
         {item.label}

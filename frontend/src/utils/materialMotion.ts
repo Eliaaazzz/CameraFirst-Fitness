@@ -200,6 +200,17 @@ export const createMaterialSpring = (damping = 20, stiffness = 100) => ({
 });
 
 /**
+ * Named spring presets for common interaction patterns.
+ * Use these instead of ad-hoc withSpring configs for consistency.
+ */
+export const SpringPresets = {
+  press: { damping: 15, stiffness: 300 },
+  tabBounce: { damping: 12, stiffness: 150 },
+  cardReveal: { damping: 18, stiffness: 100 },
+  celebrate: { damping: 12, stiffness: 200 },
+} as const;
+
+/**
  * Predefined spring configurations for common Material animations
  */
 export const MaterialSprings = {

@@ -1,5 +1,5 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Barbell, CheckCircle, CookingPot, Drop, Flag, Leaf, Moon, Scales } from 'phosphor-react-native';
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Chip, IconButton, ProgressBar } from 'react-native-paper';
@@ -74,18 +74,18 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     }
   };
 
-  // Get goal type icon
+  // Get goal type icon component
   const getGoalIcon = () => {
-    const iconMap: Record<string, string> = {
-      nutrition: 'food-apple',
-      workout: 'dumbbell',
-      hydration: 'water',
-      sleep: 'sleep',
-      weight: 'scale-bathroom',
-      habit: 'check-circle',
-      meal_prep: 'chef-hat',
+    const iconMap: Record<string, React.ComponentType<any>> = {
+      nutrition: Leaf,
+      workout: Barbell,
+      hydration: Drop,
+      sleep: Moon,
+      weight: Scales,
+      habit: CheckCircle,
+      meal_prep: CookingPot,
     };
-    return iconMap[goal.type] || 'flag';
+    return iconMap[goal.type] || Flag;
   };
 
   // Format frequency
@@ -132,7 +132,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={[styles.iconContainer, { backgroundColor: `${goal.color}20` }]}>
-              <MaterialCommunityIcons name={getGoalIcon()} size={24} color={goal.color} />
+              {React.createElement(getGoalIcon(), { size: 24, color: goal.color })}
             </View>
             <View style={styles.titleContainer}>
               <Text variant="body" weight="bold" numberOfLines={1}>

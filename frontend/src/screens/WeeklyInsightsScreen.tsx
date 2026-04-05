@@ -3,7 +3,7 @@
  * Displays weekly nutrition analytics and trends
  */
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ArrowLeft, CalendarDots, ChartPie, Drop, ForkKnife, Grains, Target, Warning, WarningCircle } from 'phosphor-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -85,7 +85,7 @@ export const WeeklyInsightsScreen = () => {
     return (
       <SafeAreaWrapper>
         <View style={styles.errorContainer}>
-          <MaterialCommunityIcons name="alert-circle" size={48} color={BRAND_COLORS.danger} />
+          <WarningCircle size={48} color={BRAND_COLORS.danger} />
           <Text variant="body" style={styles.errorText}>
             Failed to load insights
           </Text>
@@ -133,11 +133,7 @@ export const WeeklyInsightsScreen = () => {
               }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <MaterialCommunityIcons
-                name="arrow-left"
-                size={24}
-                color={BRAND_COLORS.textPrimary}
-              />
+              <ArrowLeft size={24} color={BRAND_COLORS.textPrimary} />
             </Pressable>
             <View style={styles.headerTextContainer}>
               <Text variant="heading2" weight="bold">
@@ -182,7 +178,7 @@ export const WeeklyInsightsScreen = () => {
         {/* Macros Distribution */}
         <Card style={styles.card}>
           <View style={styles.cardHeader}>
-            <MaterialCommunityIcons name="chart-pie" size={24} color={BRAND_COLORS.primary} />
+            <ChartPie size={24} color={BRAND_COLORS.primary} />
             <Text variant="body" weight="semibold" style={styles.cardTitle}>
               Macros Distribution
             </Text>
@@ -190,7 +186,7 @@ export const WeeklyInsightsScreen = () => {
 
           <View style={styles.macrosGrid}>
             <View style={[styles.macroCard, { backgroundColor: BRAND_COLORS.macros.protein + '20' }]}>
-              <MaterialCommunityIcons name="food-drumstick" size={32} color={BRAND_COLORS.macros.protein} />
+              <ForkKnife size={32} color={BRAND_COLORS.macros.protein} />
               <Text variant="heading3" weight="bold" style={styles.macroValue}>
                 {macrosDistribution.protein.grams.toFixed(0)}g
               </Text>
@@ -206,7 +202,7 @@ export const WeeklyInsightsScreen = () => {
             </View>
 
             <View style={[styles.macroCard, { backgroundColor: BRAND_COLORS.macros.carbs + '20' }]}>
-              <MaterialCommunityIcons name="rice" size={32} color={BRAND_COLORS.macros.carbs} />
+              <Grains size={32} color={BRAND_COLORS.macros.carbs} />
               <Text variant="heading3" weight="bold" style={styles.macroValue}>
                 {macrosDistribution.carbs.grams.toFixed(0)}g
               </Text>
@@ -222,7 +218,7 @@ export const WeeklyInsightsScreen = () => {
             </View>
 
             <View style={[styles.macroCard, { backgroundColor: BRAND_COLORS.macros.fat + '20' }]}>
-              <MaterialCommunityIcons name="water" size={32} color={BRAND_COLORS.macros.fat} />
+              <Drop size={32} color={BRAND_COLORS.macros.fat} />
               <Text variant="heading3" weight="bold" style={styles.macroValue}>
                 {macrosDistribution.fat.grams.toFixed(0)}g
               </Text>
@@ -242,7 +238,7 @@ export const WeeklyInsightsScreen = () => {
         {/* Daily Breakdown */}
         <Card style={styles.card}>
           <View style={styles.cardHeader}>
-            <MaterialCommunityIcons name="calendar-week" size={24} color={BRAND_COLORS.primary} />
+            <CalendarDots size={24} color={BRAND_COLORS.primary} />
             <Text variant="body" weight="semibold" style={styles.cardTitle}>
               Daily Breakdown
             </Text>
@@ -288,7 +284,7 @@ export const WeeklyInsightsScreen = () => {
         {sugarWarning.hasWarning && (
           <Card style={[styles.card, styles.warningCard]}>
             <View style={styles.warningHeader}>
-              <MaterialCommunityIcons name="alert" size={24} color={BRAND_COLORS.warning} />
+              <Warning size={24} color={BRAND_COLORS.warning} />
               <Text variant="body" weight="semibold" style={styles.warningTitle}>
                 Sugar Alert
               </Text>
@@ -311,7 +307,7 @@ export const WeeklyInsightsScreen = () => {
         {effectiveUserGoal.dailyCalorieTarget && (
           <Card style={styles.card}>
             <View style={styles.cardHeader}>
-              <MaterialCommunityIcons name="target" size={24} color={BRAND_COLORS.primary} />
+              <Target size={24} color={BRAND_COLORS.primary} />
               <Text variant="body" weight="semibold" style={styles.cardTitle}>
                 Your Goals
               </Text>

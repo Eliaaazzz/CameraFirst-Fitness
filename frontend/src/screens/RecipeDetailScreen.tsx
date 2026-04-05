@@ -5,7 +5,7 @@ import useCurrentUser from '@/hooks/useCurrentUser';
 import { useRecipeById, useRemoveRecipe, useSavedRecipes, useSaveRecipe } from '@/services';
 import type { RecipeImageUrls } from '@/types';
 import { BRAND_COLORS } from '@/utils';
-import { Feather } from '@expo/vector-icons';
+import { ArrowLeft, CheckCircle, Clock, Info, Lightning, List } from 'phosphor-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useMemo } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
@@ -181,7 +181,7 @@ export const RecipeDetailScreen = () => {
               variant="outline"
               size="small"
               onPress={() => navigation.goBack()}
-              icon={<Feather name="arrow-left" size={20} color={TEXT_PRIMARY} />}
+              icon={<ArrowLeft size={20} color={TEXT_PRIMARY} />}
             />
             <View style={styles.headerTitleContainer}>
               <Text style={styles.headerTitle} numberOfLines={1}>
@@ -214,12 +214,12 @@ export const RecipeDetailScreen = () => {
             <Text style={styles.recipeTitle}>{recipe.title}</Text>
             <View style={styles.metaRow}>
               <View style={styles.metaItem}>
-                <Feather name="clock" size={16} color={SECONDARY_COLOR} />
+                <Clock size={16} color={SECONDARY_COLOR} />
                 <Text style={styles.metaText}>{recipe.timeMinutes} min</Text>
               </View>
               {recipe.calories && (
                 <View style={styles.metaItem}>
-                  <Feather name="zap" size={16} color={SECONDARY_COLOR} />
+                  <Lightning size={16} color={SECONDARY_COLOR} />
                   <Text style={styles.metaText}>{recipe.calories} cal</Text>
                 </View>
               )}
@@ -271,7 +271,7 @@ export const RecipeDetailScreen = () => {
           {isLoadingFullRecipe ? (
             <SectionCard
               title="Ingredients"
-              icon={<Feather name="list" size={20} color={PRIMARY_COLOR} />}
+              icon={<List size={20} color={PRIMARY_COLOR} />}
               style={styles.sectionCard}
             >
               <View style={styles.loadingContainer}>
@@ -282,7 +282,7 @@ export const RecipeDetailScreen = () => {
           ) : recipe.ingredients && recipe.ingredients.length > 0 ? (
             <SectionCard
               title={`Ingredients (${recipe.ingredients.length})`}
-              icon={<Feather name="list" size={20} color={PRIMARY_COLOR} />}
+              icon={<List size={20} color={PRIMARY_COLOR} />}
               style={styles.sectionCard}
             >
               <View style={styles.listContainer}>
@@ -298,7 +298,7 @@ export const RecipeDetailScreen = () => {
           ) : (
             <SectionCard style={styles.sectionCard}>
               <View style={styles.emptyState}>
-                <Feather name="info" size={20} color={TEXT_SECONDARY} />
+                <Info size={20} color={TEXT_SECONDARY} />
                 <Text style={styles.emptyText}>Ingredients not available for this recipe.</Text>
               </View>
             </SectionCard>
@@ -308,7 +308,7 @@ export const RecipeDetailScreen = () => {
           {isLoadingFullRecipe ? (
             <SectionCard
               title="Instructions"
-              icon={<Feather name="check-circle" size={20} color={PRIMARY_COLOR} />}
+              icon={<CheckCircle size={20} color={PRIMARY_COLOR} />}
               style={styles.sectionCard}
             >
               <View style={styles.loadingContainer}>
@@ -319,7 +319,7 @@ export const RecipeDetailScreen = () => {
           ) : recipe.steps && (Array.isArray(recipe.steps) ? recipe.steps.length > 0 : Object.keys(recipe.steps).length > 0) ? (
             <SectionCard
               title={`Instructions (${Array.isArray(recipe.steps) ? recipe.steps.length : Object.keys(recipe.steps).length} steps)`}
-              icon={<Feather name="check-circle" size={20} color={PRIMARY_COLOR} />}
+              icon={<CheckCircle size={20} color={PRIMARY_COLOR} />}
               style={styles.sectionCard}
             >
               <View style={styles.listContainer}>
@@ -336,7 +336,7 @@ export const RecipeDetailScreen = () => {
           ) : (
             <SectionCard style={styles.sectionCard}>
               <View style={styles.emptyState}>
-                <Feather name="info" size={20} color={TEXT_SECONDARY} />
+                <Info size={20} color={TEXT_SECONDARY} />
                 <Text style={styles.emptyText}>Cooking steps not available for this recipe.</Text>
               </View>
             </SectionCard>

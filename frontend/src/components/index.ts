@@ -34,15 +34,19 @@ export * from './YouTubePlayerModal';
 
 // Nutrition components
 export { NutritionCard, SAMPLE_NUTRITION_DATA, type NutritionCardData } from './nutrition/NutritionCard';
+export { NutritionRingsSkeleton } from './nutrition/NutritionRingsSkeleton';
 
 // Weight components
 export { WeightLogModal, WeightTrendChart } from './weight';
 
 // Common components
+export { AIDisclaimer } from './common/AIDisclaimer';
 export { BentoCard, BENTO_CARD_STYLES } from './common/BentoCard';
+export { AuraMark } from './common/AuraMark';
 export { ListScreen, type ListScreenProps } from './common/ListScreen';
+export { MetricCard } from './common/MetricCard';
+export { ProgressViz } from './common/ProgressViz';
 export { SearchBar } from './common/SearchBar';
 export { SearchSuggestions, type SuggestionItem } from './common/SearchSuggestions';
 export { StateView } from './common/StateView';
 export { WheelPicker } from './common/WheelPicker';
-

@@ -120,12 +120,10 @@ const styles = StyleSheet.create({
   rightPanel: {
     width: LAYOUT_DIMENSIONS.rightPanelWidth,
     borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255,255,255,0.62)',
-    backgroundColor: 'rgba(255,252,247,0.4)',
+    borderLeftColor: colors.light.borderSubtle,
+    backgroundColor: 'rgba(255,252,248,0.84)',
     ...(Platform.OS === 'web' && ({
-      backdropFilter: 'blur(22px)',
-      WebkitBackdropFilter: 'blur(22px)',
-      boxShadow: 'inset 1px 0 0 rgba(255,170,120,0.16), inset 0 1px 0 rgba(255,255,255,0.7)',
+      boxShadow: 'inset 1px 0 0 rgba(23,21,17,0.04)',
     } as any)),
   },
   rightPanelContent: {

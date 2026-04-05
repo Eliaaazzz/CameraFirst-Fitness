@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { TourGuideZone, TourScrollView, useTourGuideController, useTourNavigation } from '@/components/tour/TourProvider';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import type { IconProps } from 'phosphor-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -24,8 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 
-import { Ionicons } from '@expo/vector-icons';
-import { Barbell, Drop, Fire, Grains } from 'phosphor-react-native';
+import { Barbell, Camera, CameraPlus, CaretRight, Drop, Fire, FlagCheckered, Grains, Leaf, PencilSimple, PersonSimpleRun, Sneaker, Target, User } from 'phosphor-react-native';
 
 import { BentoCard, SafeAreaWrapper, Text } from '@/components';
 import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES } from '@/components/common/BentoCard';
@@ -34,6 +33,7 @@ import { DailyScoreCard, DailyTasksCard, DashboardWidgets, NutritionInsightsCard
 import { ScreenLayout } from '@/components/layout';
 import { MealImage } from '@/components/nutrition/MealImage';
 import { NutritionRingsCard } from '@/components/nutrition/NutritionRingsCard';
+import { NutritionRingsSkeleton } from '@/components/nutrition/NutritionRingsSkeleton';
 import WelcomeTourCard from '@/components/WelcomeTourCard';
 import { SNAP_MEAL_STEP, TODAYS_NUTRITION_STEP } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
@@ -66,10 +66,10 @@ const getContextLine = (streak: number, caloriePercent: number, mealCount: numbe
 };
 
 // Goal type display config - using target/flag icons to differentiate from streak's fire
-const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; icon: string; color: string }> = {
-  fat_loss: { label: 'Fat Loss', icon: 'target', color: '#EF4444' },
-  muscle_gain: { label: 'Build Muscle', icon: 'flag-checkered', color: BRAND_COLORS.macros.protein },
-  diabetes_control: { label: 'Nutrition Balance', icon: 'leaf', color: BRAND_COLORS.macros.carbs },
+const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; Icon: React.ComponentType<IconProps>; color: string }> = {
+  fat_loss: { label: 'Fat Loss', Icon: Target, color: BRAND_COLORS.semantic.error },
+  muscle_gain: { label: 'Build Muscle', Icon: FlagCheckered, color: BRAND_COLORS.macros.protein },
+  diabetes_control: { label: 'Nutrition Balance', Icon: Leaf, color: BRAND_COLORS.macros.carbs },
 };
 
 // Helper to determine meal type from time
@@ -205,11 +205,13 @@ const DashboardScreen = () => {
   // Memoize trend data to avoid recalculating on every render
   const trendData = useMemo(() => buildTrendData(weeklyInsights.data), [weeklyInsights.data]);
 
-  // Staggered enter animation factory
+  // Animate entrance only on first mount — subsequent tab switches are instant
+  const hasAnimated = useRef(false);
   const staggerEnter = useCallback((index: number) => {
-    if (reduceMotion) return undefined;
+    if (reduceMotion || hasAnimated.current) return undefined;
     return FadeInDown.duration(300).delay(index * 80);
   }, [reduceMotion]);
+  useEffect(() => { hasAnimated.current = true; }, []);
 
   // Fetch personalized recommendations based on fitness goal
 
@@ -437,10 +439,10 @@ const DashboardScreen = () => {
             <View style={styles.goalsHeaderLeft}>
               {goalTypeConfig && (
                 <View style={[styles.goalTypeIconSmall, { backgroundColor: `${goalTypeConfig.color}15` }]}>
-                  <MaterialCommunityIcons
-                    name={goalTypeConfig.icon as any}
+                  <goalTypeConfig.Icon
                     size={20}
                     color={goalTypeConfig.color}
+                    weight="regular"
                   />
                 </View>
               )}
@@ -457,7 +459,7 @@ const DashboardScreen = () => {
               style={styles.editGoalsButton}
               onPress={() => navigation.navigate('Profile')}
             >
-              <Feather name="edit-2" size={16} color={BRAND_COLORS.primary} />
+              <PencilSimple size={16} color={BRAND_COLORS.primary} weight="regular" />
             </Pressable>
           </View>
 
@@ -499,13 +501,13 @@ const DashboardScreen = () => {
           {/* Activity targets row */}
           <View style={styles.activityRow}>
             <View style={styles.activityItem}>
-              <MaterialCommunityIcons name="run" size={16} color={BRAND_COLORS.secondary} />
+              <PersonSimpleRun size={16} color={BRAND_COLORS.secondary} weight="regular" />
               <Text variant="caption">
                 {generatedGoals.weeklyActivityPlan.cardio_minutes_per_week} min cardio/week
               </Text>
             </View>
             <View style={styles.activityItem}>
-              <MaterialCommunityIcons name="shoe-print" size={16} color={BRAND_COLORS.primary} />
+              <Sneaker size={16} color={BRAND_COLORS.primary} weight="regular" />
               <Text variant="caption">
                 {generatedGoals.weeklyActivityPlan.steps_per_day_target.toLocaleString()} steps/day
               </Text>
@@ -526,16 +528,16 @@ const DashboardScreen = () => {
       >
         <View style={styles.setGoalsGradient}>
           <View style={styles.setGoalsIconBox}>
-            <MaterialCommunityIcons name="target" size={20} color={BRAND_COLORS.primary} />
+            <Target size={20} color={BRAND_COLORS.primary} weight="regular" />
           </View>
           <View style={styles.setGoalsText}>
             <Text variant="body" weight="bold" style={styles.setGoalsTitle}>Set Your Fitness Goals</Text>
             <Text variant="caption" style={styles.setGoalsSubtext}>
-              Get personalized calorie & macro targets
+              Build clear calorie and macro targets
             </Text>
           </View>
           <View style={styles.setGoalsChevron}>
-            <Feather name="chevron-right" size={16} color={BRAND_COLORS.primary} />
+            <CaretRight size={16} color={BRAND_COLORS.primary} weight="regular" />
           </View>
         </View>
       </Pressable>
@@ -556,9 +558,7 @@ const DashboardScreen = () => {
     >
       {/* Only show loading on initial load; once data exists, keep component alive */}
       {showNutritionLoading ? (
-        <View style={styles.nutritionLoadingContainer}>
-          <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
-        </View>
+        <NutritionRingsSkeleton />
       ) : (
         <NutritionRingsCard
           data={{
@@ -636,7 +636,7 @@ const DashboardScreen = () => {
                     style={styles.profileButton}
                     onPress={() => navigation.navigate('Profile')}
                   >
-                    <Feather name="user" size={22} color={BRAND_COLORS.textPrimary} />
+                    <User size={22} color={BRAND_COLORS.textPrimary} weight="regular" />
                   </Pressable>
                 </View>
               )}
@@ -773,7 +773,7 @@ const DashboardScreen = () => {
                           onPress={handleAddFood}
                           style={({pressed}) => [styles.compactSnapBtn, pressed && styles.compactSnapBtnPressed]}
                         >
-                           <MaterialCommunityIcons name="camera" size={16} color="#FFFFFF" />
+                           <Camera size={16} color="#FFFFFF" weight="regular" />
                            <Text style={styles.compactSnapBtnText}>Snap Meal</Text>
                         </Pressable>
                       </TourGuideZone>
@@ -789,7 +789,7 @@ const DashboardScreen = () => {
                     onPress={handleAddFood}
                   >
                     <View style={styles.emptyMealsIconContainer}>
-                      <MaterialCommunityIcons name="camera-plus" size={24} color={BRAND_COLORS.primary} />
+                      <CameraPlus size={24} color={BRAND_COLORS.primary} weight="regular" />
                     </View>
                     <View style={styles.emptyMealsTextContainer}>
                       <Text variant="body" weight="semibold" style={styles.emptyMealsTitle}>

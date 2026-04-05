@@ -1,14 +1,16 @@
+import React from 'react';
+import { WarningCircle, Tray, ArrowCounterClockwise } from 'phosphor-react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
+
+import { BRAND_COLORS, spacing } from '@/utils';
+
 import { Card } from '@/components/Card';
 import { Text } from '@/components/Text';
-import { BRAND_COLORS, spacing } from '@/utils';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React from 'react';
-import {
-    ActivityIndicator,
-    Pressable,
-    StyleSheet,
-    View,
-} from 'react-native';
 
 interface StateViewProps {
   type: 'loading' | 'error' | 'empty';
@@ -21,10 +23,6 @@ interface StateViewProps {
   children?: React.ReactNode;
 }
 
-/**
- * Unified state component for loading, error, and empty states.
- * Provides consistent UX across all screens.
- */
 export const StateView: React.FC<StateViewProps> = ({
   type,
   title,
@@ -39,78 +37,64 @@ export const StateView: React.FC<StateViewProps> = ({
     switch (type) {
       case 'loading':
         return {
-          title: title || 'Loading...',
-          message: message || 'Please wait a moment',
+          title: title || 'Loading',
+          message: message || 'Please wait a moment.',
           icon: 'loading',
           iconColor: BRAND_COLORS.primary,
         };
       case 'error':
         return {
-          title: title || 'Oops! Something went wrong',
-          message: message || 'Please check your connection and try again',
-          icon: icon || 'alert-circle-outline',
-          iconColor: iconColor || '#EF4444',
+          title: title || 'Something went wrong',
+          message: message || 'Please check your connection and try again.',
+          icon: icon || 'warning-circle',
+          iconColor: iconColor || BRAND_COLORS.error,
         };
       case 'empty':
         return {
           title: title || 'Nothing here yet',
-          message: message || 'Start by adding some items',
-          icon: icon || 'inbox-outline',
-          iconColor: iconColor || '#374151',
-        };
-      default:
-        return {
-          title: '',
-          message: '',
-          icon: 'help-circle-outline',
-          iconColor: '#374151',
+          message: message || 'Start with the next action above.',
+          icon: icon || 'tray',
+          iconColor: iconColor || BRAND_COLORS.textMuted,
         };
     }
   };
 
   const config = getDefaultConfig();
-  const displayTitle = title || config.title;
-  const displayMessage = message || config.message;
-  const displayIcon = icon || config.icon;
-  const displayIconColor = iconColor || config.iconColor;
 
   return (
     <View style={styles.container}>
       <Card style={styles.card}>
         <View style={styles.iconContainer}>
           {type === 'loading' ? (
-            <ActivityIndicator size="large" color={displayIconColor} />
+            <ActivityIndicator size="large" color={config.iconColor} />
           ) : (
-            <MaterialCommunityIcons
-              name={displayIcon as any}
-              size={56}
-              color={displayIconColor}
-            />
+            config.icon === 'warning-circle' ? (
+              <WarningCircle size={52} color={config.iconColor} />
+            ) : (
+              <Tray size={52} color={config.iconColor} />
+            )
           )}
         </View>
 
         <Text variant="heading2" weight="bold" style={styles.title}>
-          {displayTitle}
+          {title || config.title}
         </Text>
 
         <Text variant="body" style={styles.message}>
-          {displayMessage}
+          {message || config.message}
         </Text>
 
         {children}
 
-        {onRetry && type !== 'loading' && (
+        {onRetry && type !== 'loading' ? (
           <Pressable
-            style={({ pressed }) => [
-              styles.retryButton,
-              pressed && styles.retryButtonPressed,
-            ]}
+            style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]}
             onPress={onRetry}
           >
-            <MaterialCommunityIcons name="refresh" size={18} color={BRAND_COLORS.textPrimary} />
+            <ArrowCounterClockwise size={18} color="#FFFFFF" />
             <Text style={styles.retryButtonText}>{retryLabel}</Text>
           </Pressable>
-        )}
+        ) : null}
       </Card>
     </View>
   );
@@ -126,7 +110,7 @@ const styles = StyleSheet.create({
   card: {
     padding: spacing.xl,
     alignItems: 'center',
-    maxWidth: 340,
+    maxWidth: 360,
     width: '100%',
   },
   iconContainer: {
@@ -144,13 +128,13 @@ const styles = StyleSheet.create({
   },
   message: {
     textAlign: 'center',
-    opacity: 0.7,
+    color: BRAND_COLORS.textSecondary,
     marginBottom: spacing.lg,
   },
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BRAND_COLORS.secondary,
+    backgroundColor: BRAND_COLORS.primary,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     borderRadius: 12,
@@ -158,13 +142,14 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   retryButtonPressed: {
-    opacity: 0.8,
+    opacity: 0.88,
   },
   retryButtonText: {
-    color: BRAND_COLORS.textPrimary,
+    color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 14,
   },
 });
 
 export default StateView;
+

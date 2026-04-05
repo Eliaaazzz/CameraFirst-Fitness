@@ -1,7 +1,7 @@
 /**
  * TrustFooter -- Trust-building elements for sensitive screens
  *
- * Used on Login, Paywall, and Profile screens to reassure users
+ * Used on Login and Profile screens to reassure users
  * about data privacy and security.
  *
  * Inspired by: Stripe checkout trust badges / Apple privacy labels --
@@ -25,12 +25,13 @@ export function TrustFooter({ variant = 'default' }: TrustFooterProps) {
   if (variant === 'minimal') {
     return (
       <View style={styles.minimalContainer}>
+        <Lock size={12} color={BRAND_COLORS.textMuted} weight="regular" />
         <Text
           variant="label"
           style={styles.minimalText}
           color={BRAND_COLORS.textMuted}
         >
-          {'\uD83D\uDD12 Your data stays private'}
+          Your data stays private
         </Text>
       </View>
     );
@@ -91,7 +92,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   minimalContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
   },
   minimalText: {
     fontSize: 11,

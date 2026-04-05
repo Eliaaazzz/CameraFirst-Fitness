@@ -1,8 +1,18 @@
-import { colors } from '@/utils';
+import { colors, typography } from '@/utils';
 import React, { PropsWithChildren } from 'react';
 import { Platform, Text as RNText, TextStyle } from 'react-native';
 
-type TextVariant = 'hero' | 'heading1' | 'heading2' | 'heading3' | 'heading4' | 'body' | 'caption' | 'label';
+type TextVariant =
+  | 'hero'
+  | 'heading1'
+  | 'heading2'
+  | 'heading3'
+  | 'heading4'
+  | 'body'
+  | 'caption'
+  | 'label'
+  | 'metric'
+  | 'metricSmall';
 type TextWeight = 'regular' | 'medium' | 'semibold' | 'bold';
 
 export interface TextProps {
@@ -14,17 +24,72 @@ export interface TextProps {
   children?: React.ReactNode;
   numberOfLines?: number;
   selectable?: boolean;
+  allowFontScaling?: boolean;
+  onPress?: () => void;
 }
 
-const variantStyles: Record<TextVariant, { fontSize: number; lineHeight: number; defaultWeight: TextWeight; letterSpacing?: number }> = {
-  hero: { fontSize: 40, lineHeight: 48, defaultWeight: 'bold', letterSpacing: -0.8 },
-  heading1: { fontSize: 28, lineHeight: 36, defaultWeight: 'bold', letterSpacing: -0.5 },
-  heading2: { fontSize: 22, lineHeight: 28, defaultWeight: 'semibold', letterSpacing: -0.3 },
-  heading3: { fontSize: 18, lineHeight: 24, defaultWeight: 'semibold', letterSpacing: -0.2 },
-  heading4: { fontSize: 16, lineHeight: 22, defaultWeight: 'semibold' },
-  body: { fontSize: 15, lineHeight: 22, defaultWeight: 'regular' },
-  caption: { fontSize: 13, lineHeight: 18, defaultWeight: 'regular' },
-  label: { fontSize: 12, lineHeight: 16, defaultWeight: 'medium' },
+const variantStyles: Record<
+  TextVariant,
+  { fontSize: number; lineHeight: number; defaultWeight: TextWeight; letterSpacing?: number; textTransform?: TextStyle['textTransform'] }
+> = {
+  hero: {
+    fontSize: typography.size['4xl'],
+    lineHeight: typography.lineHeight['4xl'],
+    defaultWeight: 'bold',
+    letterSpacing: typography.letterSpacing.tight,
+  },
+  heading1: {
+    fontSize: typography.size['3xl'],
+    lineHeight: typography.lineHeight['3xl'],
+    defaultWeight: 'bold',
+    letterSpacing: typography.letterSpacing.tight,
+  },
+  heading2: {
+    fontSize: typography.size['2xl'],
+    lineHeight: typography.lineHeight['2xl'],
+    defaultWeight: 'semibold',
+    letterSpacing: typography.letterSpacing.medium,
+  },
+  heading3: {
+    fontSize: typography.size.xl,
+    lineHeight: typography.lineHeight.xl,
+    defaultWeight: 'semibold',
+    letterSpacing: typography.letterSpacing.medium,
+  },
+  heading4: {
+    fontSize: typography.size.lg,
+    lineHeight: typography.lineHeight.lg,
+    defaultWeight: 'semibold',
+  },
+  body: {
+    fontSize: typography.size.md,
+    lineHeight: typography.lineHeight.md,
+    defaultWeight: 'regular',
+  },
+  caption: {
+    fontSize: typography.size.sm,
+    lineHeight: typography.lineHeight.sm,
+    defaultWeight: 'regular',
+  },
+  label: {
+    fontSize: typography.size.xs,
+    lineHeight: typography.lineHeight.xs,
+    defaultWeight: 'medium',
+    letterSpacing: typography.letterSpacing.caps,
+    textTransform: 'uppercase',
+  },
+  metric: {
+    fontSize: 36,
+    lineHeight: 40,
+    defaultWeight: 'bold',
+    letterSpacing: typography.letterSpacing.tight,
+  },
+  metricSmall: {
+    fontSize: 24,
+    lineHeight: 28,
+    defaultWeight: 'bold',
+    letterSpacing: typography.letterSpacing.medium,
+  },
 };
 
 const weightValues: Record<TextWeight, TextStyle['fontWeight']> = {
@@ -34,41 +99,39 @@ const weightValues: Record<TextWeight, TextStyle['fontWeight']> = {
   bold: '700',
 };
 
-/**
- * Text - Material Design 3 Style
- * Clean typography system
- */
-export const Text = ({ 
-  variant = 'body', 
+export const Text = ({
+  variant = 'body',
   weight,
-  color, 
+  color,
   muted,
-  style, 
-  children, 
-  ...rest 
+  style,
+  children,
+  allowFontScaling = true,
+  ...rest
 }: PropsWithChildren<TextProps>) => {
   const config = variantStyles[variant];
   const finalWeight = weight || config.defaultWeight;
-  // Always use light mode colors for better readability
   const light = colors.light;
-  
-  const textColor = color || (muted ? light.textMuted : light.textPrimary);
 
   return (
     <RNText
       {...rest}
+      allowFontScaling={allowFontScaling}
       style={[
         {
-          color: textColor,
+          color: color || (muted ? light.textMuted : light.textPrimary),
           fontSize: config.fontSize,
           lineHeight: config.lineHeight,
           fontWeight: weightValues[finalWeight],
-          ...(config.letterSpacing !== undefined && { letterSpacing: config.letterSpacing }),
-          fontFamily: Platform.select({
-            ios: 'System',
-            android: 'Roboto',
-            default: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }),
+          letterSpacing: config.letterSpacing,
+          textTransform: config.textTransform,
+          fontFamily:
+            finalWeight === 'bold' || finalWeight === 'semibold'
+              ? typography.fontFamily.bold
+              : finalWeight === 'medium'
+                ? typography.fontFamily.medium
+                : typography.fontFamily.regular,
+          ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
         },
         style,
       ]}

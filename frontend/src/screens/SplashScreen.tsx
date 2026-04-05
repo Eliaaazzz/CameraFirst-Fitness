@@ -1,5 +1,4 @@
 import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -12,61 +11,46 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import CuteAuraLogo from '@/components/common/CuteAuraLogo';
-import { Text } from '@/components/Text';
+import { AuraMark, Text } from '@/components';
 import { useAppleCredentialCheck } from '@/hooks/useAppleCredentialCheck';
 import { useAuthStore } from '@/stores';
 import { BRAND_COLORS } from '@/utils';
 
-/**
- * Splash/Loading screen with branded entrance animation.
- * Uses the CuteAuraLogo with fade+zoom entrance, brand gradient background,
- * and a custom pulsing loading indicator.
- */
 export default function SplashScreen() {
   const navigation = useNavigation();
   const { isRestoringToken, isAuthenticated, restoreToken } = useAuthStore();
   const hasStartedRestoreRef = useRef(false);
 
-  // Animation values
   const logoOpacity = useSharedValue(0);
-  const logoScale = useSharedValue(0.8);
+  const logoScale = useSharedValue(0.9);
   const textOpacity = useSharedValue(0);
   const dotScale1 = useSharedValue(0.6);
   const dotScale2 = useSharedValue(0.6);
   const dotScale3 = useSharedValue(0.6);
 
-  // Check Apple credential state after auth is restored (iOS only)
   useAppleCredentialCheck();
 
   useEffect(() => {
-    // Logo entrance
-    logoOpacity.value = withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) });
-    logoScale.value = withTiming(1, { duration: 700, easing: Easing.out(Easing.back(1.2)) });
+    logoOpacity.value = withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) });
+    logoScale.value = withTiming(1, { duration: 620, easing: Easing.out(Easing.back(1.05)) });
+    textOpacity.value = withDelay(220, withTiming(1, { duration: 420, easing: Easing.out(Easing.cubic) }));
 
-    // App name fade in
-    textOpacity.value = withDelay(
-      300,
-      withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) })
-    );
-
-    // Loading dots pulse
     const dotPulse = (delay: number) =>
       withDelay(
         delay,
         withRepeat(
           withSequence(
-            withTiming(1, { duration: 400, easing: Easing.inOut(Easing.ease) }),
-            withTiming(0.6, { duration: 400, easing: Easing.inOut(Easing.ease) })
+            withTiming(1, { duration: 360, easing: Easing.inOut(Easing.ease) }),
+            withTiming(0.6, { duration: 360, easing: Easing.inOut(Easing.ease) })
           ),
           -1,
           true
         )
       );
-    dotScale1.value = dotPulse(500);
-    dotScale2.value = dotPulse(633);
-    dotScale3.value = dotPulse(766);
-  }, []);
+    dotScale1.value = dotPulse(480);
+    dotScale2.value = dotPulse(600);
+    dotScale3.value = dotPulse(720);
+  }, [dotScale1, dotScale2, dotScale3, logoOpacity, logoScale, textOpacity]);
 
   useEffect(() => {
     if (hasStartedRestoreRef.current) {
@@ -75,39 +59,23 @@ export default function SplashScreen() {
     hasStartedRestoreRef.current = true;
 
     const initAuth = async () => {
-      if (__DEV__) console.log('[SplashScreen] Starting auth restoration...');
       await restoreToken();
-      if (__DEV__) console.log('[SplashScreen] Auth restoration complete');
     };
 
-    // Small delay to ensure storage is ready
-    const timer = setTimeout(initAuth, 500);
-
+    const timer = setTimeout(initAuth, 300);
     return () => clearTimeout(timer);
   }, [restoreToken]);
 
-  // Navigate once restoration is complete
   useEffect(() => {
     if (isRestoringToken) {
-      return; // Still loading
+      return;
     }
 
-    if (__DEV__) console.log('[SplashScreen] Restoration done, isAuthenticated:', isAuthenticated);
-
-    if (isAuthenticated) {
-      if (__DEV__) console.log('[SplashScreen] User is authenticated, navigating to Main');
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main' } as any],
-      });
-    } else {
-      if (__DEV__) console.log('[SplashScreen] User is NOT authenticated, navigating to Login');
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' } as any],
-      });
-    }
-  }, [isRestoringToken, isAuthenticated, navigation]);
+    navigation.reset({
+      index: 0,
+      routes: [{ name: isAuthenticated ? 'Main' : 'Login' } as any],
+    });
+  }, [isAuthenticated, isRestoringToken, navigation]);
 
   const logoAnimatedStyle = useAnimatedStyle(() => ({
     opacity: logoOpacity.value,
@@ -133,13 +101,10 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient
-        colors={['#FFFFFF', '#FFF9F2']}
-        style={StyleSheet.absoluteFillObject}
-      />
+      <View style={styles.backgroundHalo} />
 
       <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
-        <CuteAuraLogo size={120} variant="sparkle" />
+        <AuraMark size={104} />
       </Animated.View>
 
       <Animated.View style={[styles.textContainer, textAnimatedStyle]}>
@@ -147,15 +112,14 @@ export default function SplashScreen() {
           AuraFitness
         </Text>
         <Text variant="caption" style={styles.tagline}>
-          Your wellness companion
+          Smart logging. Clear routines.
         </Text>
       </Animated.View>
 
-      {/* Custom loading dots */}
       <View style={styles.dotsContainer}>
         <Animated.View style={[styles.dot, { backgroundColor: BRAND_COLORS.primary }, dot1Style]} />
-        <Animated.View style={[styles.dot, { backgroundColor: BRAND_COLORS.primaryDark }, dot2Style]} />
-        <Animated.View style={[styles.dot, { backgroundColor: BRAND_COLORS.primary }, dot3Style]} />
+        <Animated.View style={[styles.dot, { backgroundColor: BRAND_COLORS.secondary }, dot2Style]} />
+        <Animated.View style={[styles.dot, { backgroundColor: BRAND_COLORS.primaryDark }, dot3Style]} />
       </View>
     </View>
   );
@@ -166,6 +130,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: BRAND_COLORS.background,
+  },
+  backgroundHalo: {
+    position: 'absolute',
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: 'rgba(201, 106, 52, 0.08)',
+    ...(Platform.OS === 'web' && ({
+      filter: 'blur(80px)',
+    } as any)),
   },
   logoContainer: {
     marginBottom: 16,
@@ -194,3 +169,4 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 });
+

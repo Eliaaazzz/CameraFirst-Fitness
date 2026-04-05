@@ -3,7 +3,7 @@
  * Displays paginated list of user's meal logs with date filtering
  */
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ArrowLeft, CaretRight, Coffee, Cookie, Fire, ForkKnife, Orange, WarningCircle } from 'phosphor-react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
 import {
@@ -77,17 +77,17 @@ export const MealHistoryScreen = () => {
     const dateStr = formatDate(item.consumedAt);
     const timeStr = formatTime(item.consumedAt);
 
-    // Get meal type icon - returns null for unrecognized types
-    const getMealIcon = (type: string): string | null => {
+    // Get meal type icon as Phosphor component - returns null for unrecognized types
+    const getMealTypeIcon = (type: string, size: number, color: string): React.ReactNode => {
       switch (type.toLowerCase()) {
         case 'breakfast':
-          return 'coffee';
+          return <Coffee size={size} color={color} />;
         case 'lunch':
-          return 'food-apple';
+          return <Orange size={size} color={color} />;
         case 'dinner':
-          return 'food-steak';
+          return <ForkKnife size={size} color={color} />;
         case 'snack':
-          return 'cookie';
+          return <Cookie size={size} color={color} />;
         default:
           return null;
       }
@@ -97,7 +97,7 @@ export const MealHistoryScreen = () => {
     const isKnownMealType = ['breakfast', 'lunch', 'dinner', 'snack'].includes(
       item.mealType.toLowerCase()
     );
-    const mealIcon = getMealIcon(item.mealType);
+    const mealIcon = getMealTypeIcon(item.mealType, 16, BRAND_COLORS.primary);
 
     const handleViewDetails = () => {
       (navigation as any).navigate('ReviewMeal', { meal: item });
@@ -111,11 +111,7 @@ export const MealHistoryScreen = () => {
             <Text variant="caption" style={styles.dateTimeText}>
               {dateStr} • {timeStr}
             </Text>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={20}
-              color={BRAND_COLORS.textSecondary}
-            />
+            <CaretRight size={20} color={BRAND_COLORS.textSecondary} />
           </View>
 
           <View style={styles.mealCardRow}>
@@ -124,7 +120,7 @@ export const MealHistoryScreen = () => {
               imageUrl={item.imageUrl}
               size={80}
               borderRadius={12}
-              fallbackIcon={mealIcon || 'silverware-fork-knife'}
+              fallbackIcon="silverware-fork-knife"
               fallbackIconSize={36}
             />
 
@@ -133,13 +129,7 @@ export const MealHistoryScreen = () => {
               {/* Meal Type - only show for known types */}
               {isKnownMealType && (
                 <View style={styles.mealTypeRow}>
-                  {mealIcon && (
-                    <MaterialCommunityIcons
-                      name={mealIcon as any}
-                      size={16}
-                      color={BRAND_COLORS.primary}
-                    />
-                  )}
+                  {mealIcon}
                   <Text variant="body" weight="semibold" style={styles.mealType}>
                     {item.mealType.charAt(0).toUpperCase() + item.mealType.slice(1)}
                   </Text>
@@ -165,7 +155,7 @@ export const MealHistoryScreen = () => {
               {/* Nutrition Summary */}
               <View style={styles.nutritionRow}>
                 <View style={styles.nutritionItem}>
-                  <MaterialCommunityIcons name="fire" size={14} color="#EF4444" />
+                  <Fire size={14} color="#EF4444" />
                   <Text variant="caption" weight="semibold" style={styles.nutritionValue}>
                     {item.totalCalories}
                   </Text>
@@ -207,11 +197,7 @@ export const MealHistoryScreen = () => {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons
-        name="food-off"
-        size={64}
-        color={BRAND_COLORS.textSecondary}
-      />
+      <ForkKnife size={64} color={BRAND_COLORS.textSecondary} />
       <Text variant="body" style={styles.emptyText}>
         No meal history yet
       </Text>
@@ -235,7 +221,7 @@ export const MealHistoryScreen = () => {
     return (
       <SafeAreaWrapper>
         <View style={styles.errorContainer}>
-          <MaterialCommunityIcons name="alert-circle" size={48} color="#EF4444" />
+          <WarningCircle size={48} color="#EF4444" />
           <Text variant="body" style={styles.errorText}>
             Failed to load meal history
           </Text>
@@ -263,11 +249,7 @@ export const MealHistoryScreen = () => {
               onPress={() => navigation.goBack()}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <MaterialCommunityIcons
-                name="arrow-left"
-                size={24}
-                color={BRAND_COLORS.textPrimary}
-              />
+              <ArrowLeft size={24} color={BRAND_COLORS.textPrimary} />
             </Pressable>
             <View style={styles.headerTextContainer}>
               <Text variant="heading2" weight="bold">

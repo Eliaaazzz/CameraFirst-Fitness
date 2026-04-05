@@ -1,61 +1,31 @@
-import { AddFoodButton } from '@/components/nutrition/AddFoodButton';
-import { MealListItem } from '@/components/nutrition/MealListItem';
-import { SummaryCard } from '@/components/nutrition/SummaryCard';
-import { SafeAreaWrapper } from '@/components/SafeAreaWrapper';
-import { useDailyNutrition } from '@/hooks/useDailyNutrition';
-import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback } from 'react';
 import {
-    ActionSheetIOS,
-    Alert,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActionSheetIOS,
+  Alert,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { Camera, CheckCircle, Target } from 'phosphor-react-native';
+
+import { EmptyStateCard, MetricCard, SafeAreaWrapper, Text } from '@/components';
+import { AddFoodButton } from '@/components/nutrition/AddFoodButton';
+import { MealListItem } from '@/components/nutrition/MealListItem';
+import { SummaryCard } from '@/components/nutrition/SummaryCard';
+import { useDailyNutrition } from '@/hooks/useDailyNutrition';
+import { BRAND_COLORS, spacing } from '@/utils';
 
 export function NutritionScreen({ navigation }: any) {
   const { data, refresh } = useDailyNutrition();
 
   useFocusEffect(
     useCallback(() => {
-      // Refresh when returning from ReviewMeal screen
       refresh();
     }, [refresh])
   );
-
-  const handleAddPress = async () => {
-    // On web, directly open the gallery (better UX than ActionSheet/Alert)
-    if (Platform.OS === 'web') {
-      await handleChooseFromGallery();
-      return;
-    }
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Cancel', 'Take Photo', 'Choose from Gallery'],
-          cancelButtonIndex: 0,
-        },
-        async (buttonIndex) => {
-          if (buttonIndex === 1) {
-            await handleTakePhoto();
-          } else if (buttonIndex === 2) {
-            await handleChooseFromGallery();
-          }
-        }
-      );
-    } else {
-      Alert.alert('Add Food', 'Choose an option', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Take Photo', onPress: handleTakePhoto },
-        { text: 'Choose from Gallery', onPress: handleChooseFromGallery },
-      ]);
-    }
-  };
-
 
   const handleTakePhoto = async () => {
     try {
@@ -66,7 +36,6 @@ export function NutritionScreen({ navigation }: any) {
 
       navigation.navigate('ReviewMeal', { openCamera: true });
     } catch (err) {
-      console.error('Camera capture failed', err);
       Alert.alert('Error', 'Could not take photo: ' + (err as Error)?.message);
     }
   };
@@ -98,18 +67,69 @@ export function NutritionScreen({ navigation }: any) {
         Alert.alert('No image selected', 'Please pick a photo to continue.');
       }
     } catch (err) {
-      console.error('Gallery pick failed', err);
       Alert.alert('Error', 'Could not open gallery: ' + (err as Error)?.message);
     }
   };
 
+  const handleAddPress = async () => {
+    if (Platform.OS === 'web') {
+      await handleChooseFromGallery();
+      return;
+    }
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Photo', 'Choose from Gallery'],
+          cancelButtonIndex: 0,
+        },
+        async (buttonIndex) => {
+          if (buttonIndex === 1) {
+            await handleTakePhoto();
+          } else if (buttonIndex === 2) {
+            await handleChooseFromGallery();
+          }
+        }
+      );
+      return;
+    }
+
+    Alert.alert('Log meal', 'Choose an option', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Take Photo', onPress: handleTakePhoto },
+      { text: 'Choose from Gallery', onPress: handleChooseFromGallery },
+    ]);
+  };
+
+  const caloriesRemaining = Math.max(data.goal - data.calories, 0);
+
   return (
     <SafeAreaWrapper style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Nutrition</Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text variant="heading1" weight="bold">
+            Nutrition
+          </Text>
+          <Text variant="body" color={BRAND_COLORS.textSecondary} style={styles.subtitle}>
+            Log faster, then focus on the signals that matter today.
+          </Text>
+        </View>
 
-      <ScrollView style={{ flex: 1 }}>
+        <View style={styles.metricsRow}>
+          <MetricCard
+            label="Meals logged"
+            value={String(data.meals.length)}
+            hint="Captured today"
+            icon={<CheckCircle size={16} color={BRAND_COLORS.secondary} />}
+          />
+          <MetricCard
+            label="Remaining"
+            value={`${Math.round(caloriesRemaining)} kcal`}
+            hint={caloriesRemaining === 0 ? 'Goal reached' : 'Until today’s target'}
+            icon={<Target size={16} color={BRAND_COLORS.primaryDark} />}
+          />
+        </View>
+
         <SummaryCard
           calories={data.calories}
           goal={data.goal}
@@ -123,11 +143,31 @@ export function NutritionScreen({ navigation }: any) {
         <AddFoodButton onPress={handleAddPress} />
 
         <View style={styles.mealsSection}>
-          <Text style={styles.sectionTitle}>Today's meals</Text>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text variant="heading3" weight="semibold">
+                Today’s log
+              </Text>
+              <Text variant="caption" color={BRAND_COLORS.textSecondary}>
+                Review what you’ve logged so far.
+              </Text>
+            </View>
+          </View>
+
           {data.meals.length === 0 ? (
-            <Text style={styles.emptyText}>No meals logged yet</Text>
+            <EmptyStateCard
+              icon={<Camera size={28} color={BRAND_COLORS.primary} />}
+              title="Your first meal log starts here"
+              subtitle="Use a photo when you want speed, then review the details before saving."
+              ctaLabel="Log first meal"
+              onCtaPress={handleAddPress}
+            />
           ) : (
-            data.meals.map((meal) => <MealListItem key={meal.id} meal={meal} />)
+            <View style={styles.mealList}>
+              {data.meals.map((meal) => (
+                <MealListItem key={meal.id} meal={meal} />
+              ))}
+            </View>
           )}
         </View>
       </ScrollView>
@@ -139,32 +179,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: 'transparent',
-    marginBottom: 10,
+  content: {
+    padding: spacing.lg,
+    gap: spacing.lg,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1F2937',
+  header: {
+    gap: spacing.sm,
+  },
+  subtitle: {
+    maxWidth: 420,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
   },
   mealsSection: {
-    marginTop: 24,
-    paddingBottom: 32,
+    gap: spacing.md,
+    paddingBottom: spacing['2xl'],
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginHorizontal: 16,
-    marginBottom: 12,
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
-  emptyText: {
-    textAlign: 'center',
-    color: '#374151',
-    marginTop: 20,
-    fontSize: 16,
+  mealList: {
+    gap: spacing.sm,
   },
 });
+

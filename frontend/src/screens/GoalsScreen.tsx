@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { SignOut, Target } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { Alert, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -174,7 +174,7 @@ export const GoalsScreen = () => {
   const renderEmptyState = () => (
     <Card style={styles.emptyState}>
       <View style={styles.iconWrapper}>
-        <Feather name="target" size={48} color="#4ECDC4" />
+        <Target size={48} color="#4ECDC4" />
       </View>
       <Text variant="heading2" weight="bold" style={styles.emptyTitle}>
         No goals yet
@@ -232,7 +232,7 @@ export const GoalsScreen = () => {
               Goals
             </Text>
             <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-              <Feather name="log-out" size={20} color="#EF4444" />
+              <SignOut size={20} color="#EF4444" />
             </TouchableOpacity>
           </View>
           <Text variant="body" style={styles.subtitle}>

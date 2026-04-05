@@ -1,10 +1,27 @@
 import React, { PropsWithChildren, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 
-import { Feather } from '@expo/vector-icons';
+import {
+  CaretRight,
+  DotsThree,
+  Gear,
+  IconProps,
+  Pencil,
+  Plus,
+} from 'phosphor-react-native';
+import type { ComponentType } from 'react';
 
 import { Text } from '@/components/Text';
 import { BRAND_COLORS, colors, saasShadows, spacing } from '@/utils';
+
+/** Map of Feather-style icon names to Phosphor components */
+const ICON_MAP: Record<string, ComponentType<IconProps>> = {
+  'chevron-right': CaretRight,
+  'more-horizontal': DotsThree,
+  'settings': Gear,
+  'edit': Pencil,
+  'plus': Plus,
+};
 
 // ============================================================================
 // TYPES
@@ -184,7 +201,10 @@ function HeaderActionButton({ icon, onPress, label }: HeaderActionButtonProps) {
         onMouseLeave: () => setIsHovered(false),
       })}
     >
-      <Feather name={icon as any} size={16} color={BRAND_COLORS.primary} />
+      {(() => {
+        const IconComponent = ICON_MAP[icon] || DotsThree;
+        return <IconComponent size={16} color={BRAND_COLORS.primary} />;
+      })()}
     </Pressable>
   );
 }

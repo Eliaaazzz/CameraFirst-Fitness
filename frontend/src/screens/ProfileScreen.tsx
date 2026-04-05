@@ -1,12 +1,40 @@
 import { api } from '@/services/apiClient';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  ArrowRight,
+  Barbell,
+  Bell,
+  BookOpenText,
+  Camera,
+  CaretRight,
+  ChartLine,
+  ChartPie,
+  CheckCircle,
+  Fire,
+  ForkKnife,
+  GenderFemale,
+  GenderMale,
+  House,
+  Leaf,
+  MagicWand,
+  PersonSimpleRun,
+  Question,
+  SignOut,
+  Sneaker,
+  Target,
+  User,
+  UserCircleMinus,
+  UserGear,
+  WarningCircle,
+  X,
+  type IconProps,
+} from 'phosphor-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -107,32 +135,32 @@ const mapFitnessGoalToGoalType = (fitnessGoal?: string | null): GoalType => {
 };
 
 // Sex selection options with cute icons
-const SEX_OPTIONS: Array<{ value: Sex; label: string; icon: string; color: string }> = [
-  { value: 'male', label: 'Male', icon: 'face-man', color: '#60A5FA' },
-  { value: 'female', label: 'Female', icon: 'face-woman', color: '#F472B6' },
-  { value: 'prefer_not_to_say', label: 'Skip', icon: 'account-question', color: '#A78BFA' },
+const SEX_OPTIONS: Array<{ value: Sex; label: string; Icon: React.ComponentType<IconProps>; color: string }> = [
+  { value: 'male', label: 'Male', Icon: GenderMale, color: '#60A5FA' },
+  { value: 'female', label: 'Female', Icon: GenderFemale, color: '#F472B6' },
+  { value: 'prefer_not_to_say', label: 'Skip', Icon: Question, color: '#A78BFA' },
 ];
 
 // Goal type options
-const GOAL_OPTIONS: Array<{ value: GoalType; label: string; icon: string; description: string; color: string }> = [
+const GOAL_OPTIONS: Array<{ value: GoalType; label: string; Icon: React.ComponentType<IconProps>; description: string; color: string }> = [
   {
     value: 'fat_loss',
     label: 'Fat Loss',
-    icon: 'fire',
+    Icon: Fire,
     description: 'Burn fat, keep muscle',
     color: '#EF4444'
   },
   {
     value: 'muscle_gain',
     label: 'Build Muscle',
-    icon: 'arm-flex',
+    Icon: Barbell,
     description: 'Grow stronger',
     color: BRAND_COLORS.macros.protein
   },
   {
     value: 'diabetes_control',
     label: 'Nutrition Balance',
-    icon: 'leaf',
+    Icon: Leaf,
     description: 'Steady energy and lighter carbs',
     color: BRAND_COLORS.macros.carbs
   },
@@ -160,10 +188,12 @@ const ProfileScreen = () => {
   const currentUser = useCurrentUser();
   const queryClient = useQueryClient();
 
+  const hasAnimated = useRef(false);
   const staggerEnter = useCallback((index: number) => {
-    if (reduceMotion) return undefined;
+    if (reduceMotion || hasAnimated.current) return undefined;
     return FadeInDown.duration(300).delay(index * 80);
   }, [reduceMotion]);
+  useEffect(() => { hasAnimated.current = true; }, []);
   const userId = currentUser.data?.userId || '';
   const stats = useGoalStatistics(userId);
 
@@ -844,13 +874,27 @@ const ProfileScreen = () => {
   const canProceedToGoal = heightCm >= 100 && weightKg >= 30;
   const canGenerate = selectedGoalType !== null;
 
+  // Phosphor icon mapping for menu items
+  const menuIconMap: Record<string, React.ComponentType<IconProps>> = {
+    'dumbbell': Barbell,
+    'book-open-variant': BookOpenText,
+    'food-apple': ForkKnife,
+    'chart-line': ChartLine,
+    'account-edit-outline': UserGear,
+    'food-apple-outline': ForkKnife,
+    'bell-outline': Bell,
+    'account-remove-outline': UserCircleMinus,
+  };
+
   const renderMenuItem = (
     icon: string,
     title: string,
     subtitle: string,
     onPress: () => void,
     badge?: string | number
-  ) => (
+  ) => {
+    const IconComponent = menuIconMap[icon] || Target;
+    return (
     <Pressable
       style={({ pressed }) => [
         styles.menuItem,
@@ -863,7 +907,7 @@ const ProfileScreen = () => {
       accessibilityHint={subtitle}
     >
       <View style={[styles.menuIcon, { backgroundColor: theme.colors.background }]}>
-        <MaterialCommunityIcons name={icon as any} size={24} color={theme.colors.primary} />
+        <IconComponent size={24} color={theme.colors.primary} />
       </View>
       <View style={styles.menuContent}>
         <Text variant="body" weight="semibold" style={{ color: theme.colors.textPrimary }}>{title}</Text>
@@ -874,9 +918,10 @@ const ProfileScreen = () => {
           <Text variant="caption" weight="bold" style={styles.badgeText}>{badge}</Text>
         </View>
       )}
-      <Feather name="chevron-right" size={20} color={theme.colors.textSecondary} />
+      <CaretRight size={20} color={theme.colors.textSecondary} />
     </Pressable>
   );
+  };
   // last seen
 
   // Get safe area insets for full-screen modal
@@ -906,7 +951,7 @@ const ProfileScreen = () => {
             accessibilityRole="button"
             accessibilityLabel="Go to Home"
           >
-            <Feather name="home" size={22} color={theme.colors.primary} />
+            <House size={22} color={theme.colors.primary} />
           </Pressable>
           <Text variant="heading2" weight="bold" style={[styles.modalTitle, styles.modalTitleCentered, { color: theme.colors.textPrimary }]}>
             {step === 'sex' && 'About You'}
@@ -922,7 +967,7 @@ const ProfileScreen = () => {
             accessibilityRole="button"
             accessibilityLabel="Close"
           >
-            <Feather name="x" size={24} color={theme.colors.textSecondary} />
+            <X size={24} color={theme.colors.textSecondary} />
           </Pressable>
         </View>
 
@@ -965,8 +1010,7 @@ const ProfileScreen = () => {
                     accessibilityLabel={option.label}
                     accessibilityState={{ selected: selectedSex === option.value }}
                   >
-                    <MaterialCommunityIcons
-                      name={option.icon as any}
+                    <option.Icon
                       size={40}
                       color={selectedSex === option.value ? '#FFF' : option.color}
                     />
@@ -1042,8 +1086,7 @@ const ProfileScreen = () => {
                     accessibilityState={{ selected: selectedGoalType === option.value }}
                   >
                     <View style={[styles.goalIconContainer, { backgroundColor: `${option.color}20` }]}>
-                      <MaterialCommunityIcons
-                        name={option.icon as any}
+                      <option.Icon
                         size={28}
                         color={option.color}
                       />
@@ -1055,7 +1098,7 @@ const ProfileScreen = () => {
                       </Text>
                     </View>
                     {selectedGoalType === option.value && (
-                      <MaterialCommunityIcons name="check-circle" size={24} color={option.color} />
+                      <CheckCircle size={24} color={option.color} weight="fill" />
                     )}
                   </Pressable>
                 ))}
@@ -1073,10 +1116,10 @@ const ProfileScreen = () => {
                 <View style={styles.generatingInner}>
                   <ActivityIndicator size="large" color={theme.colors.primary} />
                   <Text variant="heading3" weight="semibold" style={[styles.generatingText, { color: theme.colors.textPrimary }]}>
-                    Generating your personalized goals...
+                    Building your plan...
                   </Text>
                   <Text variant="caption" style={[styles.generatingSubtext, { color: theme.colors.textSecondary }]}>
-                    AI is calculating the best plan for you
+                    We’re turning your profile into a clear daily starting point
                   </Text>
                 </View>
               </LinearGradient>
@@ -1087,16 +1130,16 @@ const ProfileScreen = () => {
           {step === 'complete' && generatedGoals && (
             <View style={styles.completeContent}>
               <View style={styles.successIcon}>
-                <MaterialCommunityIcons name="check-circle" size={56} color="#10B981" />
+                <CheckCircle size={56} color="#10B981" weight="fill" />
               </View>
               <Text variant="heading3" weight="bold" style={styles.successTitle}>
-                Goals Generated!
+                Plan ready
               </Text>
 
               {/* Daily Calories */}
               <Card style={styles.goalCard}>
                 <View style={styles.goalCardHeader}>
-                  <MaterialCommunityIcons name="fire" size={24} color="#EF4444" />
+                  <Fire size={24} color="#EF4444" weight="fill" />
                   <Text variant="body" weight="semibold">Daily Calories</Text>
                 </View>
                 <Text variant="heading2" weight="bold" style={styles.goalValue}>
@@ -1113,7 +1156,7 @@ const ProfileScreen = () => {
               {/* Macros */}
               <Card style={styles.goalCard}>
                 <View style={styles.goalCardHeader}>
-                  <MaterialCommunityIcons name="chart-pie" size={24} color={BRAND_COLORS.primary} />
+                  <ChartPie size={24} color={BRAND_COLORS.primary} />
                   <Text variant="body" weight="semibold">Daily Macros</Text>
                 </View>
                 <View style={styles.macrosRow}>
@@ -1144,27 +1187,27 @@ const ProfileScreen = () => {
               {/* Other Targets */}
               <Card style={[styles.goalCard, { backgroundColor: theme.colors.surface }]}>
                 <View style={styles.goalCardHeader}>
-                  <MaterialCommunityIcons name="target" size={24} color={theme.colors.info} />
+                  <Target size={24} color={theme.colors.info} />
                   <Text variant="body" weight="semibold" style={{ color: theme.colors.textPrimary }}>Daily Targets</Text>
                 </View>
                 <View style={styles.targetRow}>
-                  <MaterialCommunityIcons name="leaf" size={20} color={theme.colors.success} />
+                  <Leaf size={20} color={theme.colors.success} />
                   <Text variant="body" style={{ color: theme.colors.textSecondary }}>Fiber Target: {generatedGoals.fiberTarget_g_per_day}g</Text>
                 </View>
                 <View style={styles.targetRow}>
-                  <MaterialCommunityIcons name="run" size={20} color={theme.colors.error} />
+                  <PersonSimpleRun size={20} color={theme.colors.error} />
                   <Text variant="body" style={{ color: theme.colors.textSecondary }}>
                     Cardio: {generatedGoals.weeklyActivityPlan.cardio_minutes_per_week} min/week
                   </Text>
                 </View>
                 <View style={styles.targetRow}>
-                  <MaterialCommunityIcons name="dumbbell" size={20} color={theme.colors.primary} />
+                  <Barbell size={20} color={theme.colors.primary} />
                   <Text variant="body" style={{ color: theme.colors.textSecondary }}>
                     Strength: {generatedGoals.weeklyActivityPlan.strength_sessions_per_week}x/week
                   </Text>
                 </View>
                 <View style={styles.targetRow}>
-                  <MaterialCommunityIcons name="shoe-print" size={20} color={theme.colors.info} />
+                  <Sneaker size={20} color={theme.colors.info} />
                   <Text variant="body" style={{ color: theme.colors.textSecondary }}>
                     Steps: {generatedGoals.weeklyActivityPlan.steps_per_day_target.toLocaleString()}/day
                   </Text>
@@ -1174,7 +1217,7 @@ const ProfileScreen = () => {
               {/* Safety Note */}
               <Card style={[styles.goalCard, styles.safetyCard, { backgroundColor: theme.colors.warning + '15', borderColor: theme.colors.warning + '40' }]}>
                 <View style={styles.safetyHeader}>
-                  <MaterialCommunityIcons name="alert-circle-outline" size={20} color={theme.colors.warning} />
+                  <WarningCircle size={20} color={theme.colors.warning} />
                   <Text variant="caption" weight="semibold" style={[styles.safetyTitle, { color: theme.colors.warning }]}>
                     Important Note
                   </Text>
@@ -1271,7 +1314,7 @@ const ProfileScreen = () => {
                   disabled={!canGenerate}
                   onPress={handleGenerateGoals}
                   accessibilityRole="button"
-                  accessibilityLabel="Generate personalized fitness goals"
+                  accessibilityLabel="Build your fitness plan"
                   accessibilityState={{ disabled: !canGenerate }}
                 >
                   <LinearGradient
@@ -1280,9 +1323,9 @@ const ProfileScreen = () => {
                     end={{ x: 1, y: 0 }}
                     style={styles.generateButtonGradient}
                   >
-                    <MaterialCommunityIcons name="auto-fix" size={20} color="#FFF" />
+                    <MagicWand size={20} color="#FFF" />
                     <Text variant="body" weight="bold" style={styles.generateButtonText}>
-                      Generate Goals
+                      Build Plan
                     </Text>
                   </LinearGradient>
                 </Pressable>
@@ -1377,7 +1420,7 @@ const ProfileScreen = () => {
                   style={styles.avatarImage}
                 />
               ) : (
-                <Feather name="user" size={40} color={theme.colors.primary} />
+                <User size={40} color={theme.colors.primary} />
               )}
               {/* Loading overlay - shows spinner while uploading (optimistic preview visible underneath) */}
               {isUploadingAvatar && (
@@ -1394,7 +1437,7 @@ const ProfileScreen = () => {
               ]}
               pointerEvents="none"
             >
-              <Feather name="camera" size={14} color="#FFF" />
+              <Camera size={14} color="#FFF" />
             </View>
           </Pressable>
           <Text variant="heading2" weight="bold" style={{ color: theme.colors.textPrimary }}>Hi, {displayName}</Text>
@@ -1405,8 +1448,8 @@ const ProfileScreen = () => {
         {generatedGoals ? (
           <Card style={[styles.goalsStatusCard, { backgroundColor: theme.colors.surface }]}>
             <View style={styles.goalsStatusHeader}>
-              <MaterialCommunityIcons name="check-circle" size={24} color={theme.colors.success} />
-              <Text variant="body" weight="semibold" style={{ color: theme.colors.textPrimary }}>Goals Active</Text>
+              <CheckCircle size={24} color={theme.colors.success} weight="fill" />
+              <Text variant="body" weight="semibold" style={{ color: theme.colors.textPrimary }}>Active Plan</Text>
               {goalTypeLabel && (
                 <View style={[styles.goalTypeBadge, { backgroundColor: theme.colors.primary }]}>
                   <Text variant="caption" weight="bold" style={styles.goalTypeBadgeText}>
@@ -1430,7 +1473,7 @@ const ProfileScreen = () => {
               </View>
             </View>
             <Button
-              title="Regenerate Goals"
+              title="Refresh Plan"
               variant="primary"
               onPress={() => setShowGoalsModal(true)}
               style={{ backgroundColor: BRAND_COLORS.primary }}
@@ -1445,25 +1488,25 @@ const ProfileScreen = () => {
             ]}
             onPress={() => setShowGoalsModal(true)}
             accessibilityRole="button"
-            accessibilityLabel="Set your fitness goals with AI-powered personalization"
+            accessibilityLabel="Set your fitness goals"
           >
             <View style={styles.generateGoalsInner}>
               <View style={styles.generateGoalsIcon}>
-                <MaterialCommunityIcons name="target" size={22} color={BRAND_COLORS.primary} />
+                <Target size={22} color={BRAND_COLORS.primary} />
               </View>
               <View style={styles.generateGoalsCopy}>
                 <Text variant="body" weight="bold" style={styles.generateGoalsTitle}>
-                  Set Your Fitness Goals
+                  Set Your Plan
                 </Text>
                 <Text variant="caption" style={styles.generateGoalsText} numberOfLines={2}>
-                  AI-powered calorie and macro targets personalized for you
+                  Build calorie and macro targets that match your routine
                 </Text>
               </View>
               <View style={styles.generateGoalsCta}>
                 <Text variant="caption" weight="semibold" style={styles.generateGoalsCtaText}>
                   Start
                 </Text>
-                <Feather name="arrow-right" size={16} color={BRAND_COLORS.primary} />
+                <ArrowRight size={16} color={BRAND_COLORS.primary} />
               </View>
             </View>
           </Pressable>
@@ -1541,7 +1584,7 @@ const ProfileScreen = () => {
           accessibilityRole="button"
           accessibilityLabel="Logout from your account"
         >
-          <Feather name="log-out" size={20} color={theme.colors.error} />
+          <SignOut size={20} color={theme.colors.error} />
           <Text variant="body" weight="semibold" style={[styles.logoutText, { color: theme.colors.error }]}>
             Logout
           </Text>
@@ -1573,7 +1616,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   avatarContainer: {
     position: 'relative',

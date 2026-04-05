@@ -2,7 +2,7 @@
  * SavedRecipesScreen - Dedicated screen for viewing saved recipes from Profile
  * Uses the industry standard Tab > Stack > Screen architecture
  */
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { ArrowLeft, BookOpen, WarningCircle } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useMemo } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
@@ -64,7 +64,7 @@ export const SavedRecipesScreen = () => {
   const listEmptyComponent = useMemo(
     () => (
       <EmptyStateCard
-        icon={<MaterialCommunityIcons name="book-open-variant" size={32} color={theme.colors.primary} />}
+        icon={<BookOpen size={32} color={theme.colors.primary} weight="fill" />}
         title="No saved recipes yet"
         subtitle="Save recipes from the Recipes tab to see them here"
         variant="single"
@@ -108,7 +108,7 @@ export const SavedRecipesScreen = () => {
         <Container style={styles.container}>
           <View style={styles.header}>
             <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Feather name="arrow-left" size={24} color={theme.colors.textPrimary} />
+              <ArrowLeft size={24} color={theme.colors.textPrimary} />
             </Pressable>
             <Text variant="heading2" weight="bold" style={styles.headerTitle}>
               Saved Recipes
@@ -127,14 +127,14 @@ export const SavedRecipesScreen = () => {
         <Container style={styles.container}>
           <View style={styles.header}>
             <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Feather name="arrow-left" size={24} color={theme.colors.textPrimary} />
+              <ArrowLeft size={24} color={theme.colors.textPrimary} />
             </Pressable>
             <Text variant="heading2" weight="bold" style={styles.headerTitle}>
               Saved Recipes
             </Text>
           </View>
           <EmptyStateCard
-            icon={<MaterialCommunityIcons name="alert-circle-outline" size={32} color={theme.colors.error} />}
+            icon={<WarningCircle size={32} color={theme.colors.error} />}
             title="Unable to load recipes"
             subtitle="Check your network connection and try again."
             ctaLabel="Retry"
@@ -160,7 +160,7 @@ export const SavedRecipesScreen = () => {
           ListHeaderComponent={
             <View style={styles.header}>
               <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-                <Feather name="arrow-left" size={24} color={theme.colors.textPrimary} />
+                <ArrowLeft size={24} color={theme.colors.textPrimary} />
               </Pressable>
               <Text variant="heading2" weight="bold" style={styles.headerTitle}>
                 Saved Recipes

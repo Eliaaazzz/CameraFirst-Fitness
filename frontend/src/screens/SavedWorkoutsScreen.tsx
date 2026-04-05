@@ -2,7 +2,7 @@
  * SavedWorkoutsScreen - Dedicated screen for viewing saved workouts from Profile
  * Uses the industry standard Tab > Stack > Screen architecture
  */
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { ArrowLeft, Barbell, WarningCircle } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useMemo } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
@@ -64,7 +64,7 @@ export const SavedWorkoutsScreen = () => {
   const listEmptyComponent = useMemo(
     () => (
       <EmptyStateCard
-        icon={<MaterialCommunityIcons name="dumbbell" size={32} color={theme.colors.primary} />}
+        icon={<Barbell size={32} color={theme.colors.primary} />}
         title="No saved workouts yet"
         subtitle="Save workouts from the Workouts tab to see them here"
         variant="single"
@@ -108,7 +108,7 @@ export const SavedWorkoutsScreen = () => {
         <Container style={styles.container}>
           <View style={styles.header}>
             <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Feather name="arrow-left" size={24} color={theme.colors.textPrimary} />
+              <ArrowLeft size={24} color={theme.colors.textPrimary} />
             </Pressable>
             <Text variant="heading2" weight="bold" style={styles.headerTitle}>
               Saved Workouts
@@ -127,14 +127,14 @@ export const SavedWorkoutsScreen = () => {
         <Container style={styles.container}>
           <View style={styles.header}>
             <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Feather name="arrow-left" size={24} color={theme.colors.textPrimary} />
+              <ArrowLeft size={24} color={theme.colors.textPrimary} />
             </Pressable>
             <Text variant="heading2" weight="bold" style={styles.headerTitle}>
               Saved Workouts
             </Text>
           </View>
           <EmptyStateCard
-            icon={<MaterialCommunityIcons name="alert-circle-outline" size={32} color={theme.colors.error} />}
+            icon={<WarningCircle size={32} color={theme.colors.error} />}
             title="Unable to load workouts"
             subtitle="Check your network connection and try again."
             ctaLabel="Retry"
@@ -160,7 +160,7 @@ export const SavedWorkoutsScreen = () => {
           ListHeaderComponent={
             <View style={styles.header}>
               <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-                <Feather name="arrow-left" size={24} color={theme.colors.textPrimary} />
+                <ArrowLeft size={24} color={theme.colors.textPrimary} />
               </Pressable>
               <Text variant="heading2" weight="bold" style={styles.headerTitle}>
                 Saved Workouts

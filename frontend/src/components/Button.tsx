@@ -1,4 +1,4 @@
-import { colors, radii, spacing } from '@/utils';
+import { colors, motion, radii, saasShadows, spacing } from '@/utils';
 import { MaterialSprings } from '@/utils/materialMotion';
 import React, { useCallback } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -8,14 +8,17 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+
 import { Text } from './Text';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'text' | 'ghost';
+type ButtonPriority = 'primary' | 'secondary' | 'tertiary';
 type ButtonSize = 'small' | 'medium' | 'large';
 
 export interface ButtonProps {
   title: string;
   variant?: ButtonVariant;
+  priority?: ButtonPriority;
   size?: ButtonSize;
   icon?: React.ReactNode;
   loading?: boolean;
@@ -28,13 +31,81 @@ export interface ButtonProps {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-/**
- * Button - Material Design 3 Style
- * Spring-based press animation for tactile feedback
- */
+const SIZE_CONFIG = {
+  small: {
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    fontSize: 13,
+    borderRadius: radii.md,
+  },
+  medium: {
+    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    fontSize: 15,
+    borderRadius: radii.lg,
+  },
+  large: {
+    paddingVertical: 14,
+    paddingHorizontal: spacing.xl,
+    fontSize: 16,
+    borderRadius: radii.xl,
+  },
+};
+
+const PRIORITY_TO_VARIANT: Record<ButtonPriority, ButtonVariant> = {
+  primary: 'primary',
+  secondary: 'secondary',
+  tertiary: 'ghost',
+};
+
+const getVariantStyle = (variant: ButtonVariant, disabled?: boolean) => {
+  const light = colors.light;
+
+  const variants = {
+    primary: {
+      backgroundColor: light.primary,
+      borderWidth: 0,
+      borderColor: 'transparent',
+      textColor: '#FFFFFF',
+      shadowStyle: disabled ? undefined : saasShadows.subtle,
+    },
+    secondary: {
+      backgroundColor: light.surfaceVariant,
+      borderWidth: 1,
+      borderColor: light.border,
+      textColor: light.textPrimary,
+      shadowStyle: undefined,
+    },
+    outline: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: light.borderStrong,
+      textColor: light.textPrimary,
+      shadowStyle: undefined,
+    },
+    text: {
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      borderColor: 'transparent',
+      textColor: light.primaryDark,
+      shadowStyle: undefined,
+    },
+    ghost: {
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      borderColor: 'transparent',
+      textColor: light.textSecondary,
+      shadowStyle: undefined,
+    },
+  } satisfies Record<ButtonVariant, any>;
+
+  return variants[variant];
+};
+
 export const Button = ({
   title,
-  variant = 'primary',
+  variant,
+  priority = 'primary',
   size = 'medium',
   icon,
   loading,
@@ -44,18 +115,19 @@ export const Button = ({
   onPress,
   textColor,
 }: ButtonProps) => {
+  const resolvedVariant = variant || PRIORITY_TO_VARIANT[priority];
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
 
   const handlePressIn = useCallback(() => {
-    scale.value = withSpring(0.97, MaterialSprings.stiff);
-    opacity.value = withTiming(0.85, { duration: 100 });
-  }, [scale, opacity]);
+    scale.value = withSpring(0.98, MaterialSprings.stiff);
+    opacity.value = withTiming(0.92, { duration: motion.fast });
+  }, [opacity, scale]);
 
   const handlePressOut = useCallback(() => {
     scale.value = withSpring(1, MaterialSprings.stiff);
-    opacity.value = withTiming(1, { duration: 150 });
-  }, [scale, opacity]);
+    opacity.value = withTiming(1, { duration: motion.fast });
+  }, [opacity, scale]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -63,7 +135,7 @@ export const Button = ({
   }));
 
   const sizeConfig = SIZE_CONFIG[size];
-  const variantStyle = getVariantStyle(variant, disabled);
+  const variantStyle = getVariantStyle(resolvedVariant, disabled);
 
   return (
     <AnimatedPressable
@@ -74,6 +146,7 @@ export const Button = ({
       style={[
         styles.base,
         animatedStyle,
+        variantStyle.shadowStyle,
         {
           paddingVertical: sizeConfig.paddingVertical,
           paddingHorizontal: sizeConfig.paddingHorizontal,
@@ -81,7 +154,7 @@ export const Button = ({
           backgroundColor: variantStyle.backgroundColor,
           borderWidth: variantStyle.borderWidth,
           borderColor: variantStyle.borderColor,
-          opacity: disabled ? 0.5 : 1,
+          opacity: disabled ? 0.52 : 1,
         },
         fullWidth && styles.fullWidth,
         style,
@@ -92,8 +165,10 @@ export const Button = ({
           <ActivityIndicator size="small" color={textColor || variantStyle.textColor} />
         ) : (
           <>
-            {icon && <View style={styles.icon}>{icon}</View>}
+            {icon ? <View style={styles.icon}>{icon}</View> : null}
             <Text
+              weight="semibold"
+              allowFontScaling
               style={[
                 styles.label,
                 {
@@ -111,86 +186,14 @@ export const Button = ({
   );
 };
 
-const SIZE_CONFIG = {
-  small: {
-    paddingVertical: 6,
-    paddingHorizontal: spacing.md,
-    fontSize: 13,
-    borderRadius: radii.md,
-  },
-  medium: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    fontSize: 14,
-    borderRadius: radii.lg,
-  },
-  large: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    fontSize: 16,
-    borderRadius: radii.xl,
-  },
-};
-
-const getVariantStyle = (variant: ButtonVariant, disabled?: boolean) => {
-  const dark = colors.dark;
-
-  switch (variant) {
-    case 'primary':
-      return {
-        backgroundColor: dark.primary,
-        borderWidth: 0,
-        borderColor: 'transparent',
-        textColor: '#FFFFFF',
-      };
-
-    case 'secondary':
-      return {
-        backgroundColor: 'rgba(167, 139, 250, 0.15)',
-        borderWidth: 0,
-        borderColor: 'transparent',
-        textColor: dark.primary,
-      };
-
-    case 'outline':
-      return {
-        backgroundColor: 'transparent',
-        borderWidth: 1,
-        borderColor: dark.border,
-        textColor: dark.textPrimary,
-      };
-
-    case 'text':
-      return {
-        backgroundColor: 'transparent',
-        borderWidth: 0,
-        borderColor: 'transparent',
-        textColor: dark.primary,
-      };
-
-    case 'ghost':
-      return {
-        backgroundColor: 'transparent',
-        borderWidth: 0,
-        borderColor: 'transparent',
-        textColor: dark.primary,
-      };
-
-    default:
-      return {
-        backgroundColor: dark.primary,
-        borderWidth: 0,
-        borderColor: 'transparent',
-        textColor: '#FFFFFF',
-      };
-  }
-};
-
 const styles = StyleSheet.create({
   base: {
     alignSelf: 'flex-start',
+    justifyContent: 'center',
+    minHeight: 44,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer',
+      transition: `transform ${motion.fast}ms ease, opacity ${motion.fast}ms ease`,
     }),
   },
   fullWidth: {
@@ -200,12 +203,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.xs,
   },
   label: {
-    fontWeight: '600',
     textAlign: 'center',
+    letterSpacing: 0.1,
   },
   icon: {
     marginRight: spacing.xs,
   },
 });
+

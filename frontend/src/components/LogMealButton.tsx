@@ -4,8 +4,8 @@
  * Inspired by Shadcn UI Button + Framer Motion interactions
  */
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
+import { Camera, Plus } from 'phosphor-react-native';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   interpolate,
@@ -165,11 +165,11 @@ export function LogMealButton({
         ) : (
           <>
             <Animated.View style={iconStyle}>
-              <MaterialCommunityIcons
-                name={variant === 'fab' ? 'plus' : 'camera'}
-                size={variant === 'compact' ? 16 : 20}
-                color="#FFFFFF"
-              />
+              {variant === 'fab' ? (
+                <Plus size={20} color="#FFFFFF" />
+              ) : (
+                <Camera size={variant === 'compact' ? 16 : 20} color="#FFFFFF" />
+              )}
             </Animated.View>
             <Text
               variant={variant === 'compact' ? 'caption' : 'body'}

@@ -16,11 +16,11 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FF6B6B"
+      "backgroundColor": "#F6F2EC"
     },
     "ios": {
       "bundleIdentifier": "com.elia.aurafitness",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "infoPlist": {
@@ -49,7 +49,7 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FF6B6B"
+        "backgroundColor": "#F6F2EC"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false

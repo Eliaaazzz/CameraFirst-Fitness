@@ -9,7 +9,7 @@ import nutritionApi, {
   TotalNutrition,
 } from '@/services/nutritionApi';
 import { BRAND_COLORS, DEFAULT_MEAL_IMAGE_WIDTH_CM } from '@/utils';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { ArrowLeft, Camera, Check, ImageSquare, MagnifyingGlass, SealCheck } from 'phosphor-react-native';
 import { Image as ExpoImage } from 'expo-image';
 
 /**
@@ -728,7 +728,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
           }} 
           style={styles.backButton}
         >
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <ArrowLeft size={24} color="#000" />
         </Pressable>
         <Text style={styles.headerTitle}>{isViewingExisting ? 'Meal Details' : 'Review your meal'}</Text>
         <View style={{ width: 40 }} />
@@ -791,11 +791,11 @@ export function ReviewMealScreen({ route, navigation }: any) {
                   imgWcm: scaleHintCm,
                 })}
               >
-                <MaterialCommunityIcons name="camera-retake-outline" size={18} color="#0F172A" />
+                <Camera size={18} color="#0F172A" />
                 <Text style={styles.imageActionBtnText}>Retake</Text>
               </Pressable>
               <Pressable style={styles.imageActionBtn} onPress={openGallery}>
-                <MaterialCommunityIcons name="image-outline" size={18} color="#0F172A" />
+                <ImageSquare size={18} color="#0F172A" />
                 <Text style={styles.imageActionBtnText}>Choose another</Text>
               </Pressable>
             </Animated.View>
@@ -810,11 +810,11 @@ export function ReviewMealScreen({ route, navigation }: any) {
                     loading ? styles.statusIconWrapLoading : styles.statusIconWrapSuccess,
                   ]}
                 >
-                  <MaterialCommunityIcons
-                    name={loading ? 'image-search-outline' : 'check-decagram-outline'}
-                    size={22}
-                    color={loading ? '#0E7490' : '#047857'}
-                  />
+                  {loading ? (
+                    <MagnifyingGlass size={22} color="#0E7490" />
+                  ) : (
+                    <SealCheck size={22} color="#047857" weight="fill" />
+                  )}
                 </View>
                 <View style={styles.statusCopy}>
                   <Text style={styles.loadingTitle}>
@@ -928,7 +928,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
           ) : (
             <Animated.View style={[styles.emptyStateCard, detailsAnimatedStyle]}>
               <View style={styles.emptyStateIconWrap}>
-                <MaterialCommunityIcons name="image-search-outline" size={28} color="#B45309" />
+                <MagnifyingGlass size={28} color="#B45309" />
               </View>
               <Text style={styles.emptyStateTitle}>We could not confirm the meal contents</Text>
               <Text style={styles.emptyStateBody}>
@@ -1014,7 +1014,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
             <View style={styles.successBody}>
               <View style={styles.successIconCircle}>
-                <MaterialCommunityIcons name="check" size={44} color="#0E7490" />
+                <Check size={44} color="#0E7490" />
               </View>
               <Text style={styles.successTitle}>Meal Saved!</Text>
               <View style={styles.successStats}>

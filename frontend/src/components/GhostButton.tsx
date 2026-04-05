@@ -4,8 +4,8 @@
  * Perfect for sidebars, menus, and secondary actions
  */
 
-import { Feather } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
+import { CaretRight } from 'phosphor-react-native';
 import { Platform, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 import Animated, {
   interpolate,
@@ -193,8 +193,7 @@ export function GhostButton({
         {rightIcon && <View style={styles.rightIcon}>{rightIcon}</View>}
         {showChevron && (
           <Animated.View style={[styles.chevron, chevronStyle]}>
-            <Feather
-              name="chevron-right"
+            <CaretRight
               size={14}
               color={isHovered ? currentTextColor : '#CCC'}
             />

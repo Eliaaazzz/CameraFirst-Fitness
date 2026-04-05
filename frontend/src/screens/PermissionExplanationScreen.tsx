@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { CameraSlash } from 'phosphor-react-native';
 
 import { Button, Container, SafeAreaWrapper, Text } from '@/components';
 import { spacing } from '@/utils';
@@ -23,7 +23,7 @@ export const PermissionExplanationScreen = ({
   <SafeAreaWrapper>
     <Container style={styles.container}>
       <View style={styles.iconContainer}>
-        <Feather name="camera-off" size={48} color="#FF6B6B" />
+        <CameraSlash size={48} color="#FF6B6B" />
       </View>
       <Text variant="heading1" weight="bold" style={styles.heading}>
         Camera Access Needed

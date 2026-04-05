@@ -1,8 +1,20 @@
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Image, ImageStyle } from 'expo-image';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  ForkKnife,
+  Hamburger,
+  IconProps,
+} from 'phosphor-react-native';
+import type { ComponentType } from 'react';
 import { BRAND_COLORS } from '@/utils';
+
+/** Map of MaterialCommunityIcons names to Phosphor components */
+const ICON_MAP: Record<string, ComponentType<IconProps>> = {
+  'food': Hamburger,
+  'silverware-fork-knife': ForkKnife,
+  'food-fork-drink': ForkKnife,
+};
 
 interface MealImageProps {
   /** Public image URL (R2/CDN) */
@@ -59,11 +71,10 @@ export const MealImage: React.FC<MealImageProps> = ({
       {showPlaceholder ? (
         // Placeholder with icon
         <View style={[styles.placeholder, { borderRadius }]}>
-          <MaterialCommunityIcons
-            name={fallbackIcon as any}
-            size={iconSize}
-            color={BRAND_COLORS.primary}
-          />
+          {(() => {
+            const IconComponent = ICON_MAP[fallbackIcon] || Hamburger;
+            return <IconComponent size={iconSize} color={BRAND_COLORS.primary} />;
+          })()}
         </View>
       ) : (
         <Image

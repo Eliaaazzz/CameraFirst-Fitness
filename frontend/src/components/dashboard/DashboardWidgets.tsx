@@ -183,6 +183,13 @@ export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
             ))}
           </View>
         )}
+
+        {/* 5. Community Social Proof */}
+        <InsightCard
+          text="AuraFitness community logged 50,000+ meals this month"
+          color="#10B981"
+          icon="people-outline"
+        />
       </Animated.View>
     </View>
   );

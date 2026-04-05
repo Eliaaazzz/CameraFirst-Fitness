@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Dialog, Portal } from 'react-native-paper';
-import { Feather } from '@expo/vector-icons';
+import { CameraSlash } from 'phosphor-react-native';
 
 import { Button, Text } from '@/components';
 import { spacing } from '@/utils';
@@ -24,7 +24,7 @@ export const PermissionDialog = ({
   return (
     <Portal>
       <Dialog visible={visible} dismissable={false}>
-        <Dialog.Icon icon={() => <Feather name="camera-off" size={28} />} />
+        <Dialog.Icon icon={() => <CameraSlash size={28} />} />
         <Dialog.Title>Camera Access Needed</Dialog.Title>
         <Dialog.Content>
           <Text variant="body">

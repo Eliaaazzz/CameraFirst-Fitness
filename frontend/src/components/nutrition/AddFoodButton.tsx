@@ -1,105 +1,74 @@
-import React, { useEffect } from 'react';
-import { Pressable, Text, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withSequence,
-  withTiming,
-  withSpring,
-} from 'react-native-reanimated';
+import { Camera, CaretRight } from 'phosphor-react-native';
 import * as Haptics from 'expo-haptics';
-import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+
+import { BRAND_COLORS, radii, saasShadows, spacing } from '@/utils';
+
+import { Text } from '@/components/Text';
 
 interface AddFoodButtonProps {
   onPress: () => void;
 }
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 export function AddFoodButton({ onPress }: AddFoodButtonProps) {
-  const scale = useSharedValue(1);
-  const breathingScale = useSharedValue(1);
-
-  // Breathing animation
-  useEffect(() => {
-    breathingScale.value = withRepeat(
-      withSequence(
-        withTiming(1.03, { duration: 2000 }),
-        withTiming(1, { duration: 2000 })
-      ),
-      -1,
-      false
-    );
-  }, []);
-
-  const breathingStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: breathingScale.value * scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withTiming(0.96, { duration: 100 });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1);
-  };
-
   return (
-    <AnimatedPressable
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      style={[styles.container, breathingStyle]}
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        onPress();
+      }}
+      style={({ pressed }) => [styles.container, pressed && styles.containerPressed]}
     >
-      <LinearGradient
-        colors={['#E91E63', '#9C27B0']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      >
-        <Ionicons name="camera" size={24} color="#FFF" />
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>Add food with photo</Text>
-          <Text style={styles.subtitle}>Take a photo or choose from gallery</Text>
-        </View>
-      </LinearGradient>
-    </AnimatedPressable>
+      <View style={styles.iconWrap}>
+        <Camera size={20} color="#FFFFFF" weight="bold" />
+      </View>
+      <View style={styles.textWrap}>
+        <Text variant="heading4" weight="semibold" style={styles.title}>
+          Log a meal
+        </Text>
+        <Text variant="caption" style={styles.subtitle}>
+          Snap a photo or choose one from your library.
+        </Text>
+      </View>
+      <CaretRight size={18} color={BRAND_COLORS.primaryDark} weight="bold" />
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
-    marginVertical: 12,
-    borderRadius: 24,
-    overflow: 'hidden',
-    shadowColor: '#9C27B0',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  gradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    gap: 16,
+    gap: spacing.md,
+    borderRadius: radii.xl,
+    backgroundColor: BRAND_COLORS.primaryContainer,
+    borderWidth: 1,
+    borderColor: 'rgba(201, 106, 52, 0.12)',
+    padding: spacing.lg,
+    ...saasShadows.subtle,
   },
-  textContainer: {
+  containerPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.99 }],
+  },
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: BRAND_COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textWrap: {
     flex: 1,
+    gap: 2,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFF',
-    marginBottom: 4,
+    color: BRAND_COLORS.textPrimary,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#FFF',
-    opacity: 0.9,
+    color: BRAND_COLORS.textSecondary,
   },
 });
+

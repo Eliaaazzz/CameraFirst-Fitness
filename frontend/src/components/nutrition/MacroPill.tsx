@@ -1,5 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import { BRAND_COLORS, spacing } from '@/utils';
+
+import { ProgressViz } from '@/components/common/ProgressViz';
+import { Text } from '@/components/Text';
 
 interface MacroPillProps {
   label: string;
@@ -10,51 +15,44 @@ interface MacroPillProps {
 }
 
 export function MacroPill({ label, current, goal, unit = 'g', color }: MacroPillProps) {
-  const percentage = Math.min((current / goal) * 100, 100);
-
   return (
     <View style={styles.container}>
-      <View style={[styles.progress, { width: `${percentage}%`, backgroundColor: color }]} />
-      <View style={styles.content}>
-        <Text style={styles.label}>{label}</Text>
-        <Text style={styles.value}>
-          {Math.round(current)}/{goal}{unit}
+      <View style={styles.header}>
+        <View style={styles.labelRow}>
+          <View style={[styles.dot, { backgroundColor: color }]} />
+          <Text variant="caption" weight="medium" color={BRAND_COLORS.textSecondary}>
+            {label}
+          </Text>
+        </View>
+        <Text variant="caption" weight="semibold">
+          {Math.round(current)}/{goal}
+          {unit}
         </Text>
       </View>
+      <ProgressViz value={current} max={goal} color={color} height={6} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F5F5F5',
-    overflow: 'hidden',
-    position: 'relative',
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
   },
-  progress: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    opacity: 0.2,
-  },
-  content: {
-    flex: 1,
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
-  value: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });
+

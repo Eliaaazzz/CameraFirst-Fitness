@@ -25,9 +25,9 @@ const tint = (hex: string, alpha = 0.12): string => {
 
 const QUICK_ACTIONS = [
   { key: 'history', labelKey: 'mealHistory' as const, Icon: ClockCounterClockwise, color: BRAND_COLORS.secondary, screen: 'MealHistory' },
-  { key: 'insights', labelKey: 'weeklyInsights' as const, Icon: ChartLine, color: '#14B8A6', screen: 'WeeklyInsights', iconOffsetY: 1 },
+  { key: 'insights', labelKey: 'weeklyInsights' as const, Icon: ChartLine, color: BRAND_COLORS.semantic.success, screen: 'WeeklyInsights', iconOffsetY: 1 },
   { key: 'weight', labelKey: 'logWeight' as const, Icon: Scales, color: BRAND_COLORS.primary, screen: 'LogWeight' },
-  { key: 'export', labelKey: 'exportData' as const, Icon: Export, color: '#22C55E', screen: 'ExportData' },
+  { key: 'export', labelKey: 'exportData' as const, Icon: Export, color: BRAND_COLORS.secondary, screen: 'ExportData' },
 ] as const;
 
 type QuickAction = (typeof QUICK_ACTIONS)[number];
@@ -169,9 +169,7 @@ export function QuickActionsCard({ cardStyle }: QuickActionsCardProps = {}) {
 
 const styles = StyleSheet.create({
   sectionLabel: {
-    color: '#6E5E4D',
-    fontSize: 11,
-    letterSpacing: 1.2,
+    color: BRAND_COLORS.textMuted,
     marginBottom: 14,
   },
   actionsGrid: {
@@ -191,16 +189,16 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.62)',
+    backgroundColor: BRAND_COLORS.surfaceVariant,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.62)',
+    borderColor: BRAND_COLORS.borderSubtle,
     gap: 8,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 5 },
-    shadowRadius: 14,
-    shadowOpacity: 0.035,
+    shadowColor: '#171511',
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    shadowOpacity: 0.04,
     elevation: 1,
     ...(Platform.OS !== 'web' && {
       flexBasis: '47%',
@@ -209,18 +207,14 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' && ({
       cursor: 'pointer' as any,
       transition: 'all 0.15s ease-out',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-      boxShadow:
-        'inset 0 1px 0 rgba(255,255,255,0.72), 0 0 0 1px rgba(255,170,120,0.16), 0 8px 18px rgba(15,23,42,0.04)',
+      boxShadow: '0 10px 22px rgba(23,21,17,0.05)',
     } as any)),
   },
   actionButtonHovered: {
-    backgroundColor: 'rgba(255,255,255,0.76)',
-    borderColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: BRAND_COLORS.surfaceElevated,
+    borderColor: BRAND_COLORS.border,
     ...(Platform.OS === 'web' && ({
-      boxShadow:
-        'inset 0 1px 0 rgba(255,255,255,0.8), 0 0 0 1px rgba(255,170,120,0.2), 0 10px 22px rgba(15,23,42,0.05)',
+      boxShadow: '0 12px 24px rgba(23,21,17,0.06)',
     } as any)),
   },
   actionButtonDisabled: {
@@ -236,18 +230,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   actionIconSpecular: {
-    position: 'absolute',
-    top: 0,
-    left: 6,
-    right: 6,
-    height: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.28)',
+    display: 'none',
   },
   actionText: {
-    color: '#1F2937',
-    fontSize: 12,
-    lineHeight: 15,
+    color: BRAND_COLORS.textPrimary,
     minHeight: 30,
     textAlign: 'center',
   },

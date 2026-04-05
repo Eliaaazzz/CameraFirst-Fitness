@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Gear } from 'phosphor-react-native';
 import { Dialog, Portal } from 'react-native-paper';
 
 import { Button, Text } from '@/components';
@@ -19,7 +19,7 @@ type Props = {
 export const EquipmentSelectionModal = ({ visible, lastChoice, onSelect, onSkip, onRequestClose }: Props) => (
   <Portal>
     <Dialog visible={visible} onDismiss={onRequestClose}>
-      <Dialog.Icon icon={() => <Feather name="settings" size={24} />} />
+      <Dialog.Icon icon={() => <Gear size={24} />} />
       <Dialog.Title style={{ textAlign: 'center' }}>What equipment do you see?</Dialog.Title>
       <Dialog.Content>
         {lastChoice ? (

@@ -1,7 +1,7 @@
 import { RecipeCard, Text, WorkoutCard } from '@/components';
 import type { RecipeCard as Recipe, WorkoutCard as Workout } from '@/types';
 import { colors, radii, spacing } from '@/utils';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Barbell, CaretRight, Leaf, Target } from 'phosphor-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
@@ -85,7 +85,7 @@ export const RecommendationSection = ({
           end={{ x: 1, y: 0 }}
           style={styles.headerGradient}
         >
-          <MaterialCommunityIcons name="target" size={20} color={dark.primary} />
+          <Target size={20} color={dark.primary} />
           <Text variant="body" weight="semibold" style={styles.headerText}>
             Recommended for {goalLabel}
           </Text>
@@ -97,7 +97,7 @@ export const RecommendationSection = ({
         <View style={styles.rowContainer}>
           <View style={styles.rowHeader}>
             <View style={styles.rowTitleContainer}>
-              <MaterialCommunityIcons name="dumbbell" size={18} color={dark.primary} />
+              <Barbell size={18} color={dark.primary} />
               <Text variant="body" weight="semibold" style={styles.rowTitle}>
                 Top Workouts
               </Text>
@@ -107,7 +107,7 @@ export const RecommendationSection = ({
                 <Text variant="caption" style={{ color: dark.primary }}>
                   See All
                 </Text>
-                <MaterialCommunityIcons name="chevron-right" size={16} color={dark.primary} />
+                <CaretRight size={16} color={dark.primary} />
               </Pressable>
             )}
           </View>
@@ -131,7 +131,7 @@ export const RecommendationSection = ({
         <View style={styles.rowContainer}>
           <View style={styles.rowHeader}>
             <View style={styles.rowTitleContainer}>
-              <MaterialCommunityIcons name="food-apple" size={18} color={dark.secondary} />
+              <Leaf size={18} color={dark.secondary} />
               <Text variant="body" weight="semibold" style={styles.rowTitle}>
                 Healthy Recipes
               </Text>
@@ -141,7 +141,7 @@ export const RecommendationSection = ({
                 <Text variant="caption" style={{ color: dark.secondary }}>
                   See All
                 </Text>
-                <MaterialCommunityIcons name="chevron-right" size={16} color={dark.secondary} />
+                <CaretRight size={16} color={dark.secondary} />
               </Pressable>
             )}
           </View>

@@ -1,5 +1,5 @@
 import { TourGuideZone } from '@/components/tour/TourProvider';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Barbell, WarningCircle } from 'phosphor-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
@@ -124,10 +124,12 @@ export const WorkoutsScreen = () => {
   const userId = currentUser.data?.userId;
   const showSidebar = useSidebarVisible();
 
+  const hasAnimated = useRef(false);
   const staggerEnter = useCallback((index: number) => {
-    if (reduceMotion) return undefined;
+    if (reduceMotion || hasAnimated.current) return undefined;
     return FadeInDown.duration(300).delay(index * 80);
   }, [reduceMotion]);
+  useEffect(() => { hasAnimated.current = true; }, []);
   const saved = useSavedWorkouts(userId);
   const recommended = useRecommendedWorkouts(currentUser.data?.profile?.fitnessGoal, userId);
   const saveWorkout = useSaveWorkout(userId);
@@ -248,7 +250,7 @@ export const WorkoutsScreen = () => {
   // Memoize empty component BEFORE any conditional returns
   const listEmptyComponent = useMemo(() => (
     <EmptyStateCard
-      icon={<MaterialCommunityIcons name="arm-flex" size={32} color={BRAND_COLORS.secondary} />}
+      icon={<Barbell size={32} color={BRAND_COLORS.secondary} />}
       title="Your saved workouts will appear here"
       variant="single"
     />
@@ -303,7 +305,7 @@ export const WorkoutsScreen = () => {
               Workouts
             </Text>
             <Text variant="body" style={styles.subtitle}>
-              Recommended routines and your saved list.
+              Find focused routines, then save the ones you want to repeat.
             </Text>
           </View>
           <ListSkeleton rows={4} showAvatar primaryWidth="55%" secondaryWidth="32%" />
@@ -318,7 +320,7 @@ export const WorkoutsScreen = () => {
       <SafeAreaWrapper>
         <Container>
           <EmptyStateCard
-            icon={<MaterialCommunityIcons name="alert-circle-outline" size={32} color={theme.colors.error} />}
+            icon={<WarningCircle size={32} color={theme.colors.error} />}
             title="Unable to load workouts"
             subtitle="Check your network connection and try again."
             ctaLabel="Retry"
@@ -345,7 +347,7 @@ export const WorkoutsScreen = () => {
           Workouts
         </Text>
         <Text variant="body" style={styles.subtitle}>
-          Recommended routines and your saved list.
+          Find focused routines, then save the ones you want to repeat.
         </Text>
       </Animated.View>
 
@@ -360,7 +362,7 @@ export const WorkoutsScreen = () => {
         >
           <View style={styles.searchContainer}>
             <SearchBar
-              placeholder="Search workouts..."
+              placeholder="Search by focus, duration, or equipment"
               value={searchQuery}
               onChangeText={handleSearch}
               onClear={clearSearch}

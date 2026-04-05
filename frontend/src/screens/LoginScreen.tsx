@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Envelope, Lightning, Lock, ShieldCheck } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as Crypto from 'expo-crypto';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -15,7 +15,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from 'react-native';
@@ -30,10 +29,11 @@ import {
   EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
   EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
 } from '@env';
-import CuteAuraLogo, { type CuteAuraLogoVariant } from '../components/common/CuteAuraLogo';
+import { AuraMark, Text } from '@/components';
 import { api } from '../services/apiClient';
 import { queryClient } from '../services/queryClient';
 import { useAuthStore } from '../stores';
+import { BRAND_COLORS, radii, spacing } from '@/utils';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -42,8 +42,6 @@ const GOOGLE_ANDROID_CLIENT_ID = EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process
 const GOOGLE_WEB_CLIENT_ID = EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const APPLE_SERVICE_ID = EXPO_PUBLIC_APPLE_SERVICE_ID || process.env.EXPO_PUBLIC_APPLE_SERVICE_ID;
 const APPLE_API_BASE_URL = API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL || 'https://aurafitness.org';
-const LOGO_VARIANT: CuteAuraLogoVariant = 'sparkle';
-
 // Debug: Log OAuth config status (not values) in development
 if (__DEV__) {
   console.log('[OAuth] Config loaded:', {
@@ -158,54 +156,28 @@ const sha256 = async (input: string): Promise<string> => {
   return input;
 };
 
-// ============================================================================
-// Design Tokens - Modern Light Theme (Orange)
-// ============================================================================
 const COLORS = {
-  // Brand - Orange
-  brand50: '#FFF7ED', // Orange 50
-  brand100: '#FFEDD5', // Orange 100
-  brand500: '#F97316', // Orange 500
-  brand600: '#EA580C', // Orange 600
-  brand700: '#C2410C', // Orange 700
-
-  // Surfaces
-  white: '#FFFFFF',
-  background: '#FFF7ED', // Main Background
-
-  // Text
-  gray50: '#F9FAFB',
-  gray100: '#F3F4F6',
-  gray200: '#E5E7EB',
-  gray400: '#9CA3AF',
-  gray500: '#6B7280',
-  gray700: '#374151',
-  gray800: '#1F2937',
-  gray900: '#111827',
-
-  // States
-  error: '#EF4444',
-  errorBg: '#FEE2E2',
+  brand50: BRAND_COLORS.background,
+  brand100: BRAND_COLORS.primaryContainer,
+  brand500: BRAND_COLORS.primary,
+  brand600: BRAND_COLORS.primaryDark,
+  brand700: BRAND_COLORS.primaryDark,
+  white: BRAND_COLORS.surfaceElevated,
+  background: BRAND_COLORS.background,
+  gray50: BRAND_COLORS.surface,
+  gray100: BRAND_COLORS.surfaceVariant,
+  gray200: BRAND_COLORS.border,
+  gray400: BRAND_COLORS.textDisabled,
+  gray500: BRAND_COLORS.textMuted,
+  gray700: BRAND_COLORS.textSecondary,
+  gray800: BRAND_COLORS.textSecondary,
+  gray900: BRAND_COLORS.textPrimary,
+  error: BRAND_COLORS.error,
+  errorBg: 'rgba(208, 92, 65, 0.10)',
 };
 
-const SPACING = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  '2xl': 24,
-  '3xl': 32,
-  '4xl': 40,
-};
-
-const RADII = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  '2xl': 32,
-};
+const SPACING = spacing;
+const RADII = radii;
 
 // ============================================================================
 // Google Icon Component
@@ -783,10 +755,7 @@ export default function LoginScreen() {
   }, [email, password, handleLoginSuccess]);
 
   return (
-    <LinearGradient
-      colors={[COLORS.brand50, COLORS.brand50, COLORS.white]}
-      style={styles.gradient}
-    >
+    <View style={styles.gradient}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -803,9 +772,11 @@ export default function LoginScreen() {
             <Animated.View entering={FadeInUp.duration(500).delay(100)} style={styles.card}>
               {/* Logo Section */}
               <View style={styles.logoSection}>
-                <CuteAuraLogo size={116} variant={LOGO_VARIANT} />
-                <Text style={styles.title}>AuraFitness</Text>
-                <Text style={styles.subtitle}>Continue with Apple or Google.</Text>
+                <AuraMark size={96} />
+                <Text variant="heading1" weight="bold" style={styles.title}>AuraFitness</Text>
+                <Text variant="body" style={styles.subtitle}>
+                  Sign in to keep your nutrition, training, and weekly progress in one place.
+                </Text>
               </View>
 
               {/* Error Message */}
@@ -818,8 +789,8 @@ export default function LoginScreen() {
               {/* Social Login */}
               <View style={styles.socialSection}>
                 <View style={styles.authSectionHeader}>
-                  <Text style={styles.authSectionTitle}>Sign in to continue</Text>
-                  <Text style={styles.authSectionSubtitle}>Use your Apple or Google account</Text>
+                  <Text variant="heading4" weight="semibold" style={styles.authSectionTitle}>Continue securely</Text>
+                  <Text variant="caption" style={styles.authSectionSubtitle}>Use Apple or Google for the fastest setup</Text>
                 </View>
                 <View style={styles.socialButtonsStack}>
                   {shouldShowAppleButton && Platform.OS === 'ios' && (
@@ -857,7 +828,7 @@ export default function LoginScreen() {
 
                   {/* Email/Password Login (for App Store reviewers and fallback) */}
                   <Pressable onPress={() => setShowEmailLogin(!showEmailLogin)}>
-                    <Text style={styles.emailToggleText}>
+                    <Text variant="caption" weight="semibold" style={styles.emailToggleText}>
                       {showEmailLogin ? 'Hide email sign in' : 'Sign in with email'}
                     </Text>
                   </Pressable>
@@ -866,7 +837,7 @@ export default function LoginScreen() {
                     <View style={styles.emailLoginSection}>
                       <View style={styles.inputContainer}>
                         <View style={styles.inputIconContainer}>
-                          <Ionicons name="mail-outline" size={18} color={COLORS.gray400} />
+                          <Envelope size={18} color={COLORS.gray400} />
                         </View>
                         <TextInput
                           style={styles.input}
@@ -882,7 +853,7 @@ export default function LoginScreen() {
                       </View>
                       <View style={styles.inputContainer}>
                         <View style={styles.inputIconContainer}>
-                          <Ionicons name="lock-closed-outline" size={18} color={COLORS.gray400} />
+                          <Lock size={18} color={COLORS.gray400} />
                         </View>
                         <TextInput
                           style={styles.input}
@@ -913,18 +884,33 @@ export default function LoginScreen() {
                 </View>
               </View>
 
+              <View style={styles.supportPanel}>
+                <View style={styles.supportRow}>
+                  <ShieldCheck size={14} color={COLORS.brand600} />
+                  <Text variant="caption" style={styles.supportText}>
+                    Private by default
+                  </Text>
+                </View>
+                <View style={styles.supportRow}>
+                  <Lightning size={14} color={COLORS.brand600} />
+                  <Text variant="caption" style={styles.supportText}>
+                    Smart logging, clear targets, better weekly insight
+                  </Text>
+                </View>
+              </View>
+
               {/* Footer */}
               <View style={styles.footer}>
-                <Text style={styles.legalText}>
+                <Text variant="caption" style={styles.legalText}>
                   By continuing, you agree to our{' '}
-                  <Text style={styles.legalLink} onPress={handleOpenTerms}>Terms of Service</Text> and{' '}
-                  <Text style={styles.legalLink} onPress={handleOpenPrivacy}>Privacy Policy</Text>.
+                  <Text variant="caption" weight="semibold" style={styles.legalLink} onPress={handleOpenTerms}>Terms of Service</Text> and{' '}
+                  <Text variant="caption" weight="semibold" style={styles.legalLink} onPress={handleOpenPrivacy}>Privacy Policy</Text>.
                 </Text>
               </View>
             </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -934,6 +920,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
+    backgroundColor: COLORS.background,
   },
   keyboardView: {
     flex: 1,
@@ -946,18 +933,18 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: RADII.lg,
+    borderRadius: RADII['2xl'],
     paddingHorizontal: SPACING['2xl'],
     paddingVertical: SPACING['4xl'],
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.12,
-    shadowRadius: 28,
-    elevation: 14,
+    shadowColor: '#171511',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.08,
+    shadowRadius: 34,
+    elevation: 8,
     borderWidth: 1,
-    borderColor: COLORS.brand100,
-    maxWidth: 390,
-    minHeight: Platform.OS === 'web' ? 640 : undefined,
+    borderColor: COLORS.gray200,
+    maxWidth: 410,
+    minHeight: Platform.OS === 'web' ? 620 : undefined,
     width: '100%',
     justifyContent: 'space-between' as const,
   },
@@ -965,21 +952,18 @@ const styles = StyleSheet.create({
   // Logo Section
   logoSection: {
     alignItems: 'center',
-    marginBottom: SPACING['3xl'],
+    marginBottom: SPACING['2xl'],
+    gap: SPACING.xs,
   },
   title: {
-    fontSize: 34,
-    fontWeight: '700',
     color: COLORS.gray900,
-    marginTop: SPACING.lg,
-    marginBottom: SPACING.xs,
-    letterSpacing: -0.5,
+    marginTop: SPACING.md,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 15,
     color: COLORS.gray500,
     textAlign: 'center',
-    lineHeight: 22,
+    maxWidth: 300,
   },
 
   // Error
@@ -991,8 +975,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: COLORS.error,
-    fontSize: 14,
-    fontWeight: '500',
     textAlign: 'center',
   },
 
@@ -1004,10 +986,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.white,
-    borderRadius: RADII.md,
+    borderRadius: RADII.lg,
     borderWidth: 1,
     borderColor: COLORS.gray200,
-    height: 48,
+    height: 52,
   },
   inputContainerFocused: {
     borderColor: COLORS.brand500,
@@ -1020,7 +1002,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: '100%',
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.gray800,
   },
   eyeButton: {
@@ -1037,7 +1019,7 @@ const styles = StyleSheet.create({
   },
   signInButton: {
     backgroundColor: COLORS.brand500,
-    borderRadius: RADII.md,
+    borderRadius: RADII.lg,
     height: 52,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1057,8 +1039,6 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   signInButtonText: {
-    fontSize: 17,
-    fontWeight: '700',
     color: COLORS.white,
   },
   loadingContent: {
@@ -1101,12 +1081,9 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
   },
   authSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
     color: COLORS.gray900,
   },
   authSectionSubtitle: {
-    fontSize: 13,
     color: COLORS.gray500,
     textAlign: 'center',
   },
@@ -1141,8 +1118,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.gray200,
   },
   socialButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
     color: COLORS.gray700,
   },
   whiteSocialButtonText: {
@@ -1152,11 +1127,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   emailToggleText: {
-    fontSize: 13,
-    fontWeight: '500',
     color: COLORS.gray500,
     textAlign: 'center',
-    textDecorationLine: 'underline',
     marginTop: SPACING.sm,
   },
   emailLoginSection: {
@@ -1164,30 +1136,33 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
 
-  // Footer
-  footer: {
-    marginTop: SPACING['3xl'],
-    alignItems: 'center',
-    gap: SPACING.lg,
+  supportPanel: {
+    gap: SPACING.sm,
+    marginTop: SPACING.lg,
+    padding: SPACING.md,
+    borderRadius: RADII.lg,
+    backgroundColor: COLORS.gray50,
+    borderWidth: 1,
+    borderColor: COLORS.gray200,
   },
-  signUpContainer: {
+  supportRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.sm,
   },
-  signUpText: {
-    fontSize: 14,
-    color: COLORS.gray500,
+  supportText: {
+    color: COLORS.gray700,
   },
-  signUpLink: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.brand600,
+
+  // Footer
+  footer: {
+    marginTop: SPACING.xl,
+    alignItems: 'center',
+    gap: SPACING.md,
   },
   legalText: {
-    fontSize: 12,
     color: COLORS.gray400,
     textAlign: 'center',
-    lineHeight: 18,
     paddingHorizontal: SPACING.lg,
   },
   legalLink: {

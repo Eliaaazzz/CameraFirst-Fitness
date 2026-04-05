@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { ArrowSquareOut, WarningCircle } from 'phosphor-react-native';
 
 import { SafeAreaWrapper, Text } from '@/components';
 import { BRAND_COLORS, spacing } from '@/utils';
@@ -41,7 +41,7 @@ function SourceCard({ title, body, url }: typeof SOURCES[number]) {
       <Text style={styles.sourceBody}>{body}</Text>
       {url && (
         <Pressable onPress={() => openURL(url)} style={styles.linkRow}>
-          <Feather name="external-link" size={14} color={BRAND_COLORS.secondary} />
+          <ArrowSquareOut size={14} color={BRAND_COLORS.secondary} />
           <Text style={styles.linkText}>View source</Text>
         </Pressable>
       )}
@@ -77,7 +77,7 @@ export function AboutNutritionDataScreen() {
         </Text>
 
         <View style={styles.disclaimerBox}>
-          <Feather name="alert-circle" size={18} color={BRAND_COLORS.warning} style={styles.disclaimerIcon} />
+          <WarningCircle size={18} color={BRAND_COLORS.warning} style={styles.disclaimerIcon} />
           <Text style={styles.disclaimerText}>
             AI-generated nutritional estimates are for informational purposes only and are not
             intended as medical or dietary advice. Always consult a qualified healthcare

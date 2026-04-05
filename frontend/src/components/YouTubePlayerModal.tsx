@@ -1,5 +1,5 @@
 import { colors, spacing } from '@/utils';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { X } from 'phosphor-react-native';
 import React from 'react';
 import {
     ActivityIndicator,
@@ -88,7 +88,7 @@ export const YouTubePlayerModal: React.FC<YouTubePlayerModalProps> = ({
               {title || 'Workout Video'}
             </Text>
             <Pressable onPress={onClose} style={styles.closeButton}>
-              <MaterialCommunityIcons name="close" size={24} color="#FFF" />
+              <X size={24} color="#FFF" weight="bold" />
             </Pressable>
           </View>
 

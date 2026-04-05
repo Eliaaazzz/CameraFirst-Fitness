@@ -89,10 +89,10 @@ function getScoreLabel(score: number): string {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 80) return '#06B6D4'; // Teal
-  if (score >= 60) return '#10B981'; // Green
-  if (score >= 40) return '#F97316'; // Orange
-  return '#EF4444'; // Red
+  if (score >= 80) return BRAND_COLORS.semantic.info;
+  if (score >= 60) return BRAND_COLORS.semantic.success;
+  if (score >= 40) return BRAND_COLORS.primary;
+  return BRAND_COLORS.semantic.error;
 }
 
 // ============================================================================
@@ -195,13 +195,13 @@ export function DailyScoreCard({ data, animated = true }: DailyScoreCardProps) {
             label="Hydration"
             value={`${data.hydrationCups}/${data.hydrationGoal}`}
             percent={data.hydrationGoal > 0 ? Math.round((data.hydrationCups / data.hydrationGoal) * 100) : 0}
-            color="#06B6D4"
+            color={BRAND_COLORS.semantic.info}
           />
           <BreakdownRow
             label="Streak"
             value={`${data.streak}d`}
             percent={Math.min(100, Math.round((data.streak / 30) * 100))}
-            color="#F59E0B"
+            color={BRAND_COLORS.semantic.warning}
           />
         </View>
       </View>

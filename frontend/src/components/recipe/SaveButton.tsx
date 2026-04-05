@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { BookmarkSimple } from 'phosphor-react-native';
 import { Text } from '../Text';
 import { BRAND_COLORS } from '@/utils';
 
@@ -52,10 +52,10 @@ export const SaveButton: React.FC<SaveButtonProps> = ({
         <ActivityIndicator size="small" color={SAVED_COLOR} />
       ) : (
         <>
-          <Ionicons
-            name={isSaved ? 'bookmark' : 'bookmark-outline'}
+          <BookmarkSimple
             size={ICON_SIZE}
             color={isSaved ? SAVED_COLOR : UNSAVED_COLOR}
+            weight={isSaved ? 'fill' : 'regular'}
           />
           <View style={styles.textContainer}>
             <Text style={[styles.text, { color: isSaved ? SAVED_COLOR : TEXT_COLOR }]}>

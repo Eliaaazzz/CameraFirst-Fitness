@@ -1,15 +1,15 @@
-import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
+import { MagnifyingGlass, XCircle } from 'phosphor-react-native';
 import {
-    ActivityIndicator,
-    Platform,
-    Pressable,
-    StyleSheet,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
 } from 'react-native';
 
-import { BRAND_COLORS, spacing } from '@/utils';
+import { BRAND_COLORS, radii, spacing } from '@/utils';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -23,7 +23,7 @@ interface SearchBarProps {
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
-  placeholder = 'Search...',
+  placeholder = 'Search',
   value,
   onChangeText,
   onSubmit,
@@ -51,16 +51,15 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
   return (
     <View style={[styles.container, isFocused && styles.containerFocused]}>
-      <Feather
-        name="search"
+      <MagnifyingGlass
         size={18}
-        color={isFocused ? BRAND_COLORS.primary : '#374151'}
+        color={isFocused ? BRAND_COLORS.primary : BRAND_COLORS.textMuted}
         style={styles.searchIcon}
       />
       <TextInput
         style={styles.input}
         placeholder={placeholder}
-        placeholderTextColor="#374151"
+        placeholderTextColor={BRAND_COLORS.textMuted}
         value={value}
         onChangeText={onChangeText}
         onFocus={handleFocus}
@@ -71,18 +70,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         autoCorrect={false}
         autoFocus={autoFocus}
       />
-      {isLoading && (
+      {isLoading ? (
         <ActivityIndicator
           size="small"
           color={BRAND_COLORS.primary}
           style={styles.clearIcon}
         />
-      )}
-      {!isLoading && value.length > 0 && (
+      ) : null}
+      {!isLoading && value.length > 0 ? (
         <Pressable onPress={handleClear} style={styles.clearButton}>
-          <Feather name="x-circle" size={18} color="#374151" />
+          <XCircle size={18} color={BRAND_COLORS.textMuted} />
         </Pressable>
-      )}
+      ) : null}
     </View>
   );
 };
@@ -91,23 +90,28 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BRAND_COLORS.surface,
-    borderRadius: 12,
+    backgroundColor: BRAND_COLORS.surfaceElevated,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: BRAND_COLORS.border,
     paddingHorizontal: spacing.md,
-    height: 44,
+    minHeight: 48,
   },
   containerFocused: {
     borderColor: BRAND_COLORS.primary,
+    shadowColor: '#C96A34',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 1,
   },
   searchIcon: {
     marginRight: spacing.sm,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    color: '#1F2937', // Dark text for light background
+    fontSize: 15,
+    color: BRAND_COLORS.textPrimary,
     paddingVertical: spacing.sm,
     ...(Platform.OS === 'web' && {
       outlineStyle: 'none' as any,
@@ -121,3 +125,4 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
 });
+

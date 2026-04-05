@@ -4,8 +4,8 @@
  * Dynamically generates tasks based on user goals and current progress.
  * Provides a structured engagement loop that encourages daily interaction.
  */
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Camera, Barbell, Drop, Flame, Check } from 'phosphor-react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -43,7 +43,7 @@ interface DailyTask {
   id: string;
   label: string;
   completed: boolean;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: 'Camera' | 'Barbell' | 'Drop' | 'Flame';
   color: string;
 }
 
@@ -61,32 +61,40 @@ function generateTasks(data: TaskData): DailyTask[] {
       id: 'log_meal',
       label: 'Log a meal',
       completed: data.mealCount > 0,
-      icon: 'camera-outline',
+      icon: 'Camera',
       color: BRAND_COLORS.primary,
     },
     {
       id: 'protein_target',
       label: 'Hit protein target',
       completed: data.protein.goal > 0 && data.protein.current >= data.protein.goal * 0.8,
-      icon: 'barbell-outline',
+      icon: 'Barbell',
       color: BRAND_COLORS.macros.protein,
     },
     {
       id: 'hydration',
       label: `Drink ${Math.max(1, Math.ceil(data.hydrationGoal / 2))}+ cups of water`,
       completed: data.hydrationCups >= Math.ceil(data.hydrationGoal / 2),
-      icon: 'water-outline',
-      color: '#06B6D4',
+      icon: 'Drop',
+      color: BRAND_COLORS.semantic.info,
     },
     {
       id: 'calorie_balance',
       label: 'Stay within calorie target',
       completed: data.calorieGoal > 0 && data.calories > 0 && data.calories <= data.calorieGoal * 1.1,
-      icon: 'flame-outline',
+      icon: 'Flame',
       color: BRAND_COLORS.macros.calories,
     },
   ];
 }
+
+// ============================================================================
+// ICON MAP
+// ============================================================================
+
+const TaskIcons: Record<string, React.ComponentType<any>> = {
+  Camera, Barbell, Drop, Flame,
+};
 
 // ============================================================================
 // ANIMATED TASK ITEM
@@ -126,10 +134,12 @@ function TaskItem({ task, index }: { task: DailyTask; index: number }) {
     <View style={styles.taskItem}>
       <Animated.View style={[styles.taskCheck, checkStyle]}>
         {task.completed && (
-          <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+          <Check size={14} color="#FFFFFF" weight="bold" />
         )}
       </Animated.View>
-      <Ionicons name={task.icon as any} size={16} color={task.color} style={styles.taskIcon} />
+      <View style={styles.taskIcon}>
+        {TaskIcons[task.icon] && React.createElement(TaskIcons[task.icon], { size: 16, color: task.color, weight: 'regular' })}
+      </View>
       <Animated.View style={[{ flex: 1 }, textStyle]}>
         <Text
           variant="body"
@@ -227,7 +237,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   allDoneBadge: {
-    backgroundColor: 'rgba(16,185,129,0.12)',
+    backgroundColor: BRAND_COLORS.semantic.successTint,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
@@ -235,7 +245,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(16,185,129,0.25)',
   },
   allDoneText: {
-    color: '#059669',
+    color: BRAND_COLORS.semantic.success,
     fontSize: 10,
     letterSpacing: 0.5,
   },
@@ -249,7 +259,7 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     borderRadius: 2,
-    backgroundColor: '#10B981',
+    backgroundColor: BRAND_COLORS.semantic.success,
   },
   taskList: {
     gap: spacing.sm,
@@ -275,7 +285,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   taskLabelDone: {
-    color: '#10B981',
+    color: BRAND_COLORS.semantic.success,
   },
 });
 
