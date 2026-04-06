@@ -1,4 +1,5 @@
 import { CommonActions, createNavigationContainerRef } from '@react-navigation/native';
+import { Platform } from 'react-native';
 
 export const navigationRef = createNavigationContainerRef();
 
@@ -41,12 +42,13 @@ export function resetToScreen(screenName: string) {
 }
 
 /**
- * Navigate to Login screen after logout
- * Goes directly to Login instead of Splash to avoid auth check loop
+ * Navigate to the correct unauthenticated entrypoint after logout.
+ * Web should return to Landing so users see the fast marketing shell first.
  */
 export function navigateToLogin() {
-  console.log('[NavigationService] Navigating to Login screen');
+  const screenName = Platform.OS === 'web' ? 'Landing' : 'Login';
+  console.log('[NavigationService] Navigating to unauthenticated screen:', screenName);
   console.log('[NavigationService] navigationRef.isReady():', navigationRef.isReady());
   console.log('[NavigationService] navigationRef.current:', navigationRef.current);
-  resetToScreen('Login');
+  resetToScreen(screenName);
 }

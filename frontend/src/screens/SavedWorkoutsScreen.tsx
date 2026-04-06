@@ -3,9 +3,11 @@
  * Uses the industry standard Tab > Stack > Screen architecture
  */
 import { ArrowLeft, Barbell, WarningCircle } from 'phosphor-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
+import { Image } from 'expo-image';
 import React, { useCallback, useMemo } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import {
     Container,
@@ -61,16 +63,35 @@ export const SavedWorkoutsScreen = () => {
   const savedWorkouts = saved.data ?? [];
   const listBottomPadding = useContentBottomPadding(spacing.lg);
 
+  const goToWorkouts = useCallback(() => {
+    navigation.dispatch(
+      CommonActions.navigate({ name: 'Main', params: { screen: 'Workouts' } })
+    );
+  }, [navigation]);
+
   const listEmptyComponent = useMemo(
     () => (
-      <EmptyStateCard
-        icon={<Barbell size={32} color={theme.colors.primary} />}
-        title="No saved workouts yet"
-        subtitle="Save workouts from the Workouts tab to see them here"
-        variant="single"
-      />
+      <Animated.View entering={FadeIn.duration(400)} style={emptyStyles.wrap}>
+        <Image
+          source={require('@/../assets/illustrations/fitness-tracker.svg')}
+          style={emptyStyles.illustration}
+          contentFit="contain"
+        />
+        <Text variant="heading3" weight="bold" style={emptyStyles.heading}>
+          This space is feeling a little... empty
+        </Text>
+        <Text variant="body" style={emptyStyles.subtitle}>
+          Save workouts from the library to build your collection
+        </Text>
+        <Pressable
+          onPress={goToWorkouts}
+          style={({ pressed }) => [emptyStyles.cta, pressed && emptyStyles.ctaPressed]}
+        >
+          <Text variant="body" weight="bold" style={emptyStyles.ctaText}>Browse workouts</Text>
+        </Pressable>
+      </Animated.View>
     ),
-    [theme]
+    [goToWorkouts]
   );
 
   const handleRefresh = useCallback(() => {
@@ -181,5 +202,44 @@ export const SavedWorkoutsScreen = () => {
     </SafeAreaWrapper>
   );
 };
+
+const emptyStyles = StyleSheet.create({
+  wrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl * 3,
+    gap: spacing.md,
+  },
+  illustration: {
+    width: 120,
+    height: 120,
+    marginBottom: spacing.md,
+  },
+  heading: {
+    textAlign: 'center',
+    color: '#111111',
+  },
+  subtitle: {
+    textAlign: 'center',
+    color: '#6B6B6B',
+    lineHeight: 22,
+  },
+  cta: {
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: 999,
+    backgroundColor: '#111111',
+    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
+  },
+  ctaPressed: {
+    opacity: 0.88,
+  },
+  ctaText: {
+    color: '#FFFFFF',
+  },
+});
 
 export default SavedWorkoutsScreen;

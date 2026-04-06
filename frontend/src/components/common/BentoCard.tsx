@@ -8,14 +8,26 @@ export const BENTO_CARD_STYLES: ViewStyle = {
   borderRadius: radii['2xl'],
   padding: spacing.xl,
   borderWidth: 1,
-  borderColor: colors.light.borderSubtle,
+  borderColor: colors.light.border,
   ...saasShadows.card,
+};
+
+/** Flat Uber-style card for mobile — no border, lighter shadow, 16px radius */
+export const MOBILE_CARD_STYLES: ViewStyle = {
+  backgroundColor: '#FFFFFF',
+  borderRadius: radii.lg, // 16
+  padding: spacing.xl,    // 24
+  borderWidth: 0,
+  ...saasShadows.subtle,  // shadowRadius 8, shadowOpacity 0.04
 };
 
 export const BENTO_CARD_WEB_STYLES =
   Platform.OS === 'web'
     ? ({
-        boxShadow: '0 18px 36px rgba(23, 21, 17, 0.06)',
+        backgroundColor: '#FFFFFF',
+        borderColor: '#E7E7E7',
+        borderRadius: 20,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.03)',
       } as any)
     : {};
 
@@ -43,4 +55,3 @@ const styles = StyleSheet.create({
 });
 
 export default BentoCard;
-

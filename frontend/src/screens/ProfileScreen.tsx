@@ -68,7 +68,7 @@ import { HYDRATION_STORAGE_KEY } from '@/stores/useHydrationStore';
 import userApi from '@/services/userApi';
 import { useAuthStore } from '@/stores';
 import type { CurrentUserResponse, UserProfileResponse } from '@/types';
-import { BRAND_COLORS, spacing, useContentBottomPadding } from '@/utils';
+import { APP_NAME, BRAND_COLORS, spacing, useContentBottomPadding } from '@/utils';
 import { getUserEmail } from '@/utils/jwtStorage';
 import { getTheme } from '@/utils/theme';
 
@@ -707,7 +707,7 @@ const ProfileScreen = () => {
   const handleLogout = () => {
     // On web, fall back to native confirm since Alert can be ignored by browsers
     if (Platform.OS === 'web') {
-      const confirmed = typeof window !== 'undefined' ? window.confirm('Logout of Metriful?') : true;
+      const confirmed = typeof window !== 'undefined' ? window.confirm(`Logout of ${APP_NAME}?`) : true;
       if (confirmed) {
         performLogout();
       }

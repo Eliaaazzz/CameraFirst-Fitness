@@ -17,7 +17,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES } from '@/components/common/BentoCard';
+import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/components/common/BentoCard';
 import { CelebrationOverlay } from '@/components/CelebrationOverlay';
 import { Text } from '@/components/Text';
 import { BRAND_COLORS, spacing } from '@/utils';
@@ -220,7 +220,7 @@ export function DailyTasksCard({ data }: DailyTasksCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    ...BENTO_CARD_STYLES,
+    ...(Platform.OS === 'web' ? BENTO_CARD_STYLES : MOBILE_CARD_STYLES),
     padding: spacing.lg,
   },
   header: {
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     color: BRAND_COLORS.textPrimary,
   },
   subtitle: {
-    color: BRAND_COLORS.textDisabled,
+    color: BRAND_COLORS.textMuted,
     marginTop: 2,
   },
   allDoneBadge: {
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     width: 20,
   },
   taskLabel: {
-    color: BRAND_COLORS.textMuted,
+    color: BRAND_COLORS.textSecondary,
     fontSize: 14,
   },
   taskLabelDone: {

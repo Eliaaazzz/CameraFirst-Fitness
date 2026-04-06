@@ -3,9 +3,11 @@
  * Uses the industry standard Tab > Stack > Screen architecture
  */
 import { ArrowLeft, BookOpen, WarningCircle } from 'phosphor-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
+import { Image } from 'expo-image';
 import React, { useCallback, useMemo } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import {
     Container,
@@ -61,16 +63,35 @@ export const SavedRecipesScreen = () => {
   const savedRecipes = saved.data ?? [];
   const listBottomPadding = useContentBottomPadding(spacing.lg);
 
+  const goToRecipes = useCallback(() => {
+    navigation.dispatch(
+      CommonActions.navigate({ name: 'Main', params: { screen: 'Recipes' } })
+    );
+  }, [navigation]);
+
   const listEmptyComponent = useMemo(
     () => (
-      <EmptyStateCard
-        icon={<BookOpen size={32} color={theme.colors.primary} weight="fill" />}
-        title="No saved recipes yet"
-        subtitle="Save recipes from the Recipes tab to see them here"
-        variant="single"
-      />
+      <Animated.View entering={FadeIn.duration(400)} style={emptyStyles.wrap}>
+        <Image
+          source={require('@/../assets/illustrations/cooking.svg')}
+          style={emptyStyles.illustration}
+          contentFit="contain"
+        />
+        <Text variant="heading3" weight="bold" style={emptyStyles.heading}>
+          This space is feeling a little... empty
+        </Text>
+        <Text variant="body" style={emptyStyles.subtitle}>
+          Save recipes to access them anytime
+        </Text>
+        <Pressable
+          onPress={goToRecipes}
+          style={({ pressed }) => [emptyStyles.cta, pressed && emptyStyles.ctaPressed]}
+        >
+          <Text variant="body" weight="bold" style={emptyStyles.ctaText}>Browse recipes</Text>
+        </Pressable>
+      </Animated.View>
     ),
-    [theme]
+    [goToRecipes]
   );
 
   const handleRefresh = useCallback(() => {
@@ -181,5 +202,44 @@ export const SavedRecipesScreen = () => {
     </SafeAreaWrapper>
   );
 };
+
+const emptyStyles = StyleSheet.create({
+  wrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl * 3,
+    gap: spacing.md,
+  },
+  illustration: {
+    width: 120,
+    height: 120,
+    marginBottom: spacing.md,
+  },
+  heading: {
+    textAlign: 'center',
+    color: '#111111',
+  },
+  subtitle: {
+    textAlign: 'center',
+    color: '#6B6B6B',
+    lineHeight: 22,
+  },
+  cta: {
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: 999,
+    backgroundColor: '#111111',
+    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
+  },
+  ctaPressed: {
+    opacity: 0.88,
+  },
+  ctaText: {
+    color: '#FFFFFF',
+  },
+});
 
 export default SavedRecipesScreen;

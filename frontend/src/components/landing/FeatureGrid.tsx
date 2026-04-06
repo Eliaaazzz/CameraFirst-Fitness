@@ -1,66 +1,105 @@
-/**
- * FeatureGrid — 3x2 feature discovery cards
- *
- * Inspired by: Uber homepage "Discover what you can do" section —
- * warm-toned cards with illustration + text + pill CTA.
- *
- * Desktop: 3 columns. Mobile: single column stack.
- */
-
 import { Image } from 'expo-image';
-import React from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import React, { useState } from 'react';
+import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components';
-import { BRAND_COLORS, radii, spacing } from '@/utils';
+import { APP_NAME, BRAND_COLORS, LANDING_COLORS, radii, spacing } from '@/utils';
 
 const FEATURES = [
   {
-    title: 'AI Meal Scan',
-    description: 'Snap a photo, get instant calories and macros.',
+    title: 'Meal Logging',
+    description: 'Snap a photo and let AI log your calories, protein, carbs, and fat.',
     illustration: require('@/../assets/illustrations/cooking.svg'),
   },
   {
-    title: 'Daily Health Score',
-    description: 'One number (0\u2013100) that tells you how your day is going.',
-    illustration: require('@/../assets/illustrations/fitness-stats.svg'),
-  },
-  {
-    title: 'Streak Tracking',
-    description: 'Build daily habits with 5-tier milestone badges.',
-    illustration: require('@/../assets/illustrations/healthy-habit.svg'),
-  },
-  {
-    title: 'Smart Goals',
-    description: 'AI-generated calorie and macro targets personalised to you.',
+    title: 'Workout Planning',
+    description: 'Plan your week with structured sessions and rest days.',
     illustration: require('@/../assets/illustrations/fitness-tracker.svg'),
   },
   {
-    title: 'Recipe Discovery',
-    description: 'Find healthy recipes that match your nutrition goals.',
+    title: 'Progress Tracking',
+    description: 'See your weight trend, streaks, and weekly progress at a glance.',
+    illustration: require('@/../assets/illustrations/fitness-stats.svg'),
+  },
+  {
+    title: 'Targets',
+    description: 'Set personalized calorie, macro, and hydration goals powered by AI.',
+    illustration: require('@/../assets/illustrations/healthy-habit.svg'),
+  },
+  {
+    title: 'Recipes',
+    description: 'Get recipes matched to your calorie and macro targets.',
     illustration: require('@/../assets/illustrations/chef.svg'),
   },
   {
-    title: 'Weekly Insights',
-    description: 'See trends, spot patterns, and improve week over week.',
+    title: 'Weekly Reports',
+    description: 'Review weekly performance and export the numbers you need.',
     illustration: require('@/../assets/illustrations/data-trends.svg'),
   },
 ];
 
-const SERIF_FONT = 'Georgia, "Times New Roman", serif';
+function FeatureCard({
+  title,
+  description,
+  illustration,
+  isDesktop,
+  onExplore,
+}: {
+  title: string;
+  description: string;
+  illustration: any;
+  isDesktop: boolean;
+  onExplore: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <View
+      style={[
+        styles.card,
+        isDesktop ? styles.cardDesktop : styles.cardMobile,
+        hovered && styles.cardHovered,
+      ]}
+      {...(Platform.OS === 'web' && {
+        onMouseEnter: () => setHovered(true),
+        onMouseLeave: () => setHovered(false),
+      })}
+    >
+      <View style={styles.textSide}>
+        <Text variant="heading3" weight="bold" style={styles.cardTitle}>
+          {title}
+        </Text>
+        <Text variant="body" style={styles.cardDescription}>
+          {description}
+        </Text>
+        <Pressable onPress={onExplore} style={({ pressed }) => [styles.detailsBtn, pressed && styles.pressed]}>
+          <Text variant="body" weight="semibold" style={styles.detailsText}>
+            Explore
+          </Text>
+        </Pressable>
+      </View>
 
-export function FeatureGrid() {
+      <Image source={illustration} style={styles.illustration} contentFit="contain" />
+    </View>
+  );
+}
+
+interface FeatureGridProps {
+  onExplore?: () => void;
+}
+
+export function FeatureGrid({ onExplore }: FeatureGridProps) {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  const handleExplore = onExplore ?? (() => {});
 
   return (
     <View style={styles.section}>
       <Text
         variant="heading1"
         weight="bold"
-        style={styles.sectionTitle}
+        style={isDesktop ? [styles.sectionTitle] : [styles.sectionTitle, styles.sectionTitleMobile]}
       >
-        Discover what Metriful can do
+        Discover what you can do with {APP_NAME}
       </Text>
 
       <View style={styles.grid}>
@@ -69,35 +108,16 @@ export function FeatureGrid() {
             key={feature.title}
             style={[
               styles.cardWrapper,
-              { width: isDesktop ? ('calc(33.333% - 11px)' as any) : '100%' },
+              isDesktop ? styles.cardWrapperDesktop : styles.cardWrapperMobile,
             ]}
           >
-            <View style={styles.card}>
-              <View style={styles.textSide}>
-                <Text variant="heading3" weight="bold" style={styles.cardTitle}>
-                  {feature.title}
-                </Text>
-                <Text variant="body" style={styles.cardDescription}>
-                  {feature.description}
-                </Text>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.detailsBtn,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Text variant="body" weight="semibold" style={styles.detailsText}>
-                    Details
-                  </Text>
-                </Pressable>
-              </View>
-
-              <Image
-                source={feature.illustration}
-                style={styles.illustration}
-                contentFit="contain"
-              />
-            </View>
+            <FeatureCard
+              title={feature.title}
+              description={feature.description}
+              illustration={feature.illustration}
+              isDesktop={isDesktop}
+              onExplore={handleExplore}
+            />
           </View>
         ))}
       </View>
@@ -111,58 +131,91 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['2xl'],
   },
   sectionTitle: {
-    color: BRAND_COLORS.textPrimary,
-    fontSize: 36,
-    lineHeight: 42,
-    letterSpacing: -1,
-    fontFamily: SERIF_FONT,
-    marginBottom: 32,
+    color: LANDING_COLORS.text,
+    fontSize: 56,
+    lineHeight: 60,
+    letterSpacing: -2,
+    marginBottom: spacing['2xl'],
+  },
+  sectionTitleMobile: {
+    fontSize: 40,
+    lineHeight: 44,
+    letterSpacing: -1.4,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: spacing.lg,
   },
   cardWrapper: {},
+  cardWrapperDesktop: {
+    width: 'calc(33.333% - 11px)' as any,
+    minHeight: 236,
+  },
+  cardWrapperMobile: {
+    width: '100%',
+  },
   card: {
-    backgroundColor: '#F3EDE5',
-    borderRadius: radii.xl,
-    padding: 28,
+    backgroundColor: LANDING_COLORS.surface,
+    borderRadius: radii['2xl'],
+    padding: 24,
     flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 200,
+    alignItems: 'stretch',
+    borderWidth: 1,
+    borderColor: BRAND_COLORS.border,
+    height: '100%',
+    ...(Platform.OS === 'web' && ({
+      transition: 'transform 0.2s ease-out, box-shadow 0.2s ease-out',
+    } as any)),
+  },
+  cardHovered: {
+    ...(Platform.OS === 'web' && ({
+      transform: [{ translateY: -4 }],
+      boxShadow: '0 12px 28px rgba(17,17,17,0.08)',
+    } as any)),
+  },
+  cardDesktop: {
+    minHeight: 236,
+  },
+  cardMobile: {
+    minHeight: 220,
   },
   textSide: {
     flex: 1,
     gap: spacing.sm,
-    paddingRight: spacing.lg,
+    paddingRight: spacing.md,
+    justifyContent: 'space-between',
   },
   cardTitle: {
-    color: BRAND_COLORS.textPrimary,
+    color: LANDING_COLORS.text,
+    fontSize: 24,
+    lineHeight: 28,
   },
   cardDescription: {
     color: BRAND_COLORS.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 26,
   },
   detailsBtn: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    backgroundColor: LANDING_COLORS.pillBg,
     borderRadius: radii.pill,
-    marginTop: spacing.sm,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: LANDING_COLORS.border,
   },
   detailsText: {
-    color: BRAND_COLORS.textPrimary,
-    fontSize: 14,
+    color: LANDING_COLORS.text,
   },
   pressed: {
-    opacity: 0.8,
+    opacity: 0.82,
   },
   illustration: {
-    width: 140,
-    height: 140,
+    width: 132,
+    height: 132,
+    alignSelf: 'flex-end',
   },
 });
 

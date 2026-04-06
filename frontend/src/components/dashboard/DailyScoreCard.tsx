@@ -20,7 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, Defs, G, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 
-import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES } from '@/components/common/BentoCard';
+import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/components/common/BentoCard';
 import { Text } from '@/components/Text';
 import { BRAND_COLORS, spacing } from '@/utils';
 
@@ -130,7 +130,12 @@ export function DailyScoreCard({ data, animated = true }: DailyScoreCardProps) {
   }));
 
   return (
-    <View style={[styles.card, BENTO_CARD_WEB_STYLES as any]}>
+    <View
+      style={[styles.card, BENTO_CARD_WEB_STYLES as any]}
+      accessible={true}
+      accessibilityRole="summary"
+      accessibilityLabel={`Daily score: ${score} out of 100, ${label}`}
+    >
       <View style={[styles.row, isNarrow && styles.rowVertical]}>
         {/* Score Dial */}
         <View style={styles.dialContainer}>
@@ -226,7 +231,11 @@ function BreakdownRow({ label, value, percent, color }: {
 }) {
   const clampedPercent = Math.min(100, Math.max(0, percent));
   return (
-    <View style={styles.breakdownRow}>
+    <View
+      style={styles.breakdownRow}
+      accessibilityRole="text"
+      accessibilityLabel={`${label}: ${value}, ${clampedPercent} percent`}
+    >
       <View style={styles.breakdownMeta}>
         <Text variant="caption" weight="medium" style={styles.breakdownLabel}>{label}</Text>
         <Text variant="caption" style={styles.breakdownValue}>{value}</Text>
@@ -244,7 +253,7 @@ function BreakdownRow({ label, value, percent, color }: {
 
 const styles = StyleSheet.create({
   card: {
-    ...BENTO_CARD_STYLES,
+    ...(Platform.OS === 'web' ? BENTO_CARD_STYLES : MOBILE_CARD_STYLES),
     padding: spacing.lg,
   },
   row: {
@@ -273,17 +282,19 @@ const styles = StyleSheet.create({
     lineHeight: 40,
   },
   scoreLabel: {
-    color: BRAND_COLORS.textMuted,
+    color: BRAND_COLORS.textSecondary,
     marginTop: 2,
+    fontWeight: '500',
   },
   breakdown: {
     flex: 1,
     gap: spacing.sm,
   },
   breakdownTitle: {
-    color: BRAND_COLORS.textDisabled,
+    color: BRAND_COLORS.textSecondary,
     letterSpacing: 1.5,
     fontSize: 10,
+    fontWeight: '700',
     marginBottom: spacing.xs,
   },
   breakdownRow: {
@@ -294,11 +305,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   breakdownLabel: {
-    color: BRAND_COLORS.textMuted,
+    color: BRAND_COLORS.textSecondary,
     fontSize: 12,
+    fontWeight: '500',
   },
   breakdownValue: {
-    color: BRAND_COLORS.textDisabled,
+    color: BRAND_COLORS.textMuted,
     fontSize: 11,
   },
   breakdownTrack: {

@@ -2,7 +2,7 @@ import { BRAND_COLORS } from '@/utils';
 import { clearJWT, isAuthenticated } from '@/utils/jwtStorage';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -17,6 +17,7 @@ interface AuthGuardProps {
 export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const [isChecking, setIsChecking] = useState(true);
   const navigation = useNavigation();
+  const unauthenticatedRoute = Platform.OS === 'web' ? 'Landing' : 'Login';
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -32,7 +33,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             navigation.dispatch(
               CommonActions.reset({
                 index: 0,
-                routes: [{ name: 'Login' as never }],
+                routes: [{ name: unauthenticatedRoute as never }],
               })
             );
           }, 100);
@@ -45,7 +46,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           navigation.dispatch(
             CommonActions.reset({
               index: 0,
-              routes: [{ name: 'Login' as never }],
+              routes: [{ name: unauthenticatedRoute as never }],
             })
           );
         }, 100);
@@ -55,7 +56,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     };
 
     checkAuth();
-  }, [navigation]);
+  }, [navigation, unauthenticatedRoute]);
 
   if (isChecking) {
     return (

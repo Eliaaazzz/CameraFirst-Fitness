@@ -14,9 +14,9 @@ import { Text } from '@/components';
 import { BRAND_COLORS, spacing } from '@/utils';
 
 const STATS = [
-  { value: '50,000+', label: 'Meals scanned' },
-  { value: '4.8 \u2605', label: 'App Store rating' },
-  { value: '100%', label: 'Free core features' },
+  { value: '2,000+', label: 'Active users' },
+  { value: '4.8 ★', label: 'App Store rating' },
+  { value: 'Free', label: 'No credit card required' },
 ];
 
 export function StatsBar() {

@@ -1,12 +1,8 @@
 /**
- * Sidebar - Premium desktop navigation (Linear/Stripe style)
+ * Sidebar - Platform-style desktop navigation.
  *
- * Features:
- * - Phosphor icons with weight system (regular/bold)
- * - Theme color per item (via chip tint, not full color)
- * - 3px indicator bar for active state
- * - Collapsible rail mode (72px)
- * - 180ms open / 150ms close animations
+ * Keeps the existing collapse behavior but swaps the soft SaaS treatment
+ * for a harder black/white shell that matches the landing page.
  */
 
 import React, { useCallback, useState } from 'react';
@@ -23,15 +19,16 @@ import {
   Barbell,
   BookOpenText,
   UserCircle,
-  SidebarSimple,
   IconProps,
 } from 'phosphor-react-native';
+
+
 
 import { CommonActions, useNavigation, useNavigationState } from '@react-navigation/native';
 
 import { Text } from '@/components/Text';
 import useCurrentUser from '@/hooks/useCurrentUser';
-import { BRAND_COLORS, LAYOUT_DIMENSIONS, colors, spacing } from '@/utils';
+import { APP_NAME, BRAND_COLORS, LAYOUT_DIMENSIONS, colors, spacing } from '@/utils';
 
 // Animation config - fast & snappy
 const SIDEBAR_EASING = Easing.bezier(0.2, 0.8, 0.2, 1);
@@ -55,15 +52,6 @@ const NAV_ITEMS: NavItemConfig[] = [
   { key: 'Profile', label: 'Profile', Icon: UserCircle },
 ];
 const NAV_KEYS = NAV_ITEMS.map(item => item.key);
-
-// Helper: create tinted background from hex color
-const tint = (hex: string, alpha = 0.12): string => {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-};
 
 // ============================================================================
 // NAV ITEM COMPONENT
@@ -102,34 +90,29 @@ function NavItemButton({
     transform: [{ scale: scale.value }],
   }));
 
-  // Interaction Colors - Tinted Style (SaaS Trend)
-  // Active: Light Orange Tint Background + Dark Orange Text/Icon
-  // Inactive: Transparent + Gray Text/Icon
-  // Hover: Light Orange Tint + Orange Text/Icon
-  
   const iconColor = isActive
-    ? BRAND_COLORS.primaryDark
+    ? '#FFFFFF'
     : isHovered
-      ? BRAND_COLORS.primary
+      ? colors.light.textPrimary
       : colors.light.textSecondary;
 
   const labelColor = isActive
-    ? BRAND_COLORS.primaryDark
+    ? '#FFFFFF'
     : isHovered
-      ? BRAND_COLORS.primary
+      ? colors.light.textPrimary
       : colors.light.textSecondary;
 
   const rowBg = isActive
-    ? 'rgba(255, 245, 235, 0.92)'
+    ? '#111111'
     : isHovered
-      ? 'rgba(255, 247, 239, 0.84)'
+      ? colors.light.surfaceVariant
       : 'transparent';
 
   const chipBg = isActive
-    ? tint(BRAND_COLORS.primary, 0.18)
+    ? 'rgba(255,255,255,0.12)'
     : isHovered
-      ? tint(BRAND_COLORS.primary, 0.12)
-      : 'rgba(255,247,239,0.76)';
+      ? 'rgba(17,17,17,0.06)'
+      : 'transparent';
 
   return (
     <AnimatedPressable
@@ -141,17 +124,15 @@ function NavItemButton({
         {
           backgroundColor: rowBg,
           borderColor: isActive
-            ? 'rgba(249, 115, 22, 0.22)'
+            ? '#111111'
             : isHovered
-              ? 'rgba(249, 115, 22, 0.14)'
+              ? colors.light.border
               : 'transparent',
           ...(Platform.OS === 'web' && ({
-            backdropFilter: isActive ? 'blur(18px)' : isHovered ? 'blur(12px)' : 'blur(0px)',
-            WebkitBackdropFilter: isActive ? 'blur(18px)' : isHovered ? 'blur(12px)' : 'blur(0px)',
             boxShadow: isActive
-              ? 'inset 0 1px 0 rgba(255,255,255,0.76), 0 8px 20px rgba(15,23,42,0.05), 0 0 0 1px rgba(249,115,22,0.14)'
+              ? '0 12px 24px rgba(17,17,17,0.08)'
               : isHovered
-                ? 'inset 0 1px 0 rgba(255,255,255,0.66), 0 6px 14px rgba(15,23,42,0.03)'
+                ? '0 6px 18px rgba(17,17,17,0.04)'
                 : 'none',
           } as any)),
         },
@@ -169,7 +150,7 @@ function NavItemButton({
           styles.chip,
           {
             backgroundColor: chipBg,
-            borderColor: isActive ? 'rgba(249, 115, 22, 0.22)' : 'rgba(249, 115, 22, 0.1)',
+            borderColor: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
           },
         ]}
       >
@@ -279,12 +260,12 @@ export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
         ]}
       >
         <View style={styles.toggleIcon}>
-          <SidebarSimple size={22} weight="regular" color={BRAND_COLORS.primary} />
+          <Text variant="heading3" weight="bold" style={{ color: colors.light.textPrimary, fontSize: 18 }}>A</Text>
         </View>
         {!isCollapsed && (
           <Animated.View style={[styles.brandContainer, textStyle]}>
             <Text variant="heading3" weight="bold" style={styles.brandText}>
-              Metriful
+              {APP_NAME}
             </Text>
           </Animated.View>
         )}
@@ -315,7 +296,7 @@ export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
         onPress={() => handleNavPress('Profile')}
       >
         <View style={styles.userAvatar}>
-          <UserCircle size={24} weight="fill" color={BRAND_COLORS.primary} />
+          <UserCircle size={24} weight="fill" color={BRAND_COLORS.textPrimary} />
         </View>
         {!isCollapsed && (
           <Animated.View style={[styles.userInfo, textStyle]}>
@@ -337,15 +318,13 @@ const styles = StyleSheet.create({
   container: {
     width: LAYOUT_DIMENSIONS.sidebarWidth,
     height: '100%',
-    backgroundColor: 'rgba(251,247,242,0.84)',
+    backgroundColor: '#FFFFFF',
     borderRightWidth: 1,
-    borderRightColor: 'rgba(249,115,22,0.12)',
+    borderRightColor: colors.light.border,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.sm,
     ...(Platform.OS === 'web' && ({
-      backdropFilter: 'blur(18px)',
-      WebkitBackdropFilter: 'blur(18px)',
-      boxShadow: 'inset -1px 0 0 rgba(249,115,22,0.1), inset 0 1px 0 rgba(255,255,255,0.56)',
+      boxShadow: 'inset -1px 0 0 rgba(17,17,17,0.04)',
     } as any)),
   },
 
@@ -371,29 +350,24 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
   },
   headerPressed: {
-    backgroundColor: 'rgba(255,247,239,0.86)',
+    backgroundColor: colors.light.surfaceVariant,
   },
   toggleIcon: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,250,246,0.92)',
+    backgroundColor: colors.light.surfaceVariant,
     borderWidth: 1,
-    borderColor: 'rgba(249,115,22,0.14)',
+    borderColor: colors.light.border,
     justifyContent: 'center',
     alignItems: 'center',
-    ...(Platform.OS === 'web' && ({
-      backdropFilter: 'blur(14px)',
-      WebkitBackdropFilter: 'blur(14px)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)',
-    } as any)),
   },
   brandContainer: {
     flex: 1,
     marginLeft: spacing.sm,
   },
   brandText: {
-    color: '#1F2937',
+    color: colors.light.textPrimary,
     letterSpacing: -0.3,
   },
 
@@ -430,9 +404,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    ...(Platform.OS === 'web' && ({
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45)',
-    } as any)),
   },
 
   navLabel: {
@@ -454,7 +425,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     marginHorizontal: spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(249,115,22,0.1)',
+    borderTopColor: colors.light.borderSubtle,
     marginTop: spacing.md,
     gap: spacing.sm,
     ...(Platform.OS === 'web' && {
@@ -470,14 +441,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,250,246,0.92)',
+    backgroundColor: colors.light.surfaceVariant,
     borderWidth: 1,
-    borderColor: 'rgba(249,115,22,0.14)',
+    borderColor: colors.light.border,
     justifyContent: 'center',
     alignItems: 'center',
-    ...(Platform.OS === 'web' && ({
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.74)',
-    } as any)),
   },
   userInfo: {
     flex: 1,

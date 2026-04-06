@@ -27,7 +27,7 @@ import useCurrentUser from '@/hooks/useCurrentUser';
 import { useDailyNutrition } from '@/hooks/useDailyNutrition';
 import { GeneratedGoals, GoalType } from '@/services/geminiApi';
 import { useHydrationStore, useLanguageStore } from '@/stores';
-import { BRAND_COLORS, colors, saasShadows, spacing } from '@/utils';
+import { APP_NAME, BRAND_COLORS, colors, spacing } from '@/utils';
 
 // Animated components
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -119,7 +119,7 @@ export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
               <View style={styles.goalBannerHeader}>
                 <View style={styles.goalIconContainer}>
                   {goalTypeConfig && (
-                    <goalTypeConfig.Icon size={20} weight="fill" color="#F97316" />
+                    <goalTypeConfig.Icon size={20} weight="fill" color="#111111" />
                   )}
                 </View>
                 <View style={styles.goalStatusBadge}>
@@ -128,7 +128,7 @@ export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
               </View>
 
               <View style={styles.goalContent}>
-                <Text variant="caption" weight="bold" style={styles.goalBannerLabel}>CURRENT GOAL</Text>
+                <Text variant="caption" weight="bold" style={styles.goalBannerLabel}>CURRENT PROGRAM</Text>
                 <Text variant="heading2" weight="bold" style={styles.goalBannerTitle}>
                   {goalTypeConfig?.label || 'Fitness Journey'}
                 </Text>
@@ -186,8 +186,8 @@ export function DashboardWidgets({ generatedGoals }: DashboardWidgetsProps) {
 
         {/* 5. Community Social Proof */}
         <InsightCard
-          text="AuraFitness community logged 50,000+ meals this month"
-          color="#10B981"
+          text={`${APP_NAME} members logged 50,000+ meals this month`}
+          color="#111111"
           icon="people-outline"
         />
       </Animated.View>
@@ -209,7 +209,7 @@ function HydrationAddButton({ onPress }: { onPress: () => void }) {
       style={({ pressed }) => [styles.hydrationPlus, pressed && { opacity: 0.6, transform: [{ scale: 0.92 }] }]}
     >
       <View pointerEvents="none">
-        <Plus size={16} weight="bold" color="#06B6D4" />
+        <Plus size={16} weight="bold" color="#111111" />
       </View>
     </Pressable>
   );
@@ -221,12 +221,12 @@ function SetGoalsPrompt({ onPress }: { onPress: () => void }) {
       style={styles.setGoalsPrompt}
       onPress={onPress}
     >
-      <Target size={20} weight="regular" color={BRAND_COLORS.primary} />
+      <Target size={20} weight="regular" color="#111111" />
       <View style={styles.setGoalsText}>
         <Text variant="body" weight="semibold">Set Your Goals</Text>
         <Text variant="caption" style={styles.mutedText}>Get personalized targets</Text>
       </View>
-      <CaretRight size={16} weight="bold" color={BRAND_COLORS.primary} />
+      <CaretRight size={16} weight="bold" color="#111111" />
     </AnimatedPressable>
   );
 }
@@ -260,22 +260,18 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   rightGlassCard: {
-    backgroundColor: 'rgba(255,255,255,0.66)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.62)',
-    ...saasShadows.subtle,
+    borderColor: colors.light.border,
     ...(Platform.OS === 'web' && ({
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-      boxShadow:
-        'inset 0 1px 0 rgba(255,255,255,0.74), 0 0 0 1px rgba(255,170,120,0.18), 0 10px 24px rgba(15,23,42,0.04)',
+      boxShadow: '0 10px 24px rgba(17,17,17,0.04)',
     } as any)),
   },
   // Goal Banner (additional styles, base from BentoCard)
   goalBanner: {
     overflow: 'hidden',
-    borderColor: 'rgba(255,255,255,0.62)',
-    backgroundColor: 'rgba(255,255,255,0.68)',
+    borderColor: colors.light.border,
+    backgroundColor: '#FFFFFF',
   },
   goalBannerHeader: {
     flexDirection: 'row',
@@ -287,22 +283,22 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 241, 227, 0.7)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(246, 194, 143, 0.5)',
+    backgroundColor: colors.light.surfaceVariant,
+    borderWidth: 1,
+    borderColor: colors.light.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
   goalStatusBadge: {
-    backgroundColor: 'rgba(255, 244, 232, 0.7)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(246, 194, 143, 0.5)',
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#111111',
     paddingHorizontal: 9,
     paddingVertical: 3,
     borderRadius: 999,
   },
   goalStatusText: {
-    color: '#C2410C',
+    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -310,19 +306,19 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   goalBannerLabel: {
-    color: '#7A6B5C',
+    color: colors.light.textMuted,
     letterSpacing: 1,
     fontSize: 10,
   },
   goalBannerTitle: {
-    color: '#111827',
+    color: '#111111',
     marginTop: 4,
   },
   goalMetaRow: {
     marginTop: 12,
   },
   goalMetaText: {
-    color: '#6E5E4D',
+    color: colors.light.textSecondary,
   },
   goalDecorativeCircle: {
     position: 'absolute',
@@ -332,6 +328,7 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 48,
     backgroundColor: 'rgba(251, 146, 60, 0.12)',
+    opacity: 0.5,
   },
   // Bento Section
   bentoSection: {
@@ -355,29 +352,25 @@ const styles = StyleSheet.create({
   },
   hydrationIconBox: {
     padding: 8,
-    backgroundColor: 'rgba(205, 242, 250, 0.82)',
+    backgroundColor: colors.light.surfaceVariant,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(112, 223, 243, 0.36)',
+    borderColor: colors.light.border,
   },
   hydrationLabel: {
-    color: '#164E63', // Cyan-900
+    color: '#111111',
   },
   hydrationPlus: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.58)',
+    backgroundColor: colors.light.surfaceVariant,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.66)',
-    ...saasShadows.subtle,
+    borderColor: colors.light.border,
     ...(Platform.OS === 'web' && ({
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
-      boxShadow:
-        'inset 0 1px 0 rgba(255,255,255,0.78), 0 0 0 1px rgba(112,223,243,0.16), 0 8px 14px rgba(15,23,42,0.03)',
+      boxShadow: '0 8px 18px rgba(17,17,17,0.04)',
     } as any)),
   },
   hydrationContent: {
@@ -389,23 +382,23 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   hydrationCurrent: {
-    color: '#164E63', // Cyan-900
+    color: '#111111',
     fontSize: 32,
     lineHeight: 32,
   },
   hydrationTarget: {
-    color: '#06B6D4', // Cyan-500
+    color: colors.light.textMuted,
     paddingBottom: 4,
   },
   hydrationTrack: {
     height: 12,
     borderRadius: 999,
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
+    backgroundColor: 'rgba(17,17,17,0.08)',
     overflow: 'hidden',
   },
   hydrationFill: {
     height: '100%',
-    backgroundColor: '#06B6D4', // Cyan-500
+    backgroundColor: '#111111',
     borderRadius: 999,
   },
   // Set Goals Prompt
@@ -413,16 +406,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.62)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.62)',
+    borderColor: colors.light.border,
     gap: spacing.sm,
     ...(Platform.OS === 'web' && ({
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-      boxShadow:
-        'inset 0 1px 0 rgba(255,255,255,0.74), 0 0 0 1px rgba(255,170,120,0.2), 0 10px 24px rgba(15,23,42,0.04)',
+      boxShadow: '0 10px 24px rgba(17,17,17,0.04)',
     } as any)),
   },
   setGoalsText: {

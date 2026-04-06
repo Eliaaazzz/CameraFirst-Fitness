@@ -94,15 +94,15 @@ const styles = StyleSheet.create({
   },
   mainScrollView: {
     flex: 1,
-    backgroundColor: colors.light.surface,
+    backgroundColor: colors.light.background,
   },
   mainContentContainer: {
     padding: spacing.lg,
     paddingBottom: spacing['3xl'],
-    backgroundColor: colors.light.surface,
-    // Center content with max width on very wide screens
+    backgroundColor: colors.light.background,
+    // Center content with max width — use full landing-page width since sidebar is replaced by top nav
     ...(Platform.OS === 'web' && {
-      maxWidth: LAYOUT_DIMENSIONS.mainContentMaxWidth + spacing.lg * 2,
+      maxWidth: 1360 + spacing.lg * 2,
       marginHorizontal: 'auto',
       width: '100%',
     }),
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
     padding: spacing.lg,
-    backgroundColor: colors.light.surface,
+    backgroundColor: colors.light.background,
     ...(Platform.OS === 'web' && {
       display: 'flex' as any,
       flexDirection: 'column' as any,
@@ -120,10 +120,10 @@ const styles = StyleSheet.create({
   rightPanel: {
     width: LAYOUT_DIMENSIONS.rightPanelWidth,
     borderLeftWidth: 1,
-    borderLeftColor: colors.light.borderSubtle,
-    backgroundColor: 'rgba(255,252,248,0.84)',
+    borderLeftColor: colors.light.border,
+    backgroundColor: '#F5F4F1',
     ...(Platform.OS === 'web' && ({
-      boxShadow: 'inset 1px 0 0 rgba(23,21,17,0.04)',
+      boxShadow: 'inset 1px 0 0 rgba(17,17,17,0.04)',
     } as any)),
   },
   rightPanelContent: {

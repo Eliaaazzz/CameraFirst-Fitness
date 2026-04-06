@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AuraMark, Text } from '@/components';
+import { Image } from 'expo-image';
+import { Text } from '@/components';
 import { api } from '@/services/apiClient';
 import { queryClient } from '@/services/queryClient';
 import { useAuthStore } from '@/stores';
@@ -110,7 +111,7 @@ export default function RegisterScreen() {
 
       navigation.reset({
         index: 0,
-        routes: [{ name: 'Main' }],
+        routes: [{ name: 'Onboarding' }],
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
@@ -135,7 +136,11 @@ export default function RegisterScreen() {
         >
           <View style={styles.card}>
             <View style={styles.logoSection}>
-              <AuraMark size={96} />
+              <Image
+                source={require('@/../assets/app-icon-1024.png')}
+                style={styles.appLogo}
+                contentFit="contain"
+              />
               <Text variant="heading1" weight="bold" style={styles.title}>
                 Create your account
               </Text>
@@ -251,6 +256,11 @@ const styles = StyleSheet.create({
   logoSection: {
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  appLogo: {
+    width: 80,
+    height: 80,
+    marginBottom: spacing.xs,
   },
   title: {
     textAlign: 'center',

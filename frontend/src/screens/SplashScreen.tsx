@@ -11,7 +11,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { AuraMark, Text } from '@/components';
+import { Image } from 'expo-image';
+import { Text } from '@/components';
 import { useAppleCredentialCheck } from '@/hooks/useAppleCredentialCheck';
 import { useAuthStore } from '@/stores';
 import { BRAND_COLORS } from '@/utils';
@@ -53,6 +54,21 @@ export default function SplashScreen() {
   }, [dotScale1, dotScale2, dotScale3, logoOpacity, logoScale, textOpacity]);
 
   useEffect(() => {
+    // Web: show landing page INSTANTLY (pure frontend, 0ms load).
+    // Auth check runs in background; if user has a valid token,
+    // LandingScreen or login flow will redirect to Main.
+    if (Platform.OS === 'web') {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Landing' } as any],
+      });
+      // Still restore token in background so auth state is ready
+      // when user clicks "Log in" or navigates
+      restoreToken();
+      return;
+    }
+
+    // Mobile: keep the splash animation + delayed auth check
     if (hasStartedRestoreRef.current) {
       return;
     }
@@ -64,19 +80,21 @@ export default function SplashScreen() {
 
     const timer = setTimeout(initAuth, 300);
     return () => clearTimeout(timer);
-  }, [restoreToken]);
+  }, [navigation, restoreToken]);
 
   useEffect(() => {
+    // Skip on web — handled above
+    if (Platform.OS === 'web') {
+      return;
+    }
+
     if (isRestoringToken) {
       return;
     }
 
-    // Web: show marketing landing page for unauthenticated users
-    // Mobile: go straight to login
-    const unauthRoute = Platform.OS === 'web' ? 'Landing' : 'Login';
     navigation.reset({
       index: 0,
-      routes: [{ name: isAuthenticated ? 'Main' : unauthRoute } as any],
+      routes: [{ name: isAuthenticated ? 'Main' : 'Login' } as any],
     });
   }, [isAuthenticated, isRestoringToken, navigation]);
 
@@ -107,13 +125,17 @@ export default function SplashScreen() {
       <View style={styles.backgroundHalo} />
 
       <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
-        <AuraMark size={104} />
+        <Image
+          source={require('@/../assets/app-icon-1024.png')}
+          style={styles.appLogo}
+          contentFit="contain"
+        />
+        <Text variant="heading1" weight="bold" style={styles.wordmark}>
+          AuraFitness
+        </Text>
       </Animated.View>
 
       <Animated.View style={[styles.textContainer, textAnimatedStyle]}>
-        <Text variant="heading2" weight="bold" style={styles.appName}>
-          AuraFitness
-        </Text>
         <Text variant="caption" style={styles.tagline}>
           Smart logging. Clear routines.
         </Text>
@@ -146,15 +168,22 @@ const styles = StyleSheet.create({
     } as any)),
   },
   logoContainer: {
-    marginBottom: 16,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  appLogo: {
+    width: 104,
+    height: 104,
+    marginBottom: 12,
+  },
+  wordmark: {
+    color: BRAND_COLORS.textPrimary,
+    fontSize: 32,
+    letterSpacing: -0.8,
   },
   textContainer: {
     alignItems: 'center',
     marginBottom: 48,
-  },
-  appName: {
-    color: BRAND_COLORS.textPrimary,
-    letterSpacing: -0.5,
   },
   tagline: {
     color: BRAND_COLORS.textMuted,

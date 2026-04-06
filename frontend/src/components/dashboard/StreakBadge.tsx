@@ -64,9 +64,17 @@ export function StreakBadge({ streak, compact = false }: StreakBadgeProps) {
     transform: [{ scale: scale.value }],
   }));
 
+  const compactA11yLabel = tier.label
+    ? `${streak} day streak, ${tier.label.toLowerCase()} tier`
+    : `${streak} day streak`;
+
   if (compact) {
     return (
-      <Animated.View style={[styles.compactBadge, { backgroundColor: tier.bg, borderColor: tier.border }, animatedStyle]}>
+      <Animated.View
+        style={[styles.compactBadge, { backgroundColor: tier.bg, borderColor: tier.border }, animatedStyle]}
+        accessibilityRole="text"
+        accessibilityLabel={compactA11yLabel}
+      >
         <Flame size={14} color={tier.color} weight="fill" />
         <Text variant="caption" weight="bold" style={{ color: tier.color, fontSize: 13 }}>
           {streak}
@@ -78,8 +86,16 @@ export function StreakBadge({ streak, compact = false }: StreakBadgeProps) {
   const nextMilestone = getNextMilestone(streak);
   const milestoneProgress = nextMilestone > streak ? (streak / nextMilestone) : 1;
 
+  const fullA11yLabel = tier.label
+    ? `${streak} day streak, ${tier.label.toLowerCase()} tier${nextMilestone > streak ? `, next milestone at ${nextMilestone} days` : ''}`
+    : `${streak} day streak${nextMilestone > streak ? `, next milestone at ${nextMilestone} days` : ''}`;
+
   return (
-    <Animated.View style={[styles.badge, { backgroundColor: tier.bg, borderColor: tier.border }, animatedStyle]}>
+    <Animated.View
+      style={[styles.badge, { backgroundColor: tier.bg, borderColor: tier.border }, animatedStyle]}
+      accessibilityRole="text"
+      accessibilityLabel={fullA11yLabel}
+    >
       <View style={styles.badgeRow}>
         <Flame size={18} color={tier.color} weight="fill" />
         <View style={styles.badgeInfo}>

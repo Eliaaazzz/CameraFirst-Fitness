@@ -42,7 +42,6 @@ export { WeightLogModal, WeightTrendChart } from './weight';
 // Common components
 export { AIDisclaimer } from './common/AIDisclaimer';
 export { BentoCard, BENTO_CARD_STYLES } from './common/BentoCard';
-export { AuraMark } from './common/AuraMark';
 export { ListScreen, type ListScreenProps } from './common/ListScreen';
 export { MetricCard } from './common/MetricCard';
 export { ProgressViz } from './common/ProgressViz';

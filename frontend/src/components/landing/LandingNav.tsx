@@ -1,58 +1,99 @@
-/**
- * LandingNav — Sticky top navigation bar for the landing page (web only)
- *
- * Inspired by: Uber homepage nav — minimal, left logo + right actions,
- * sticky positioning so it stays visible on scroll.
- */
-
+import { CaretDown, GlobeHemisphereWest, Question } from 'phosphor-react-native';
+import { Image } from 'expo-image';
 import React from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
-import { AuraMark, Text } from '@/components';
-import { BRAND_COLORS, radii, spacing } from '@/utils';
+import { Text } from '@/components';
+import { APP_NAME, LANDING_COLORS, motion, radii, spacing } from '@/utils';
 
 interface LandingNavProps {
   onLogin: () => void;
   onSignup: () => void;
+  onNavPress?: (item: string) => void;
 }
 
-export function LandingNav({ onLogin, onSignup }: LandingNavProps) {
+const NAV_ITEMS = ['Track', 'Programs', 'Reports', 'About'];
+const brandIcon = require('@/../assets/app-icon-1024-transparent.png');
+
+export function LandingNav({ onLogin, onSignup, onNavPress }: LandingNavProps) {
   const { width } = useWindowDimensions();
-  const maxWidth = Math.min(width - 48, 1200);
+  const maxWidth = Math.min(width - 32, 1360);
+  const showCenterNav = width >= 1080;
 
   return (
     <View style={styles.wrapper}>
       <View style={[styles.bar, { maxWidth }]}>
-        <View style={styles.left}>
-          <AuraMark size={32} />
+        <View style={styles.brandSide}>
+          <Image source={brandIcon} style={styles.brandIcon} contentFit="contain" />
           <Text variant="heading3" weight="bold" style={styles.brand}>
-            Metriful
+            {APP_NAME}
           </Text>
         </View>
 
-        <View style={styles.right}>
+        {showCenterNav && (
+          <View style={styles.centerNav}>
+            {NAV_ITEMS.map((item) => (
+              <Pressable
+                key={item}
+                onPress={() => onNavPress?.(item)}
+                style={({ pressed }) => [styles.navItem, pressed && styles.faded]}
+                accessibilityRole="button"
+                accessibilityLabel={`Navigate to ${item}`}
+              >
+                <Text variant="body" weight="semibold" style={styles.navText}>
+                  {item}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.actions}>
+          <Pressable
+            style={({ pressed }) => [styles.utilityAction, pressed && styles.faded]}
+            accessibilityRole="button"
+            accessibilityLabel="Change language"
+          >
+            <GlobeHemisphereWest size={18} weight="regular" color={LANDING_COLORS.textOnDark} />
+            <Text variant="body" weight="semibold" style={styles.utilityText}>
+              EN
+            </Text>
+          </Pressable>
+
+          {width >= 960 && (
+            <Pressable
+              style={({ pressed }) => [styles.utilityAction, pressed && styles.faded]}
+              accessibilityRole="button"
+              accessibilityLabel="Open help"
+            >
+              <Question size={18} weight="regular" color={LANDING_COLORS.textOnDark} />
+              <Text variant="body" weight="semibold" style={styles.utilityText}>
+                Help
+              </Text>
+            </Pressable>
+          )}
+
           <Pressable
             onPress={onLogin}
-            style={({ pressed }) => [
-              styles.loginBtn,
-              pressed && styles.pressed,
-            ]}
+            style={({ pressed }) => [styles.loginBtn, pressed && styles.faded]}
+            accessibilityRole="button"
+            accessibilityLabel="Log in to your account"
           >
-            <Text variant="body" weight="semibold" style={styles.loginText}>
+            <Text variant="body" weight="semibold" style={styles.utilityText}>
               Log in
             </Text>
           </Pressable>
 
           <Pressable
             onPress={onSignup}
-            style={({ pressed }) => [
-              styles.signupBtn,
-              pressed && styles.pressed,
-            ]}
+            style={({ pressed }) => [styles.signupBtn, pressed && styles.signupBtnPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Create a new account"
           >
-            <Text variant="body" weight="semibold" style={styles.signupText}>
+            <Text variant="body" weight="bold" style={styles.signupText}>
               Sign up
             </Text>
+            {width >= 960 && <CaretDown size={16} weight="bold" color={LANDING_COLORS.text} />}
           </Pressable>
         </View>
       </View>
@@ -64,54 +105,81 @@ const styles = StyleSheet.create({
   wrapper: {
     width: '100%',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: BRAND_COLORS.borderSubtle,
+    backgroundColor: LANDING_COLORS.navBg,
     zIndex: 100,
-    // Sticky positioning for web
     ...({ position: 'sticky', top: 0 } as any),
   },
   bar: {
     width: '100%',
+    minHeight: 88,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.lg,
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.xl,
+    gap: spacing.lg,
   },
-  left: {
+  brandSide: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    minWidth: 220,
   },
   brand: {
-    color: BRAND_COLORS.textPrimary,
+    color: LANDING_COLORS.textOnDark,
     letterSpacing: -0.5,
   },
-  right: {
+  brandIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+  },
+  centerNav: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  navItem: {
+    paddingVertical: spacing.sm,
+  },
+  navText: {
+    color: LANDING_COLORS.textOnDark,
+  },
+  actions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
   },
-  loginBtn: {
-    paddingHorizontal: spacing.lg,
+  utilityAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
     paddingVertical: spacing.sm,
-    borderRadius: radii.pill,
   },
-  loginText: {
-    color: BRAND_COLORS.textPrimary,
+  utilityText: {
+    color: LANDING_COLORS.textOnDark,
+  },
+  loginBtn: {
+    paddingVertical: spacing.sm,
   },
   signupBtn: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 14,
     borderRadius: radii.pill,
-    backgroundColor: BRAND_COLORS.textPrimary,
+    backgroundColor: LANDING_COLORS.pillBg,
+    transitionDuration: `${motion.fast}ms`,
+  } as any,
+  signupBtnPressed: {
+    opacity: 0.88,
   },
   signupText: {
-    color: '#FFFFFF',
+    color: LANDING_COLORS.pillText,
   },
-  pressed: {
-    opacity: 0.8,
+  faded: {
+    opacity: 0.7,
   },
 });
 

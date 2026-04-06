@@ -29,7 +29,8 @@ import {
   EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
   EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
 } from '@env';
-import { AuraMark, Text } from '@/components';
+import { Image } from 'expo-image';
+import { Text } from '@/components';
 import { api } from '../services/apiClient';
 import { queryClient } from '../services/queryClient';
 import { useAuthStore } from '../stores';
@@ -237,6 +238,7 @@ const SocialButton: React.FC<SocialButtonProps> = ({ onPress, disabled }) => {
 export default function LoginScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const webGoogleHandoffStarted = React.useRef(false);
 
   // Pre-warm the backend on mount so serverless cold start is absorbed
   // before the user finishes tapping a login button.
@@ -265,13 +267,43 @@ export default function LoginScreen() {
     return 'https://aurafitness.org';
   }, []);
 
+  const configuredWebOrigin = useMemo(() => {
+    try {
+      return new URL(APPLE_API_BASE_URL).origin;
+    } catch {
+      return 'https://aurafitness.org';
+    }
+  }, []);
+
+  const currentWebOrigin = useMemo(() => {
+    if (Platform.OS === 'web' && typeof globalThis.window !== 'undefined') {
+      return globalThis.window.location.origin;
+    }
+    return '';
+  }, []);
+
+  const canonicalWebOrigin = useMemo(() => {
+    if (Platform.OS !== 'web') return '';
+    if (!currentWebOrigin) return configuredWebOrigin;
+
+    const isLocal =
+      currentWebOrigin.includes('localhost') ||
+      currentWebOrigin.includes('127.0.0.1');
+
+    return isLocal ? currentWebOrigin : configuredWebOrigin;
+  }, [configuredWebOrigin, currentWebOrigin]);
+
   // Google OAuth setup
   // expo-auth-session defaults to using applicationId (bundle ID) as redirect
   // scheme, but Google iOS OAuth clients require the reversed client ID scheme.
   // We explicitly construct the correct redirect URI for each platform.
   const redirectUri = useMemo(() => {
     if (Platform.OS === 'web') {
-      return AuthSession.makeRedirectUri({ preferLocalhost: true });
+      const pathname =
+        typeof globalThis.window !== 'undefined' && globalThis.window.location?.pathname
+          ? globalThis.window.location.pathname
+          : '/';
+      return `${canonicalWebOrigin}${pathname}`;
     }
     if (Platform.OS === 'ios' && GOOGLE_IOS_CLIENT_ID) {
       // Google requires reversed client ID as redirect scheme for iOS
@@ -284,7 +316,7 @@ export default function LoginScreen() {
       return `${reversedClientId}:/oauthredirect`;
     }
     return AuthSession.makeRedirectUri({ scheme: 'com.elia.aurafit' });
-  }, []);
+  }, [canonicalWebOrigin]);
 
   // Debug: Log the calculated redirectUri in development
   if (__DEV__) {
@@ -510,6 +542,24 @@ export default function LoginScreen() {
     sendGoogleTokenToBackend(idToken);
   }, [sendGoogleTokenToBackend]);
 
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    if (!googleRequest?.url) return;
+    if (typeof window === 'undefined') return;
+
+    const search = new URLSearchParams(window.location.search);
+    const shouldStartGoogle = search.get('auth') === 'google';
+
+    if (!shouldStartGoogle || webGoogleHandoffStarted.current) return;
+
+    webGoogleHandoffStarted.current = true;
+    sessionStorage.setItem('google_oauth_state', googleRequest.state ?? '');
+
+    const cleanUrl = `${window.location.pathname}${window.location.hash || ''}`;
+    window.history.replaceState(null, '', cleanUrl);
+    window.location.href = googleRequest.url;
+  }, [googleRequest]);
+
   const handleGoogleLogin = useCallback(async () => {
     if (!googleRequest?.url) return;
 
@@ -523,6 +573,13 @@ export default function LoginScreen() {
     }
 
     if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && canonicalWebOrigin && currentWebOrigin && currentWebOrigin !== canonicalWebOrigin) {
+        const pathname = window.location.pathname || '/';
+        const handoffUrl = `${canonicalWebOrigin}${pathname}?auth=google`;
+        window.location.href = handoffUrl;
+        return;
+      }
+
       // Safari blocks window.open() called from async functions.
       // Use a full-page redirect instead and manually handle the response
       // from the URL hash when the page reloads (see useEffect above).
@@ -548,7 +605,7 @@ export default function LoginScreen() {
       console.error('[OAuth] Google auth session error:', err);
       setError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.');
     }
-  }, [googleRequest, promptGoogleAsync]);
+  }, [canonicalWebOrigin, currentWebOrigin, googleRequest, promptGoogleAsync]);
 
   const handleAppleWebSuccess = useCallback(async (payload?: AppleWebSignInPayload) => {
     const identityToken = payload?.authorization?.id_token;
@@ -772,7 +829,11 @@ export default function LoginScreen() {
             <Animated.View entering={FadeInUp.duration(500).delay(100)} style={styles.card}>
               {/* Logo Section */}
               <View style={styles.logoSection}>
-                <AuraMark size={96} />
+                <Image
+                  source={require('@/../assets/app-icon-1024.png')}
+                  style={styles.appLogo}
+                  contentFit="contain"
+                />
                 <Text variant="heading1" weight="bold" style={styles.title}>AuraFitness</Text>
                 <Text variant="body" style={styles.subtitle}>
                   Sign in to keep your nutrition, training, and weekly progress in one place.
@@ -955,9 +1016,13 @@ const styles = StyleSheet.create({
     marginBottom: SPACING['2xl'],
     gap: SPACING.xs,
   },
+  appLogo: {
+    width: 96,
+    height: 96,
+    marginBottom: SPACING.sm,
+  },
   title: {
     color: COLORS.gray900,
-    marginTop: SPACING.md,
     textAlign: 'center',
   },
   subtitle: {

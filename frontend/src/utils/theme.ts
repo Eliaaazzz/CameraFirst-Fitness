@@ -6,36 +6,36 @@ const lightColors = {
   primary: '#C96A34',
   primaryDark: '#A7552A',
   primaryLight: '#E6B799',
-  primaryContainer: '#F7E8DC',
+  primaryContainer: '#F1ECE4',
   primaryTint: 'rgba(201, 106, 52, 0.10)',
 
   secondary: '#2F7A6A',
   secondaryContainer: '#E4F0EB',
 
-  background: '#F6F2EC',
-  backgroundGradient: ['#F6F2EC', '#FBF7F2', '#FFFDFA'],
-  surface: '#FFFCF8',
+  background: '#F7F7F5',
+  backgroundGradient: ['#F7F7F5', '#FAFAF8', '#FFFFFF'],
+  surface: '#FBFAF8',
   surfaceElevated: '#FFFFFF',
-  surfaceVariant: '#F3EEE6',
-  surfaceMuted: '#ECE6DE',
+  surfaceVariant: '#F2F1ED',
+  surfaceMuted: '#EBE8E2',
 
-  textPrimary: '#171511',
-  textSecondary: '#4E473E',
-  textMuted: '#7B7368',
-  textWarm: '#8C6B4E',
-  textDisabled: '#A79F94',
+  textPrimary: '#111111',
+  textSecondary: '#3E3C38',
+  textMuted: '#6D6860',
+  textWarm: '#6D6258',
+  textDisabled: '#999387',
 
   error: '#D05C41',
   success: '#2F855A',
   warning: '#B88428',
   info: '#4A6FA5',
 
-  border: '#E3DCD2',
-  borderStrong: '#D6CEBF',
-  borderSubtle: '#EEE7DD',
-  borderHover: '#CFC6B8',
+  border: '#E2DED7',
+  borderStrong: '#D2CEC7',
+  borderSubtle: '#ECE9E2',
+  borderHover: '#CAC5BD',
 
-  shadow: 'rgba(23, 21, 17, 0.08)',
+  shadow: 'rgba(17, 17, 17, 0.07)',
   overlay: 'rgba(15, 13, 10, 0.42)',
 };
 
@@ -86,17 +86,17 @@ export const typography = {
     regular: Platform.select({
       ios: 'System',
       android: 'Roboto',
-      default: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      default: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     }),
     medium: Platform.select({
       ios: 'System',
       android: 'Roboto-Medium',
-      default: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      default: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     }),
     bold: Platform.select({
       ios: 'System',
       android: 'Roboto-Bold',
-      default: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      default: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     }),
   },
   size: {
@@ -144,7 +144,7 @@ export const radii = {
   md: 12,
   lg: 16,
   xl: 20,
-  '2xl': 28,
+  '2xl': 24,
   pill: 999,
   full: 9999,
 };
@@ -155,27 +155,39 @@ export const motion = {
   slow: 300,
 };
 
+/** Reusable spring animation presets — use these instead of inline damping/stiffness. */
+export const springPresets = {
+  /** Snappy tab/button bounce */
+  tabBounce: { damping: 12, stiffness: 150 },
+  /** Gentle content appearance */
+  gentle: { damping: 20, stiffness: 120 },
+  /** Quick micro-interaction */
+  quick: { damping: 18, stiffness: 200 },
+  /** Slow, luxurious entrance */
+  slow: { damping: 24, stiffness: 90 },
+} as const;
+
 export const shadows = {
   light: {
     light: {
-      shadowColor: '#171511',
+      shadowColor: '#111111',
       shadowOffset: { width: 0, height: 2 },
-      shadowRadius: 6,
-      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      shadowOpacity: 0.04,
       elevation: 1,
     },
     medium: {
-      shadowColor: '#171511',
-      shadowOffset: { width: 0, height: 10 },
-      shadowRadius: 22,
-      shadowOpacity: 0.07,
+      shadowColor: '#111111',
+      shadowOffset: { width: 0, height: 8 },
+      shadowRadius: 18,
+      shadowOpacity: 0.06,
       elevation: 4,
     },
     heavy: {
-      shadowColor: '#171511',
-      shadowOffset: { width: 0, height: 18 },
-      shadowRadius: 34,
-      shadowOpacity: 0.1,
+      shadowColor: '#111111',
+      shadowOffset: { width: 0, height: 14 },
+      shadowRadius: 28,
+      shadowOpacity: 0.08,
       elevation: 8,
     },
     glass: {
@@ -241,11 +253,11 @@ export const chartColors = [
 ];
 
 export const glass = {
-  shell: 'rgba(255, 250, 244, 0.72)',
-  shellStrong: 'rgba(255, 252, 248, 0.84)',
-  shellSubtle: 'rgba(255, 250, 244, 0.56)',
-  stroke: 'rgba(201, 106, 52, 0.08)',
-  edge: 'rgba(23, 21, 17, 0.06)',
+  shell: 'rgba(250, 249, 246, 0.8)',
+  shellStrong: 'rgba(255, 255, 255, 0.9)',
+  shellSubtle: 'rgba(248, 247, 244, 0.7)',
+  stroke: 'rgba(17, 17, 17, 0.06)',
+  edge: 'rgba(17, 17, 17, 0.05)',
 };
 
 export const getTheme = (mode: ThemeMode) => ({

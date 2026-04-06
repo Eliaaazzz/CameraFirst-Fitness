@@ -11,7 +11,7 @@ import Animated, {
 import Svg, { Circle, G } from 'react-native-svg';
 
 import { AIDisclaimer } from '@/components/common/AIDisclaimer';
-import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES } from '@/components/common/BentoCard';
+import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/components/common/BentoCard';
 import { Text } from '@/components/Text';
 import { useLanguageStore } from '@/stores';
 import { BRAND_COLORS, spacing } from '@/utils';
@@ -194,13 +194,16 @@ function LegendItem({ color, label, current, target, unit, isCompact = false, on
   const percentage = target > 0 ? Math.round((current / target) * 100) : 0;
 
   return (
-    <Pressable 
+    <Pressable
       style={({ pressed }) => [
-        styles.legendItem, 
+        styles.legendItem,
         isCompact && styles.legendItemCompact,
         pressed && { opacity: 0.7, transform: [{ scale: 0.98 }] }
       ]}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${Math.round(current)} of ${target}${unit}, ${percentage} percent`}
+      accessibilityHint={`View ${label.toLowerCase()} details`}
     >
       {/* Colored dot indicator */}
       <View style={[styles.legendDot, { backgroundColor: color }]} />
@@ -246,7 +249,11 @@ function BloodSugarItem({ value, isCompact = false }: BloodSugarItemProps) {
   const color = RING_COLORS.bloodSugar;
 
   return (
-    <View style={[styles.legendItem, isCompact && styles.legendItemCompact]}>
+    <View
+      style={[styles.legendItem, isCompact && styles.legendItemCompact]}
+      accessibilityRole="text"
+      accessibilityLabel={`Blood sugar estimated rise: plus ${value} milligrams per deciliter, severity ${severityLabel.toLowerCase()}`}
+    >
       <View style={[styles.legendDot, { backgroundColor: color }]} />
       <View style={styles.legendContent}>
         <Text variant="caption" style={styles.legendLabel}>
@@ -348,10 +355,15 @@ export function NutritionRingsCard({
         isMobile ? styles.contentMobile : styles.contentDesktop
       ]}>
         {/* LEFT: Rings Container - scales based on parent width */}
-        <View style={[
-          styles.ringsWrapper,
-          isMobile ? styles.ringsWrapperMobile : styles.ringsWrapperDesktop
-        ]}>
+        <View
+          style={[
+            styles.ringsWrapper,
+            isMobile ? styles.ringsWrapperMobile : styles.ringsWrapperDesktop
+          ]}
+          accessible={true}
+          accessibilityRole="summary"
+          accessibilityLabel={`Nutrition rings. Protein: ${Math.round(data.protein.current)} of ${data.protein.target}g, ${Math.round(percentages.protein)} percent. ${showFat && data.fat ? `Fat: ${Math.round(data.fat.current)} of ${data.fat.target}g, ${Math.round(percentages.fat)} percent. ` : ''}Carbs: ${Math.round(data.carbs.current)} of ${data.carbs.target}g, ${Math.round(percentages.carbs)} percent.`}
+        >
           <View style={styles.ringsAspectBox}>
             {/* SVG with viewBox for scaling */}
             <Svg
@@ -389,6 +401,9 @@ export function NutritionRingsCard({
                 pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }
               ]}
               onPress={() => onMacroPress?.('calories')}
+              accessibilityRole="button"
+              accessibilityLabel={`Calories: ${Math.round(data.calories.current)} of ${data.calories.target}, ${data.calories.target > 0 ? Math.round((data.calories.current / data.calories.target) * 100) : 0} percent`}
+              accessibilityHint="View calorie details"
             >
               <Flame
                 size={isMobile ? 20 : 22}
@@ -493,8 +508,7 @@ export function getCalorieSubtitle(current: number, target: number): string {
 
 const styles = StyleSheet.create({
   card: {
-    ...BENTO_CARD_STYLES,
-    ...(BENTO_CARD_WEB_STYLES as object),
+    ...(Platform.OS === 'web' ? { ...BENTO_CARD_STYLES, ...(BENTO_CARD_WEB_STYLES as object) } : MOBILE_CARD_STYLES),
     overflow: 'hidden' as const,
   },
   cardTablet: {

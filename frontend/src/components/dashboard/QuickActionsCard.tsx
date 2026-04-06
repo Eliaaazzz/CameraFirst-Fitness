@@ -15,19 +15,11 @@ import { BRAND_COLORS } from '@/utils';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-const tint = (hex: string, alpha = 0.12): string => {
-  const h = hex.replace('#', '');
-  const r = Number.parseInt(h.slice(0, 2), 16);
-  const g = Number.parseInt(h.slice(2, 4), 16);
-  const b = Number.parseInt(h.slice(4, 6), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-};
-
 const QUICK_ACTIONS = [
-  { key: 'history', labelKey: 'mealHistory' as const, Icon: ClockCounterClockwise, color: BRAND_COLORS.secondary, screen: 'MealHistory' },
-  { key: 'insights', labelKey: 'weeklyInsights' as const, Icon: ChartLine, color: BRAND_COLORS.semantic.success, screen: 'WeeklyInsights', iconOffsetY: 1 },
-  { key: 'weight', labelKey: 'logWeight' as const, Icon: Scales, color: BRAND_COLORS.primary, screen: 'LogWeight' },
-  { key: 'export', labelKey: 'exportData' as const, Icon: Export, color: BRAND_COLORS.secondary, screen: 'ExportData' },
+  { key: 'history', labelKey: 'mealHistory' as const, Icon: ClockCounterClockwise, color: '#111111', screen: 'MealHistory' },
+  { key: 'insights', labelKey: 'weeklyInsights' as const, Icon: ChartLine, color: '#111111', screen: 'WeeklyInsights', iconOffsetY: 1 },
+  { key: 'weight', labelKey: 'logWeight' as const, Icon: Scales, color: '#111111', screen: 'LogWeight' },
+  { key: 'export', labelKey: 'exportData' as const, Icon: Export, color: '#111111', screen: 'ExportData' },
 ] as const;
 
 type QuickAction = (typeof QUICK_ACTIONS)[number];
@@ -79,13 +71,9 @@ function QuickActionButton({ Icon, color, label, iconOffsetY, onPress, disabled 
       <View
         style={[
           styles.actionIconWrapper,
-          {
-            backgroundColor: tint(color, 0.22),
-            borderColor: tint(color, 0.4),
-          },
+          styles.actionIconWrapperNeutral,
         ]}
       >
-        <View style={styles.actionIconSpecular} />
         <Icon
           size={20}
           weight={isHovered ? 'fill' : 'regular'}
@@ -137,7 +125,7 @@ export function QuickActionsCard({ cardStyle }: QuickActionsCardProps = {}) {
       >
         <BentoCard style={cardStyle}>
           <Text variant="caption" weight="bold" style={styles.sectionLabel}>
-            QUICK ACTIONS
+            REPORTS & TOOLS
           </Text>
           <View style={styles.actionsGrid}>
             {QUICK_ACTIONS.map((action) => (
@@ -189,17 +177,12 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: BRAND_COLORS.surfaceVariant,
-    borderRadius: 16,
+    backgroundColor: '#F3F2EF',
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: BRAND_COLORS.borderSubtle,
+    borderColor: BRAND_COLORS.border,
     gap: 8,
-    shadowColor: '#171511',
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    shadowOpacity: 0.04,
-    elevation: 1,
     ...(Platform.OS !== 'web' && {
       flexBasis: '47%',
       flexGrow: 1,
@@ -207,14 +190,14 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' && ({
       cursor: 'pointer' as any,
       transition: 'all 0.15s ease-out',
-      boxShadow: '0 10px 22px rgba(23,21,17,0.05)',
+      boxShadow: '0 8px 18px rgba(17,17,17,0.04)',
     } as any)),
   },
   actionButtonHovered: {
-    backgroundColor: BRAND_COLORS.surfaceElevated,
+    backgroundColor: '#FFFFFF',
     borderColor: BRAND_COLORS.border,
     ...(Platform.OS === 'web' && ({
-      boxShadow: '0 12px 24px rgba(23,21,17,0.06)',
+      boxShadow: '0 10px 22px rgba(17,17,17,0.05)',
     } as any)),
   },
   actionButtonDisabled: {
@@ -229,11 +212,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
   },
-  actionIconSpecular: {
-    display: 'none',
+  actionIconWrapperNeutral: {
+    backgroundColor: 'rgba(17,17,17,0.04)',
+    borderColor: 'rgba(17,17,17,0.08)',
   },
   actionText: {
-    color: BRAND_COLORS.textPrimary,
+    color: '#111111',
     minHeight: 30,
     textAlign: 'center',
   },

@@ -4,9 +4,16 @@ import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg'
 type AuraMarkProps = {
   size?: number;
   subtle?: boolean;
+  variant?: 'brand' | 'mono' | 'inverse';
 };
 
-export function AuraMark({ size = 72, subtle = false }: AuraMarkProps) {
+export function AuraMark({ size = 72, subtle = false, variant = 'brand' }: AuraMarkProps) {
+  const isMono = variant === 'mono';
+  const isInverse = variant === 'inverse';
+  const monoStroke = isInverse ? '#FFFFFF' : '#111111';
+  const monoFill = isInverse ? 'rgba(255,255,255,0.14)' : '#F6F6F4';
+  const monoBorder = isInverse ? 'rgba(255,255,255,0.18)' : 'rgba(17,17,17,0.08)';
+
   return (
     <Svg width={size} height={size} viewBox="0 0 128 128">
       <Defs>
@@ -21,12 +28,12 @@ export function AuraMark({ size = 72, subtle = false }: AuraMarkProps) {
         </LinearGradient>
       </Defs>
 
-      <Circle cx="64" cy="64" r="56" fill="#FFF8F2" />
-      <Circle cx="64" cy="64" r="55" stroke="rgba(201,106,52,0.10)" />
+      <Circle cx="64" cy="64" r="56" fill={isMono ? monoFill : '#FFF8F2'} />
+      <Circle cx="64" cy="64" r="55" stroke={isMono ? monoBorder : 'rgba(201,106,52,0.10)'} />
 
       <Path
         d="M41 92L63.5 34L86 92"
-        stroke="url(#auraWarm)"
+        stroke={isMono ? monoStroke : 'url(#auraWarm)'}
         strokeWidth="12"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -34,22 +41,21 @@ export function AuraMark({ size = 72, subtle = false }: AuraMarkProps) {
       />
       <Path
         d="M50 73H77"
-        stroke="url(#auraWarm)"
+        stroke={isMono ? monoStroke : 'url(#auraWarm)'}
         strokeWidth="10"
         strokeLinecap="round"
       />
 
       <Path
         d="M90 33c12 4 20 16 20 31 0 9-3 18-9 24"
-        stroke="url(#auraOrbit)"
+        stroke={isMono ? monoStroke : 'url(#auraOrbit)'}
         strokeWidth="8"
         strokeLinecap="round"
         fill="none"
       />
-      <Circle cx="97" cy="29" r="6" fill="#2F7A6A" />
+      <Circle cx="97" cy="29" r="6" fill={isMono ? monoStroke : '#2F7A6A'} />
     </Svg>
   );
 }
 
 export default AuraMark;
-

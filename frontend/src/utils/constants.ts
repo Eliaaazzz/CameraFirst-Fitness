@@ -10,12 +10,12 @@ export const BRAND_COLORS = {
   tabActive: colors.light.primaryDark,
   tabInactive: colors.light.textMuted,
 
-  glassFill: 'rgba(255, 250, 244, 0.68)',
-  glassFillStrong: 'rgba(255, 252, 248, 0.84)',
-  glassFillSubtle: 'rgba(255, 250, 244, 0.52)',
-  glassStroke: 'rgba(201, 106, 52, 0.08)',
-  glassStrokeOuter: 'rgba(23, 21, 17, 0.06)',
-  glassEdge: 'rgba(23, 21, 17, 0.04)',
+  glassFill: 'rgba(250, 249, 246, 0.76)',
+  glassFillStrong: 'rgba(255, 255, 255, 0.9)',
+  glassFillSubtle: 'rgba(248, 247, 244, 0.64)',
+  glassStroke: 'rgba(17, 17, 17, 0.06)',
+  glassStrokeOuter: 'rgba(17, 17, 17, 0.08)',
+  glassEdge: 'rgba(17, 17, 17, 0.04)',
   glassSpecular: 'rgba(255,255,255,0.72)',
   glassSpecularFade: 'rgba(255,255,255,0)',
 
@@ -60,3 +60,49 @@ export const TAB_ICON_SIZE = {
 
 export const DEFAULT_MEAL_IMAGE_WIDTH_CM = 35;
 
+/**
+ * Landing page design system — intentionally separate from the app's warm
+ * glass-morphism palette.  The landing page follows an Uber-style black/white
+ * editorial aesthetic.  Every value is an explicit design decision; changing one
+ * of these tokens updates every landing component at once.
+ */
+export const LANDING_COLORS = {
+  /* ── text ────────────────────────────────────────────── */
+  text: '#111111',
+  textOnDark: '#FFFFFF',
+  textOnDarkMuted: 'rgba(255,255,255,0.82)',
+  textOnDarkSubtle: 'rgba(255,255,255,0.76)',
+  textOnDarkFaint: 'rgba(255,255,255,0.58)',
+  textOnDarkLegal: 'rgba(255,255,255,0.56)',
+  textOnAccent: '#2D2D2B',
+  fieldLabel: 'rgba(17,17,17,0.62)',
+
+  /* ── backgrounds & surfaces ─────────────────────────── */
+  bg: '#FFFFFF',
+  surface: '#F2F1ED',
+  surfaceChip: '#F4F3EF',
+  navBg: '#000000',
+  footerBg: '#000000',
+
+  /* ── CTA / buttons ──────────────────────────────────── */
+  ctaBg: '#000000',
+  ctaText: '#FFFFFF',
+  pillBg: '#FFFFFF',
+  pillText: '#111111',
+
+  /* ── borders ────────────────────────────────────────── */
+  border: 'rgba(17,17,17,0.06)',
+  borderField: 'rgba(17,17,17,0.08)',
+  borderLink: 'rgba(17,17,17,0.18)',
+  borderFooter: 'rgba(255,255,255,0.12)',
+  borderStoreBadge: 'rgba(255,255,255,0.18)',
+
+  /* ── accent cards ───────────────────────────────────── */
+  accent: {
+    teal: '#BBD8DF',
+    warm: '#C98A78',
+  },
+
+  /* ── stars ───────────────────────────────────────────── */
+  star: '#F59E0B',
+} as const;

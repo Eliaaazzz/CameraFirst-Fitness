@@ -29,10 +29,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { navigationRef } from './navigationService';
 
 import { ErrorBoundary } from '@/components';
-import { Sidebar } from '@/components/layout';
+import { AuthenticatedNav, Sidebar } from '@/components/layout';
 import DashboardScreen from '@/screens/DashboardScreen';
 import LoginScreen from '@/screens/LoginScreen';
 import RegisterScreen from '@/screens/RegisterScreen';
+import OnboardingScreen from '@/screens/OnboardingScreen';
 import { MealHistoryScreen } from '@/screens/MealHistoryScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
 import { RecipeDetailScreen } from '@/screens/RecipeDetailScreen';
@@ -44,6 +45,8 @@ import { SavedWorkoutsScreen } from '@/screens/SavedWorkoutsScreen';
 import LandingScreen from '@/screens/LandingScreen';
 import SplashScreen from '@/screens/SplashScreen';
 import { AboutNutritionDataScreen } from '@/screens/AboutNutritionDataScreen';
+import { BuildPlanScreen } from '@/screens/BuildPlanScreen';
+import { HelpScreen } from '@/screens/HelpScreen';
 import { WeeklyInsightsScreen } from '@/screens/WeeklyInsightsScreen';
 import { WorkoutsScreen } from '@/screens/WorkoutsScreen';
 import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive, useSidebarVisible } from '@/utils';
@@ -71,6 +74,9 @@ const SafeWeeklyInsightsScreen = withErrorBoundary(WeeklyInsightsScreen, 'Weekly
 const SafeSavedWorkoutsScreen = withErrorBoundary(SavedWorkoutsScreen, 'SavedWorkouts');
 const SafeSavedRecipesScreen = withErrorBoundary(SavedRecipesScreen, 'SavedRecipes');
 const SafeAboutNutritionDataScreen = withErrorBoundary(AboutNutritionDataScreen, 'AboutNutritionData');
+const SafeBuildPlanScreen = withErrorBoundary(BuildPlanScreen, 'BuildPlan');
+const SafeHelpScreen = withErrorBoundary(HelpScreen, 'Help');
+const SafeOnboardingScreen = withErrorBoundary(OnboardingScreen, 'Onboarding');
 
 const Tab = createBottomTabNavigator();
 // Use createStackNavigator instead of createNativeStackNavigator for Web compatibility
@@ -207,9 +213,9 @@ const tabBarStyles = StyleSheet.create({
 
 // Desktop layout styles
 const styles = StyleSheet.create({
-  desktopContainer: {
+  desktopContainerVertical: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
   },
   mainContent: {
     flex: 1,
@@ -305,6 +311,7 @@ const ProfileStackScreen = createTabStackNavigator([
   { name: 'SavedWorkouts', component: SafeSavedWorkoutsScreen },
   { name: 'SavedRecipes', component: SafeSavedRecipesScreen },
   { name: 'AboutNutritionData', component: SafeAboutNutritionDataScreen },
+  { name: 'Help', component: SafeHelpScreen },
 ]);
 
 // Tab configuration for cleaner code
@@ -314,12 +321,14 @@ const TAB_CONFIG = [
     component: SafeDashboardScreen,
     label: 'Home',
     phosphorIcon: House,
+    accessibilityLabel: 'Home tab',
   },
   {
     name: 'Workouts',
     component: SafeWorkoutsScreen,
     label: 'Workouts',
     phosphorIcon: Barbell,
+    accessibilityLabel: 'Workouts tab',
   },
   {
     name: 'Capture',
@@ -327,18 +336,21 @@ const TAB_CONFIG = [
     label: '',
     phosphorIcon: Camera,
     isCamera: true, // Special flag for camera button
+    accessibilityLabel: 'Capture meal photo',
   },
   {
     name: 'Recipes',
     component: RecipesStackScreen, // Use Stack navigator for proper navigation hierarchy
     label: 'Recipes',
     phosphorIcon: BookOpen,
+    accessibilityLabel: 'Recipes tab',
   },
   {
     name: 'Profile',
     component: ProfileStackScreen, // Stack navigator for Profile -> WeeklyInsights / MealHistory
     label: 'Profile',
     phosphorIcon: User,
+    accessibilityLabel: 'Profile tab',
   },
 ];
 
@@ -360,7 +372,9 @@ const CameraTabButton = ({
     onPress={onPress}
     onLongPress={onLongPress}
     testID={testID}
-    accessibilityLabel={accessibilityLabel}
+    accessibilityRole="button"
+    accessibilityLabel={accessibilityLabel || 'Capture meal photo'}
+    accessibilityHint="Opens the camera to photograph a meal"
     accessibilityState={accessibilityState}
     role={role as any}
     android_ripple={android_ripple}
@@ -492,8 +506,8 @@ const MainTabs = () => {
 
   if (showSidebar) {
     return (
-      <View style={styles.desktopContainer}>
-        <Sidebar />
+      <View style={styles.desktopContainerVertical}>
+        <AuthenticatedNav />
         <View style={styles.mainContent}>
           <Tab.Navigator
             initialRouteName="Dashboard"
@@ -573,6 +587,7 @@ const MainTabs = () => {
             component={tab.component}
             options={({ navigation }) => ({
               title: tab.label,
+              tabBarAccessibilityLabel: tab.accessibilityLabel,
               tabBarLabel: isCamera
                 ? () => null
                 : ({ focused }) => <TabBarLabel focused={focused} label={tab.label} />,
@@ -580,6 +595,7 @@ const MainTabs = () => {
                 ? () => (
                     <CameraTabButton
                       onPress={() => navigation.navigate('ReviewMeal', { openCamera: true })}
+                      accessibilityLabel="Capture meal photo"
                     />
                   )
                 : undefined,
@@ -630,6 +646,11 @@ export const AppNavigator = () => {
           component={RegisterScreen}
         />
         <Stack.Screen
+          name="Onboarding"
+          component={SafeOnboardingScreen}
+          options={{ cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS }}
+        />
+        <Stack.Screen
           name="Main"
           component={MainTabs}
           options={{ cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter }}
@@ -647,6 +668,11 @@ export const AppNavigator = () => {
         <Stack.Screen
           name="AboutNutritionData"
           component={SafeAboutNutritionDataScreen}
+        />
+        <Stack.Screen
+          name="BuildPlan"
+          component={SafeBuildPlanScreen}
+          options={{ cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS }}
         />
       </Stack.Navigator>
     </NavigationContainer>

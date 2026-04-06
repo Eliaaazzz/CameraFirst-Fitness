@@ -1,7 +1,7 @@
 import { SignOut, Target } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { Alert, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Platform, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Chip, FAB } from 'react-native-paper';
 
 import {
@@ -49,7 +49,7 @@ export const GoalsScreen = () => {
             await clearJWT();
             navigation.reset({
               index: 0,
-              routes: [{ name: 'Login' } as any],
+              routes: [{ name: Platform.OS === 'web' ? 'Landing' : 'Login' } as any],
             });
           },
         },

@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
+    Platform,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -21,7 +22,7 @@ import {
 import { Card, SafeAreaWrapper, Text } from '@/components';
 import { useWeeklyInsights } from '@/hooks/useMealHistory';
 import { GeneratedGoals } from '@/services/geminiApi';
-import { BRAND_COLORS, spacing, useContentBottomPadding } from '@/utils';
+import { BRAND_COLORS, spacing, useContentBottomPadding, useSidebarVisible } from '@/utils';
 
 // Storage key for generated goals (shared with ProfileScreen)
 const GENERATED_GOALS_KEY = '@generated_fitness_goals';
@@ -30,6 +31,7 @@ export const WeeklyInsightsScreen = () => {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const { data, isLoading, error, refetch } = useWeeklyInsights();
+  const showSidebar = useSidebarVisible();
   const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const contentBottomPadding = useContentBottomPadding(spacing.xl);
@@ -107,6 +109,193 @@ export const WeeklyInsightsScreen = () => {
   }
 
   const { dateRange, summary, dailyData, macrosDistribution, sugarWarning } = data;
+
+  // ============================================================================
+  // WEB DESKTOP — Uber-style full-page reports layout
+  // ============================================================================
+  if (showSidebar && Platform.OS === 'web') {
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const formatDay = (dateStr: string) => {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return dayNames[new Date(y, m - 1, d).getDay()];
+    };
+
+    return (
+      <SafeAreaWrapper>
+        <ScrollView
+          style={webStyles.scroll}
+          contentContainerStyle={webStyles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={BRAND_COLORS.primary} />
+          }
+        >
+          {/* Page header */}
+          <View style={webStyles.pageHeader}>
+            <View>
+              <Text variant="heading1" weight="bold" style={webStyles.pageTitle}>
+                Weekly Report
+              </Text>
+              <Text variant="body" style={webStyles.dateRange}>
+                {dateRange.startDate} — {dateRange.endDate}
+              </Text>
+            </View>
+            <View style={webStyles.headerActions}>
+              <Pressable
+                onPress={() => (navigation as any).navigate('Main', { screen: 'Dashboard' })}
+                style={({ pressed }) => [webStyles.backBtn, pressed && { opacity: 0.8 }]}
+              >
+                <ArrowLeft size={18} color="#111111" />
+                <Text variant="body" weight="semibold" style={{ color: '#111111' }}>Back to home</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  // Build CSV and trigger download
+                  const headers = 'Date,Calories,Target,Protein(g),Carbs(g),Fat(g),Meals\n';
+                  const rows = dailyData.map(d =>
+                    `${d.date},${d.calories.actual},${d.calories.target},${Math.round(d.protein)},${Math.round(d.carbs)},${Math.round(d.fat)},${d.mealCount}`
+                  ).join('\n');
+                  const csv = headers + rows;
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `aurafitness-report-${dateRange.startDate}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                style={({ pressed }) => [webStyles.exportBtn, pressed && { opacity: 0.8 }]}
+              >
+                <Text variant="body" weight="bold" style={{ color: '#FFFFFF' }}>Export CSV</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Summary stats row */}
+          <View style={webStyles.statsRow}>
+            <View style={webStyles.statCard}>
+              <Text variant="heading1" weight="bold" style={webStyles.statNumber}>{summary.totalMeals}</Text>
+              <Text variant="body" style={webStyles.statLabel}>Meals logged</Text>
+            </View>
+            <View style={webStyles.statCard}>
+              <Text variant="heading1" weight="bold" style={webStyles.statNumber}>{Math.round(summary.averageDailyCalories)}</Text>
+              <Text variant="body" style={webStyles.statLabel}>Avg calories/day</Text>
+            </View>
+            <View style={webStyles.statCard}>
+              <Text variant="heading1" weight="bold" style={webStyles.statNumber}>{Math.round(summary.averageProtein)}g</Text>
+              <Text variant="body" style={webStyles.statLabel}>Avg protein/day</Text>
+            </View>
+            <View style={webStyles.statCard}>
+              <Text variant="heading1" weight="bold" style={webStyles.statNumber}>{dailyData.filter(d => d.mealCount > 0).length}/7</Text>
+              <Text variant="body" style={webStyles.statLabel}>Days tracked</Text>
+            </View>
+          </View>
+
+          {/* Main content: two columns */}
+          <View style={webStyles.mainRow}>
+            {/* Left: Daily breakdown */}
+            <View style={webStyles.mainLeft}>
+              <Text variant="heading2" weight="bold" style={webStyles.sectionTitle}>Daily breakdown</Text>
+              <View style={webStyles.dailyCard}>
+                {dailyData.map((day, i) => {
+                  const pct = Math.min(day.calories.percentage, 100);
+                  const barColor = day.calories.percentage > 110 ? '#EF4444' : day.calories.percentage > 90 ? '#22C55E' : '#F59E0B';
+                  return (
+                    <View key={i} style={[webStyles.dailyRow, i < dailyData.length - 1 && webStyles.dailyRowBorder]}>
+                      <View style={webStyles.dailyIndexCol}>
+                        <Text variant="body" weight="bold" style={{ color: '#111111' }}>{i + 1}</Text>
+                      </View>
+                      <View style={webStyles.dailyDayCol}>
+                        <Text variant="body" weight="bold" style={{ color: '#111111' }}>{formatDay(day.date)}</Text>
+                        <Text variant="caption" style={{ color: '#6B6B6B' }}>{day.date.slice(5)}</Text>
+                      </View>
+                      <View style={webStyles.dailyBarCol}>
+                        <View style={webStyles.dailyBarTrack}>
+                          <View style={[webStyles.dailyBarFill, { width: `${pct}%`, backgroundColor: barColor }]} />
+                        </View>
+                      </View>
+                      <View style={webStyles.dailyValCol}>
+                        <Text variant="body" weight="semibold" style={{ color: '#111111' }}>{day.calories.actual}</Text>
+                        <Text variant="caption" style={{ color: '#6B6B6B' }}>/ {day.calories.target}</Text>
+                      </View>
+                      <View style={webStyles.dailyMealsCol}>
+                        <Text variant="caption" style={{ color: '#6B6B6B' }}>{day.mealCount} meals</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Right: Macros + Goals + Warnings */}
+            <View style={webStyles.mainRight}>
+              {/* Macros distribution */}
+              <Text variant="heading2" weight="bold" style={webStyles.sectionTitle}>Macros distribution</Text>
+              <View style={webStyles.macrosCard}>
+                <View style={[webStyles.macroItem, { backgroundColor: '#E0F5EF' }]}>
+                  <ForkKnife size={28} color="#2F7A6A" />
+                  <Text variant="heading3" weight="bold" style={{ color: '#111111' }}>{macrosDistribution.protein.grams.toFixed(0)}g</Text>
+                  <Text variant="body" style={{ color: '#2F7A6A' }}>Protein</Text>
+                  <Text variant="caption" style={{ color: '#6B6B6B' }}>{macrosDistribution.protein.percentage.toFixed(0)}% · {macrosDistribution.protein.caloriesFromMacro} kcal</Text>
+                </View>
+                <View style={[webStyles.macroItem, { backgroundColor: '#FFF7DD' }]}>
+                  <Grains size={28} color="#8A9B4F" />
+                  <Text variant="heading3" weight="bold" style={{ color: '#111111' }}>{macrosDistribution.carbs.grams.toFixed(0)}g</Text>
+                  <Text variant="body" style={{ color: '#8A9B4F' }}>Carbs</Text>
+                  <Text variant="caption" style={{ color: '#6B6B6B' }}>{macrosDistribution.carbs.percentage.toFixed(0)}% · {macrosDistribution.carbs.caloriesFromMacro} kcal</Text>
+                </View>
+                <View style={[webStyles.macroItem, { backgroundColor: '#FFF1E7' }]}>
+                  <Drop size={28} color="#B88428" />
+                  <Text variant="heading3" weight="bold" style={{ color: '#111111' }}>{macrosDistribution.fat.grams.toFixed(0)}g</Text>
+                  <Text variant="body" style={{ color: '#B88428' }}>Fat</Text>
+                  <Text variant="caption" style={{ color: '#6B6B6B' }}>{macrosDistribution.fat.percentage.toFixed(0)}% · {macrosDistribution.fat.caloriesFromMacro} kcal</Text>
+                </View>
+              </View>
+
+              {/* Goals */}
+              {effectiveUserGoal.dailyCalorieTarget && (
+                <>
+                  <Text variant="heading3" weight="bold" style={[webStyles.sectionTitle, { marginTop: 28 }]}>Your targets</Text>
+                  <View style={webStyles.goalsCard}>
+                    <View style={webStyles.goalRow}>
+                      <Text variant="body" style={{ color: '#111111' }}>Calories</Text>
+                      <Text variant="body" weight="bold" style={{ color: '#111111' }}>{effectiveUserGoal.dailyCalorieTarget} kcal</Text>
+                    </View>
+                    <View style={webStyles.goalRow}>
+                      <Text variant="body" style={{ color: '#111111' }}>Protein</Text>
+                      <Text variant="body" weight="bold" style={{ color: '#111111' }}>{effectiveUserGoal.dailyProteinTarget || '-'}g</Text>
+                    </View>
+                    <View style={webStyles.goalRow}>
+                      <Text variant="body" style={{ color: '#111111' }}>Carbs</Text>
+                      <Text variant="body" weight="bold" style={{ color: '#111111' }}>{effectiveUserGoal.dailyCarbsTarget || '-'}g</Text>
+                    </View>
+                    <View style={webStyles.goalRow}>
+                      <Text variant="body" style={{ color: '#111111' }}>Fat</Text>
+                      <Text variant="body" weight="bold" style={{ color: '#111111' }}>{effectiveUserGoal.dailyFatTarget || '-'}g</Text>
+                    </View>
+                  </View>
+                </>
+              )}
+
+              {/* Sugar warning */}
+              {sugarWarning.hasWarning && (
+                <View style={webStyles.warningCard}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <Warning size={20} color="#F59E0B" />
+                    <Text variant="body" weight="bold" style={{ color: '#111111' }}>Sugar Alert</Text>
+                  </View>
+                  <Text variant="body" style={{ color: '#6B6B6B', lineHeight: 24 }}>{sugarWarning.message}</Text>
+                  <Text variant="caption" style={{ color: '#6B6B6B', marginTop: 8 }}>
+                    Avg: {sugarWarning.averageDailySugar.toFixed(1)}g/day · Limit: {sugarWarning.recommendedLimit}g/day
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaWrapper>
+    );
+  }
 
   return (
     <SafeAreaWrapper>
@@ -550,5 +739,181 @@ const styles = StyleSheet.create({
   },
   goalValue: {
     color: BRAND_COLORS.textPrimary,
+  },
+});
+
+// ============================================================================
+// WEB DESKTOP STYLES — Uber-style reports page
+// ============================================================================
+const webStyles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContent: {
+    maxWidth: 1360,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingTop: 48,
+    paddingBottom: 80,
+  },
+  pageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 40,
+  },
+  pageTitle: {
+    color: '#111111',
+    fontSize: 52,
+    lineHeight: 56,
+    letterSpacing: -2,
+  },
+  dateRange: {
+    color: '#6B6B6B',
+    fontSize: 16,
+    marginTop: 8,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: '#F3F3F3',
+    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
+  },
+  exportBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: '#111111',
+    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 40,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#F9F9F7',
+    borderRadius: 16,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#ECECEC',
+  },
+  statNumber: {
+    color: '#111111',
+    fontSize: 36,
+    letterSpacing: -1.2,
+  },
+  statLabel: {
+    color: '#6B6B6B',
+    marginTop: 4,
+  },
+  mainRow: {
+    flexDirection: 'row',
+    gap: 28,
+  },
+  mainLeft: {
+    flex: 3,
+  },
+  mainRight: {
+    flex: 2,
+  },
+  sectionTitle: {
+    color: '#111111',
+    fontSize: 28,
+    letterSpacing: -0.8,
+    marginBottom: 16,
+  },
+  dailyCard: {
+    borderWidth: 1,
+    borderColor: '#ECECEC',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  dailyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    gap: 16,
+  },
+  dailyRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  dailyIndexCol: {
+    width: 28,
+    alignItems: 'center',
+  },
+  dailyDayCol: {
+    width: 60,
+  },
+  dailyBarCol: {
+    flex: 1,
+  },
+  dailyBarTrack: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: '#F0F0F0',
+    overflow: 'hidden',
+  },
+  dailyBarFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  dailyValCol: {
+    width: 80,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  dailyMealsCol: {
+    width: 60,
+    alignItems: 'flex-end',
+  },
+  macrosCard: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  macroItem: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    gap: 6,
+  },
+  goalsCard: {
+    borderWidth: 1,
+    borderColor: '#ECECEC',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  goalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  warningCard: {
+    marginTop: 20,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
   },
 });

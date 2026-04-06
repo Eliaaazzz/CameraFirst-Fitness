@@ -1,182 +1,355 @@
-/**
- * HeroSection — Full viewport-height hero with headline + illustration
- *
- * Inspired by: Uber homepage hero — bold serif headline left, illustration right,
- * fills the entire viewport minus the nav bar height.
- *
- * Desktop: side-by-side (50/50). Mobile: stacked vertically.
- */
-
+import { ArrowRight, Quotes, SealCheck, Star } from 'phosphor-react-native';
 import { Image } from 'expo-image';
 import React from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components';
-import { BRAND_COLORS, spacing, radii } from '@/utils';
+import { APP_NAME, BRAND_COLORS, LANDING_COLORS, radii, spacing } from '@/utils';
 
 const heroIllustration = require('@/../assets/illustrations/hero-healthy-eating.svg');
-
-const NAV_HEIGHT = 68; // approximate nav bar height
+const panelIllustration = require('@/../assets/illustrations/fitness-stats.svg');
+const mascotIcon = require('@/../assets/app-icon-1024-transparent.png');
+const NAV_HEIGHT = 88;
 
 interface HeroSectionProps {
+  eyebrow?: string;
+  title?: string;
+  body?: string;
+  primaryCtaLabel?: string;
+  secondaryCtaLabel?: string;
   onGetStarted: () => void;
   onLogin: () => void;
 }
 
-export function HeroSection({ onGetStarted, onLogin }: HeroSectionProps) {
+export function HeroSection({
+  eyebrow = 'FITNESS PLATFORM',
+  title = `Train, eat, and progress with ${APP_NAME}`,
+  body = 'Plan workouts, log meals, and review your numbers in one place. Free to start — no credit card required.',
+  primaryCtaLabel = 'Start tracking',
+  secondaryCtaLabel = 'Log in to your account',
+  onGetStarted,
+  onLogin,
+}: HeroSectionProps) {
   const { width, height } = useWindowDimensions();
   const isDesktop = width >= 1024;
-
-  const sectionHeight = height - NAV_HEIGHT;
 
   return (
     <View
       style={[
         styles.container,
         isDesktop ? styles.containerDesktop : styles.containerMobile,
-        { minHeight: sectionHeight },
+        { minHeight: height - NAV_HEIGHT },
       ]}
     >
-      {/* Left side — Text content */}
-      <View style={[styles.textSide, isDesktop && styles.textSideDesktop]}>
+      <View style={[styles.copyColumn, isDesktop && styles.copyColumnDesktop]}>
+        <View style={styles.eyebrowRow}>
+          <View style={styles.eyebrowBadge}>
+            <Image source={mascotIcon} style={styles.eyebrowIcon} contentFit="contain" />
+            <Text variant="label" weight="bold" style={styles.eyebrow}>
+              {eyebrow}
+            </Text>
+          </View>
+        </View>
+
         <Text
           variant="hero"
           weight="bold"
-          style={[
-            styles.headline,
-            isDesktop ? styles.headlineDesktop : styles.headlineMobile,
-          ]}
+          style={[styles.headline, isDesktop ? styles.headlineDesktop : styles.headlineMobile]}
         >
-          Know what{'\n'}you eat.
+          {title}
         </Text>
 
-        <Text
-          variant="heading4"
-          weight="regular"
-          style={styles.subheadline}
-        >
-          Snap a photo. Get instant nutrition.{'\n'}No barcode scanning, no manual search.
+        <Text variant="heading4" style={styles.body}>
+          {body}
         </Text>
 
         <View style={styles.ctaRow}>
-          <Pressable
-            onPress={onGetStarted}
-            style={({ pressed }) => [
-              styles.ctaButton,
-              pressed && styles.ctaPressed,
-            ]}
-          >
-            <Text variant="body" weight="bold" style={styles.ctaText}>
-              Get Started — It's Free
+          <Pressable onPress={onGetStarted} style={({ pressed }) => [styles.primaryCta, pressed && styles.ctaPressed]}>
+            <Text variant="body" weight="bold" style={styles.primaryCtaText}>
+              {primaryCtaLabel}
             </Text>
           </Pressable>
 
-          <Pressable onPress={onLogin}>
-            <Text variant="body" weight="semibold" style={styles.loginLink}>
-              Log in to see your progress
+          <Pressable onPress={onLogin} style={({ pressed }) => [styles.secondaryCta, pressed && styles.linkPressed]}>
+            <Text variant="body" weight="medium" style={styles.secondaryCtaText}>
+              {secondaryCtaLabel}
             </Text>
           </Pressable>
         </View>
+
+        <View style={styles.trustRow}>
+          <View style={styles.trustChip}>
+            <SealCheck size={18} weight="fill" color={LANDING_COLORS.text} />
+            <Text variant="body" weight="semibold" style={styles.trustText}>
+              2,000+ users tracking nutrition
+            </Text>
+          </View>
+          <View style={styles.trustChip}>
+            <View style={styles.starsRow}>
+              <Star size={14} weight="fill" color={LANDING_COLORS.star} />
+              <Star size={14} weight="fill" color={LANDING_COLORS.star} />
+              <Star size={14} weight="fill" color={LANDING_COLORS.star} />
+              <Star size={14} weight="fill" color={LANDING_COLORS.star} />
+              <Star size={14} weight="fill" color={LANDING_COLORS.star} />
+            </View>
+            <Text variant="body" weight="semibold" style={styles.trustText}>
+              4.8 App Store rating
+            </Text>
+          </View>
+        </View>
+
+        <Text variant="body" style={styles.freeNote}>
+          Free to start. No credit card required.
+        </Text>
+
+        <View style={styles.testimonialCard}>
+          <Quotes size={18} weight="fill" color={LANDING_COLORS.text} />
+          <Text variant="body" style={styles.testimonialText}>
+            "Finally a fitness app that makes weekly planning and daily logging feel connected."
+          </Text>
+          <Text variant="caption" weight="semibold" style={styles.testimonialMeta}>
+            Maya, strength coach
+          </Text>
+        </View>
       </View>
 
-      {/* Right side — Illustration */}
-      <View style={[styles.illustrationSide, isDesktop && styles.illustrationSideDesktop]}>
-        <Image
-          source={heroIllustration}
-          style={[
-            styles.heroImage,
-            isDesktop ? styles.heroImageDesktop : styles.heroImageMobile,
-          ]}
-          contentFit="contain"
-        />
+      <View style={[styles.visualColumn, isDesktop && styles.visualColumnDesktop]}>
+        <View style={[styles.visualPanel, !isDesktop && styles.visualPanelMobile]}>
+          <Image source={heroIllustration} style={[styles.heroArt, !isDesktop && styles.heroArtMobile]} contentFit="contain" />
+
+          <View style={styles.overlayCard}>
+            <View style={styles.overlayCopy}>
+              <Text variant="heading4" weight="bold" style={styles.overlayTitle}>
+                Ready to build today?
+              </Text>
+              <Text variant="caption" style={styles.overlayBody}>
+                Turn meals, workouts, and targets into one daily plan.
+              </Text>
+            </View>
+
+            <View style={styles.overlayAction}>
+              <Image source={panelIllustration} style={styles.overlayThumb} contentFit="contain" />
+              <Pressable onPress={onGetStarted} style={({ pressed }) => [styles.overlayPill, pressed && styles.linkPressed]}>
+                <Text variant="body" weight="bold" style={styles.overlayPillText}>
+                  Build plan
+                </Text>
+                <ArrowRight size={16} weight="bold" color={LANDING_COLORS.text} />
+              </Pressable>
+            </View>
+          </View>
+        </View>
       </View>
     </View>
   );
 }
 
-const SERIF_FONT = 'Georgia, "Times New Roman", serif';
-
 const styles = StyleSheet.create({
   container: {
     width: '100%',
     gap: spacing['2xl'],
+    paddingTop: spacing['3xl'],
+    paddingBottom: spacing['4xl'],
   },
   containerDesktop: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing['4xl'],
   },
   containerMobile: {
     flexDirection: 'column',
-    justifyContent: 'center',
-    paddingTop: spacing['3xl'],
-    paddingBottom: spacing['3xl'],
   },
-  textSide: {
+  copyColumn: {
     flex: 1,
     gap: spacing.lg,
     justifyContent: 'center',
   },
-  textSideDesktop: {
+  copyColumnDesktop: {
     paddingRight: spacing['3xl'],
   },
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  eyebrowBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  eyebrow: {
+    color: BRAND_COLORS.textMuted,
+    letterSpacing: 1.4,
+  },
+  eyebrowIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+  },
   headline: {
-    color: BRAND_COLORS.textPrimary,
-    fontFamily: SERIF_FONT,
+    color: LANDING_COLORS.text,
+    maxWidth: 620,
   },
   headlineDesktop: {
-    fontSize: 72,
-    lineHeight: 76,
-    letterSpacing: -2,
+    fontSize: 74,
+    lineHeight: 78,
+    letterSpacing: -2.8,
   },
   headlineMobile: {
-    fontSize: 44,
-    lineHeight: 48,
+    fontSize: 46,
+    lineHeight: 50,
     letterSpacing: -1.5,
   },
-  subheadline: {
+  body: {
+    maxWidth: 520,
     color: BRAND_COLORS.textSecondary,
-    fontSize: 20,
-    lineHeight: 30,
+    fontSize: 22,
+    lineHeight: 34,
   },
   ctaRow: {
-    gap: spacing.md,
-    marginTop: spacing.lg,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.lg,
+    marginTop: spacing.md,
   },
-  ctaButton: {
-    backgroundColor: BRAND_COLORS.textPrimary,
-    paddingHorizontal: 32,
+  primaryCta: {
+    backgroundColor: LANDING_COLORS.ctaBg,
+    paddingHorizontal: 28,
     paddingVertical: 18,
     borderRadius: radii.md,
-    alignSelf: 'flex-start',
   },
-  ctaPressed: {
-    opacity: 0.85,
-  },
-  ctaText: {
-    color: '#FFFFFF',
+  primaryCtaText: {
+    color: LANDING_COLORS.ctaText,
     fontSize: 16,
   },
-  loginLink: {
-    color: BRAND_COLORS.textPrimary,
-    textDecorationLine: 'underline',
+  secondaryCta: {
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: LANDING_COLORS.borderLink,
   },
-  illustrationSide: {
+  secondaryCtaText: {
+    color: LANDING_COLORS.text,
+    fontSize: 16,
+  },
+  ctaPressed: {
+    opacity: 0.88,
+  },
+  linkPressed: {
+    opacity: 0.72,
+  },
+  trustRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  trustChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: radii.pill,
+    backgroundColor: LANDING_COLORS.surfaceChip,
+    borderWidth: 1,
+    borderColor: BRAND_COLORS.border,
   },
-  illustrationSideDesktop: {
+  starsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  trustText: {
+    color: LANDING_COLORS.text,
+  },
+  freeNote: {
+    color: BRAND_COLORS.textSecondary,
+    marginTop: spacing.sm,
+  },
+  testimonialCard: {
+    marginTop: spacing.lg,
+    maxWidth: 480,
+    backgroundColor: LANDING_COLORS.bg,
+    borderWidth: 1,
+    borderColor: BRAND_COLORS.border,
+    borderRadius: radii.xl,
+    padding: 18,
+    gap: spacing.xs,
+  },
+  testimonialText: {
+    color: LANDING_COLORS.text,
+    lineHeight: 26,
+  },
+  testimonialMeta: {
+    color: BRAND_COLORS.textMuted,
+  },
+  visualColumn: {
     flex: 1,
   },
-  heroImage: {
+  visualColumnDesktop: {
+    minWidth: 500,
+  },
+  visualPanel: {
+    backgroundColor: LANDING_COLORS.surface,
+    borderRadius: radii['2xl'],
+    borderWidth: 1,
+    borderColor: BRAND_COLORS.border,
+    padding: spacing.xl,
+    minHeight: 580,
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  visualPanelMobile: {
+    minHeight: 460,
+  },
+  heroArt: {
     width: '100%',
+    height: 420,
   },
-  heroImageDesktop: {
-    height: 500,
+  heroArtMobile: {
+    height: 280,
   },
-  heroImageMobile: {
-    height: 320,
+  overlayCard: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    backgroundColor: LANDING_COLORS.accent.warm,
+    borderRadius: 22,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+  },
+  overlayCopy: {
+    flex: 1,
+    minWidth: 220,
+  },
+  overlayTitle: {
+    color: LANDING_COLORS.textOnDark,
+    marginBottom: 4,
+  },
+  overlayBody: {
+    color: LANDING_COLORS.textOnDarkMuted,
+    maxWidth: 340,
+  },
+  overlayAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  overlayThumb: {
+    width: 72,
+    height: 72,
+  },
+  overlayPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: LANDING_COLORS.pillBg,
+    borderRadius: radii.pill,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  overlayPillText: {
+    color: LANDING_COLORS.pillText,
   },
 });
 

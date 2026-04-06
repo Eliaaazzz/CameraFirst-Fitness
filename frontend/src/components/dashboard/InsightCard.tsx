@@ -95,7 +95,7 @@ export function generateInsights(data: {
   // Meal frequency
   if (data.mealCount === 0) {
     insights.push({
-      text: "No meals logged yet today. Snap your first meal!",
+      text: "Your day is wide open — snap a photo to get started!",
       color: '#9CA3AF',
       icon: '📸',
     });

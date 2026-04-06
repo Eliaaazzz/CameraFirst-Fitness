@@ -172,8 +172,8 @@ export function TodaysMealDetail({
         {meals.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyEmoji}>🍽️</Text>
-            <Text style={styles.emptyText}>No meals logged yet</Text>
-            <Text style={styles.emptySubtext}>Tap the + button to add your first meal</Text>
+            <Text style={styles.emptyText}>Your plate is ready</Text>
+            <Text style={styles.emptySubtext}>Snap your first meal and the day starts building itself</Text>
           </View>
         ) : (
           <FlatList

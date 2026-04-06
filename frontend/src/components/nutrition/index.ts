@@ -2,6 +2,7 @@ export * from './AddFoodButton';
 export * from './DetectedItemRow';
 export * from './MacroPill';
 export * from './MealListItem';
+export * from './MealListSkeleton';
 export * from './NutritionPieChart';
 export * from './NutritionRingsCard';
 export * from './NutritionSummaryCard';

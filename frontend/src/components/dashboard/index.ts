@@ -1,5 +1,7 @@
 export { DailyScoreCard } from './DailyScoreCard';
+export { DailyScoreSkeleton } from './DailyScoreSkeleton';
 export { DailyTasksCard } from './DailyTasksCard';
+export { DailyTasksSkeleton } from './DailyTasksSkeleton';
 export { InsightCard, generateInsights } from './InsightCard';
 export { StreakBadge } from './StreakBadge';
 export { DashboardCard } from './DashboardCard';
@@ -7,3 +9,5 @@ export { DashboardWidgets } from './DashboardWidgets';
 export { NutritionInsightsCard } from './NutritionTrendChart';
 export { QuickActionsCard } from './QuickActionsCard';
 export { QuickLogBar } from './QuickLogBar';
+export { SuggestionGrid } from './SuggestionGrid';
+export { WelcomeBar } from './WelcomeBar';

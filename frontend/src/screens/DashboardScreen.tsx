@@ -24,12 +24,14 @@ import Animated, {
 } from 'react-native-reanimated';
 
 
-import { Barbell, Camera, CameraPlus, CaretRight, Drop, Fire, FlagCheckered, Grains, Leaf, PencilSimple, PersonSimpleRun, Sneaker, Target, User } from 'phosphor-react-native';
-
+import { Barbell, Camera, CameraPlus, CaretRight, ChartLine, Drop, Fire, FlagCheckered, Grains, Leaf, PencilSimple, PersonSimpleRun, Sneaker, Target, User } from 'phosphor-react-native';
+import { Image } from 'expo-image';
+import { ScrollView as RNScrollView } from 'react-native';
 import { BentoCard, SafeAreaWrapper, Text } from '@/components';
-import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES } from '@/components/common/BentoCard';
+import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/components/common/BentoCard';
 import { StateView } from '@/components/common/StateView';
-import { DailyScoreCard, DailyTasksCard, DashboardWidgets, NutritionInsightsCard, QuickActionsCard, StreakBadge } from '@/components/dashboard';
+import { DailyScoreCard, DailyTasksCard, DashboardWidgets, NutritionInsightsCard, QuickActionsCard, StreakBadge, SuggestionGrid, WelcomeBar } from '@/components/dashboard';
+import { LandingFooter } from '@/components/landing/LandingFooter';
 import { ScreenLayout } from '@/components/layout';
 import { MealImage } from '@/components/nutrition/MealImage';
 import { NutritionRingsCard } from '@/components/nutrition/NutritionRingsCard';
@@ -44,8 +46,16 @@ import { useTourStatus } from '@/hooks/useTourStatus';
 import { GeneratedGoals, getActiveGoal, GoalType } from '@/services/geminiApi';
 import { useGoals, useGoalStatistics } from '@/services/goalsApi';
 import { useHydrationStore, useLanguageStore } from '@/stores';
-import { BRAND_COLORS, colors, saasShadows, spacing, useContentBottomPadding, useRightPanelVisible, useSidebarVisible } from '@/utils';
+import { BRAND_COLORS, colors, radii, saasShadows, spacing, useContentBottomPadding, useRightPanelVisible, useSidebarVisible } from '@/utils';
 import { GENERATED_GOALS_KEY } from './ProfileScreen';
+
+// Illustration assets for web suggestion grid
+const illustrationScanMeal = require('@/../assets/illustrations/hero-healthy-eating.svg');
+const illustrationWorkouts = require('@/../assets/illustrations/fitness-tracker.svg');
+const illustrationRecipes = require('@/../assets/illustrations/cooking.svg');
+const illustrationWeekly = require('@/../assets/illustrations/data-trends.svg');
+const illustrationTargets = require('@/../assets/illustrations/healthy-habit.svg');
+const illustrationHistory = require('@/../assets/illustrations/fruit-salad.svg');
 
 // Smart time-based greeting
 const getTimeGreeting = (): string => {
@@ -421,6 +431,15 @@ const DashboardScreen = () => {
   const goalTypeConfig = generatedGoals?.goalType
     ? GOAL_TYPE_CONFIG[generatedGoals.goalType]
     : null;
+  const openActionCount = [
+    nutritionData.meals.length === 0,
+    proteinGoal > 0 && nutritionData.protein.current < proteinGoal * 0.8,
+    hydrationGoalCups > 0 && hydrationCups < Math.ceil(hydrationGoalCups / 2),
+    calorieGoal > 0 && (nutritionData.calories === 0 || nutritionData.calories < calorieGoal * 0.75),
+  ].filter(Boolean).length;
+  const welcomeSummary = openActionCount > 0
+    ? `${openActionCount} actions ready for today`
+    : 'Today’s plan is complete';
 
   if (currentUser.isLoading) {
     return (
@@ -430,11 +449,480 @@ const DashboardScreen = () => {
     );
   }
 
+  // Nutrition loading state — shared by both web and mobile layouts
+  const hasNutritionData = nutritionData.calories > 0 || nutritionData.protein.current > 0 || nutritionData.meals.length > 0;
+  const showNutritionLoading = nutritionLoading && !hasNutritionData;
+
+  // ============================================================================
+  // WEB DESKTOP — Uber-style full-page scrollable layout
+  // Pattern: Uber logged-in homepage with hero + suggestions + account activity
+  // Mobile layout is completely unchanged below this block.
+  // ============================================================================
+  if (showSidebar && Platform.OS === 'web') {
+    const suggestionCards = [
+      { title: 'Log meal', illustration: illustrationScanMeal, backgroundColor: '#FBE4D6', onPress: handleAddFood },
+      { title: 'Workouts', illustration: illustrationWorkouts, backgroundColor: '#DDEEFF', onPress: () => navigation.navigate('Main', { screen: 'Workouts' } as any) },
+      { title: 'Recipes', illustration: illustrationRecipes, backgroundColor: '#FFE9D8', onPress: () => navigation.navigate('Main', { screen: 'Recipes' } as any) },
+      { title: 'Reports', illustration: illustrationWeekly, backgroundColor: '#DDF3EC', onPress: () => navigation.navigate('Main', { screen: 'Profile', params: { screen: 'WeeklyInsights' } } as any) },
+      { title: 'Targets', illustration: illustrationTargets, backgroundColor: '#FFF3C7', onPress: () => navigation.navigate('Profile') },
+      { title: 'History', illustration: illustrationHistory, backgroundColor: '#F2E9FF', onPress: () => navigation.navigate('Main', { screen: 'Profile', params: { screen: 'MealHistory' } } as any) },
+    ];
+    const serviceCards = [
+      {
+        title: 'Meal logging',
+        body: 'Scan, review, and log meals with a faster photo-first flow.',
+        illustration: illustrationScanMeal,
+        onPress: handleAddFood,
+        backgroundColor: '#E9F0FF',   // Blue
+      },
+      {
+        title: 'Workouts',
+        body: 'Browse exercise videos and track strength or cardio sessions.',
+        illustration: illustrationWorkouts,
+        onPress: () => navigation.navigate('Main', { screen: 'Workouts' } as any),
+        backgroundColor: '#E0F5EF',   // Green/Mint
+      },
+      {
+        title: 'Weekly reports',
+        body: 'Review adherence, macro balance, and progress before you export.',
+        illustration: illustrationWeekly,
+        onPress: () => navigation.navigate('Main', { screen: 'Profile', params: { screen: 'WeeklyInsights' } } as any),
+        backgroundColor: '#FFF1E7',   // Peach/Orange
+      },
+      {
+        title: 'Recipes',
+        body: 'Get recipes matched to your calorie and macro targets.',
+        illustration: illustrationRecipes,
+        onPress: () => navigation.navigate('Main', { screen: 'Recipes' } as any),
+        backgroundColor: '#FFF7DD',   // Yellow
+      },
+    ];
+    const recentMeals = nutritionData.meals.slice(0, 4);
+    const currentProgramTitle = goalTypeConfig?.label || 'Build your plan';
+    const currentProgramTarget = generatedGoals
+      ? goalTypeConfig?.label === 'Fat Loss'
+        ? 'Target: 72kg'
+        : 'Target: 82kg'
+      : 'Set a goal to generate targets';
+    const focusLabel = generatedGoals?.goalType === 'muscle_gain'
+      ? 'Nutrition + Strength'
+      : generatedGoals?.goalType === 'fat_loss'
+        ? 'Nutrition + Cardio'
+        : 'Nutrition Balance';
+    const weeklyTimeLabel = generatedGoals
+      ? `${generatedGoals.weeklyActivityPlan.strength_sessions_per_week} sessions / week`
+      : '4 sessions / week';
+
+    return (
+      <SafeAreaWrapper>
+        <View style={webStyles.root}>
+          <RNScrollView
+            style={webStyles.scroll}
+            contentContainerStyle={webStyles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={webStyles.heroSection}>
+              <View style={webStyles.heroLeft}>
+                <View style={webStyles.heroEyebrowRow}>
+                  <View style={webStyles.heroEyebrowChip}>
+                    <FlagCheckered size={16} weight="fill" color="#111111" />
+                    <Text variant="body" weight="semibold" style={webStyles.heroEyebrowText}>
+                      Today&apos;s plan
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => navigation.navigate('Profile')}
+                    style={({ pressed }) => [webStyles.heroInlineLink, pressed && webStyles.heroInlineLinkPressed]}
+                  >
+                    <Text variant="body" weight="medium" style={webStyles.heroInlineLinkText}>
+                      Update goal
+                    </Text>
+                  </Pressable>
+                </View>
+
+                <Text variant="heading1" weight="bold" style={webStyles.heroTitle}>
+                  Build today&apos;s plan
+                </Text>
+                <Text variant="body" style={webStyles.heroSubtitle}>
+                  Log meals, hit your macros, and review weekly progress — all in one place.
+                </Text>
+
+                <View style={webStyles.heroModePill}>
+                  <Text variant="body" weight="bold" style={webStyles.heroModePillText}>
+                    Start now
+                  </Text>
+                </View>
+
+                <Pressable
+                  onPress={handleAddFood}
+                  style={({ pressed }) => [webStyles.heroInputCard, pressed && webStyles.heroInputPressed]}
+                >
+                  <View style={webStyles.heroInputConnector}>
+                    <View style={webStyles.heroInputDot} />
+                    <View style={webStyles.heroInputLine} />
+                  </View>
+                  <View style={webStyles.heroInputIcon}>
+                    <Camera size={20} weight="regular" color="#111111" />
+                  </View>
+                  <View style={webStyles.heroInputCopy}>
+                    <Text variant="heading4" weight="semibold" style={webStyles.heroInputTitle}>
+                      Log your next meal
+                    </Text>
+                    <Text variant="body" style={webStyles.heroInputBody}>
+                      Scan a plate or upload from your gallery.
+                    </Text>
+                  </View>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => navigation.navigate('Main', { screen: 'Workouts' } as any)}
+                  style={({ pressed }) => [webStyles.heroInputCard, pressed && webStyles.heroInputPressed]}
+                >
+                  <View style={[webStyles.heroInputConnector, webStyles.heroInputConnectorHidden]} />
+                  <View style={webStyles.heroInputIcon}>
+                    <Barbell size={20} weight="regular" color="#111111" />
+                  </View>
+                  <View style={webStyles.heroInputCopy}>
+                    <Text variant="heading4" weight="semibold" style={webStyles.heroInputTitle}>
+                      Choose workout focus
+                    </Text>
+                    <Text variant="body" style={webStyles.heroInputBody}>
+                      Strength, cardio, or recovery for today.
+                    </Text>
+                  </View>
+                </Pressable>
+
+                <View style={webStyles.heroActions}>
+                  <Pressable
+                    onPress={handleAddFood}
+                    style={({ pressed }) => [webStyles.heroPrimaryCta, pressed && webStyles.heroCtaPressed]}
+                  >
+                    <Text variant="body" weight="bold" style={webStyles.heroPrimaryCtaText}>
+                      Start tracking
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => navigation.navigate('Main', { screen: 'Profile', params: { screen: 'WeeklyInsights' } } as any)}
+                    style={({ pressed }) => [webStyles.heroSecondaryLink, pressed && webStyles.heroInlineLinkPressed]}
+                  >
+                    <Text variant="body" weight="medium" style={webStyles.heroSecondaryLinkText}>
+                      Review weekly report
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={webStyles.heroRight}>
+                <Text variant="heading3" weight="bold" style={webStyles.suggestionsTitle}>
+                  Suggestions
+                </Text>
+                <SuggestionGrid cards={suggestionCards} />
+              </View>
+            </View>
+
+            <View style={webStyles.section}>
+              <Text variant="heading2" weight="bold" style={webStyles.sectionHeading}>
+                Your account and activity
+              </Text>
+              <View style={webStyles.activityCard}>
+                <View style={webStyles.activityCol1}>
+                  <Text variant="heading4" weight="bold" style={webStyles.colTitle}>
+                    Most recent
+                  </Text>
+                  <Pressable
+                    onPress={() => navigation.navigate('Profile')}
+                    style={({ pressed }) => [webStyles.programCard, pressed && webStyles.programCardPressed]}
+                  >
+                    <View style={webStyles.programCardCopy}>
+                      <Text variant="label" weight="bold" style={webStyles.programCardLabel}>
+                        Current program
+                      </Text>
+                      <Text variant="heading2" weight="bold" style={webStyles.programCardTitle}>
+                        {currentProgramTitle}
+                      </Text>
+                      <Text variant="body" style={webStyles.programCardBody}>
+                        {currentProgramTarget}
+                      </Text>
+                      <View style={webStyles.programCardAction}>
+                        <Text variant="body" weight="bold" style={webStyles.programCardActionText}>
+                          See details
+                        </Text>
+                      </View>
+                    </View>
+                    <Image source={illustrationTargets} style={webStyles.programCardIllustration as any} contentFit="contain" />
+                  </Pressable>
+
+                  <View style={webStyles.metricStack}>
+                    <View style={webStyles.metricRow}>
+                      <Text variant="body" weight="semibold" style={webStyles.metricLabel}>Calories</Text>
+                      <Text variant="body" weight="semibold" style={webStyles.metricValue}>
+                        {nutritionData.calories}/{calorieGoal}
+                      </Text>
+                    </View>
+                    <View style={webStyles.metricTrack}>
+                      <View style={[webStyles.metricFill, { width: `${Math.min(100, Math.round((nutritionData.calories / Math.max(calorieGoal, 1)) * 100))}%`, backgroundColor: '#F28B34' }]} />
+                    </View>
+
+                    <View style={webStyles.metricRow}>
+                      <Text variant="body" weight="semibold" style={webStyles.metricLabel}>Protein</Text>
+                      <Text variant="body" weight="semibold" style={webStyles.metricValue}>
+                        {Math.round(nutritionData.protein.current)}/{proteinGoal}g
+                      </Text>
+                    </View>
+                    <View style={webStyles.metricTrack}>
+                      <View style={[webStyles.metricFill, { width: `${Math.min(100, Math.round((nutritionData.protein.current / Math.max(proteinGoal, 1)) * 100))}%`, backgroundColor: '#0F9D82' }]} />
+                    </View>
+
+                    <View style={webStyles.metricRow}>
+                      <Text variant="body" weight="semibold" style={webStyles.metricLabel}>Hydration</Text>
+                      <Text variant="body" weight="semibold" style={webStyles.metricValue}>
+                        {hydrationCups}/{hydrationGoalCups} cups
+                      </Text>
+                    </View>
+                    <View style={webStyles.metricTrack}>
+                      <View style={[webStyles.metricFill, { width: `${Math.min(100, Math.round((hydrationCups / Math.max(hydrationGoalCups, 1)) * 100))}%`, backgroundColor: '#3B82F6' }]} />
+                    </View>
+                  </View>
+                </View>
+
+                <View style={webStyles.activityCol2}>
+                  <Text variant="heading4" weight="bold" style={webStyles.colTitle}>
+                    Past
+                  </Text>
+                  {recentMeals.length === 0 ? (
+                    <Pressable onPress={handleAddFood} style={webStyles.emptyMeals}>
+                      <CameraPlus size={22} color={BRAND_COLORS.primary} weight="regular" />
+                      <View style={webStyles.emptyMealsCopy}>
+                        <Text variant="body" weight="semibold" style={webStyles.emptyMealsTitle}>
+                          This space is ready for your first meal
+                        </Text>
+                        <Text variant="caption" style={webStyles.emptyMealsSubtitle}>
+                          Snap a photo and watch your nutrition story build itself.
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ) : (
+                    <View style={webStyles.mealsList}>
+                      {recentMeals.map((meal) => (
+                        <View key={meal.id} style={webStyles.mealRow}>
+                          <MealImage imageUrl={meal.imageUrl} size={48} borderRadius={10} />
+                          <View style={webStyles.mealRowCopy}>
+                            <Text variant="body" weight="bold" style={webStyles.mealRowTitle}>
+                              {formatMealName(meal.name)}
+                            </Text>
+                            <Text variant="caption" style={webStyles.mealRowMeta}>
+                              {getMealType(new Date(meal.consumedAt))} · {new Date(meal.consumedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                          </View>
+                          <Pressable
+                            style={webStyles.seeDetailsBtn}
+                            onPress={() => navigation.navigate('Main', { screen: 'Profile', params: { screen: 'MealHistory' } } as any)}
+                          >
+                            <Text variant="caption" weight="semibold" style={webStyles.seeDetailsText}>
+                              See details
+                            </Text>
+                          </Pressable>
+                        </View>
+                      ))}
+                      <Pressable
+                        onPress={() => navigation.navigate('Main', { screen: 'Profile', params: { screen: 'MealHistory' } } as any)}
+                        style={webStyles.viewAllBtn}
+                      >
+                        <Text variant="body" weight="semibold" style={webStyles.viewAllBtnText}>
+                          View all logs
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+
+                <View style={webStyles.activityCol3}>
+                  <Text variant="heading4" weight="bold" style={webStyles.colTitle}>
+                    Services
+                  </Text>
+                  {serviceCards.map((service) => (
+                    <Pressable
+                      key={service.title}
+                      onPress={service.onPress}
+                      style={({ pressed }) => [
+                        webStyles.serviceCard,
+                        { backgroundColor: service.backgroundColor },
+                        pressed && webStyles.serviceCardPressed,
+                      ]}
+                    >
+                      <Image source={service.illustration} style={webStyles.serviceIllustration as any} contentFit="contain" />
+                      <View style={webStyles.serviceCopy}>
+                        <Text variant="body" weight="bold" style={webStyles.serviceTitle}>{service.title}</Text>
+                        <Text variant="caption" style={webStyles.serviceBody}>
+                          {service.body}
+                        </Text>
+                      </View>
+                      <CaretRight size={18} color="#7B7B7B" />
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </View>
+
+            <View style={webStyles.section}>
+              <Text variant="heading2" weight="bold" style={webStyles.sectionHeading}>
+                Performance today
+              </Text>
+              <View style={webStyles.performanceContainer}>
+              <View style={webStyles.performanceRow}>
+                <View style={webStyles.performancePrimary}>
+                  {showNutritionLoading ? (
+                    <NutritionRingsSkeleton />
+                  ) : (
+                    <NutritionRingsCard
+                      data={{
+                        calories: { current: nutritionData.calories, target: calorieGoal },
+                        protein: { current: nutritionData.protein.current, target: proteinGoal },
+                        carbs: { current: nutritionData.carbs.current, target: carbsGoal },
+                        fat: { current: nutritionData.fat.current, target: fatGoal },
+                        bloodSugarRise: nutritionData.bloodSugarRise,
+                      }}
+                      showFat={true}
+                      onMacroPress={handleMacroSearch}
+                      onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
+                    />
+                  )}
+                </View>
+
+                <View style={webStyles.performanceSecondary}>
+                  <DailyTasksCard
+                    data={{
+                      calories: nutritionData.calories,
+                      calorieGoal,
+                      protein: nutritionData.protein,
+                      mealCount: nutritionData.meals.length,
+                      hydrationCups,
+                      hydrationGoal: hydrationGoalCups,
+                    }}
+                  />
+                  <DailyScoreCard
+                    data={{
+                      calories: nutritionData.calories,
+                      calorieGoal,
+                      protein: nutritionData.protein,
+                      carbs: nutritionData.carbs,
+                      fat: nutritionData.fat,
+                      hydrationCups,
+                      hydrationGoal: hydrationGoalCups,
+                      streak: currentUser.data?.currentStreak || 0,
+                    }}
+                  />
+                </View>
+              </View>
+              </View>
+            </View>
+
+            <View style={webStyles.section}>
+              <Text variant="heading2" weight="bold" style={webStyles.sectionHeading}>
+                Plan for later
+              </Text>
+              <View style={webStyles.planRow}>
+                <View style={webStyles.planAccentCard}>
+                  <View style={webStyles.planBadge}>
+                    <Text variant="label" weight="bold" style={webStyles.planBadgeText}>
+                      Weekly planner
+                    </Text>
+                  </View>
+                  <Text variant="heading2" weight="bold" style={webStyles.planAccentTitle}>
+                    Build the right week for your goal
+                  </Text>
+                  <Text variant="body" style={webStyles.planAccentBody}>
+                    Set your targets, track your meals, and stay consistent every week.
+                  </Text>
+
+                  <View style={webStyles.planFieldRow}>
+                    <View style={webStyles.planField}>
+                      <Text variant="caption" style={webStyles.planFieldLabel}>Goal</Text>
+                      <Text variant="body" weight="semibold" style={webStyles.planFieldValue}>{currentProgramTitle}</Text>
+                    </View>
+                    <View style={webStyles.planField}>
+                      <Text variant="caption" style={webStyles.planFieldLabel}>Focus</Text>
+                      <Text variant="body" weight="semibold" style={webStyles.planFieldValue}>{focusLabel}</Text>
+                    </View>
+                    <View style={webStyles.planField}>
+                      <Text variant="caption" style={webStyles.planFieldLabel}>Weekly time</Text>
+                      <Text variant="body" weight="semibold" style={webStyles.planFieldValue}>{weeklyTimeLabel}</Text>
+                    </View>
+                  </View>
+
+                  <Pressable
+                    onPress={() => navigation.navigate('BuildPlan')}
+                    style={({ pressed }) => [webStyles.planCta, pressed && webStyles.heroCtaPressed]}
+                  >
+                    <Text variant="body" weight="bold" style={webStyles.planCtaText}>
+                      Build my plan
+                    </Text>
+                  </Pressable>
+
+                  <Image
+                    source={illustrationWorkouts}
+                    style={webStyles.planIllustration as any}
+                    contentFit="contain"
+                  />
+                </View>
+
+                <View style={webStyles.planBenefitsPanel}>
+                  <Text variant="heading3" weight="bold" style={webStyles.planBenefitsTitle}>
+                    Benefits
+                  </Text>
+
+                  <View style={webStyles.benefitRow}>
+                    <View style={[webStyles.benefitIcon, { backgroundColor: '#FFF1E7' }]}>
+                      <Target size={20} weight="bold" color="#C96A34" />
+                    </View>
+                    <View style={webStyles.benefitCopy}>
+                      <Text variant="body" weight="semibold" style={webStyles.benefitTitle}>Personalized targets</Text>
+                      <Text variant="body" style={webStyles.benefitBody}>AI generates your daily calorie and macro targets from your goal.</Text>
+                    </View>
+                  </View>
+
+                  <View style={webStyles.benefitRow}>
+                    <View style={[webStyles.benefitIcon, { backgroundColor: '#E0F5EF' }]}>
+                      <Barbell size={20} weight="bold" color="#2F7A6A" />
+                    </View>
+                    <View style={webStyles.benefitCopy}>
+                      <Text variant="body" weight="semibold" style={webStyles.benefitTitle}>Adaptive weekly structure</Text>
+                      <Text variant="body" style={webStyles.benefitBody}>Strength, meals, and recovery stay aligned to your weekly schedule.</Text>
+                    </View>
+                  </View>
+
+                  <View style={[webStyles.benefitRow, webStyles.benefitRowLast]}>
+                    <View style={[webStyles.benefitIcon, { backgroundColor: '#E9F5FF' }]}>
+                      <ChartLine size={20} weight="bold" color="#3B82F6" />
+                    </View>
+                    <View style={webStyles.benefitCopy}>
+                      <Text variant="body" weight="semibold" style={webStyles.benefitTitle}>Exportable progress</Text>
+                      <Text variant="body" style={webStyles.benefitBody}>Review your week and export nutrition data as CSV with one tap.</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            <View style={webStyles.footerWrap}>
+              <LandingFooter
+                onGetStarted={() => navigation.navigate('Profile')}
+                onLogin={() => navigation.navigate('Profile')}
+                showFinalCTA={false}
+              />
+            </View>
+          </RNScrollView>
+        </View>
+      </SafeAreaWrapper>
+    );
+  }
+
   const renderGoalsSection = (styleOverride?: object) => {
     if (generatedGoals) {
       return (
-        <BentoCard style={[styles.goalsCard, styleOverride]}>
-          {/* Header: Top-left aligned with icon + title */}
+        <View style={[Platform.OS !== 'web' ? MOBILE_CARD_STYLES : BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES as any, styles.goalsCard, styleOverride]}>
+          {/* Header: hidden on mobile (SectionHeader replaces it) */}
+          {(Platform.OS === 'web') && (
           <View style={styles.goalsHeader}>
             <View style={styles.goalsHeaderLeft}>
               {goalTypeConfig && (
@@ -462,6 +950,7 @@ const DashboardScreen = () => {
               <PencilSimple size={16} color={BRAND_COLORS.primary} weight="regular" />
             </Pressable>
           </View>
+          )}
 
           <View style={styles.goalsGrid}>
             <Pressable 
@@ -513,7 +1002,7 @@ const DashboardScreen = () => {
               </Text>
             </View>
           </View>
-        </BentoCard>
+        </View>
       );
     }
 
@@ -528,7 +1017,7 @@ const DashboardScreen = () => {
       >
         <View style={styles.setGoalsGradient}>
           <View style={styles.setGoalsIconBox}>
-            <Target size={20} color={BRAND_COLORS.primary} weight="regular" />
+            <Target size={20} color={BRAND_COLORS.textPrimary} weight="regular" />
           </View>
           <View style={styles.setGoalsText}>
             <Text variant="body" weight="bold" style={styles.setGoalsTitle}>Set Your Fitness Goals</Text>
@@ -537,17 +1026,12 @@ const DashboardScreen = () => {
             </Text>
           </View>
           <View style={styles.setGoalsChevron}>
-            <CaretRight size={16} color={BRAND_COLORS.primary} weight="regular" />
+            <CaretRight size={16} color={BRAND_COLORS.textPrimary} weight="regular" />
           </View>
         </View>
       </Pressable>
     );
   };
-
-  // Only show loading placeholder on initial load (no data yet)
-  // Once data has been loaded, keep component mounted to preserve animation state
-  const hasNutritionData = nutritionData.calories > 0 || nutritionData.protein.current > 0 || nutritionData.meals.length > 0;
-  const showNutritionLoading = nutritionLoading && !hasNutritionData;
 
   const renderNutritionCard = () => (
     <TourGuideZone
@@ -576,6 +1060,16 @@ const DashboardScreen = () => {
     </TourGuideZone>
   );
 
+  // Section header — Uber bold labels above each card section (mobile only)
+  const SectionHeader = ({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) => (
+    <View style={styles.sectionHeader}>
+      <Text variant="heading4" weight="bold" style={styles.sectionTitle}>{title}</Text>
+      {action && onAction && (
+        <Pressable onPress={onAction}><Text variant="caption" weight="semibold" style={styles.sectionAction}>{action}</Text></Pressable>
+      )}
+    </View>
+  );
+
   // Render right panel widgets (only shown on wide screens)
   const renderRightPanel = () => (
     <DashboardWidgets
@@ -586,22 +1080,20 @@ const DashboardScreen = () => {
   return (
     <SafeAreaWrapper>
       <View style={styles.screenRoot}>
+        {Platform.OS === 'web' && (
         <View pointerEvents="none" style={styles.ambientLayer}>
           <LinearGradient
-            colors={
-              Platform.OS === 'web'
-                ? ['rgba(255,248,241,0.8)', 'rgba(246,248,251,0.76)']
-                : ['rgba(255,252,248,0.94)', 'rgba(251,252,255,0.9)']
-            }
+            colors={['#F7F7F5', '#FAFAF8']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.ambientGradient}
           />
-          <View style={[styles.ambientWarmCloud, Platform.OS === 'web' && styles.ambientWarmCloudWeb]} />
-          <View style={[styles.ambientCoolCloud, Platform.OS === 'web' && styles.ambientCoolCloudWeb]} />
-          <View style={[styles.ambientMintCloud, Platform.OS === 'web' && styles.ambientMintCloudWeb]} />
-          {Platform.OS === 'web' && <View style={styles.ambientNoise} />}
+          <View style={[styles.ambientWarmCloud, styles.ambientWarmCloudWeb]} />
+          <View style={[styles.ambientCoolCloud, styles.ambientCoolCloudWeb]} />
+          <View style={[styles.ambientMintCloud, styles.ambientMintCloudWeb]} />
+          <View style={styles.ambientNoise} />
         </View>
+        )}
 
         <ScreenLayout rightPanel={renderRightPanel()} scrollable={false}>
           <TourScrollView
@@ -617,20 +1109,20 @@ const DashboardScreen = () => {
               />
             }
           >
-            {/* Header */}
+            {/* Header — Uber typography: greeting is hero, name is secondary */}
             <Animated.View entering={staggerEnter(0)} style={styles.header}>
               <View style={styles.headerLeft}>
-                <Text variant="caption" style={styles.greeting}>{greeting}</Text>
+                <Text variant={Platform.OS !== 'web' ? 'heading2' : 'caption'} weight={Platform.OS !== 'web' ? 'bold' : undefined} style={styles.greeting}>{greeting}</Text>
                 <View style={styles.nameRow}>
-                  <Text variant="heading1" weight="bold" style={styles.userName}>
+                  <Text variant={Platform.OS !== 'web' ? 'body' : 'heading1'} weight={Platform.OS !== 'web' ? 'medium' : 'bold'} style={styles.userName}>
                     {currentUser.data?.username || 'User'}
                   </Text>
                   <StreakBadge streak={currentUser.data?.currentStreak || 0} compact />
                 </View>
                 <Text variant="caption" style={styles.contextLine}>{contextLine}</Text>
               </View>
-              {/* Hide profile button on desktop (use sidebar instead) */}
-              {!showRightPanel && (
+              {/* Profile button: web only (mobile uses Profile tab) */}
+              {Platform.OS === 'web' && !showRightPanel && (
                 <View style={styles.headerActions}>
                   <Pressable
                     style={styles.profileButton}
@@ -642,6 +1134,14 @@ const DashboardScreen = () => {
               )}
             </Animated.View>
 
+            {/* Quick-log bar — Uber "Where to?" pattern, mobile only */}
+            {Platform.OS !== 'web' && (
+              <Pressable onPress={handleAddFood} style={({pressed}) => [styles.quickLogBar, pressed && styles.quickLogBarPressed]}>
+                <Camera size={20} color="#FFFFFF" weight="regular" />
+                <Text style={styles.quickLogBarText}>Snap a meal</Text>
+              </Pressable>
+            )}
+
             {/* Welcome Tour Card for new users */}
             {showWelcomeCard && (
               <WelcomeTourCard
@@ -651,23 +1151,45 @@ const DashboardScreen = () => {
             )}
 
             {/* Goals card/prompt - only in main column when right panel is hidden */}
-            {!showRightPanel && !showInlineGoalsRow && renderGoalsSection()}
+            {!showSidebar && !showRightPanel && !showInlineGoalsRow && (
+              <View>
+                <SectionHeader title="Your Goal" action="Edit" onAction={() => navigation.navigate('BuildPlan' as any)} />
+                {renderGoalsSection()}
+              </View>
+            )}
+            {showSidebar && !showRightPanel && !showInlineGoalsRow && renderGoalsSection()}
 
-          {/* Recommendations are now shown on their respective tabs (Workouts/Recipes) */}
-
-                    {/* Main content wrapper - fills viewport on desktop */}
+                    {/* Main content wrapper — 24px gap on mobile (Uber rhythm) */}
                   <View
                     style={
                       showSidebar
                         ? showRightPanel
                           ? styles.desktopContentWrapper
                           : styles.sidebarContentWrapper
-                        : undefined
+                        : styles.mobileContentWrapper
                     }
                   >
-                    {/* Daily Score Card - Whoop/Oura inspired */}
+                    {/* Daily Tasks */}
                     {!nutritionLoading && generatedGoals && (
                       <Animated.View entering={staggerEnter(1)}>
+                        {!showSidebar && <SectionHeader title="Today's Tasks" />}
+                        <DailyTasksCard
+                          data={{
+                            calories: nutritionData.calories,
+                            calorieGoal: nutritionData.goal,
+                            protein: nutritionData.protein,
+                            mealCount: nutritionData.meals.length,
+                            hydrationCups,
+                            hydrationGoal: hydrationGoalCups,
+                          }}
+                        />
+                      </Animated.View>
+                    )}
+
+                    {/* Daily Score is secondary after the task center */}
+                    {!nutritionLoading && generatedGoals && (
+                      <Animated.View entering={staggerEnter(2)}>
+                        {!showSidebar && <SectionHeader title="Daily Score" />}
                         <DailyScoreCard
                           data={{
                             calories: nutritionData.calories,
@@ -678,22 +1200,6 @@ const DashboardScreen = () => {
                             hydrationCups,
                             hydrationGoal: hydrationGoalCups,
                             streak: currentUser.data?.currentStreak || 0,
-                          }}
-                        />
-                      </Animated.View>
-                    )}
-
-                    {/* Daily Tasks - Noom-inspired checklist */}
-                    {!nutritionLoading && generatedGoals && (
-                      <Animated.View entering={staggerEnter(2)}>
-                        <DailyTasksCard
-                          data={{
-                            calories: nutritionData.calories,
-                            calorieGoal: nutritionData.goal,
-                            protein: nutritionData.protein,
-                            mealCount: nutritionData.meals.length,
-                            hydrationCups,
-                            hydrationGoal: hydrationGoalCups,
                           }}
                         />
                       </Animated.View>
@@ -710,13 +1216,16 @@ const DashboardScreen = () => {
                         </View>
                       </View>
                     ) : (
-                      renderNutritionCard()
+                      <View>
+                        {!showSidebar && <SectionHeader title="Nutrition" />}
+                        {renderNutritionCard()}
+                      </View>
                     )}
                     </Animated.View>
 
                     {/* Nutrition Insights - Trend & Balance charts */}
                     {!nutritionLoading && generatedGoals && (
-                      <View style={{ marginTop: spacing.lg }}>
+                      <View>
                         <NutritionInsightsCard
                           trendData={trendData}
                           target={{
@@ -736,20 +1245,23 @@ const DashboardScreen = () => {
 
                     {/* Keep inline quick actions on web only; mobile removes this section */}
                     {Platform.OS === 'web' && !showRightPanel && (
-                      <View style={{ marginTop: spacing.lg }}>
+                      <View>
                         <QuickActionsCard />
                       </View>
                     )}
 
                   {/* Today's Meals */}
                   <Animated.View entering={staggerEnter(4)}>
-                  <BentoCard
+                  {!showSidebar && <SectionHeader title="Today's Meals" />}
+                  <View
                     style={[
+                      Platform.OS !== 'web' ? MOBILE_CARD_STYLES : undefined,
                       styles.mealsCard,
                       showSidebar && (showRightPanel ? styles.mealsCardDesktop : styles.mealsCardSidebar),
                     ]}
                   >
-                    {/* Header - matches NutritionRingsCard header */}
+                    {/* Header - matches NutritionRingsCard header (web only on mobile, section header replaces it) */}
+                    {showSidebar && (
                     <View style={styles.mealsHeader}>
                       <View>
                         <Text variant="heading3" weight="bold" style={styles.mealsTitle}>
@@ -762,7 +1274,8 @@ const DashboardScreen = () => {
                         )}
                       </View>
 
-                      {/* Compact Snap Button - Tour Zone 1 */}
+                      {/* Compact Snap Button - Tour Zone 1 (web only, mobile has quick-log bar) */}
+                      {Platform.OS === 'web' && (
                       <TourGuideZone
                         zone={SNAP_MEAL_STEP.zone}
                         text={SNAP_MEAL_STEP.text}
@@ -777,7 +1290,9 @@ const DashboardScreen = () => {
                            <Text style={styles.compactSnapBtnText}>Snap Meal</Text>
                         </Pressable>
                       </TourGuideZone>
+                      )}
                     </View>
+                    )}
 
               {nutritionData.meals.length === 0 ? (
                 <View style={styles.emptyMealsWrapper}>
@@ -793,10 +1308,10 @@ const DashboardScreen = () => {
                     </View>
                     <View style={styles.emptyMealsTextContainer}>
                       <Text variant="body" weight="semibold" style={styles.emptyMealsTitle}>
-                        No meals logged yet.
+                        Your meal log is waiting
                       </Text>
                       <Text variant="caption" style={styles.emptyMealsHint}>
-                        Snap a photo to start tracking
+                        Snap a photo and your nutrition story starts here
                       </Text>
                     </View>
                   </Pressable>
@@ -807,8 +1322,8 @@ const DashboardScreen = () => {
                     <Animated.View key={meal.id} entering={reduceMotion ? undefined : FadeInRight.duration(300).delay(mealIndex * 60)} style={styles.mealItem}>
                       <MealImage
                         imageUrl={meal.imageUrl}
-                        size={56}
-                        borderRadius={12}
+                        size={Platform.OS !== 'web' ? 64 : 56}
+                        borderRadius={Platform.OS !== 'web' ? 14 : 12}
                       />
                       <View style={styles.mealDetails}>
                         <View style={styles.mealHeader}>
@@ -847,7 +1362,7 @@ const DashboardScreen = () => {
                   ))}
                 </View>
               )}
-            </BentoCard>
+            </View>
             </Animated.View>
           </View>
           </TourScrollView>
@@ -860,6 +1375,7 @@ const DashboardScreen = () => {
 const styles = StyleSheet.create({
   screenRoot: {
     flex: 1,
+    backgroundColor: '#F7F7F5', // Clean Uber neutral — mobile relies on this, not ambient layer
   },
   ambientLayer: {
     ...StyleSheet.absoluteFillObject,
@@ -875,13 +1391,13 @@ const styles = StyleSheet.create({
     borderRadius: 180,
     top: -120,
     right: -100,
-    backgroundColor: 'rgba(249,115,22,0.12)',
+    backgroundColor: 'rgba(17,17,17,0.04)',
     ...(Platform.OS === 'web' && ({
       filter: 'blur(90px)',
     } as any)),
   },
   ambientWarmCloudWeb: {
-    backgroundColor: 'rgba(249,115,22,0.07)',
+    backgroundColor: 'rgba(17,17,17,0.03)',
   },
   ambientCoolCloud: {
     position: 'absolute',
@@ -890,13 +1406,13 @@ const styles = StyleSheet.create({
     borderRadius: 160,
     top: 160,
     right: 60,
-    backgroundColor: 'rgba(6,182,212,0.08)',
+    backgroundColor: 'rgba(17,17,17,0.02)',
     ...(Platform.OS === 'web' && ({
       filter: 'blur(84px)',
     } as any)),
   },
   ambientCoolCloudWeb: {
-    backgroundColor: 'rgba(6,182,212,0.045)',
+    backgroundColor: 'rgba(17,17,17,0.015)',
   },
   ambientMintCloud: {
     position: 'absolute',
@@ -905,20 +1421,20 @@ const styles = StyleSheet.create({
     borderRadius: 150,
     bottom: -120,
     left: -80,
-    backgroundColor: 'rgba(16,185,129,0.07)',
+    backgroundColor: 'rgba(17,17,17,0.02)',
     ...(Platform.OS === 'web' && ({
       filter: 'blur(90px)',
     } as any)),
   },
   ambientMintCloudWeb: {
-    backgroundColor: 'rgba(16,185,129,0.04)',
+    backgroundColor: 'rgba(17,17,17,0.015)',
   },
   ambientNoise: {
     ...StyleSheet.absoluteFillObject,
     opacity: 0.02,
     ...(Platform.OS === 'web' && ({
       backgroundImage:
-        'repeating-linear-gradient(0deg, rgba(17,24,39,0.12) 0px, rgba(17,24,39,0.12) 1px, transparent 1px, transparent 3px)',
+        'repeating-linear-gradient(0deg, rgba(17,17,17,0.08) 0px, rgba(17,17,17,0.08) 1px, transparent 1px, transparent 4px)',
     } as any)),
   },
   container: {
@@ -972,31 +1488,67 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: Platform.OS !== 'web' ? spacing.md : spacing.xl,
   },
   headerLeft: {
     flex: 1,
   },
-  greeting: {
-    color: BRAND_COLORS.textWarm,
-    marginBottom: 2,
-    fontSize: 14,
-    letterSpacing: 0.3,
-  },
+  greeting: Platform.select({
+    web: {
+      color: BRAND_COLORS.textMuted,
+      marginBottom: 2,
+      fontSize: 14,
+      letterSpacing: 0.6,
+    },
+    default: {
+      color: '#111111',
+      fontSize: 24,
+      fontWeight: '700' as const,
+      letterSpacing: -0.5,
+      marginBottom: 4,
+    },
+  }),
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
   },
-  userName: {
-    color: BRAND_COLORS.textPrimary,
-    letterSpacing: -0.7,
-  },
+  userName: Platform.select({
+    web: {
+      color: BRAND_COLORS.textPrimary,
+      letterSpacing: -0.7,
+    },
+    default: {
+      color: BRAND_COLORS.textSecondary,
+      fontSize: 15,
+      fontWeight: '500' as const,
+      letterSpacing: 0,
+    },
+  }),
   contextLine: {
     color: BRAND_COLORS.textMuted,
-    marginTop: 2,
-    fontSize: 13,
+    marginTop: Platform.OS !== 'web' ? 4 : 6,
+    fontSize: Platform.OS !== 'web' ? 13 : 14,
   },
+  // Quick-log bar — Uber "Where to?" pattern
+  quickLogBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#111111',
+    borderRadius: radii.lg, // 16
+    paddingVertical: 16,
+    marginBottom: spacing.xl, // 24
+  },
+  quickLogBarPressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
+  quickLogBarText: { color: '#FFFFFF', fontSize: 17, fontWeight: '700' as const },
+  // Section headers — Uber bold labels
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+  sectionTitle: { color: '#111111', fontSize: 18, letterSpacing: -0.3 },
+  sectionAction: { color: BRAND_COLORS.textSecondary, fontSize: 14 },
+  // Mobile content wrapper — uniform 24px gap between sections
+  mobileContentWrapper: { gap: 24 },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1023,22 +1575,20 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: BRAND_COLORS.border,
     justifyContent: 'center',
     alignItems: 'center',
-    ...saasShadows.subtle,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'all 0.15s ease-out',
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
+      boxShadow: '0 10px 22px rgba(17,17,17,0.04)',
     }),
   },
   // Goals card - extends BentoCard with margin
   goalsCard: {
-    marginBottom: 24,
+    // marginBottom removed — gap in mobileContentWrapper handles spacing
   },
   goalsHeader: {
     flexDirection: 'row',
@@ -1089,9 +1639,8 @@ const styles = StyleSheet.create({
     minHeight: 74,
     borderRadius: 12,
     paddingVertical: spacing.xs,
-    backgroundColor: 'rgba(255,255,255,0.58)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(242,233,222,0.8)',
+    backgroundColor: Platform.OS !== 'web' ? '#F5F5F5' : 'rgba(255,255,255,0.58)',
+    ...(Platform.OS === 'web' ? { borderWidth: 0.5, borderColor: 'rgba(242,233,222,0.8)' } : {}),
   },
   goalItemLabel: {
     color: colors.light.textSecondary,
@@ -1101,9 +1650,9 @@ const styles = StyleSheet.create({
   activityRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.light.border,
+    ...(Platform.OS === 'web'
+      ? { paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.light.border }
+      : { marginTop: spacing.md }),
   },
   activityItem: {
     flexDirection: 'row',
@@ -1112,31 +1661,30 @@ const styles = StyleSheet.create({
   },
   // Set goals prompt - Aura look with SaaS shadow
   setGoalsPrompt: {
-    borderRadius: 18,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.48)',
-    backgroundColor: 'rgba(255,255,255,0.68)',
-    marginBottom: 24,
-    ...saasShadows.subtle,
+    borderRadius: radii.lg, // 16
+    borderWidth: Platform.OS === 'web' ? 1 : 0,
+    borderColor: BRAND_COLORS.border,
+    backgroundColor: '#FFFFFF',
+    ...(Platform.OS !== 'web' ? saasShadows.subtle : {}),
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'all 0.2s ease-out',
-      backdropFilter: 'blur(16px)',
+      boxShadow: '0 10px 22px rgba(17,17,17,0.04)',
     }),
   },
   setGoalsGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
+    padding: Platform.OS !== 'web' ? spacing.lg : spacing.md,
     gap: spacing.md,
   },
   setGoalsIconBox: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,241,227,0.7)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(246,194,143,0.5)',
+    backgroundColor: BRAND_COLORS.surfaceVariant,
+    borderWidth: 1,
+    borderColor: BRAND_COLORS.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1147,7 +1695,7 @@ const styles = StyleSheet.create({
     color: BRAND_COLORS.textPrimary,
   },
   setGoalsSubtext: {
-    color: '#8B7A6A',
+    color: BRAND_COLORS.textMuted,
     marginTop: 2,
   },
   setGoalsChevron: {
@@ -1156,17 +1704,16 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,241,227,0.7)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(246,194,143,0.5)',
+    backgroundColor: BRAND_COLORS.surfaceVariant,
+    borderWidth: 1,
+    borderColor: BRAND_COLORS.border,
   },
   // Calorie card - Stripe/Linear style
   calorieCard: {
     padding: spacing.lg,
-    marginBottom: 24,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: Platform.OS === 'web' ? 1 : 0,
     borderColor: '#E9E6F5',
     ...saasShadows.card,
   },
@@ -1202,14 +1749,13 @@ const styles = StyleSheet.create({
   compactSnapBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(249, 115, 22, 0.88)',
+    backgroundColor: '#111111',
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 14,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 183, 122, 0.6)',
+    borderWidth: 1,
+    borderColor: '#111111',
     gap: 6,
-    ...saasShadows.subtle,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'opacity 0.2s',
@@ -1224,9 +1770,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
-  // Meals card - extends BentoCard
+  // Meals card — web uses BentoCard styles, mobile uses MOBILE_CARD_STYLES from render
   mealsCard: {
-    // BentoCard handles base styles
+    ...(Platform.OS === 'web' ? { ...BENTO_CARD_STYLES, ...(BENTO_CARD_WEB_STYLES as object) } : {}),
   },
   mealsCardDesktop: {
     flex: 1,
@@ -1259,26 +1805,25 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.xl,
-    backgroundColor: 'rgba(255,253,249,0.6)',
-    borderRadius: 18,
-    borderWidth: 0.5,
-    borderColor: 'rgba(241,232,222,0.5)',
-    borderStyle: 'dashed',
+    padding: Platform.OS !== 'web' ? spacing['2xl'] : spacing.xl,
+    backgroundColor: '#F7F6F3',
+    borderRadius: radii.lg, // 16
+    borderWidth: Platform.OS === 'web' ? 1 : 0,
+    borderColor: BRAND_COLORS.border,
     gap: spacing.sm,
     width: '100%',
   },
   emptyMealsContentPressed: {
-    backgroundColor: 'rgba(255,246,236,0.7)',
+    backgroundColor: '#F1EFEB',
     transform: [{ scale: 0.99 }],
   },
   emptyMealsIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,241,227,0.7)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(246,194,143,0.5)',
+    backgroundColor: BRAND_COLORS.surfaceVariant,
+    borderWidth: 1,
+    borderColor: BRAND_COLORS.border,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
@@ -1301,10 +1846,10 @@ const styles = StyleSheet.create({
   mealItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(242,233,222,0.6)',
-    gap: spacing.md,
+    paddingVertical: Platform.OS !== 'web' ? spacing.md : spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: BRAND_COLORS.borderSubtle,
+    gap: Platform.OS !== 'web' ? spacing.lg : spacing.md,
   },
   mealDetails: {
     flex: 1,
@@ -1316,7 +1861,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mealCalories: {
-    color: BRAND_COLORS.primaryDark,
+    color: Platform.OS !== 'web' ? '#111111' : BRAND_COLORS.primaryDark,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -1343,6 +1888,563 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
+});
+
+const webStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 0,
+  },
+  heroSection: {
+    flexDirection: 'row',
+    gap: 64,
+    maxWidth: 1360,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingTop: 56,
+    paddingBottom: 56,
+  },
+  heroLeft: {
+    flex: 1,
+    maxWidth: 560,
+  },
+  heroEyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  heroEyebrowChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  heroEyebrowText: {
+    color: '#111111',
+  },
+  heroInlineLink: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.18)',
+    paddingBottom: 2,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+    }),
+  },
+  heroInlineLinkPressed: {
+    opacity: 0.72,
+  },
+  heroInlineLinkText: {
+    color: '#111111',
+  },
+  heroTitle: {
+    color: '#111111',
+    fontSize: 72,
+    lineHeight: 74,
+    letterSpacing: -2.8,
+    maxWidth: 520,
+  },
+  heroSubtitle: {
+    color: '#4B4B4B',
+    fontSize: 18,
+    lineHeight: 30,
+    marginTop: 20,
+    maxWidth: 520,
+  },
+  heroModePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#EFEFEF',
+    borderRadius: 999,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    marginTop: 28,
+    marginBottom: 24,
+  },
+  heroModePillText: {
+    color: '#111111',
+  },
+  heroInputCard: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    marginBottom: spacing.md,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'background-color 0.15s ease-out',
+    }),
+  },
+  heroInputPressed: {
+    backgroundColor: '#ECECEC',
+  },
+  heroInputConnector: {
+    position: 'absolute',
+    left: 20,
+    top: 0,
+    bottom: -20,
+    width: 16,
+    alignItems: 'center',
+  },
+  heroInputConnectorHidden: {
+    opacity: 0,
+  },
+  heroInputDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#111111',
+    marginTop: 8,
+  },
+  heroInputLine: {
+    width: 1,
+    flex: 1,
+    marginTop: 4,
+    backgroundColor: '#111111',
+  },
+  heroInputIcon: {
+    width: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 18,
+  },
+  heroInputCopy: {
+    flex: 1,
+  },
+  heroInputTitle: {
+    color: '#111111',
+    marginBottom: 2,
+  },
+  heroInputBody: {
+    color: '#6B6B6B',
+  },
+  heroActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xl,
+    marginTop: spacing.lg,
+  },
+  heroPrimaryCta: {
+    backgroundColor: '#111111',
+    paddingHorizontal: 36,
+    paddingVertical: 18,
+    borderRadius: 12,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+    }),
+  },
+  heroPrimaryCtaText: {
+    color: '#FFFFFF',
+  },
+  heroSecondaryLink: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.18)',
+    paddingBottom: 4,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+    }),
+  },
+  heroSecondaryLinkText: {
+    color: '#111111',
+  },
+  heroCtaPressed: {
+    opacity: 0.9,
+  },
+  heroRight: {
+    flex: 1.05,
+    paddingTop: 92,
+  },
+  suggestionsTitle: {
+    color: '#111111',
+    fontSize: 28,
+    lineHeight: 32,
+    letterSpacing: -0.8,
+    marginBottom: 20,
+  },
+  section: {
+    maxWidth: 1360,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingTop: 32,
+    paddingBottom: 40,
+  },
+  sectionHeading: {
+    color: '#111111',
+    fontSize: 52,
+    lineHeight: 56,
+    letterSpacing: -2,
+    marginBottom: 28,
+  },
+  activityCard: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#E7E7E7',
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  activityCol1: {
+    flex: 2.1,
+    padding: 24,
+    borderRightWidth: 1,
+    borderRightColor: '#ECECEC',
+  },
+  activityCol2: {
+    flex: 2,
+    padding: 24,
+    borderRightWidth: 1,
+    borderRightColor: '#ECECEC',
+  },
+  activityCol3: {
+    flex: 1.9,
+    padding: 24,
+  },
+  colTitle: {
+    color: '#111111',
+    fontSize: 18,
+    lineHeight: 22,
+    letterSpacing: -0.4,
+    marginBottom: 16,
+  },
+  programCard: {
+    backgroundColor: '#FFF2D5',
+    borderRadius: 18,
+    padding: 20,
+    minHeight: 260,
+    marginBottom: 18,
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'opacity 0.15s ease-out',
+    }),
+  },
+  programCardPressed: {
+    opacity: 0.92,
+  },
+  programCardCopy: {
+    maxWidth: 240,
+    zIndex: 1,
+  },
+  programCardLabel: {
+    color: 'rgba(17,17,17,0.62)',
+    marginBottom: 10,
+  },
+  programCardTitle: {
+    color: '#111111',
+    fontSize: 44,
+    lineHeight: 46,
+    letterSpacing: -1.6,
+  },
+  programCardBody: {
+    color: '#343434',
+    marginTop: 12,
+  },
+  programCardAction: {
+    alignSelf: 'flex-start',
+    marginTop: 18,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  programCardActionText: {
+    color: '#111111',
+  },
+  programCardIllustration: {
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+    width: 180,
+    height: 180,
+  },
+  metricStack: {
+    gap: 10,
+  },
+  metricRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  metricLabel: {
+    color: '#111111',
+  },
+  metricValue: {
+    color: '#666666',
+  },
+  metricTrack: {
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: '#EFEFEF',
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  metricFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  mealsList: {
+    gap: 12,
+  },
+  mealRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F1F1',
+  },
+  mealRowCopy: {
+    flex: 1,
+  },
+  mealRowTitle: {
+    color: '#111111',
+  },
+  mealRowMeta: {
+    color: '#6B6B6B',
+    marginTop: 2,
+  },
+  seeDetailsBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: '#F3F3F3',
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+    }),
+  },
+  seeDetailsText: {
+    color: '#111111',
+  },
+  viewAllBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    minHeight: 52,
+    borderRadius: 14,
+    backgroundColor: '#F3F3F3',
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+    }),
+  },
+  viewAllBtnText: {
+    color: '#111111',
+  },
+  emptyMeals: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 18,
+    borderRadius: 16,
+    backgroundColor: '#F7F7F7',
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+    }),
+  },
+  emptyMealsCopy: {
+    flex: 1,
+  },
+  emptyMealsTitle: {
+    color: '#111111',
+  },
+  emptyMealsSubtitle: {
+    color: '#6B6B6B',
+    marginTop: 4,
+  },
+  serviceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 18,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+    }),
+  },
+  serviceCardPressed: {
+    opacity: 0.92,
+  },
+  serviceIllustration: {
+    width: 52,
+    height: 52,
+  },
+  serviceCopy: {
+    flex: 1,
+  },
+  serviceTitle: {
+    color: '#111111',
+    marginBottom: 2,
+  },
+  serviceBody: {
+    color: '#6B6B6B',
+  },
+  performanceContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#E7E7E7',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.03)',
+  },
+  performanceRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 24,
+    minHeight: 480,
+  },
+  performancePrimary: {
+    flex: 1.5,
+  },
+  performanceSecondary: {
+    flex: 1,
+    gap: 16,
+    justifyContent: 'space-between',
+  },
+  planRow: {
+    flexDirection: 'row',
+    gap: 28,
+  },
+  planAccentCard: {
+    flex: 2.2,
+    backgroundColor: '#BDE8F4',
+    borderRadius: 22,
+    padding: 32,
+    overflow: 'hidden',
+    minHeight: 460,
+  },
+  planBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.74)',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginBottom: 18,
+  },
+  planBadgeText: {
+    color: '#111111',
+  },
+  planAccentTitle: {
+    color: '#111111',
+    fontSize: 52,
+    lineHeight: 54,
+    letterSpacing: -2,
+    maxWidth: 560,
+  },
+  planAccentBody: {
+    color: '#2C2C2C',
+    fontSize: 18,
+    lineHeight: 28,
+    marginTop: 16,
+    maxWidth: 520,
+  },
+  planFieldRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 28,
+    marginBottom: 18,
+  },
+  planField: {
+    flex: 1,
+    minHeight: 96,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.08)',
+  },
+  planFieldLabel: {
+    color: 'rgba(17,17,17,0.62)',
+    marginBottom: 6,
+  },
+  planFieldValue: {
+    color: '#111111',
+  },
+  planCta: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#111111',
+    paddingHorizontal: 28,
+    paddingVertical: 18,
+    borderRadius: 12,
+    marginTop: 6,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+    }),
+  },
+  planCtaText: {
+    color: '#FFFFFF',
+  },
+  planIllustration: {
+    position: 'absolute',
+    right: -10,
+    bottom: -12,
+    width: 220,
+    height: 220,
+    opacity: 0.25,
+  },
+  planBenefitsPanel: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#E7E7E7',
+    padding: 24,
+    justifyContent: 'space-between',
+  },
+  planBenefitsTitle: {
+    color: '#111111',
+    marginBottom: 12,
+  },
+  benefitRow: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 14,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    alignItems: 'flex-start',
+  },
+  benefitRowLast: {
+    borderBottomWidth: 0,
+  },
+  benefitIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  benefitCopy: {
+    flex: 1,
+  },
+  benefitTitle: {
+    color: '#111111',
+    marginBottom: 4,
+  },
+  benefitBody: {
+    color: '#5E5E5E',
+    lineHeight: 24,
+  },
+  footerWrap: {
+    maxWidth: 1360,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingTop: 32,
+    paddingBottom: 56,
+  },
 });
 
 export default DashboardScreen;
