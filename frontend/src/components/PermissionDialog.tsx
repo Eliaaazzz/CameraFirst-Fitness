@@ -38,11 +38,14 @@ export const PermissionDialog = ({
         </Dialog.Content>
         <Dialog.Actions>
           <View style={styles.actions}>
-            <Button
-              title={permissionDenied ? 'Open Settings' : 'Continue'}
-              onPress={permissionDenied ? onOpenSettings : onRequestPermission}
-            />
-            <Button title="Use Photo Library Instead" variant="outline" onPress={onChooseGallery} />
+            {permissionDenied ? (
+              <>
+                <Button title="Open Settings" onPress={onOpenSettings} />
+                <Button title="Use Photo Library Instead" variant="outline" onPress={onChooseGallery} />
+              </>
+            ) : (
+              <Button title="Continue" onPress={onRequestPermission} />
+            )}
           </View>
         </Dialog.Actions>
       </Dialog>

@@ -52,11 +52,14 @@ export const PermissionExplanationScreen = ({
         </View>
       </View>
       <View style={styles.actions}>
-        <Button
-          title={permissionDenied ? 'Open Settings' : 'Continue'}
-          onPress={permissionDenied ? onOpenSettings : onRequestPermission}
-        />
-        <Button title="Use Photo Library Instead" variant="ghost" onPress={onChooseGallery} />
+        {permissionDenied ? (
+          <>
+            <Button title="Open Settings" onPress={onOpenSettings} />
+            <Button title="Use Photo Library Instead" variant="ghost" onPress={onChooseGallery} />
+          </>
+        ) : (
+          <Button title="Continue" onPress={onRequestPermission} />
+        )}
       </View>
     </Container>
   </SafeAreaWrapper>

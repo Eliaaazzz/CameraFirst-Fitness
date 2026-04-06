@@ -1,6 +1,6 @@
-import { CaretRight, Flame, Info, BookOpen } from 'phosphor-react-native';
+import { CaretRight, Flame, Info, BookOpen, ArrowSquareOut } from 'phosphor-react-native';
 import React, { useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedProps,
@@ -476,20 +476,44 @@ export function NutritionRingsCard({
         </View>
       </View>
 
-      {/* Citation footer — Apple 1.4.1 requires visible source links */}
+      {/* Citation footer — Apple 1.4.1 requires visible, direct source links */}
       {onSourcesPress && (
-        <Pressable
-          onPress={onSourcesPress}
-          style={styles.citationFooter}
-          accessibilityRole="link"
-          accessibilityLabel="View nutrition data sources"
-        >
-          <BookOpen size={12} color={BRAND_COLORS.textMuted} />
-          <Text style={styles.citationText}>
-            Sources: USDA Dietary Guidelines, Institute of Medicine DRI
-          </Text>
-          <CaretRight size={12} color={BRAND_COLORS.textMuted} />
-        </Pressable>
+        <View style={styles.citationFooter}>
+          <View style={styles.citationHeader}>
+            <BookOpen size={12} color={BRAND_COLORS.textSecondary} />
+            <Text style={styles.citationLabel}>Sources</Text>
+          </View>
+          <Pressable
+            onPress={() => Linking.openURL('https://www.dietaryguidelines.gov/').catch(() => {})}
+            accessibilityRole="link"
+            accessibilityLabel="USDA Dietary Guidelines website"
+            style={({ pressed }) => pressed && { opacity: 0.6 }}
+          >
+            <View style={styles.citationLinkRow}>
+              <ArrowSquareOut size={11} color={BRAND_COLORS.secondary} />
+              <Text style={styles.citationLink}>USDA Dietary Guidelines 2020–2025</Text>
+            </View>
+          </Pressable>
+          <Pressable
+            onPress={() => Linking.openURL('https://nap.nationalacademies.org/catalog/10490/dietary-reference-intakes-for-energy-carbohydrate-fiber-fat-fatty-acids-cholesterol-protein-and-amino-acids').catch(() => {})}
+            accessibilityRole="link"
+            accessibilityLabel="Institute of Medicine Dietary Reference Intakes"
+            style={({ pressed }) => pressed && { opacity: 0.6 }}
+          >
+            <View style={styles.citationLinkRow}>
+              <ArrowSquareOut size={11} color={BRAND_COLORS.secondary} />
+              <Text style={styles.citationLink}>Institute of Medicine — Dietary Reference Intakes</Text>
+            </View>
+          </Pressable>
+          <Pressable
+            onPress={onSourcesPress}
+            accessibilityRole="link"
+            accessibilityLabel="View all nutrition data sources"
+            style={({ pressed }) => pressed && { opacity: 0.6 }}
+          >
+            <Text style={styles.citationMore}>View all sources & disclaimers</Text>
+          </Pressable>
+        </View>
       )}
     </View>
   );
@@ -534,7 +558,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   headerSubtitle: {
-    color: BRAND_COLORS.textMuted,
+    color: BRAND_COLORS.textSecondary,
     flexShrink: 0,
   },
 
@@ -652,7 +676,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   legendLabel: {
-    color: BRAND_COLORS.textMuted,
+    color: BRAND_COLORS.textSecondary,
     fontSize: 12,
     fontWeight: '500',
     marginBottom: 1,
@@ -667,7 +691,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   legendTarget: {
-    color: BRAND_COLORS.textMuted,
+    color: BRAND_COLORS.textSecondary,
     fontSize: 12,
     fontWeight: '400',
     marginLeft: 2,
@@ -683,21 +707,42 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // ========== CITATION FOOTER ==========
+  // ========== CITATION FOOTER — Apple 1.4.1 direct links ==========
   citationFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
     marginTop: spacing.md,
     paddingTop: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(156, 163, 175, 0.2)',
+    gap: 6,
   },
-  citationText: {
+  citationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 2,
+  },
+  citationLabel: {
     fontSize: 11,
-    color: BRAND_COLORS.textMuted,
+    fontWeight: '600',
+    color: BRAND_COLORS.textSecondary,
+  },
+  citationLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 2,
+  },
+  citationLink: {
+    fontSize: 11,
     fontWeight: '500',
+    color: BRAND_COLORS.secondary,
+    textDecorationLine: 'underline',
+  },
+  citationMore: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: BRAND_COLORS.textMuted,
+    marginTop: 2,
   },
 });
 
