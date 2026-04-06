@@ -253,8 +253,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     backgroundColor: LANDING_COLORS.footerBg,
-    borderRadius: radii['2xl'],
-    paddingHorizontal: spacing['2xl'],
+    borderRadius: 0,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing['2xl'],
   },
   footerTop: {
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     gap: spacing['2xl'],
   },
   column: {
-    minWidth: 170,
+    minWidth: 140,
     gap: spacing.sm,
   },
   columnTitle: {

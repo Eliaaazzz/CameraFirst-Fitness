@@ -43,7 +43,7 @@ export function AIStepsSection() {
         How it works
       </Text>
       <Text variant="heading4" style={styles.subtitle}>
-        From one photo to weekly review, the product keeps logging and reporting inside one workflow.
+        From one photo to weekly review, AuraFitness keeps logging and reporting inside one workflow.
       </Text>
 
       <View style={[styles.grid, isDesktop && styles.gridDesktop]}>

@@ -115,14 +115,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
   },
   brandSide: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    minWidth: 220,
+    flexShrink: 0,
   },
   brand: {
     color: LANDING_COLORS.textOnDark,
@@ -148,7 +148,8 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
+    flexShrink: 0,
   },
   utilityAction: {
     flexDirection: 'row',
@@ -166,8 +167,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
     borderRadius: radii.pill,
     backgroundColor: LANDING_COLORS.pillBg,
     transitionDuration: `${motion.fast}ms`,

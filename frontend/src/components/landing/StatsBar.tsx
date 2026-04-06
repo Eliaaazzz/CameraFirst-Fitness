@@ -48,8 +48,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 40,
+    gap: 20,
     paddingVertical: spacing['4xl'],
+    paddingHorizontal: spacing.lg,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: BRAND_COLORS.borderSubtle,
@@ -64,7 +65,7 @@ const styles = StyleSheet.create({
   },
   value: {
     color: BRAND_COLORS.textPrimary,
-    fontSize: 36,
+    fontSize: 32,
     letterSpacing: -1,
   },
   label: {
