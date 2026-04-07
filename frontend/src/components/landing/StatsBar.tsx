@@ -15,7 +15,6 @@ import { BRAND_COLORS, spacing } from '@/utils';
 
 const STATS = [
   { value: '2,000+', label: 'Active users' },
-  { value: '4.8 ★', label: 'App Store rating' },
   { value: 'Free', label: 'No credit card required' },
 ];
 

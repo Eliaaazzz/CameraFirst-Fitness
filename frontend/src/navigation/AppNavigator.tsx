@@ -47,6 +47,7 @@ import SplashScreen from '@/screens/SplashScreen';
 import { AboutNutritionDataScreen } from '@/screens/AboutNutritionDataScreen';
 import { BuildPlanScreen } from '@/screens/BuildPlanScreen';
 import { HelpScreen } from '@/screens/HelpScreen';
+import { ManageAccountScreen } from '@/screens/ManageAccountScreen';
 import { WeeklyInsightsScreen } from '@/screens/WeeklyInsightsScreen';
 import { WorkoutsScreen } from '@/screens/WorkoutsScreen';
 import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive, useSidebarVisible } from '@/utils';
@@ -76,6 +77,7 @@ const SafeSavedRecipesScreen = withErrorBoundary(SavedRecipesScreen, 'SavedRecip
 const SafeAboutNutritionDataScreen = withErrorBoundary(AboutNutritionDataScreen, 'AboutNutritionData');
 const SafeBuildPlanScreen = withErrorBoundary(BuildPlanScreen, 'BuildPlan');
 const SafeHelpScreen = withErrorBoundary(HelpScreen, 'Help');
+const SafeManageAccountScreen = withErrorBoundary(ManageAccountScreen, 'ManageAccount');
 const SafeOnboardingScreen = withErrorBoundary(OnboardingScreen, 'Onboarding');
 
 const Tab = createBottomTabNavigator();
@@ -312,6 +314,7 @@ const ProfileStackScreen = createTabStackNavigator([
   { name: 'SavedRecipes', component: SafeSavedRecipesScreen },
   { name: 'AboutNutritionData', component: SafeAboutNutritionDataScreen },
   { name: 'Help', component: SafeHelpScreen },
+  { name: 'ManageAccount', component: SafeManageAccountScreen },
 ]);
 
 // Tab configuration for cleaner code

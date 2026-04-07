@@ -11,6 +11,7 @@ import {
     ActionSheetIOS,
     ActivityIndicator,
     Alert,
+    Linking,
     Platform,
     Pressable,
     RefreshControl,
@@ -24,7 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 
-import { Barbell, Camera, CameraPlus, CaretRight, ChartLine, Drop, Fire, FlagCheckered, Grains, Leaf, PencilSimple, PersonSimpleRun, Sneaker, Target, User } from 'phosphor-react-native';
+import { Barbell, Camera, CameraPlus, CaretRight, ChartLine, Drop, EnvelopeSimple, Fire, FlagCheckered, Grains, Leaf, PencilSimple, PersonSimpleRun, Sneaker, Target, User } from 'phosphor-react-native';
 import { Image } from 'expo-image';
 import { ScrollView as RNScrollView } from 'react-native';
 import { BentoCard, SafeAreaWrapper, Text } from '@/components';
@@ -80,6 +81,40 @@ const GOAL_TYPE_CONFIG: Record<GoalType, { label: string; Icon: React.ComponentT
   fat_loss: { label: 'Fat Loss', Icon: Target, color: BRAND_COLORS.semantic.error },
   muscle_gain: { label: 'Build Muscle', Icon: FlagCheckered, color: BRAND_COLORS.macros.protein },
   diabetes_control: { label: 'Nutrition Balance', Icon: Leaf, color: BRAND_COLORS.macros.carbs },
+};
+
+const PLAN_PREVIEW_CONFIG: Record<GoalType, {
+  title: string;
+  description: string;
+  focus: string;
+  weeklyRhythm: string;
+  outcome: string;
+  targetHint: string;
+}> = {
+  fat_loss: {
+    title: 'Cut cleanly without losing momentum',
+    description: 'Keep the week lighter, protein-forward, and easier to sustain from Monday to Sunday.',
+    focus: 'Protein-first meals',
+    weeklyRhythm: '3 lifts + recovery cardio',
+    outcome: 'Steadier fat loss',
+    targetHint: 'Deficit-led calorie target',
+  },
+  muscle_gain: {
+    title: 'Build size with enough fuel to recover',
+    description: 'Shift the week toward strength, surplus calories, and more consistent recovery between sessions.',
+    focus: 'Strength + recovery',
+    weeklyRhythm: '4 focused training days',
+    outcome: 'More size and strength',
+    targetHint: 'Surplus-led calorie target',
+  },
+  diabetes_control: {
+    title: 'Keep meals balanced and energy more even',
+    description: 'Bias the week toward steadier carbs, more fibre, and routines you can repeat without friction.',
+    focus: 'Balanced carbs + fibre',
+    weeklyRhythm: 'Daily walks + light strength',
+    outcome: 'More stable energy',
+    targetHint: 'Balanced macro target',
+  },
 };
 
 // Helper to determine meal type from time
@@ -229,6 +264,8 @@ const DashboardScreen = () => {
   const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
   const lastLoadedGoalsRef = useRef<string | null>(null);
   const [showWelcomeCard, setShowWelcomeCard] = useState(false);
+  const [planPreviewGoal, setPlanPreviewGoal] = useState<GoalType>('muscle_gain');
+  const [hasTouchedPlanPreview, setHasTouchedPlanPreview] = useState(false);
 
   // Show welcome card for new users
   useEffect(() => {
@@ -236,6 +273,12 @@ const DashboardScreen = () => {
       setShowWelcomeCard(true);
     }
   }, [tourStatusLoading, hasSeenTour]);
+
+  useEffect(() => {
+    if (!hasTouchedPlanPreview && generatedGoals?.goalType) {
+      setPlanPreviewGoal(generatedGoals.goalType);
+    }
+  }, [generatedGoals?.goalType, hasTouchedPlanPreview]);
 
   // Handle tour events
   useEffect(() => {
@@ -464,7 +507,7 @@ const DashboardScreen = () => {
       { title: 'Workouts', illustration: illustrationWorkouts, backgroundColor: '#DDEEFF', onPress: () => navigation.navigate('Main', { screen: 'Workouts' } as any) },
       { title: 'Recipes', illustration: illustrationRecipes, backgroundColor: '#FFE9D8', onPress: () => navigation.navigate('Main', { screen: 'Recipes' } as any) },
       { title: 'Reports', illustration: illustrationWeekly, backgroundColor: '#DDF3EC', onPress: () => navigation.navigate('Main', { screen: 'Profile', params: { screen: 'WeeklyInsights' } } as any) },
-      { title: 'Targets', illustration: illustrationTargets, backgroundColor: '#FFF3C7', onPress: () => navigation.navigate('Profile') },
+      { title: 'Targets', illustration: illustrationTargets, backgroundColor: '#FFF3C7', onPress: () => navigation.navigate('BuildPlan', { initialGoal: planPreviewGoal }) },
       { title: 'History', illustration: illustrationHistory, backgroundColor: '#F2E9FF', onPress: () => navigation.navigate('Main', { screen: 'Profile', params: { screen: 'MealHistory' } } as any) },
     ];
     const serviceCards = [
@@ -504,14 +547,13 @@ const DashboardScreen = () => {
         ? 'Target: 72kg'
         : 'Target: 82kg'
       : 'Set a goal to generate targets';
-    const focusLabel = generatedGoals?.goalType === 'muscle_gain'
-      ? 'Nutrition + Strength'
-      : generatedGoals?.goalType === 'fat_loss'
-        ? 'Nutrition + Cardio'
-        : 'Nutrition Balance';
-    const weeklyTimeLabel = generatedGoals
-      ? `${generatedGoals.weeklyActivityPlan.strength_sessions_per_week} sessions / week`
-      : '4 sessions / week';
+    const selectedPlanPreview = PLAN_PREVIEW_CONFIG[planPreviewGoal];
+    const selectedPlanTarget = generatedGoals?.goalType === planPreviewGoal
+      ? `${generatedGoals.dailyCalories.target} kcal/day`
+      : selectedPlanPreview.targetHint;
+    const selectedPlanRhythm = generatedGoals?.goalType === planPreviewGoal
+      ? `${generatedGoals.weeklyActivityPlan.strength_sessions_per_week} strength + ${generatedGoals.weeklyActivityPlan.cardio_minutes_per_week} min cardio`
+      : selectedPlanPreview.weeklyRhythm;
 
     return (
       <SafeAreaWrapper>
@@ -531,7 +573,7 @@ const DashboardScreen = () => {
                     </Text>
                   </View>
                   <Pressable
-                    onPress={() => navigation.navigate('Profile')}
+                    onPress={() => navigation.navigate('BuildPlan', { initialGoal: planPreviewGoal })}
                     style={({ pressed }) => [webStyles.heroInlineLink, pressed && webStyles.heroInlineLinkPressed]}
                   >
                     <Text variant="body" weight="medium" style={webStyles.heroInlineLinkText}>
@@ -630,7 +672,7 @@ const DashboardScreen = () => {
                     Most recent
                   </Text>
                   <Pressable
-                    onPress={() => navigation.navigate('Profile')}
+                    onPress={() => navigation.navigate('BuildPlan', { initialGoal: planPreviewGoal })}
                     style={({ pressed }) => [webStyles.programCard, pressed && webStyles.programCardPressed]}
                   >
                     <View style={webStyles.programCardCopy}>
@@ -765,9 +807,19 @@ const DashboardScreen = () => {
             </View>
 
             <View style={webStyles.section}>
-              <Text variant="heading2" weight="bold" style={webStyles.sectionHeading}>
-                Performance today
-              </Text>
+              <View style={webStyles.sectionHeader}>
+                <View style={[webStyles.sectionEyebrow, webStyles.sectionEyebrowWarm]}>
+                  <Text variant="label" weight="bold" style={webStyles.sectionEyebrowText}>
+                    Live nutrition
+                  </Text>
+                </View>
+                <Text variant="heading2" weight="bold" style={webStyles.sectionHeading}>
+                  Performance today
+                </Text>
+                <Text variant="body" style={webStyles.sectionSubheading}>
+                  Calories, macros, hydration, and daily score with clearer, brighter readouts.
+                </Text>
+              </View>
               <View style={webStyles.performanceContainer}>
               <View style={webStyles.performanceRow}>
                 <View style={webStyles.performancePrimary}>
@@ -818,40 +870,90 @@ const DashboardScreen = () => {
             </View>
 
             <View style={webStyles.section}>
-              <Text variant="heading2" weight="bold" style={webStyles.sectionHeading}>
-                Plan for later
-              </Text>
+              <View style={webStyles.sectionHeader}>
+                <View style={[webStyles.sectionEyebrow, webStyles.sectionEyebrowCool]}>
+                  <Text variant="label" weight="bold" style={webStyles.sectionEyebrowText}>
+                    Weekly planner
+                  </Text>
+                </View>
+                <Text variant="heading2" weight="bold" style={webStyles.sectionHeading}>
+                  Plan for later
+                </Text>
+                <Text variant="body" style={webStyles.sectionSubheading}>
+                  Pick a direction now. Build my plan only needs sex, height, and weight after this selection.
+                </Text>
+              </View>
               <View style={webStyles.planRow}>
-                <View style={webStyles.planAccentCard}>
+                <LinearGradient
+                  colors={['#FFF3D6', '#FFE7D4', '#EEF8F2']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={webStyles.planAccentCard}
+                >
                   <View style={webStyles.planBadge}>
                     <Text variant="label" weight="bold" style={webStyles.planBadgeText}>
                       Weekly planner
                     </Text>
                   </View>
                   <Text variant="heading2" weight="bold" style={webStyles.planAccentTitle}>
-                    Build the right week for your goal
+                    {selectedPlanPreview.title}
                   </Text>
                   <Text variant="body" style={webStyles.planAccentBody}>
-                    Set your targets, track your meals, and stay consistent every week.
+                    {selectedPlanPreview.description}
                   </Text>
 
-                  <View style={webStyles.planFieldRow}>
-                    <View style={webStyles.planField}>
-                      <Text variant="caption" style={webStyles.planFieldLabel}>Goal</Text>
-                      <Text variant="body" weight="semibold" style={webStyles.planFieldValue}>{currentProgramTitle}</Text>
-                    </View>
+                  <View style={webStyles.planTabsRow}>
+                    {(Object.keys(GOAL_TYPE_CONFIG) as GoalType[]).map((goalKey) => {
+                      const option = GOAL_TYPE_CONFIG[goalKey];
+                      const isSelected = planPreviewGoal === goalKey;
+
+                      return (
+                        <Pressable
+                          key={goalKey}
+                          onPress={() => {
+                            setPlanPreviewGoal(goalKey);
+                            setHasTouchedPlanPreview(true);
+                          }}
+                          style={({ pressed }) => [
+                            webStyles.planTab,
+                            {
+                              backgroundColor: isSelected ? `${option.color}18` : '#FFFFFF',
+                              borderColor: isSelected ? option.color : 'rgba(17,17,17,0.08)',
+                            },
+                            pressed && webStyles.planTabPressed,
+                          ]}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Choose ${option.label}`}
+                          accessibilityState={{ selected: isSelected }}
+                        >
+                          <View style={[webStyles.planTabIcon, { backgroundColor: `${option.color}14` }]}>
+                            <option.Icon size={18} weight={isSelected ? 'fill' : 'regular'} color={option.color} />
+                          </View>
+                          <Text variant="body" weight="bold" style={webStyles.planTabTitle}>
+                            {option.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  <View style={webStyles.planPreviewStats}>
                     <View style={webStyles.planField}>
                       <Text variant="caption" style={webStyles.planFieldLabel}>Focus</Text>
-                      <Text variant="body" weight="semibold" style={webStyles.planFieldValue}>{focusLabel}</Text>
+                      <Text variant="body" weight="semibold" style={webStyles.planFieldValue}>{selectedPlanPreview.focus}</Text>
                     </View>
                     <View style={webStyles.planField}>
-                      <Text variant="caption" style={webStyles.planFieldLabel}>Weekly time</Text>
-                      <Text variant="body" weight="semibold" style={webStyles.planFieldValue}>{weeklyTimeLabel}</Text>
+                      <Text variant="caption" style={webStyles.planFieldLabel}>Weekly rhythm</Text>
+                      <Text variant="body" weight="semibold" style={webStyles.planFieldValue}>{selectedPlanRhythm}</Text>
+                    </View>
+                    <View style={webStyles.planField}>
+                      <Text variant="caption" style={webStyles.planFieldLabel}>Target</Text>
+                      <Text variant="body" weight="semibold" style={webStyles.planFieldValue}>{selectedPlanTarget}</Text>
                     </View>
                   </View>
 
                   <Pressable
-                    onPress={() => navigation.navigate('BuildPlan')}
+                    onPress={() => navigation.navigate('BuildPlan', { initialGoal: planPreviewGoal })}
                     style={({ pressed }) => [webStyles.planCta, pressed && webStyles.heroCtaPressed]}
                   >
                     <Text variant="body" weight="bold" style={webStyles.planCtaText}>
@@ -864,7 +966,7 @@ const DashboardScreen = () => {
                     style={webStyles.planIllustration as any}
                     contentFit="contain"
                   />
-                </View>
+                </LinearGradient>
 
                 <View style={webStyles.planBenefitsPanel}>
                   <Text variant="heading3" weight="bold" style={webStyles.planBenefitsTitle}>
@@ -1364,6 +1466,17 @@ const DashboardScreen = () => {
               )}
             </View>
             </Animated.View>
+
+                    {/* Support contact — Apple requires visible support reference */}
+                    <Pressable
+                      onPress={() => Linking.openURL('mailto:support@aurafitness.org').catch(() => {})}
+                      style={({ pressed }) => [styles.supportRow, pressed && { opacity: 0.7 }]}
+                    >
+                      <EnvelopeSimple size={14} color={BRAND_COLORS.textMuted} />
+                      <Text variant="caption" style={styles.supportText}>
+                        Need help? support@aurafitness.org
+                      </Text>
+                    </Pressable>
           </View>
           </TourScrollView>
         </ScreenLayout>
@@ -1887,6 +2000,17 @@ const styles = StyleSheet.create({
     color: colors.light.textMuted,
     fontSize: 11,
   },
+  supportRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.lg,
+    marginTop: spacing.md,
+  },
+  supportText: {
+    color: BRAND_COLORS.textMuted,
+  },
 
 });
 
@@ -2079,12 +2203,36 @@ const webStyles = StyleSheet.create({
     paddingTop: 32,
     paddingBottom: 40,
   },
+  sectionHeader: {
+    marginBottom: 28,
+    gap: 10,
+  },
+  sectionEyebrow: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  sectionEyebrowWarm: {
+    backgroundColor: '#FFF1D7',
+  },
+  sectionEyebrowCool: {
+    backgroundColor: '#E9F4FF',
+  },
+  sectionEyebrowText: {
+    color: '#111111',
+  },
   sectionHeading: {
     color: '#111111',
-    fontSize: 52,
-    lineHeight: 56,
-    letterSpacing: -2,
-    marginBottom: 28,
+    fontSize: 56,
+    lineHeight: 58,
+    letterSpacing: -2.2,
+  },
+  sectionSubheading: {
+    color: '#3E3C38',
+    fontSize: 18,
+    lineHeight: 28,
+    maxWidth: 760,
   },
   activityCard: {
     flexDirection: 'row',
@@ -2291,12 +2439,12 @@ const webStyles = StyleSheet.create({
     color: '#6B6B6B',
   },
   performanceContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+    backgroundColor: '#FFFCF7',
+    borderRadius: 26,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#E7E7E7',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.03)',
+    borderColor: 'rgba(17,17,17,0.08)',
+    boxShadow: '0 16px 36px rgba(17,17,17,0.05)',
   },
   performanceRow: {
     flexDirection: 'row',
@@ -2318,11 +2466,12 @@ const webStyles = StyleSheet.create({
   },
   planAccentCard: {
     flex: 2.2,
-    backgroundColor: '#BDE8F4',
-    borderRadius: 22,
+    borderRadius: 28,
     padding: 32,
     overflow: 'hidden',
     minHeight: 460,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
   },
   planBadge: {
     alignSelf: 'flex-start',
@@ -2349,10 +2498,44 @@ const webStyles = StyleSheet.create({
     marginTop: 16,
     maxWidth: 520,
   },
-  planFieldRow: {
+  planTabsRow: {
     flexDirection: 'row',
     gap: 12,
     marginTop: 28,
+    marginBottom: 18,
+  },
+  planTab: {
+    flex: 1,
+    minHeight: 88,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer' as any,
+      transition: 'transform 0.15s ease-out, box-shadow 0.15s ease-out',
+      boxShadow: '0 10px 22px rgba(17,17,17,0.04)',
+    }),
+  },
+  planTabPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.99 }],
+  },
+  planTabIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  planTabTitle: {
+    color: '#111111',
+  },
+  planPreviewStats: {
+    flexDirection: 'row',
+    gap: 12,
     marginBottom: 18,
   },
   planField: {
@@ -2364,6 +2547,7 @@ const webStyles = StyleSheet.create({
     paddingVertical: 16,
     borderWidth: 1,
     borderColor: 'rgba(17,17,17,0.08)',
+    boxShadow: '0 10px 22px rgba(17,17,17,0.04)',
   },
   planFieldLabel: {
     color: 'rgba(17,17,17,0.62)',

@@ -25,7 +25,6 @@ import { FeatureGrid } from '@/components/landing/FeatureGrid';
 import FaqSection from '@/components/landing/FaqSection';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import ProgramHubSection from '@/components/landing/ProgramHubSection';
-import PricingSection from '@/components/landing/PricingSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { StatsBar } from '@/components/landing/StatsBar';
 import { useAuthStore } from '@/stores';
@@ -105,9 +104,6 @@ export default function LandingScreen() {
         </View>
         <View style={[styles.section, { maxWidth }]} onLayout={handleSectionLayout('programHub')}>
           <ProgramHubSection />
-        </View>
-        <View style={[styles.section, { maxWidth }]}>
-          <PricingSection onGetStarted={navigateSignup} />
         </View>
         <View style={[styles.section, { maxWidth }]}>
           <FaqSection />

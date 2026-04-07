@@ -11,7 +11,6 @@ type Props = {
   permissionDenied?: boolean;
   onRequestPermission: () => void;
   onOpenSettings: () => void;
-  onChooseGallery: () => void;
 };
 
 export const PermissionDialog = ({
@@ -19,7 +18,6 @@ export const PermissionDialog = ({
   permissionDenied = false,
   onRequestPermission,
   onOpenSettings,
-  onChooseGallery,
 }: Props) => {
   return (
     <Portal>
@@ -39,10 +37,7 @@ export const PermissionDialog = ({
         <Dialog.Actions>
           <View style={styles.actions}>
             {permissionDenied ? (
-              <>
-                <Button title="Open Settings" onPress={onOpenSettings} />
-                <Button title="Use Photo Library Instead" variant="outline" onPress={onChooseGallery} />
-              </>
+              <Button title="Open Settings" onPress={onOpenSettings} />
             ) : (
               <Button title="Continue" onPress={onRequestPermission} />
             )}

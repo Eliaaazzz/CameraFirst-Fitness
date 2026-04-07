@@ -103,7 +103,7 @@ const DIAL_SIZE = 140;
 const STROKE_WIDTH = 10;
 const RADIUS = (DIAL_SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const TRACK_COLOR = 'rgba(0,0,0,0.06)';
+const TRACK_COLOR = 'rgba(17,17,17,0.09)';
 
 export function DailyScoreCard({ data, animated = true }: DailyScoreCardProps) {
   const score = useMemo(() => computeDailyScore(data), [data]);
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     lineHeight: 40,
   },
   scoreLabel: {
-    color: BRAND_COLORS.textSecondary,
+    color: BRAND_COLORS.textPrimary,
     marginTop: 2,
     fontWeight: '500',
   },
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   breakdownTitle: {
-    color: BRAND_COLORS.textSecondary,
+    color: BRAND_COLORS.textPrimary,
     letterSpacing: 1.5,
     fontSize: 10,
     fontWeight: '700',
@@ -310,13 +310,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   breakdownValue: {
-    color: BRAND_COLORS.textMuted,
+    color: BRAND_COLORS.textSecondary,
     fontSize: 11,
   },
   breakdownTrack: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: 'rgba(17,17,17,0.09)',
     overflow: 'hidden',
   },
   breakdownFill: {

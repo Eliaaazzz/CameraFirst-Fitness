@@ -6,7 +6,7 @@
  * separates commercial products from student projects.
  */
 
-import { Star, Users, DeviceMobileCamera } from 'phosphor-react-native';
+import { Users, DeviceMobileCamera } from 'phosphor-react-native';
 import React from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
@@ -31,19 +31,6 @@ export function SocialProofBar() {
           </View>
         </View>
 
-        {/* Divider */}
-        <View style={isDesktop ? styles.dividerV : styles.dividerH} />
-
-        {/* Stat 2: Rating */}
-        <View style={styles.stat}>
-          <View style={styles.statIconBox}>
-            <Star size={20} weight="fill" color="#F59E0B" />
-          </View>
-          <View>
-            <Text variant="heading3" weight="bold" style={styles.statNumber}>4.8</Text>
-            <Text variant="caption" style={styles.statLabel}>App Store rating</Text>
-          </View>
-        </View>
 
         {/* Divider */}
         <View style={isDesktop ? styles.dividerV : styles.dividerH} />

@@ -1,4 +1,4 @@
-import { ArrowRight, Quotes, SealCheck, Star } from 'phosphor-react-native';
+import { ArrowRight, Quotes, SealCheck } from 'phosphor-react-native';
 import { Image } from 'expo-image';
 import React from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -84,18 +84,6 @@ export function HeroSection({
               2,000+ users tracking nutrition
             </Text>
           </View>
-          <View style={styles.trustChip}>
-            <View style={styles.starsRow}>
-              <Star size={14} weight="fill" color={LANDING_COLORS.star} />
-              <Star size={14} weight="fill" color={LANDING_COLORS.star} />
-              <Star size={14} weight="fill" color={LANDING_COLORS.star} />
-              <Star size={14} weight="fill" color={LANDING_COLORS.star} />
-              <Star size={14} weight="fill" color={LANDING_COLORS.star} />
-            </View>
-            <Text variant="body" weight="semibold" style={styles.trustText}>
-              4.8 App Store rating
-            </Text>
-          </View>
         </View>
 
         <Text variant="body" style={styles.freeNote}>
@@ -108,7 +96,7 @@ export function HeroSection({
             "Finally a fitness app that makes weekly planning and daily logging feel connected."
           </Text>
           <Text variant="caption" weight="semibold" style={styles.testimonialMeta}>
-            Maya, strength coach
+            Elia
           </Text>
         </View>
       </View>
@@ -251,11 +239,6 @@ const styles = StyleSheet.create({
     backgroundColor: LANDING_COLORS.surfaceChip,
     borderWidth: 1,
     borderColor: BRAND_COLORS.border,
-  },
-  starsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
   },
   trustText: {
     color: LANDING_COLORS.text,

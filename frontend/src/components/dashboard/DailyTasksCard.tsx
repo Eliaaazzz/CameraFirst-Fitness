@@ -121,13 +121,13 @@ function TaskItem({ task, index }: { task: DailyTask; index: number }) {
     backgroundColor: interpolateColor(
       checkProgress.value,
       [0, 1],
-      ['rgba(0,0,0,0.04)', task.color]
+      ['rgba(17,17,17,0.09)', task.color]
     ),
     transform: [{ scale: 0.9 + checkProgress.value * 0.1 }],
   }));
 
   const textStyle = useAnimatedStyle(() => ({
-    opacity: 0.5 + checkProgress.value * 0.5,
+    opacity: 0.74 + checkProgress.value * 0.26,
   }));
 
   return (
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     color: BRAND_COLORS.textPrimary,
   },
   subtitle: {
-    color: BRAND_COLORS.textMuted,
+    color: BRAND_COLORS.textSecondary,
     marginTop: 2,
   },
   allDoneBadge: {
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: 'rgba(17,17,17,0.09)',
     overflow: 'hidden',
     marginBottom: spacing.md,
   },

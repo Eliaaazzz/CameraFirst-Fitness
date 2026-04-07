@@ -12,14 +12,13 @@ import {
   CaretDown,
   CaretUp,
   ClockCounterClockwise,
-  GlobeHemisphereWest,
   Lifebuoy,
   Question,
   SignOut,
   UserCircle,
 } from 'phosphor-react-native';
 import { Image } from 'expo-image';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { CommonActions, useNavigation, useNavigationState } from '@react-navigation/native';
 
@@ -77,16 +76,24 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
     );
   };
 
+  const openProfileScreen = useCallback((screen: string) => {
+    setDropdownOpen(false);
+    navigation.dispatch(
+      CommonActions.navigate({
+        name: 'Main',
+        params: {
+          screen: 'Profile',
+          params: { screen },
+        },
+      })
+    );
+  }, [navigation]);
+
   const handleNavPress = (key: NavKey) => {
     if (key === 'Home') { goToMain('Dashboard'); return; }
     if (key === 'Workouts') { goToMain('Workouts'); return; }
     if (key === 'Recipes') { goToMain('Recipes'); return; }
-    navigation.dispatch(
-      CommonActions.navigate({
-        name: 'Main',
-        params: { screen: 'Profile', params: { screen: 'WeeklyInsights' } },
-      })
-    );
+    openProfileScreen('WeeklyInsights');
   };
 
   const handleLogout = useCallback(async () => {
@@ -152,9 +159,7 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
         <View style={styles.actions}>
           <Pressable
             onPress={() => {
-              navigation.dispatch(
-                CommonActions.navigate({ name: 'Main', params: { screen: 'Profile', params: { screen: 'Help' } } })
-              );
+              openProfileScreen('Help');
             }}
             style={({ pressed }) => [styles.utilityAction, pressed && styles.faded]}
             accessibilityRole="button"
@@ -205,10 +210,7 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
                 <View style={styles.quickActions}>
                   <Pressable
                     onPress={() => {
-                      setDropdownOpen(false);
-                      navigation.dispatch(
-                        CommonActions.navigate({ name: 'Main', params: { screen: 'Profile', params: { screen: 'Help' } } })
-                      );
+                      openProfileScreen('Help');
                     }}
                     style={({ pressed }) => [styles.quickAction, pressed && styles.quickActionPressed]}
                     accessibilityRole="button"
@@ -219,10 +221,7 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
                   </Pressable>
                   <Pressable
                     onPress={() => {
-                      setDropdownOpen(false);
-                      navigation.dispatch(
-                        CommonActions.navigate({ name: 'Main', params: { screen: 'Profile', params: { screen: 'MealHistory' } } })
-                      );
+                      openProfileScreen('MealHistory');
                     }}
                     style={({ pressed }) => [styles.quickAction, pressed && styles.quickActionPressed]}
                     accessibilityRole="button"
@@ -233,10 +232,7 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
                   </Pressable>
                   <Pressable
                     onPress={() => {
-                      setDropdownOpen(false);
-                      navigation.dispatch(
-                        CommonActions.navigate({ name: 'Main', params: { screen: 'Profile', params: { screen: 'WeeklyInsights' } } })
-                      );
+                      openProfileScreen('WeeklyInsights');
                     }}
                     style={({ pressed }) => [styles.quickAction, pressed && styles.quickActionPressed]}
                     accessibilityRole="button"
@@ -252,7 +248,7 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
 
                 {/* Menu items */}
                 <Pressable
-                  onPress={() => { setDropdownOpen(false); goToMain('Profile'); }}
+                  onPress={() => openProfileScreen('ManageAccount')}
                   style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
                   accessibilityRole="menuitem"
                   accessibilityLabel="Manage account"

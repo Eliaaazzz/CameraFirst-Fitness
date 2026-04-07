@@ -9,7 +9,6 @@ interface PermissionExplanationScreenProps {
   description?: string;
   onRequestPermission: () => void;
   onOpenSettings: () => void;
-  onChooseGallery: () => void;
   permissionDenied?: boolean;
 }
 
@@ -17,7 +16,6 @@ export const PermissionExplanationScreen = ({
   description = 'We need camera access to help you discover workouts and recipes based on your equipment and ingredients.',
   onRequestPermission,
   onOpenSettings,
-  onChooseGallery,
   permissionDenied = false,
 }: PermissionExplanationScreenProps) => (
   <SafeAreaWrapper>
@@ -53,10 +51,7 @@ export const PermissionExplanationScreen = ({
       </View>
       <View style={styles.actions}>
         {permissionDenied ? (
-          <>
-            <Button title="Open Settings" onPress={onOpenSettings} />
-            <Button title="Use Photo Library Instead" variant="ghost" onPress={onChooseGallery} />
-          </>
+          <Button title="Open Settings" onPress={onOpenSettings} />
         ) : (
           <Button title="Continue" onPress={onRequestPermission} />
         )}

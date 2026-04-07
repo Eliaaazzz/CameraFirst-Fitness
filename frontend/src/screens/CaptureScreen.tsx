@@ -315,7 +315,6 @@ export const CaptureScreen = () => {
                 },
               );
             }}
-            onChooseGallery={pickImageFromGallery}
             permissionDenied={permissionDenied}
           />
         </Container>

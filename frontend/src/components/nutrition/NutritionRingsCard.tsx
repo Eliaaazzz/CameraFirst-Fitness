@@ -477,34 +477,34 @@ export function NutritionRingsCard({
       </View>
 
       {/* Citation footer — Apple 1.4.1 requires visible, direct source links */}
-      {onSourcesPress && (
-        <View style={styles.citationFooter}>
-          <View style={styles.citationHeader}>
-            <BookOpen size={12} color={BRAND_COLORS.textSecondary} />
-            <Text style={styles.citationLabel}>Sources</Text>
+      <View style={styles.citationFooter}>
+        <View style={styles.citationHeader}>
+          <BookOpen size={12} color={BRAND_COLORS.textSecondary} />
+          <Text style={styles.citationLabel}>Sources</Text>
+        </View>
+        <Pressable
+          onPress={() => Linking.openURL('https://www.dietaryguidelines.gov/').catch(() => {})}
+          accessibilityRole="link"
+          accessibilityLabel="USDA Dietary Guidelines website"
+          style={({ pressed }) => pressed && { opacity: 0.6 }}
+        >
+          <View style={styles.citationLinkRow}>
+            <ArrowSquareOut size={11} color={BRAND_COLORS.secondary} />
+            <Text style={styles.citationLink}>USDA Dietary Guidelines 2020–2025</Text>
           </View>
-          <Pressable
-            onPress={() => Linking.openURL('https://www.dietaryguidelines.gov/').catch(() => {})}
-            accessibilityRole="link"
-            accessibilityLabel="USDA Dietary Guidelines website"
-            style={({ pressed }) => pressed && { opacity: 0.6 }}
-          >
-            <View style={styles.citationLinkRow}>
-              <ArrowSquareOut size={11} color={BRAND_COLORS.secondary} />
-              <Text style={styles.citationLink}>USDA Dietary Guidelines 2020–2025</Text>
-            </View>
-          </Pressable>
-          <Pressable
-            onPress={() => Linking.openURL('https://nap.nationalacademies.org/catalog/10490/dietary-reference-intakes-for-energy-carbohydrate-fiber-fat-fatty-acids-cholesterol-protein-and-amino-acids').catch(() => {})}
-            accessibilityRole="link"
-            accessibilityLabel="Institute of Medicine Dietary Reference Intakes"
-            style={({ pressed }) => pressed && { opacity: 0.6 }}
-          >
-            <View style={styles.citationLinkRow}>
-              <ArrowSquareOut size={11} color={BRAND_COLORS.secondary} />
-              <Text style={styles.citationLink}>Institute of Medicine — Dietary Reference Intakes</Text>
-            </View>
-          </Pressable>
+        </Pressable>
+        <Pressable
+          onPress={() => Linking.openURL('https://nap.nationalacademies.org/catalog/10490/dietary-reference-intakes-for-energy-carbohydrate-fiber-fat-fatty-acids-cholesterol-protein-and-amino-acids').catch(() => {})}
+          accessibilityRole="link"
+          accessibilityLabel="Institute of Medicine Dietary Reference Intakes"
+          style={({ pressed }) => pressed && { opacity: 0.6 }}
+        >
+          <View style={styles.citationLinkRow}>
+            <ArrowSquareOut size={11} color={BRAND_COLORS.secondary} />
+            <Text style={styles.citationLink}>Institute of Medicine — Dietary Reference Intakes</Text>
+          </View>
+        </Pressable>
+        {onSourcesPress && (
           <Pressable
             onPress={onSourcesPress}
             accessibilityRole="link"
@@ -513,8 +513,8 @@ export function NutritionRingsCard({
           >
             <Text style={styles.citationMore}>View all sources & disclaimers</Text>
           </Pressable>
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
 }

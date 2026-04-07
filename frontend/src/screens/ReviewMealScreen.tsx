@@ -503,10 +503,6 @@ export function ReviewMealScreen({ route, navigation }: any) {
                 {permissionDenied ? 'Open Settings' : 'Continue'}
               </Text>
             </Pressable>
-
-            <Pressable onPress={openGallery} style={styles.permissionSecondaryBtn}>
-              <Text style={styles.permissionSecondaryBtnText}>Choose from Gallery</Text>
-            </Pressable>
           </View>
         </SafeAreaView>
       );
@@ -1085,22 +1081,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
-  },
-  permissionSecondaryBtn: {
-    width: '100%',
-    maxWidth: 360,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  permissionSecondaryBtnText: {
-    color: '#111827',
-    fontSize: 16,
-    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
