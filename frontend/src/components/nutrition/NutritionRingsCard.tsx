@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   headerSubtitle: {
-    color: BRAND_COLORS.textSecondary,
+    color: '#374151',
     flexShrink: 0,
   },
 
@@ -676,9 +676,9 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   legendLabel: {
-    color: BRAND_COLORS.textSecondary,
+    color: '#111111',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
     marginBottom: 1,
   },
   legendValues: {
@@ -691,9 +691,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   legendTarget: {
-    color: BRAND_COLORS.textSecondary,
+    color: '#374151',
     fontSize: 12,
-    fontWeight: '400',
+    fontWeight: '500',
     marginLeft: 2,
   },
   percentBadge: {

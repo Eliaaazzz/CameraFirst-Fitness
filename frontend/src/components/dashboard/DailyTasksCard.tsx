@@ -121,7 +121,7 @@ function TaskItem({ task, index }: { task: DailyTask; index: number }) {
     backgroundColor: interpolateColor(
       checkProgress.value,
       [0, 1],
-      ['rgba(17,17,17,0.09)', task.color]
+      ['rgba(249,115,22,0.12)', task.color]
     ),
     transform: [{ scale: 0.9 + checkProgress.value * 0.1 }],
   }));
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     color: BRAND_COLORS.textPrimary,
   },
   subtitle: {
-    color: BRAND_COLORS.textSecondary,
+    color: '#374151',
     marginTop: 2,
   },
   allDoneBadge: {
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(17,17,17,0.09)',
+    backgroundColor: 'rgba(16,185,129,0.12)',
     overflow: 'hidden',
     marginBottom: spacing.md,
   },

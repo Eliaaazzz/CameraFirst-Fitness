@@ -42,7 +42,7 @@ export const BRAND_COLORS = {
     protein: colors.light.secondary,
     fat: colors.light.primary,
     carbs: '#8A9B4F',
-    track: colors.light.borderSubtle,
+    track: 'rgba(249,115,22,0.10)',
     bloodSugar: colors.light.error,
   },
   streak: {

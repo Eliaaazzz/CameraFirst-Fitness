@@ -1496,7 +1496,7 @@ const DashboardScreen = () => {
 const styles = StyleSheet.create({
   screenRoot: {
     flex: 1,
-    backgroundColor: '#F7F7F5', // Clean Uber neutral — mobile relies on this, not ambient layer
+    backgroundColor: '#FFFFFF',
   },
   ambientLayer: {
     ...StyleSheet.absoluteFillObject,
@@ -1680,7 +1680,7 @@ const styles = StyleSheet.create({
   // Section headers — Uber bold labels
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   sectionTitle: { color: '#111111', fontSize: 18, letterSpacing: -0.3 },
-  sectionAction: { color: BRAND_COLORS.textSecondary, fontSize: 14 },
+  sectionAction: { color: BRAND_COLORS.primary, fontSize: 14 },
   // Mobile content wrapper — uniform 24px gap between sections
   mobileContentWrapper: { gap: 24 },
   headerActions: {
@@ -2250,7 +2250,7 @@ const webStyles = StyleSheet.create({
     letterSpacing: -2.2,
   },
   sectionSubheading: {
-    color: '#3E3C38',
+    color: '#111111',
     fontSize: 18,
     lineHeight: 28,
     maxWidth: 760,

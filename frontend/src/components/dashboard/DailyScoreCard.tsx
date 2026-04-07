@@ -103,7 +103,7 @@ const DIAL_SIZE = 140;
 const STROKE_WIDTH = 10;
 const RADIUS = (DIAL_SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const TRACK_COLOR = 'rgba(17,17,17,0.09)';
+const TRACK_COLOR = 'rgba(249,115,22,0.12)';
 
 export function DailyScoreCard({ data, animated = true }: DailyScoreCardProps) {
   const score = useMemo(() => computeDailyScore(data), [data]);
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   breakdownTrack: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(17,17,17,0.09)',
+    backgroundColor: 'rgba(249,115,22,0.10)',
     overflow: 'hidden',
   },
   breakdownFill: {
