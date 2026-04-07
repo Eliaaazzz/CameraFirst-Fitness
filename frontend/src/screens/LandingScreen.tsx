@@ -26,7 +26,6 @@ import FaqSection from '@/components/landing/FaqSection';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import ProgramHubSection from '@/components/landing/ProgramHubSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
-import { StatsBar } from '@/components/landing/StatsBar';
 import { useAuthStore } from '@/stores';
 
 /** Map nav item labels to section keys */
@@ -86,9 +85,6 @@ export default function LandingScreen() {
       >
         <View style={[styles.section, { maxWidth }]}>
           <HeroSection onGetStarted={navigateSignup} onLogin={navigateLogin} />
-        </View>
-        <View style={[styles.section, { maxWidth }]}>
-          <StatsBar />
         </View>
         <View style={[styles.section, { maxWidth }]}>
           <AIStepsSection />

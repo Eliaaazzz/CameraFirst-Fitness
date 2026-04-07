@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 
 import { Card, SafeAreaWrapper, Text } from '@/components';
+import { ExportDataModal } from '@/components/dashboard/ExportDataModal';
 import { useWeeklyInsights } from '@/hooks/useMealHistory';
 import { GeneratedGoals } from '@/services/geminiApi';
 import { BRAND_COLORS, spacing, useContentBottomPadding, useSidebarVisible } from '@/utils';
@@ -34,6 +35,7 @@ export const WeeklyInsightsScreen = () => {
   const showSidebar = useSidebarVisible();
   const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const contentBottomPadding = useContentBottomPadding(spacing.xl);
 
   // Load generated goals from AsyncStorage
@@ -149,24 +151,10 @@ export const WeeklyInsightsScreen = () => {
                 <Text variant="body" weight="semibold" style={{ color: '#111111' }}>Back to home</Text>
               </Pressable>
               <Pressable
-                onPress={() => {
-                  // Build CSV and trigger download
-                  const headers = 'Date,Calories,Target,Protein(g),Carbs(g),Fat(g),Meals\n';
-                  const rows = dailyData.map(d =>
-                    `${d.date},${d.calories.actual},${d.calories.target},${Math.round(d.protein)},${Math.round(d.carbs)},${Math.round(d.fat)},${d.mealCount}`
-                  ).join('\n');
-                  const csv = headers + rows;
-                  const blob = new Blob([csv], { type: 'text/csv' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `aurafitness-report-${dateRange.startDate}.csv`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
+                onPress={() => setShowExportModal(true)}
                 style={({ pressed }) => [webStyles.exportBtn, pressed && { opacity: 0.8 }]}
               >
-                <Text variant="body" weight="bold" style={{ color: '#FFFFFF' }}>Export CSV</Text>
+                <Text variant="body" weight="bold" style={{ color: '#FFFFFF' }}>Export Charts</Text>
               </Pressable>
             </View>
           </View>
@@ -539,6 +527,7 @@ export const WeeklyInsightsScreen = () => {
           </Card>
         )}
       </ScrollView>
+      <ExportDataModal visible={showExportModal} onDismiss={() => setShowExportModal(false)} />
     </SafeAreaWrapper>
   );
 };

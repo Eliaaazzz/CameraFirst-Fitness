@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     width: 20,
   },
   taskLabel: {
-    color: BRAND_COLORS.textSecondary,
+    color: '#111111',
     fontSize: 14,
   },
   taskLabelDone: {

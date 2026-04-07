@@ -99,7 +99,7 @@ export const LANDING_COLORS = {
 
   /* ── accent cards ───────────────────────────────────── */
   accent: {
-    teal: '#BBD8DF',
+    teal: '#FDEBD0',
     warm: '#C98A78',
   },
 

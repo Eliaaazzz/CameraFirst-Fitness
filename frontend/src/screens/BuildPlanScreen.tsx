@@ -593,22 +593,38 @@ export const BuildPlanScreen = () => {
   );
 
   const renderGenerating = () => (
-    <View style={styles.generatingWrap}>
-      <LinearGradient
-        colors={['#FFF4D8', '#FFE9D8', '#EEF8F4']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.generatingGradient}
-      >
-        <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
-        <Text variant="heading3" weight="bold" style={styles.generatingTitle}>
-          Building your plan...
+    <LinearGradient
+      colors={['#FFF4D8', '#FFECD2', '#E8F5E9', '#E3F2FD']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.generatingFull}
+    >
+      <View style={styles.generatingContent}>
+        <View style={styles.generatingIconRing}>
+          <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
+        </View>
+        <Text variant="heading2" weight="bold" style={styles.generatingTitle}>
+          Building your plan
         </Text>
         <Text variant="body" style={styles.generatingSub}>
-          We&apos;re turning your goal and measurements into a brighter weekly starting point.
+          Analyzing your goal, body metrics, and activity level to create a personalized weekly plan.
         </Text>
-      </LinearGradient>
-    </View>
+        <View style={styles.generatingSteps}>
+          <View style={styles.generatingStepRow}>
+            <View style={[styles.generatingDot, { backgroundColor: '#10B981' }]} />
+            <Text variant="caption" weight="medium" style={styles.generatingStepText}>Calculating calorie targets</Text>
+          </View>
+          <View style={styles.generatingStepRow}>
+            <View style={[styles.generatingDot, { backgroundColor: BRAND_COLORS.primary }]} />
+            <Text variant="caption" weight="medium" style={styles.generatingStepText}>Optimizing macro ratios</Text>
+          </View>
+          <View style={styles.generatingStepRow}>
+            <View style={[styles.generatingDot, { backgroundColor: '#3B82F6' }]} />
+            <Text variant="caption" weight="medium" style={styles.generatingStepText}>Setting activity rhythm</Text>
+          </View>
+        </View>
+      </View>
+    </LinearGradient>
   );
 
   const renderComplete = () => {
@@ -617,9 +633,11 @@ export const BuildPlanScreen = () => {
     return (
       <View style={styles.stepContent}>
         <View style={styles.successHeader}>
-          <CheckCircle size={58} color="#10B981" weight="fill" />
-          <Text variant="heading2" weight="bold" style={styles.successTitle}>
-            Plan ready
+          <View style={styles.successIconRing}>
+            <CheckCircle size={48} color="#FFFFFF" weight="fill" />
+          </View>
+          <Text variant="heading1" weight="bold" style={styles.successTitle}>
+            Your plan is ready
           </Text>
           <Text variant="body" style={styles.successBody}>
             {selectedGoalConfig.label} is now set as the active direction for your calorie and macro targets.
@@ -627,64 +645,64 @@ export const BuildPlanScreen = () => {
         </View>
 
         <View style={styles.completeGrid}>
-          <View style={styles.summaryCard}>
+          <View style={[styles.summaryCard, { backgroundColor: '#FFF5F5' }]}>
             <View style={styles.summaryCardHeader}>
               <Fire size={22} color="#EF4444" weight="fill" />
-              <Text variant="body" weight="semibold">Daily Calories</Text>
+              <Text variant="body" weight="bold" style={{ color: '#111' }}>Daily Calories</Text>
             </View>
-            <Text variant="heading2" weight="bold" style={styles.summaryValue}>
+            <Text variant="heading1" weight="bold" style={{ color: '#111' }}>
               {generatedGoals.dailyCalories.target} kcal
             </Text>
-            <Text variant="caption" style={styles.summaryRange}>
+            <Text variant="caption" weight="medium" style={{ color: '#6B7280' }}>
               Range: {generatedGoals.dailyCalories.min} - {generatedGoals.dailyCalories.max} kcal
             </Text>
           </View>
 
-          <View style={styles.summaryCard}>
+          <View style={[styles.summaryCard, { backgroundColor: '#F0FDF4' }]}>
             <View style={styles.summaryCardHeader}>
               <ChartPie size={22} color={BRAND_COLORS.primary} />
-              <Text variant="body" weight="semibold">Daily Macros</Text>
+              <Text variant="body" weight="bold" style={{ color: '#111' }}>Daily Macros</Text>
             </View>
             <View style={styles.macrosRow}>
               <View style={styles.macroItem}>
-                <Text variant="heading3" weight="bold" style={{ color: BRAND_COLORS.macros.protein }}>
+                <Text variant="heading2" weight="bold" style={{ color: BRAND_COLORS.macros.protein }}>
                   {generatedGoals.macros_grams.protein_g}g
                 </Text>
-                <Text variant="caption">Protein</Text>
+                <Text variant="caption" weight="medium" style={{ color: '#111' }}>Protein</Text>
               </View>
               <View style={styles.macroItem}>
-                <Text variant="heading3" weight="bold" style={{ color: BRAND_COLORS.macros.carbs }}>
+                <Text variant="heading2" weight="bold" style={{ color: BRAND_COLORS.macros.carbs }}>
                   {generatedGoals.macros_grams.carbs_g}g
                 </Text>
-                <Text variant="caption">Carbs</Text>
+                <Text variant="caption" weight="medium" style={{ color: '#111' }}>Carbs</Text>
               </View>
               <View style={styles.macroItem}>
-                <Text variant="heading3" weight="bold" style={{ color: BRAND_COLORS.macros.fat }}>
+                <Text variant="heading2" weight="bold" style={{ color: BRAND_COLORS.macros.fat }}>
                   {generatedGoals.macros_grams.fat_g}g
                 </Text>
-                <Text variant="caption">Fat</Text>
+                <Text variant="caption" weight="medium" style={{ color: '#111' }}>Fat</Text>
               </View>
             </View>
           </View>
         </View>
 
         {generatedGoals.weeklyActivityPlan && (
-          <View style={styles.summaryCard}>
+          <View style={[styles.summaryCard, { backgroundColor: '#EFF6FF' }]}>
             <View style={styles.summaryCardHeader}>
-              <Barbell size={22} color={BRAND_COLORS.secondary} />
-              <Text variant="body" weight="semibold">Weekly Rhythm</Text>
+              <Barbell size={22} color="#3B82F6" />
+              <Text variant="body" weight="bold" style={{ color: '#111' }}>Weekly Rhythm</Text>
             </View>
-            <Text variant="caption" style={styles.summaryRange}>
-              {generatedGoals.weeklyActivityPlan.strength_sessions_per_week} strength sessions - {generatedGoals.weeklyActivityPlan.cardio_minutes_per_week} min cardio - {generatedGoals.weeklyActivityPlan.steps_per_day_target.toLocaleString()} steps/day
+            <Text variant="body" weight="medium" style={{ color: '#374151' }}>
+              {generatedGoals.weeklyActivityPlan.strength_sessions_per_week} strength sessions  ·  {generatedGoals.weeklyActivityPlan.cardio_minutes_per_week} min cardio  ·  {generatedGoals.weeklyActivityPlan.steps_per_day_target.toLocaleString()} steps/day
             </Text>
           </View>
         )}
 
-        <Text variant="caption" style={styles.goalLabel}>
+        <Text variant="caption" weight="medium" style={styles.goalLabel}>
           Goal: {selectedGoalConfig.label}
         </Text>
         <Text variant="caption" style={styles.disclaimer}>
-          AI-generated - verify with a healthcare professional
+          AI-generated — verify with a healthcare professional
         </Text>
       </View>
     );
@@ -978,24 +996,30 @@ const styles = StyleSheet.create({
   },
   wheelRow: {
     flexDirection: isWeb ? 'row' : 'column',
-    gap: spacing.xl,
+    gap: isWeb ? 80 : spacing.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  generatingWrap: {
+  generatingFull: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 360,
-  },
-  generatingGradient: {
-    width: '100%',
+    minHeight: 500,
     borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing['3xl'],
-    paddingHorizontal: spacing.xl,
+  },
+  generatingContent: {
+    alignItems: 'center',
     gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+  },
+  generatingIconRing: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
   },
   generatingTitle: {
     color: '#111111',
@@ -1003,21 +1027,49 @@ const styles = StyleSheet.create({
   },
   generatingSub: {
     textAlign: 'center',
-    color: '#4F4B45',
-    maxWidth: 560,
+    color: '#374151',
+    maxWidth: 420,
+    lineHeight: 24,
+  },
+  generatingSteps: {
+    marginTop: spacing.lg,
+    gap: spacing.md,
+  },
+  generatingStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  generatingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  generatingStepText: {
+    color: '#374151',
   },
   successHeader: {
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.md,
+  },
+  successIconRing: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
   successTitle: {
     color: '#111111',
     textAlign: 'center',
   },
   successBody: {
-    color: '#4F4B45',
+    color: '#374151',
     textAlign: 'center',
     maxWidth: 560,
+    lineHeight: 24,
   },
   completeGrid: {
     gap: spacing.lg,

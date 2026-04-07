@@ -1,4 +1,4 @@
-import { ArrowRight, Quotes, SealCheck } from 'phosphor-react-native';
+import { ArrowRight, Quotes } from 'phosphor-react-native';
 import { Image } from 'expo-image';
 import React from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -76,19 +76,6 @@ export function HeroSection({
             </Text>
           </Pressable>
         </View>
-
-        <View style={styles.trustRow}>
-          <View style={styles.trustChip}>
-            <SealCheck size={18} weight="fill" color={LANDING_COLORS.text} />
-            <Text variant="body" weight="semibold" style={styles.trustText}>
-              2,000+ users tracking nutrition
-            </Text>
-          </View>
-        </View>
-
-        <Text variant="body" style={styles.freeNote}>
-          Free to start. No credit card required.
-        </Text>
 
         <View style={styles.testimonialCard}>
           <Quotes size={18} weight="fill" color={LANDING_COLORS.text} />
@@ -222,30 +209,6 @@ const styles = StyleSheet.create({
   },
   linkPressed: {
     opacity: 0.72,
-  },
-  trustRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  trustChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: radii.pill,
-    backgroundColor: LANDING_COLORS.surfaceChip,
-    borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
-  },
-  trustText: {
-    color: LANDING_COLORS.text,
-  },
-  freeNote: {
-    color: BRAND_COLORS.textSecondary,
-    marginTop: spacing.sm,
   },
   testimonialCard: {
     marginTop: spacing.lg,

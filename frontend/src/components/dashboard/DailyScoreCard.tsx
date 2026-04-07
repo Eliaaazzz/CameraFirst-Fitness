@@ -282,9 +282,9 @@ const styles = StyleSheet.create({
     lineHeight: 40,
   },
   scoreLabel: {
-    color: BRAND_COLORS.textPrimary,
+    color: '#111111',
     marginTop: 2,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   breakdown: {
     flex: 1,
@@ -305,13 +305,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   breakdownLabel: {
-    color: BRAND_COLORS.textSecondary,
+    color: '#111111',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   breakdownValue: {
-    color: BRAND_COLORS.textSecondary,
+    color: '#374151',
     fontSize: 11,
+    fontWeight: '500',
   },
   breakdownTrack: {
     height: 4,

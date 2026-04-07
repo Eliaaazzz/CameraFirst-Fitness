@@ -25,7 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 
-import { Barbell, Camera, CameraPlus, CaretRight, ChartLine, Drop, EnvelopeSimple, Fire, FlagCheckered, Grains, Leaf, PencilSimple, PersonSimpleRun, Sneaker, Target, User } from 'phosphor-react-native';
+import { Barbell, Camera, CameraPlus, CaretRight, ChartLine, Drop, EnvelopeSimple, Fire, FlagCheckered, Grains, Leaf, PencilSimple, PersonSimpleRun, Scales, Sneaker, Target, User } from 'phosphor-react-native';
 import { Image } from 'expo-image';
 import { ScrollView as RNScrollView } from 'react-native';
 import { BentoCard, SafeAreaWrapper, Text } from '@/components';
@@ -34,6 +34,7 @@ import { StateView } from '@/components/common/StateView';
 import { DailyScoreCard, DailyTasksCard, DashboardWidgets, NutritionInsightsCard, QuickActionsCard, StreakBadge, SuggestionGrid, WelcomeBar } from '@/components/dashboard';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { ScreenLayout } from '@/components/layout';
+import { WeightLogModal } from '@/components/weight';
 import { MealImage } from '@/components/nutrition/MealImage';
 import { NutritionRingsCard } from '@/components/nutrition/NutritionRingsCard';
 import { NutritionRingsSkeleton } from '@/components/nutrition/NutritionRingsSkeleton';
@@ -261,6 +262,7 @@ const DashboardScreen = () => {
   // Fetch personalized recommendations based on fitness goal
 
   const [refreshing, setRefreshing] = useState(false);
+  const [showWeightModal, setShowWeightModal] = useState(false);
   const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
   const lastLoadedGoalsRef = useRef<string | null>(null);
   const [showWelcomeCard, setShowWelcomeCard] = useState(false);
@@ -1238,10 +1240,15 @@ const DashboardScreen = () => {
 
             {/* Quick-log bar — Uber "Where to?" pattern, mobile only */}
             {Platform.OS !== 'web' && (
-              <Pressable onPress={handleAddFood} style={({pressed}) => [styles.quickLogBar, pressed && styles.quickLogBarPressed]}>
-                <Camera size={20} color="#FFFFFF" weight="regular" />
-                <Text style={styles.quickLogBarText}>Snap a meal</Text>
-              </Pressable>
+              <View style={styles.quickLogRow}>
+                <Pressable onPress={handleAddFood} style={({pressed}) => [styles.quickLogBar, { flex: 1 }, pressed && styles.quickLogBarPressed]}>
+                  <Camera size={20} color="#FFFFFF" weight="regular" />
+                  <Text style={styles.quickLogBarText}>Snap a meal</Text>
+                </Pressable>
+                <Pressable onPress={() => setShowWeightModal(true)} style={({pressed}) => [styles.quickLogWeightBtn, pressed && styles.quickLogBarPressed]}>
+                  <Scales size={20} color={BRAND_COLORS.primary} weight="regular" />
+                </Pressable>
+              </View>
             )}
 
             {/* Welcome Tour Card for new users */}
@@ -1481,6 +1488,7 @@ const DashboardScreen = () => {
           </TourScrollView>
         </ScreenLayout>
       </View>
+      <WeightLogModal visible={showWeightModal} onDismiss={() => setShowWeightModal(false)} />
     </SafeAreaWrapper>
   );
 };
@@ -1644,15 +1652,28 @@ const styles = StyleSheet.create({
     fontSize: Platform.OS !== 'web' ? 13 : 14,
   },
   // Quick-log bar — Uber "Where to?" pattern
+  quickLogRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.xl,
+  },
   quickLogBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
     backgroundColor: '#111111',
-    borderRadius: radii.lg, // 16
+    borderRadius: radii.lg,
     paddingVertical: 16,
-    marginBottom: spacing.xl, // 24
+  },
+  quickLogWeightBtn: {
+    width: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: BRAND_COLORS.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: BRAND_COLORS.border,
   },
   quickLogBarPressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
   quickLogBarText: { color: '#FFFFFF', fontSize: 17, fontWeight: '700' as const },

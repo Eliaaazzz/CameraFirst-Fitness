@@ -270,10 +270,11 @@ const styles = StyleSheet.create({
   },
   unitContainer: {
     position: 'absolute',
-    right: -40,
+    right: -44,
     top: PADDING_ITEMS * ITEM_HEIGHT,
     height: ITEM_HEIGHT,
     justifyContent: 'center',
+    zIndex: 10,
   },
   unitText: {
     color: BRAND_COLORS.textSecondary,
