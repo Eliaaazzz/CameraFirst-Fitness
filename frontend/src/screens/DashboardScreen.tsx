@@ -2756,14 +2756,14 @@ const webStyles = StyleSheet.create({
   serviceBody: {
     color: '#6B6B6B',
   },
-  // ── PERFORMANCE TODAY — Apple Health style ──
+  // ── PERFORMANCE TODAY — matches "Your account and activity" heading ──
   perfTitle: {
-    color: '#9CA3AF',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginBottom: 20,
+    color: '#111111',
+    fontSize: 44,
+    lineHeight: 48,
+    fontWeight: '700',
+    letterSpacing: -1.6,
+    marginBottom: 28,
   },
   perfHero: {
     marginBottom: 20,

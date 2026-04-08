@@ -89,7 +89,6 @@ export function DailyTasksCard({ data }: DailyTasksCardProps) {
 
       <View style={styles.header}>
         <View>
-          <Text style={styles.sectionLabel}>TODAY'S TASKS</Text>
           <Text style={styles.subtitle}>{done}/{total} completed</Text>
         </View>
         {allDone && <View style={styles.doneBadge}><Text style={styles.doneText}>DONE</Text></View>}
@@ -109,7 +108,6 @@ export function DailyTasksCard({ data }: DailyTasksCardProps) {
 const styles = StyleSheet.create({
   card: { ...(Platform.OS === 'web' ? BENTO_CARD_STYLES : MOBILE_CARD_STYLES) },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
-  sectionLabel: { color: '#9CA3AF', fontSize: 12, fontWeight: '600', letterSpacing: 1.2 },
   subtitle: { color: '#9CA3AF', fontSize: 12, marginTop: 2 },
   doneBadge: { backgroundColor: 'rgba(16,185,129,0.08)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   doneText: { color: '#10B981', fontSize: 10, fontWeight: '700', letterSpacing: 0.8 },

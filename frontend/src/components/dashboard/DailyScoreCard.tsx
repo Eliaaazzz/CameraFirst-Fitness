@@ -73,7 +73,6 @@ export function DailyScoreCard({ data, animated = true }: DailyScoreCardProps) {
   return (
     <View style={[styles.card, BENTO_CARD_WEB_STYLES as any]} accessible accessibilityRole="summary"
       accessibilityLabel={`Daily score: ${score}, ${label}`}>
-      <Text style={styles.sectionLabel}>DAILY SCORE</Text>
 
       <View style={[styles.row, isNarrow && styles.rowVertical]}>
         <View style={styles.dialContainer}>
@@ -125,7 +124,6 @@ function MetricRow({ label, value, percent, m }: { label: string; value: string;
 
 const styles = StyleSheet.create({
   card: { ...(Platform.OS === 'web' ? BENTO_CARD_STYLES : MOBILE_CARD_STYLES) },
-  sectionLabel: { color: '#9CA3AF', fontSize: 12, fontWeight: '600', letterSpacing: 1.2, textTransform: 'uppercase' as const, marginBottom: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 24 },
   rowVertical: { flexDirection: 'column', alignItems: 'center', gap: 20 },
 
