@@ -1,101 +1,36 @@
+/**
+ * FeatureGrid — Uber "Discover what you can do" 3-card row.
+ *
+ * Uber rules:
+ * - #F6F6F6 card background, no border, no shadow
+ * - Bold title, gray description
+ * - Illustration bottom-right
+ * - 52px heading, tight letter-spacing
+ */
 import { Image } from 'expo-image';
-import React, { useState } from 'react';
-import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import React from 'react';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components';
-import { APP_NAME, EXPERIENCE_COLORS, radii, spacing } from '@/utils';
+import { APP_NAME } from '@/utils';
 
 const FEATURES = [
   {
-    title: 'Meal Logging',
-    description: 'Open the camera fast, review the result, and save a meal without breaking your flow.',
+    title: 'Scan meals',
+    description: 'Snap a photo, get instant macro breakdown. AI-powered nutrition logging in under 3 seconds.',
     illustration: require('@/../assets/illustrations/cooking.svg'),
-    tint: '#FFF1E6',
   },
   {
-    title: 'Workout Planning',
-    description: 'Build a week that balances strength, cardio, and recovery instead of isolated checklists.',
-    illustration: require('@/../assets/illustrations/fitness-tracker.svg'),
-    tint: '#E8F4FF',
-  },
-  {
-    title: 'Progress Tracking',
-    description: 'Use clearer rings, streaks, and weekly snapshots to understand momentum at a glance.',
+    title: 'Daily rings',
+    description: 'Apple Fitness-style rings track protein, carbs, and fat against your personalized targets.',
     illustration: require('@/../assets/illustrations/fitness-stats.svg'),
-    tint: '#EDFDE5',
   },
   {
-    title: 'Targets',
-    description: 'Generate calorie, macro, and hydration targets that feel tailored instead of generic.',
-    illustration: require('@/../assets/illustrations/healthy-habit.svg'),
-    tint: '#FFF6CF',
-  },
-  {
-    title: 'Recipes',
-    description: 'Browse meals that actually fit your goal instead of forcing workarounds later in the day.',
-    illustration: require('@/../assets/illustrations/chef.svg'),
-    tint: '#FFE5EF',
-  },
-  {
-    title: 'Weekly Reports',
-    description: 'Pull together adherence, nutrition balance, and trend data in one reviewable page.',
+    title: 'Weekly insights',
+    description: 'See trends, streaks, and progress in a clear weekly report. Know exactly where you stand.',
     illustration: require('@/../assets/illustrations/data-trends.svg'),
-    tint: '#E6F9FF',
   },
 ] as const;
-
-function FeatureCard({
-  title,
-  description,
-  illustration,
-  tint,
-  isDesktop,
-  onExplore,
-}: {
-  title: string;
-  description: string;
-  illustration: any;
-  tint: string;
-  isDesktop: boolean;
-  onExplore: () => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: hovered && Platform.OS === 'web' ? '#FFFFFF' : EXPERIENCE_COLORS.glassStrong },
-        hovered && styles.cardHovered,
-      ]}
-      {...(Platform.OS === 'web' && {
-        onMouseEnter: () => setHovered(true),
-        onMouseLeave: () => setHovered(false),
-      })}
-    >
-      <View style={[styles.illustrationWrap, { backgroundColor: tint }]}>
-        <Image source={illustration} style={isDesktop ? styles.illustrationDesktop : styles.illustrationMobile} contentFit="contain" />
-      </View>
-
-      <View style={styles.textSide}>
-        <View style={styles.copyStack}>
-          <Text variant="heading3" weight="bold" style={styles.cardTitle}>
-            {title}
-          </Text>
-          <Text variant="body" style={styles.cardDescription}>
-            {description}
-          </Text>
-        </View>
-
-        <Pressable onPress={onExplore} style={({ pressed }) => [styles.detailsBtn, pressed && styles.pressed]}>
-          <Text variant="body" weight="semibold" style={styles.detailsText}>
-            Explore
-          </Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
 
 interface FeatureGridProps {
   onExplore?: () => void;
@@ -104,39 +39,30 @@ interface FeatureGridProps {
 export function FeatureGrid({ onExplore }: FeatureGridProps) {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
-  const handleExplore = onExplore ?? (() => {});
 
   return (
     <View style={styles.section}>
-      <Text
-        variant="heading1"
-        weight="bold"
-        style={isDesktop ? [styles.sectionTitle] : [styles.sectionTitle, styles.sectionTitleMobile]}
-      >
+      <Text style={isDesktop ? styles.heading : [styles.heading, styles.headingMobile]}>
         Discover what you can do with {APP_NAME}
       </Text>
-      <Text variant="heading4" style={styles.subtitle}>
-        A brighter mobile flow for logging, planning, and reviewing progress in one product.
-      </Text>
 
-      <View style={styles.grid}>
+      <View style={[styles.grid, !isDesktop && styles.gridMobile]}>
         {FEATURES.map((feature) => (
-          <View
+          <Pressable
             key={feature.title}
-            style={[
-              styles.cardWrapper,
-              isDesktop ? styles.cardWrapperDesktop : styles.cardWrapperMobile,
+            onPress={onExplore}
+            style={({ pressed }) => [
+              styles.card,
+              isDesktop && styles.cardDesktop,
+              pressed && { opacity: 0.92 },
             ]}
           >
-            <FeatureCard
-              title={feature.title}
-              description={feature.description}
-              illustration={feature.illustration}
-              tint={feature.tint}
-              isDesktop={isDesktop}
-              onExplore={handleExplore}
-            />
-          </View>
+            <Text style={styles.cardTitle}>{feature.title}</Text>
+            <Text style={styles.cardDescription}>{feature.description}</Text>
+            <View style={styles.illustrationWrap}>
+              <Image source={feature.illustration} style={styles.illustration} contentFit="contain" />
+            </View>
+          </Pressable>
         ))}
       </View>
     </View>
@@ -145,110 +71,64 @@ export function FeatureGrid({ onExplore }: FeatureGridProps) {
 
 const styles = StyleSheet.create({
   section: {
-    paddingTop: spacing['4xl'],
-    paddingBottom: spacing['2xl'],
+    paddingTop: 80,
+    paddingBottom: 40,
   },
-  sectionTitle: {
-    color: EXPERIENCE_COLORS.ink,
-    fontSize: 56,
-    lineHeight: 60,
-    letterSpacing: -2,
-    marginBottom: spacing.md,
+  heading: {
+    color: '#000000',
+    fontSize: 52,
+    fontWeight: '700',
+    letterSpacing: -2.5,
+    lineHeight: 56,
+    marginBottom: 40,
+    maxWidth: 700,
   },
-  sectionTitleMobile: {
-    fontSize: 40,
-    lineHeight: 44,
-    letterSpacing: -1.4,
-  },
-  subtitle: {
-    color: EXPERIENCE_COLORS.inkSoft,
-    marginBottom: spacing['2xl'],
-    maxWidth: 720,
-    fontSize: 19,
-    lineHeight: 30,
+  headingMobile: {
+    fontSize: 36,
+    lineHeight: 40,
+    letterSpacing: -1.2,
+    marginBottom: 28,
   },
   grid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.lg,
+    gap: 16,
   },
-  cardWrapper: {},
-  cardWrapperDesktop: {
-    width: 'calc(33.333% - 11px)' as any,
-  },
-  cardWrapperMobile: {
-    width: '100%',
+  gridMobile: {
+    flexDirection: 'column',
   },
   card: {
-    height: '100%',
-    gap: spacing.md,
-    padding: 18,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: EXPERIENCE_COLORS.stroke,
-    ...(typeof document !== 'undefined'
-      ? ({ boxShadow: '0 20px 42px rgba(26,60,109,0.08)', transition: 'transform 0.2s ease-out, box-shadow 0.2s ease-out' } as any)
-      : {
-          shadowColor: EXPERIENCE_COLORS.shadowSoft,
-          shadowOffset: { width: 0, height: 16 },
-          shadowRadius: 26,
-          shadowOpacity: 0.12,
-          elevation: 6,
-        }),
-  },
-  cardHovered: {
-    ...(typeof document !== 'undefined'
-      ? ({ transform: [{ translateY: -4 }], boxShadow: '0 28px 48px rgba(26,60,109,0.12)' } as any)
-      : {}),
-  },
-  illustrationWrap: {
-    minHeight: 160,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  illustrationDesktop: {
-    width: '100%',
-    height: 148,
-  },
-  illustrationMobile: {
-    width: '100%',
-    height: 180,
-  },
-  textSide: {
     flex: 1,
-    justifyContent: 'space-between',
-    gap: spacing.md,
+    backgroundColor: '#F6F6F6',
+    borderRadius: 16,
+    padding: 24,
+    minHeight: 320,
+    justifyContent: 'flex-start',
   },
-  copyStack: {
-    gap: spacing.sm,
+  cardDesktop: {
+    // Equal width via flex: 1
   },
   cardTitle: {
-    color: EXPERIENCE_COLORS.ink,
-    fontSize: 24,
-    lineHeight: 28,
+    color: '#000000',
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    marginBottom: 8,
   },
   cardDescription: {
-    color: EXPERIENCE_COLORS.inkSoft,
-    fontSize: 16,
-    lineHeight: 26,
+    color: '#6B6B6B',
+    fontSize: 15,
+    lineHeight: 24,
+    marginBottom: 20,
   },
-  detailsBtn: {
-    alignSelf: 'flex-start',
-    minHeight: 46,
-    paddingHorizontal: 18,
-    borderRadius: radii.pill,
-    backgroundColor: 'rgba(255,255,255,0.82)',
-    borderWidth: 1,
-    borderColor: EXPERIENCE_COLORS.stroke,
-    justifyContent: 'center',
+  illustrationWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    minHeight: 140,
   },
-  detailsText: {
-    color: EXPERIENCE_COLORS.ink,
-  },
-  pressed: {
-    opacity: 0.82,
+  illustration: {
+    width: '80%',
+    height: 140,
   },
 });
 
