@@ -899,7 +899,6 @@ const DashboardScreen = () => {
                         bloodSugarRise: nutritionData.bloodSugarRise,
                       }}
                       showFat={true}
-                      targetExplanation={nutritionTargetExplanation}
                       onMacroPress={handleMacroSearch}
                       onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
                     />
@@ -1213,7 +1212,6 @@ const DashboardScreen = () => {
             bloodSugarRise: nutritionData.bloodSugarRise,
           }}
           showFat={true}
-          targetExplanation={nutritionTargetExplanation}
           onMacroPress={handleMacroSearch}
           onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
         />

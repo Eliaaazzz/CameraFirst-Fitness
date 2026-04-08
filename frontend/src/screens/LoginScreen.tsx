@@ -861,8 +861,8 @@ export default function LoginScreen() {
                     contentFit="contain"
                   />
                 </Animated.View>
-                <Text variant="label" weight="bold" style={styles.logoKicker}>AURA MEMBER ACCESS</Text>
-                <Text variant="heading1" weight="bold" style={styles.title}>AuraFitness</Text>
+                <Text variant="label" weight="bold" style={styles.logoKicker}>MEMBER ACCESS</Text>
+                <Text variant="heading1" weight="bold" style={styles.title}>Metriful</Text>
                 <Text variant="body" style={styles.subtitle}>
                   Sign in to continue with a brighter mobile dashboard for nutrition, training, and weekly progress.
                 </Text>

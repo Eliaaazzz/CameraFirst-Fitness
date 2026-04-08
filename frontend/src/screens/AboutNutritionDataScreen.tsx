@@ -60,7 +60,7 @@ export function AboutNutritionDataScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.heading}>About Nutrition Data</Text>
         <Text style={styles.referenceLead}>
-          Direct references and calculation notes for the calorie, macro, and blood sugar values shown in AuraFitness.
+          Direct references and calculation notes for the calorie, macro, and blood sugar values shown in Metriful.
         </Text>
 
         <Text style={styles.sectionTitle}>Current Dashboard Targets</Text>

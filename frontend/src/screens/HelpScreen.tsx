@@ -279,8 +279,8 @@ export const HelpScreen = () => {
             {/* AI Disclaimer */}
             <View style={webStyles.disclaimerWrap}>
               <Text variant="caption" style={webStyles.disclaimer}>
-                AI-generated nutritional data is provided for informational purposes only.
-                Always verify with a healthcare professional.
+                AI-generated nutritional data is for reference only.
+                Please adapt to your own situation.
               </Text>
             </View>
           </ScrollView>
@@ -398,8 +398,8 @@ export const HelpScreen = () => {
 
         {/* AI disclaimer */}
         <Text variant="caption" style={mobileStyles.disclaimer}>
-          AI-generated nutritional data is for informational purposes only.
-          Always verify with a healthcare professional.
+          AI-generated nutritional data is for reference only.
+          Please adapt to your own situation.
         </Text>
       </ScrollView>
     </SafeAreaWrapper>

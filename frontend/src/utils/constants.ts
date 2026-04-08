@@ -1,6 +1,6 @@
 import { chartColors, colors } from './theme';
 
-export const APP_NAME = 'AuraFitness';
+export const APP_NAME = 'Metriful';
 
 export const BRAND_COLORS = {
   ...colors.light,

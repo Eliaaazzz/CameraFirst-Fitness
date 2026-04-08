@@ -691,7 +691,7 @@ export const BuildPlanScreen = () => {
           Goal: {selectedGoalConfig.label}
         </Text>
         <Text variant="caption" style={styles.disclaimer}>
-          AI-generated — verify with a healthcare professional
+          AI-generated — for reference only, adapt to your own situation
         </Text>
       </View>
     );

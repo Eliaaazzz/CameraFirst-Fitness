@@ -513,13 +513,10 @@ export function ReviewMealScreen({ route, navigation }: any) {
             {isAwaitingSystemPrompt ? (
               <>
                 <ActivityIndicator size="large" color={BRAND_COLORS.secondary} />
-                <Text style={styles.permissionTitle}>Opening camera permission</Text>
+                <Text style={styles.permissionTitle}>Camera permission</Text>
                 <Text style={styles.permissionSubtitle}>
-                  Use the system prompt to allow camera access for meal scanning, or choose a photo from your library instead.
+                  Allow camera access to scan meals and log nutrition instantly.
                 </Text>
-                <Pressable style={styles.permissionSecondaryBtn} onPress={openGallery}>
-                  <Text style={styles.permissionSecondaryBtnText}>Choose from Library</Text>
-                </Pressable>
               </>
             ) : (
               <>

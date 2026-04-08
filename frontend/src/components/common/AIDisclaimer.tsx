@@ -20,7 +20,7 @@ interface AIDisclaimerProps {
   compact?: boolean;
 }
 
-const DISCLAIMER_TEXT = 'AI-generated \u2014 verify with a healthcare professional';
+const DISCLAIMER_TEXT = 'AI-generated \u2014 for reference only, adapt to your own situation';
 
 export function AIDisclaimer({ compact = false }: AIDisclaimerProps) {
   if (compact) {

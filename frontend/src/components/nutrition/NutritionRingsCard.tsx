@@ -16,7 +16,6 @@ import { Text } from '@/components/Text';
 import { useLanguageStore } from '@/stores';
 import {
   BRAND_COLORS,
-  NutritionTargetExplanation,
   NUTRITION_REFERENCES,
   openExternalUrl,
   spacing,
@@ -50,7 +49,6 @@ interface NutritionRingsCardProps {
   animated?: boolean;
   onMacroPress?: (macro: 'calories' | 'protein' | 'carbs' | 'fat') => void;
   onSourcesPress?: () => void;
-  targetExplanation?: NutritionTargetExplanation;
 }
 
 // ============================================================================
@@ -301,7 +299,6 @@ export function NutritionRingsCard({
   animated = true,
   onMacroPress,
   onSourcesPress,
-  targetExplanation,
 }: NutritionRingsCardProps) {
   const { t } = useLanguageStore();
   const displayTitle = title || t.todaysNutrition;
@@ -491,56 +488,30 @@ export function NutritionRingsCard({
         </View>
       </View>
 
-      {/* Citation footer — Apple 1.4.1 requires visible, direct source links */}
+      {/* Citation footer — Apple 1.4.1: single clear source with data values */}
       <View style={styles.citationFooter}>
-        {targetExplanation && (
-          <View style={styles.targetSourceCard}>
-            <Text style={styles.targetSourceTitle}>{targetExplanation.title}</Text>
-            <Text style={styles.targetSourceBody}>{targetExplanation.summary}</Text>
-            {targetExplanation.inputSummary ? (
-              <Text style={styles.targetSourceMeta}>{targetExplanation.inputSummary}</Text>
-            ) : null}
-            <Text style={styles.targetSourceDetail}>Calories: {targetExplanation.calorieDetail}</Text>
-            <Text style={styles.targetSourceDetail}>Macros: {targetExplanation.macroDetail}</Text>
-            <Text style={styles.targetSourceDetail}>{targetExplanation.bloodSugarDetail}</Text>
-          </View>
-        )}
         <View style={styles.citationHeader}>
           <BookOpen size={12} color={BRAND_COLORS.textSecondary} />
-          <Text style={styles.citationLabel}>Direct references</Text>
+          <Text style={styles.citationLabel}>Source</Text>
         </View>
-        {(targetExplanation?.references || [
-          NUTRITION_REFERENCES.dietaryGuidance,
-          NUTRITION_REFERENCES.dietaryReferenceIntakes,
-          ...(data.bloodSugarRise != null ? [NUTRITION_REFERENCES.glycemicLoad] : []),
-        ]).map((reference) => (
-          <Pressable
-            key={reference.id}
-            onPress={() => openExternalUrl(
-              reference.url,
-              'Unable to open source',
-              'Please open the reference in your browser.'
-            )}
-            accessibilityRole="link"
-            accessibilityLabel={reference.title}
-            style={({ pressed }) => pressed && { opacity: 0.6 }}
-          >
-            <View style={styles.citationLinkRow}>
-              <ArrowSquareOut size={11} color={BRAND_COLORS.secondary} />
-              <Text style={styles.citationLink}>{reference.shortLabel}</Text>
-            </View>
-          </Pressable>
-        ))}
-        {onSourcesPress && (
-          <Pressable
-            onPress={onSourcesPress}
-            accessibilityRole="link"
-            accessibilityLabel="View all nutrition data sources"
-            style={({ pressed }) => pressed && { opacity: 0.6 }}
-          >
-            <Text style={styles.citationMore}>View all sources & disclaimers</Text>
-          </Pressable>
-        )}
+        <Text style={styles.targetSourceBody}>
+          Targets based on FDA Daily Values: 2,000 kcal · Protein 50 g · Carbs 275 g · Fat 78 g
+        </Text>
+        <Pressable
+          onPress={() => openExternalUrl(
+            NUTRITION_REFERENCES.fdaDailyValues.url,
+            'Unable to open source',
+            'Please open the FDA reference in your browser.'
+          )}
+          accessibilityRole="link"
+          accessibilityLabel={NUTRITION_REFERENCES.fdaDailyValues.title}
+          style={({ pressed }) => pressed && { opacity: 0.6 }}
+        >
+          <View style={styles.citationLinkRow}>
+            <ArrowSquareOut size={11} color={BRAND_COLORS.secondary} />
+            <Text style={styles.citationLink}>{NUTRITION_REFERENCES.fdaDailyValues.shortLabel}</Text>
+          </View>
+        </Pressable>
       </View>
     </View>
   );

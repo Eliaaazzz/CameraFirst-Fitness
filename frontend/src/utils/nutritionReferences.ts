@@ -141,7 +141,7 @@ export function getNutritionTargetExplanation(goals?: GeneratedGoals | null): Nu
   return {
     title: 'Fallback target source',
     summary:
-      'If no active plan is saved, AuraFitness falls back to general-reference values for a 2,000-calorie diet instead of personalised goals.',
+      'If no active plan is saved, Metriful falls back to general-reference values for a 2,000-calorie diet instead of personalised goals.',
     calorieDetail:
       'Calories default to the FDA general nutrition reference of 2,000 kcal/day.',
     macroDetail:
@@ -152,8 +152,6 @@ export function getNutritionTargetExplanation(goals?: GeneratedGoals | null): Nu
       'Fallback reference: FDA Daily Values for a 2,000-calorie diet, used only until you save a personalised goal.',
     references: [
       NUTRITION_REFERENCES.fdaDailyValues,
-      NUTRITION_REFERENCES.dietaryGuidance,
-      NUTRITION_REFERENCES.glycemicLoad,
     ],
   };
 }

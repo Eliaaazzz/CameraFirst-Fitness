@@ -884,6 +884,16 @@ const ProfileScreen = () => {
     'bell-outline': Bell,
     'account-remove-outline': UserCircleMinus,
   };
+  const menuAccentMap: Record<string, { iconColor: string; iconBg: string }> = {
+    'dumbbell': { iconColor: '#F97316', iconBg: '#FFF1E5' },
+    'book-open-variant': { iconColor: '#2F7A6A', iconBg: '#EAF8F2' },
+    'food-apple': { iconColor: '#84A13E', iconBg: '#F1F5E8' },
+    'chart-line': { iconColor: '#3B82F6', iconBg: '#EEF6FF' },
+    'account-edit-outline': { iconColor: '#111111', iconBg: '#F8F4ED' },
+    'food-apple-outline': { iconColor: '#0F766E', iconBg: '#ECFEFF' },
+    'bell-outline': { iconColor: '#A16207', iconBg: '#FEF3C7' },
+    'account-remove-outline': { iconColor: '#DC2626', iconBg: '#FEE2E2' },
+  };
 
   const renderMenuItem = (
     icon: string,
@@ -893,31 +903,31 @@ const ProfileScreen = () => {
     badge?: string | number
   ) => {
     const IconComponent = menuIconMap[icon] || Target;
+    const accent = menuAccentMap[icon] || { iconColor: '#111111', iconBg: '#F8F4ED' };
     return (
     <Pressable
       style={({ pressed }) => [
         styles.menuItem,
-        { backgroundColor: theme.colors.surface },
-        pressed && { opacity: 0.7 },
+        pressed && styles.menuItemPressed,
       ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityHint={subtitle}
     >
-      <View style={[styles.menuIcon, { backgroundColor: theme.colors.background }]}>
-        <IconComponent size={24} color={theme.colors.primary} />
+      <View style={[styles.menuIcon, { backgroundColor: accent.iconBg }]}>
+        <IconComponent size={24} color={accent.iconColor} />
       </View>
       <View style={styles.menuContent}>
-        <Text variant="body" weight="semibold" style={{ color: theme.colors.textPrimary }}>{title}</Text>
-        <Text variant="caption" style={[styles.menuSubtitle, { color: theme.colors.textSecondary }]}>{subtitle}</Text>
+        <Text variant="body" weight="semibold" style={styles.menuTitle}>{title}</Text>
+        <Text variant="caption" style={styles.menuSubtitle}>{subtitle}</Text>
       </View>
       {badge !== undefined && (
-        <View style={[styles.badge, { backgroundColor: theme.colors.primary }]}>
+        <View style={styles.badge}>
           <Text variant="caption" weight="bold" style={styles.badgeText}>{badge}</Text>
         </View>
       )}
-      <CaretRight size={20} color={theme.colors.textSecondary} />
+      <CaretRight size={20} color="#6B665F" />
     </Pressable>
   );
   };
@@ -934,11 +944,11 @@ const ProfileScreen = () => {
       onRequestClose={resetGoalsModal}
     >
       <KeyboardAvoidingView
-        style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}
+        style={styles.modalContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Fixed App Bar */}
-        <View style={[styles.modalAppBar, { paddingTop: insets.top + 8, borderBottomColor: theme.colors.border }]}>
+        <View style={[styles.modalAppBar, { paddingTop: insets.top + 8 }]}>
           {/* Home Button - Navigate back to Dashboard */}
           <Pressable
             onPress={() => {
@@ -950,7 +960,7 @@ const ProfileScreen = () => {
             accessibilityRole="button"
             accessibilityLabel="Go to Home"
           >
-            <House size={22} color={theme.colors.primary} />
+            <House size={22} color={BRAND_COLORS.primary} />
           </Pressable>
           <Text variant="heading2" weight="bold" style={[styles.modalTitle, styles.modalTitleCentered, { color: theme.colors.textPrimary }]}>
             {step === 'sex' && 'About You'}
@@ -997,7 +1007,6 @@ const ProfileScreen = () => {
                     key={option.value}
                     style={({ pressed }) => [
                       styles.sexOption,
-                      { backgroundColor: theme.colors.surface },
                       selectedSex === option.value && { backgroundColor: option.color },
                       pressed && styles.optionPressed,
                     ]}
@@ -1069,7 +1078,6 @@ const ProfileScreen = () => {
                     key={option.value}
                     style={({ pressed }) => [
                       styles.goalOption,
-                      { backgroundColor: theme.colors.surface },
                       selectedGoalType === option.value && {
                         borderColor: option.color,
                         backgroundColor: `${option.color}20`,
@@ -1108,9 +1116,9 @@ const ProfileScreen = () => {
           {/* Step 4: Generating (with overlay effect) */}
           {step === 'generating' && (
             <View style={styles.generatingContent}>
-              <View style={[styles.generatingOverlay, { borderColor: theme.colors.border }]}>
+              <View style={styles.generatingOverlay}>
                 <View style={styles.generatingInner}>
-                  <ActivityIndicator size="large" color={theme.colors.primary} />
+                  <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
                   <Text variant="heading3" weight="semibold" style={[styles.generatingText, { color: theme.colors.textPrimary }]}>
                     Building your plan...
                   </Text>
@@ -1181,7 +1189,7 @@ const ProfileScreen = () => {
               </Card>
 
               {/* Other Targets */}
-              <Card style={[styles.goalCard, { backgroundColor: theme.colors.surface }]}>
+              <Card style={styles.goalCard}>
                 <View style={styles.goalCardHeader}>
                   <Target size={24} color={theme.colors.info} />
                   <Text variant="body" weight="semibold" style={{ color: theme.colors.textPrimary }}>Daily Targets</Text>
@@ -1197,7 +1205,7 @@ const ProfileScreen = () => {
                   </Text>
                 </View>
                 <View style={styles.targetRow}>
-                  <Barbell size={20} color={theme.colors.primary} />
+                  <Barbell size={20} color={BRAND_COLORS.primary} />
                   <Text variant="body" style={{ color: theme.colors.textSecondary }}>
                     Strength: {generatedGoals.weeklyActivityPlan.strength_sessions_per_week}x/week
                   </Text>
@@ -1228,7 +1236,7 @@ const ProfileScreen = () => {
 
         {/* Fixed Bottom CTA */}
         {step !== 'generating' && (
-          <View style={[styles.modalBottomCta, { paddingBottom: insets.bottom + 12, backgroundColor: theme.colors.background, borderTopColor: theme.colors.border }]}>
+          <View style={[styles.modalBottomCta, { paddingBottom: insets.bottom + 12 }]}>
             {step === 'sex' && (
               <Pressable
                 style={({ pressed }) => [
@@ -1366,9 +1374,13 @@ const ProfileScreen = () => {
   }
 
   const displayName = currentUser.data?.username || userEmail?.split('@')[0] || 'User';
+  const currentStreak = currentUser.data?.currentStreak || 0;
   const goalTypeLabel = generatedGoals?.goalType
     ? GOAL_OPTIONS.find(g => g.value === generatedGoals.goalType)?.label
     : null;
+  const profileSummary = generatedGoals
+    ? `${goalTypeLabel || 'Active'} plan live · ${generatedGoals.dailyCalories.target} kcal target`
+    : 'Set a plan to personalize calories, macros, and your dashboard.';
 
   // Calculate bottom padding to account for tab bar
   const contentBottomPadding = useContentBottomPadding(spacing.xl);
@@ -1381,12 +1393,28 @@ const ProfileScreen = () => {
 
   return (
     <SafeAreaWrapper>
-      <ScrollView
-        style={[styles.container, { backgroundColor: 'transparent' }]}
-        contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
-      >
+      <View style={styles.screenRoot}>
+        {Platform.OS !== 'web' && (
+          <View pointerEvents="none" style={styles.mobileBackdropLayer}>
+            <View style={[styles.mobileBackdropBand, styles.mobileBackdropBandWarm]} />
+            <View style={[styles.mobileBackdropBand, styles.mobileBackdropBandMint]} />
+            <View style={[styles.mobileBackdropBand, styles.mobileBackdropBandSky]} />
+          </View>
+        )}
+        <ScrollView
+          style={[styles.container, { backgroundColor: 'transparent' }]}
+          contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
+        >
         {/* Profile Header */}
         <Animated.View entering={staggerEnter(0)} style={styles.header}>
+          <View style={styles.headerTopRow}>
+            <Text variant="label" weight="bold" style={styles.headerKicker}>PROFILE</Text>
+            <View style={[styles.headerStatusPill, generatedGoals ? styles.headerStatusPillActive : styles.headerStatusPillIdle]}>
+              <Text variant="caption" weight="bold" style={[styles.headerStatusText, generatedGoals ? styles.headerStatusTextActive : styles.headerStatusTextIdle]}>
+                {generatedGoals ? 'PLAN READY' : 'SET YOUR PLAN'}
+              </Text>
+            </View>
+          </View>
           {/* Single Pressable for entire avatar area to avoid touch conflicts */}
           <Pressable
             style={({ pressed }) => [
@@ -1401,7 +1429,6 @@ const ProfileScreen = () => {
             <View
               style={[
                 styles.avatar,
-                { backgroundColor: theme.colors.surface },
               ]}
             >
               {/* Avatar content - prioritizes optimistic preview for instant feedback */}
@@ -1412,19 +1439,18 @@ const ProfileScreen = () => {
                   style={styles.avatarImage}
                 />
               ) : (
-                <User size={40} color={theme.colors.primary} />
+                <User size={40} color={BRAND_COLORS.primary} />
               )}
               {/* Loading overlay - shows spinner while uploading (optimistic preview visible underneath) */}
               {isUploadingAvatar && (
                 <View style={styles.avatarLoadingOverlay}>
-                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                  <ActivityIndicator size="small" color={BRAND_COLORS.primary} />
                 </View>
               )}
             </View>
             <View
               style={[
                 styles.editAvatarBtn,
-                { backgroundColor: theme.colors.primary },
                 isUploadingAvatar && { opacity: 0.5 },
               ]}
               pointerEvents="none"
@@ -1432,34 +1458,47 @@ const ProfileScreen = () => {
               <Camera size={14} color="#FFF" />
             </View>
           </Pressable>
-          <Text variant="heading2" weight="bold" style={{ color: theme.colors.textPrimary }}>Hi, {displayName}</Text>
-          <Text variant="caption" style={[styles.email, { color: theme.colors.textSecondary }]}>{userEmail}</Text>
+          <Text variant="heading2" weight="bold" style={styles.profileName}>Hi, {displayName}</Text>
+          <Text variant="body" style={styles.profileSummary}>{profileSummary}</Text>
+          <View style={styles.profileMetaRow}>
+            <View style={[styles.profileMetaPill, styles.profileMetaWarm]}>
+              <Text variant="caption" weight="bold" style={styles.profileMetaText}>
+                {generatedGoals ? `${generatedGoals.dailyCalories.target} kcal` : 'General reference'}
+              </Text>
+            </View>
+            <View style={[styles.profileMetaPill, styles.profileMetaMint]}>
+              <Text variant="caption" weight="bold" style={styles.profileMetaText}>
+                {currentStreak} day streak
+              </Text>
+            </View>
+          </View>
+          <Text variant="caption" style={styles.email}>{userEmail}</Text>
         </Animated.View>
 
         {/* Goals Status */}
         {generatedGoals ? (
-          <Card style={[styles.goalsStatusCard, { backgroundColor: theme.colors.surface }]}>
+          <Card style={styles.goalsStatusCard}>
             <View style={styles.goalsStatusHeader}>
               <CheckCircle size={24} color={theme.colors.success} weight="fill" />
-              <Text variant="body" weight="semibold" style={{ color: theme.colors.textPrimary }}>Active Plan</Text>
+              <Text variant="body" weight="semibold" style={styles.goalsStatusTitle}>Active Plan</Text>
               {goalTypeLabel && (
-                <View style={[styles.goalTypeBadge, { backgroundColor: theme.colors.primary }]}>
+                <View style={styles.goalTypeBadge}>
                   <Text variant="caption" weight="bold" style={styles.goalTypeBadgeText}>
                     {goalTypeLabel}
                   </Text>
                 </View>
               )}
             </View>
-            <View style={[styles.goalsPreview, { backgroundColor: theme.colors.background }]}>
+            <View style={styles.goalsPreview}>
               <View style={styles.goalsPreviewRow}>
-                <Text variant="caption" style={[styles.goalsPreviewLabel, { color: theme.colors.textSecondary }]}>Daily Target:</Text>
-                <Text variant="body" weight="bold" style={{ color: theme.colors.primary }}>
+                <Text variant="caption" style={styles.goalsPreviewLabel}>Daily Target:</Text>
+                <Text variant="body" weight="bold" style={styles.goalsPreviewValue}>
                   {generatedGoals.dailyCalories.target} kcal
                 </Text>
               </View>
               <View style={styles.goalsPreviewRow}>
-                <Text variant="caption" style={[styles.goalsPreviewLabel, { color: theme.colors.textSecondary }]}>Macros:</Text>
-                <Text variant="body" weight="semibold" style={{ color: theme.colors.textPrimary }}>
+                <Text variant="caption" style={styles.goalsPreviewLabel}>Macros:</Text>
+                <Text variant="body" weight="semibold" style={styles.goalsPreviewMacroValue}>
                   P: {generatedGoals.macros_grams.protein_g}g | C: {generatedGoals.macros_grams.carbs_g}g | F: {generatedGoals.macros_grams.fat_g}g
                 </Text>
               </View>
@@ -1468,7 +1507,7 @@ const ProfileScreen = () => {
               title="Refresh Plan"
               variant="primary"
               onPress={() => setShowGoalsModal(true)}
-              style={{ backgroundColor: BRAND_COLORS.primary }}
+              style={styles.refreshPlanButton}
               textColor="#FFFFFF"
             />
           </Card>
@@ -1555,7 +1594,7 @@ const ProfileScreen = () => {
             'bell-outline',
             'Notifications',
             'Manage reminders',
-            () => Alert.alert('Coming Soon', 'Notification settings will be available soon.')
+            () => navigation.navigate('Notifications' as any)
           )}
           {renderMenuItem(
             'account-remove-outline',
@@ -1569,19 +1608,19 @@ const ProfileScreen = () => {
         <Pressable
           style={({ pressed }) => [
             styles.logoutButton,
-            { backgroundColor: theme.colors.surface },
-            pressed && { opacity: 0.7 }
+            pressed && styles.logoutButtonPressed,
           ]}
           onPress={handleLogout}
           accessibilityRole="button"
           accessibilityLabel="Logout from your account"
         >
           <SignOut size={20} color={theme.colors.error} />
-          <Text variant="body" weight="semibold" style={[styles.logoutText, { color: theme.colors.error }]}>
+          <Text variant="body" weight="semibold" style={styles.logoutText}>
             Logout
           </Text>
         </Pressable>
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       {/* Only render Modal when it should be visible */}
       {showGoalsModal && renderGoalsModal()}
@@ -1599,6 +1638,39 @@ const ProfileScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+    backgroundColor: '#FFF9F2',
+  },
+  mobileBackdropLayer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  mobileBackdropBand: {
+    position: 'absolute',
+    borderRadius: 999,
+  },
+  mobileBackdropBandWarm: {
+    width: 220,
+    height: 220,
+    top: -70,
+    right: -70,
+    backgroundColor: 'rgba(255, 211, 182, 0.4)',
+  },
+  mobileBackdropBandMint: {
+    width: 220,
+    height: 220,
+    top: 320,
+    left: -110,
+    backgroundColor: 'rgba(197, 242, 225, 0.34)',
+  },
+  mobileBackdropBandSky: {
+    width: 250,
+    height: 250,
+    bottom: 180,
+    right: -130,
+    backgroundColor: 'rgba(208, 231, 255, 0.28)',
+  },
   container: {
     flex: 1,
   },
@@ -1608,7 +1680,52 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
+    padding: spacing.xl,
+    borderRadius: 32,
+    backgroundColor: '#FFFEFB',
+    borderWidth: 1,
+    borderColor: '#E9DED0',
     marginBottom: spacing.lg,
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 24,
+    shadowOpacity: 0.06,
+    elevation: 7,
+  },
+  headerTopRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  headerKicker: {
+    color: '#8A7560',
+    letterSpacing: 1.2,
+  },
+  headerStatusPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  headerStatusPillActive: {
+    backgroundColor: '#ECF9F3',
+    borderColor: '#CBEBDD',
+  },
+  headerStatusPillIdle: {
+    backgroundColor: '#FFF1E5',
+    borderColor: '#F3D8BF',
+  },
+  headerStatusText: {
+    fontSize: 11,
+    letterSpacing: 0.3,
+  },
+  headerStatusTextActive: {
+    color: '#2F7A6A',
+  },
+  headerStatusTextIdle: {
+    color: '#8C4A1D',
   },
   avatarContainer: {
     position: 'relative',
@@ -1618,7 +1735,9 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(167, 139, 250, 0.1)',
+    backgroundColor: '#FBF8F1',
+    borderWidth: 1,
+    borderColor: '#E9E0D4',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -1648,22 +1767,64 @@ const styles = StyleSheet.create({
     zIndex: 10,
     elevation: 5, // Android shadow/z-index
   },
+  profileName: {
+    color: '#111111',
+  },
+  profileSummary: {
+    color: '#374151',
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 22,
+  },
+  profileMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  profileMetaPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  profileMetaWarm: {
+    backgroundColor: '#FFF4EA',
+    borderColor: '#F3D7BE',
+  },
+  profileMetaMint: {
+    backgroundColor: '#ECF9F3',
+    borderColor: '#CBEBDD',
+  },
+  profileMetaText: {
+    color: '#111111',
+    fontSize: 12,
+  },
   email: {
-    opacity: 0.6,
+    opacity: 0.7,
     marginTop: spacing.xs,
+    color: '#6B665F',
   },
   goalsStatusCard: {
     padding: spacing.lg,
     marginBottom: spacing.lg,
     gap: spacing.md,
+    backgroundColor: '#FFFEFB',
+    borderColor: '#E9DED0',
+    borderWidth: 1,
+    borderRadius: 28,
   },
   goalsStatusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
   },
+  goalsStatusTitle: {
+    color: '#111111',
+  },
   goalTypeBadge: {
-    backgroundColor: BRAND_COLORS.primary,
+    backgroundColor: '#111111',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1674,9 +1835,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   goalsPreview: {
-    backgroundColor: 'rgba(167, 139, 250, 0.08)',
+    backgroundColor: '#FBF8F1',
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E9E0D4',
     gap: spacing.xs,
   },
   goalsPreviewRow: {
@@ -1685,25 +1848,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   goalsPreviewLabel: {
-    opacity: 0.7,
+    opacity: 0.8,
+    color: '#6B665F',
   },
   goalsPreviewValue: {
-    color: BRAND_COLORS.primary,
+    color: '#111111',
+  },
+  goalsPreviewMacroValue: {
+    color: '#111111',
+  },
+  refreshPlanButton: {
+    backgroundColor: '#111111',
   },
   generateGoalsCard: {
-    borderRadius: 14,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    padding: spacing.md,
+    borderColor: '#E7DCCF',
+    backgroundColor: '#FFFEFB',
+    padding: spacing.lg,
     marginBottom: spacing.lg,
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 22,
+    shadowOpacity: 0.05,
+    elevation: 6,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'all 0.15s ease-out',
     }),
   },
   generateGoalsCardPressed: {
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#FFF7EF',
   },
   generateGoalsInner: {
     flexDirection: 'row',
@@ -1714,7 +1889,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: BRAND_COLORS.primaryTint,
+    backgroundColor: '#FFF1E5',
+    borderWidth: 1,
+    borderColor: '#F3D8BF',
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
@@ -1727,7 +1904,7 @@ const styles = StyleSheet.create({
     color: BRAND_COLORS.textPrimary,
   },
   generateGoalsText: {
-    color: BRAND_COLORS.textMuted,
+    color: '#6B665F',
     marginTop: 2,
   },
   generateGoalsCta: {
@@ -1738,9 +1915,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: BRAND_COLORS.primaryTint,
+    backgroundColor: '#FBF8F1',
     borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderColor: '#E9E0D4',
     flexShrink: 0,
   },
   generateGoalsCtaText: {
@@ -1753,41 +1930,52 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: spacing.sm,
+    color: '#111111',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BRAND_COLORS.surface,
+    backgroundColor: '#FFFEFB',
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: 22,
     marginBottom: spacing.sm,
     gap: spacing.md,
+    borderWidth: 1,
+    borderColor: '#E9DED0',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 18,
+    shadowOpacity: 0.04,
+    elevation: 4,
   },
   menuItemPressed: {
-    opacity: 0.7,
+    opacity: 0.82,
   },
   menuIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(167, 139, 250, 0.1)',
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuContent: {
     flex: 1,
   },
+  menuTitle: {
+    color: '#111111',
+  },
   menuSubtitle: {
-    opacity: 0.6,
+    opacity: 1,
+    color: '#6B665F',
   },
   badge: {
-    backgroundColor: BRAND_COLORS.primary,
+    backgroundColor: '#111111',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   badgeText: {
-    color: '#1A1F2E',
+    color: '#FFFFFF',
     fontSize: 12,
   },
   logoutButton: {
@@ -1795,13 +1983,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: '#F5C2C7',
+    backgroundColor: '#FFFEFB',
     gap: spacing.sm,
   },
   logoutButtonPressed: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: '#FFF4F5',
   },
   logoutText: {
     color: '#EF4444',
@@ -1809,6 +1998,7 @@ const styles = StyleSheet.create({
   // Full-screen modal styles
   modalContainer: {
     flex: 1,
+    backgroundColor: '#FFF9F2',
   },
   modalAppBar: {
     flexDirection: 'row',
@@ -1817,8 +2007,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-    backgroundColor: BRAND_COLORS.background,
+    borderBottomColor: '#ECE3D7',
+    backgroundColor: '#FFFDF9',
   },
   homeButton: {
     width: 44,
@@ -1826,7 +2016,9 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(76, 175, 80, 0.12)',
+    backgroundColor: '#FBF8F1',
+    borderWidth: 1,
+    borderColor: '#E9E0D4',
   },
   modalTitle: {
     flex: 1,
@@ -1841,7 +2033,9 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: '#FBF8F1',
+    borderWidth: 1,
+    borderColor: '#E9E0D4',
   },
   modalScrollView: {
     flex: 1,
@@ -1855,8 +2049,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
-    backgroundColor: BRAND_COLORS.background,
+    borderTopColor: '#ECE3D7',
+    backgroundColor: '#FFFDF9',
   },
   ctaButton: {
     backgroundColor: '#111111',
@@ -1890,7 +2084,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.08)',
+    borderColor: '#E9DED0',
     minHeight: 52,
   },
   secondaryButtonPressed: {
@@ -1924,7 +2118,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.lg,
     borderRadius: 16,
-    backgroundColor: 'rgba(167, 139, 250, 0.08)',
+    backgroundColor: '#FBF8F1',
+    borderWidth: 1,
+    borderColor: '#E9E0D4',
     gap: spacing.sm,
   },
   optionTextSelected: {
@@ -1943,9 +2139,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.md,
     borderRadius: 16,
-    backgroundColor: 'rgba(167, 139, 250, 0.05)',
+    backgroundColor: '#FBF8F1',
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: '#E9E0D4',
     gap: spacing.md,
   },
   goalIconContainer: {
@@ -1959,7 +2155,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   goalDescription: {
-    opacity: 0.6,
+    opacity: 0.78,
     marginTop: 2,
   },
   buttonRow: {
@@ -1999,6 +2195,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
+    borderColor: '#E9DED0',
   },
   generatingInner: {
     alignItems: 'center',
@@ -2027,6 +2224,10 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
     gap: spacing.sm,
+    backgroundColor: '#FFFEFB',
+    borderWidth: 1,
+    borderColor: '#E9DED0',
+    borderRadius: 24,
   },
   goalCardHeader: {
     flexDirection: 'row',

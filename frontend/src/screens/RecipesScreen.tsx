@@ -39,41 +39,121 @@ const RECIPE_SUGGESTION_SEARCH_FALLBACKS: Record<string, string[]> = {
 };
 
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+    backgroundColor: '#FFF9F2',
+  },
+  mobileBackdropLayer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  mobileBackdropBand: {
+    position: 'absolute',
+    borderRadius: 999,
+  },
+  mobileBackdropBandWarm: {
+    width: 220,
+    height: 220,
+    top: -80,
+    right: -70,
+    backgroundColor: 'rgba(255, 211, 182, 0.4)',
+  },
+  mobileBackdropBandMint: {
+    width: 210,
+    height: 210,
+    top: 300,
+    left: -100,
+    backgroundColor: 'rgba(197, 242, 225, 0.34)',
+  },
+  mobileBackdropBandSky: {
+    width: 240,
+    height: 240,
+    bottom: 110,
+    right: -120,
+    backgroundColor: 'rgba(208, 231, 255, 0.28)',
+  },
   container: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   card: {
     gap: spacing.sm,
   },
   listContent: {
-    gap: spacing.md,
+    gap: spacing.lg,
   },
   header: {
-    gap: spacing.md,
-    marginBottom: spacing.md,
+    gap: spacing.lg,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    color: BRAND_COLORS.textMuted,
+    color: '#6B665F',
     marginTop: 2,
   },
   introCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
+    backgroundColor: '#FFFEFB',
+    borderRadius: 32,
     padding: spacing.xl,
     borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
+    borderColor: '#E9DED0',
     gap: spacing.md,
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 24,
+    shadowOpacity: 0.06,
+    elevation: 7,
+  },
+  introTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   introKicker: {
-    color: BRAND_COLORS.textMuted,
+    color: '#8A7560',
     letterSpacing: 1.2,
+  },
+  introBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#EEF6FF',
+    borderWidth: 1,
+    borderColor: '#D7E8FB',
+  },
+  introBadgeText: {
+    color: '#245B99',
+    fontSize: 11,
+    letterSpacing: 0.3,
   },
   introTitle: {
     color: BRAND_COLORS.textPrimary,
+    fontSize: 38,
+    lineHeight: 42,
+    letterSpacing: -1.2,
   },
   introBody: {
-    color: BRAND_COLORS.textSecondary,
+    color: '#374151',
     maxWidth: 560,
+    lineHeight: 24,
+  },
+  introFocusCard: {
+    backgroundColor: '#121212',
+    borderRadius: 24,
+    padding: spacing.lg,
+    gap: spacing.xs,
+  },
+  introFocusKicker: {
+    color: 'rgba(255,255,255,0.68)',
+    letterSpacing: 1,
+  },
+  introFocusTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    lineHeight: 28,
+    letterSpacing: -0.5,
+  },
+  introFocusMeta: {
+    color: 'rgba(255,255,255,0.66)',
   },
   introStatsRow: {
     flexDirection: 'row',
@@ -82,36 +162,53 @@ const styles = StyleSheet.create({
   },
   introStat: {
     minWidth: 104,
+    flex: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: 18,
-    backgroundColor: BRAND_COLORS.surfaceVariant,
+    backgroundColor: '#FBF8F1',
     borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.05)',
+    borderColor: '#EDE3D8',
     gap: 2,
   },
+  introStatWarm: {
+    backgroundColor: '#FFF4EA',
+    borderColor: '#F3D7BE',
+  },
+  introStatMint: {
+    backgroundColor: '#ECF9F3',
+    borderColor: '#CBEBDD',
+  },
+  introStatSky: {
+    backgroundColor: '#EEF6FF',
+    borderColor: '#D7E8FB',
+  },
   introStatLabel: {
-    color: BRAND_COLORS.textMuted,
+    color: '#6B665F',
   },
   introStatValue: {
     color: BRAND_COLORS.textPrimary,
   },
   searchContainer: {
-    marginTop: spacing.md,
+    marginTop: 0,
   },
   suggestionsSection: {
     marginTop: spacing.sm,
   },
   section: {
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
     gap: spacing.sm,
+  },
+  sectionTitle: {
+    color: '#111111',
+    letterSpacing: -0.5,
   },
   recommendedList: {
     gap: spacing.md,
     paddingVertical: spacing.xs,
   },
   recommendedCard: {
-    width: 260,
+    width: 276,
   },
   recommendedNote: {
     opacity: 0.7,
@@ -168,6 +265,11 @@ export const RecipesScreen = () => {
   const savedRecipes = saved.data ?? [];
   const savedRecipeIds = useMemo(() => new Set(savedRecipes.map((item) => item.id)), [savedRecipes]);
   const recommendedRecipes = recommended.data ?? [];
+  const recipeFocus = userGoal === 'GAIN_MUSCLE'
+    ? 'Keep meal ideas protein-forward so your training days are easier to support.'
+    : userGoal === 'LOSE_WEIGHT'
+      ? 'Lean toward lighter, repeatable meals that keep calories under control.'
+      : 'Use the library to keep meals balanced, simple, and easy to repeat.';
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -380,17 +482,35 @@ export const RecipesScreen = () => {
   const listHeaderComponent = (
     <View style={styles.header}>
       <Animated.View entering={staggerEnter(0)} style={styles.introCard}>
-        <Text variant="label" weight="bold" style={styles.introKicker}>
-          RECIPE LIBRARY
-        </Text>
+        <View style={styles.introTopRow}>
+          <Text variant="label" weight="bold" style={styles.introKicker}>
+            RECIPE LIBRARY
+          </Text>
+          <View style={styles.introBadge}>
+            <Text variant="caption" weight="bold" style={styles.introBadgeText}>
+              SEARCH + COOK
+            </Text>
+          </View>
+        </View>
         <Text variant="heading1" weight="bold" style={styles.introTitle}>
           Recipes
         </Text>
         <Text variant="body" style={styles.introBody}>
-          Healthy meals and your saved list.
+          Keep healthy meals easy to discover, easy to save, and brighter to scan on mobile.
         </Text>
+        <View style={styles.introFocusCard}>
+          <Text variant="caption" weight="bold" style={styles.introFocusKicker}>
+            TODAY'S DIRECTION
+          </Text>
+          <Text variant="body" weight="bold" style={styles.introFocusTitle}>
+            {recipeFocus}
+          </Text>
+          <Text variant="caption" style={styles.introFocusMeta}>
+            {recommendedRecipes.length} recommended · {savedRecipes.length} saved
+          </Text>
+        </View>
         <View style={styles.introStatsRow}>
-          <View style={styles.introStat}>
+          <View style={[styles.introStat, styles.introStatWarm]}>
             <Text variant="caption" weight="medium" style={styles.introStatLabel}>
               Recommended
             </Text>
@@ -398,7 +518,7 @@ export const RecipesScreen = () => {
               {recommendedRecipes.length}
             </Text>
           </View>
-          <View style={styles.introStat}>
+          <View style={[styles.introStat, styles.introStatMint]}>
             <Text variant="caption" weight="medium" style={styles.introStatLabel}>
               Saved
             </Text>
@@ -406,7 +526,7 @@ export const RecipesScreen = () => {
               {savedRecipes.length}
             </Text>
           </View>
-          <View style={styles.introStat}>
+          <View style={[styles.introStat, styles.introStatSky]}>
             <Text variant="caption" weight="medium" style={styles.introStatLabel}>
               Flow
             </Text>
@@ -491,7 +611,7 @@ export const RecipesScreen = () => {
       {/* Recommended Recipes Section - hidden when search UI is active */}
       {!showSearchUI && (
         <Animated.View entering={staggerEnter(2)} style={styles.section}>
-          <Text variant="heading2" weight="semibold" style={{ color: BRAND_COLORS.textPrimary }}>
+          <Text variant="heading2" weight="semibold" style={styles.sectionTitle}>
             Recommended for you
           </Text>
           {recommended.isLoading ? (
@@ -543,41 +663,49 @@ export const RecipesScreen = () => {
 
   return (
     <SafeAreaWrapper>
-      <ScreenLayout scrollable={false}>
-        <Container style={styles.container}>
-          <FlatList
-            ref={listRef}
-            data={[]} // Saved recipes moved to SavedRecipesScreen
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
-            ItemSeparatorComponent={ItemSeparator}
-            ListHeaderComponent={listHeaderComponent}
-            ListEmptyComponent={null}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={handleRefresh}
-                tintColor={theme.colors.primary}
-              />
-            }
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-          />
-        </Container>
-        {/* Hide FAB on desktop */}
-        {!showSidebar && (
-          <FAB
-            icon="arrow-up"
-            style={[styles.fab, { bottom: fabBottomPosition, backgroundColor: theme.colors.primary }]}
-            color="#FFFFFF"
-            mode="elevated"
-            onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
-            visible={showFab}
-          />
+      <View style={styles.screenRoot}>
+        {Platform.OS !== 'web' && (
+          <View pointerEvents="none" style={styles.mobileBackdropLayer}>
+            <View style={[styles.mobileBackdropBand, styles.mobileBackdropBandWarm]} />
+            <View style={[styles.mobileBackdropBand, styles.mobileBackdropBandMint]} />
+            <View style={[styles.mobileBackdropBand, styles.mobileBackdropBandSky]} />
+          </View>
         )}
-      </ScreenLayout>
+        <ScreenLayout scrollable={false}>
+          <Container style={styles.container}>
+            <FlatList
+              ref={listRef}
+              data={[]} // Saved recipes moved to SavedRecipesScreen
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
+              ItemSeparatorComponent={ItemSeparator}
+              ListHeaderComponent={listHeaderComponent}
+              ListEmptyComponent={null}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefreshing}
+                  onRefresh={handleRefresh}
+                  tintColor={theme.colors.primary}
+                />
+              }
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+            />
+          </Container>
+          {!showSidebar && (
+            <FAB
+              icon="arrow-up"
+              style={[styles.fab, { bottom: fabBottomPosition, backgroundColor: '#111111' }]}
+              color="#FFFFFF"
+              mode="elevated"
+              onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+              visible={showFab}
+            />
+          )}
+        </ScreenLayout>
+      </View>
     </SafeAreaWrapper>
   );
 };

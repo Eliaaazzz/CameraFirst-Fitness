@@ -134,7 +134,7 @@ export default function SplashScreen() {
           contentFit="contain"
         />
         <Text variant="heading1" weight="bold" style={styles.wordmark}>
-          AuraFitness
+          Metriful
         </Text>
       </Animated.View>
 
