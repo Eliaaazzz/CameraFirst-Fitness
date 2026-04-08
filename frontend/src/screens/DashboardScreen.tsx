@@ -870,30 +870,34 @@ const DashboardScreen = () => {
               </View>
             </View>
 
-            {/* ── PERFORMANCE TODAY — Apple Fitness 3-column grid ── */}
+            {/* ── PERFORMANCE TODAY — Hero rings + 2-col bento ── */}
             <View style={webStyles.section}>
               <Text variant="heading2" weight="bold" style={webStyles.perfTitle}>
                 Performance today
               </Text>
-              <View style={webStyles.perfGrid}>
-                <View style={webStyles.perfCell}>
-                  {showNutritionLoading ? (
-                    <NutritionRingsSkeleton />
-                  ) : (
-                    <NutritionRingsCard
-                      data={{
-                        calories: { current: nutritionData.calories, target: calorieGoal },
-                        protein: { current: nutritionData.protein.current, target: proteinGoal },
-                        carbs: { current: nutritionData.carbs.current, target: carbsGoal },
-                        fat: { current: nutritionData.fat.current, target: fatGoal },
-                      }}
-                      showFat={true}
-                      onMacroPress={handleMacroSearch}
-                      onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
-                    />
-                  )}
-                </View>
-                <View style={webStyles.perfCell}>
+
+              {/* Hero: Nutrition Rings (full width, visual focal point) */}
+              <View style={webStyles.perfHero}>
+                {showNutritionLoading ? (
+                  <NutritionRingsSkeleton />
+                ) : (
+                  <NutritionRingsCard
+                    data={{
+                      calories: { current: nutritionData.calories, target: calorieGoal },
+                      protein: { current: nutritionData.protein.current, target: proteinGoal },
+                      carbs: { current: nutritionData.carbs.current, target: carbsGoal },
+                      fat: { current: nutritionData.fat.current, target: fatGoal },
+                    }}
+                    showFat={true}
+                    onMacroPress={handleMacroSearch}
+                    onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
+                  />
+                )}
+              </View>
+
+              {/* Secondary: Score + Tasks (2-col) */}
+              <View style={webStyles.perfRow}>
+                <View style={webStyles.perfHalf}>
                   <DailyScoreCard
                     data={{
                       calories: nutritionData.calories,
@@ -907,7 +911,7 @@ const DashboardScreen = () => {
                     }}
                   />
                 </View>
-                <View style={webStyles.perfCell}>
+                <View style={webStyles.perfHalf}>
                   <DailyTasksCard
                     data={{
                       calories: nutritionData.calories,
@@ -2752,7 +2756,7 @@ const webStyles = StyleSheet.create({
   serviceBody: {
     color: '#6B6B6B',
   },
-  // ── PERFORMANCE TODAY — Apple Fitness 3-column grid ──
+  // ── PERFORMANCE TODAY — Hero + 2-col bento ──
   perfTitle: {
     color: '#111111',
     fontSize: 32,
@@ -2760,12 +2764,14 @@ const webStyles = StyleSheet.create({
     letterSpacing: -1,
     marginBottom: 20,
   },
-  perfGrid: {
+  perfHero: {
+    marginBottom: 16,
+  },
+  perfRow: {
     flexDirection: 'row',
-    alignItems: 'stretch',
     gap: 16,
   },
-  perfCell: {
+  perfHalf: {
     flex: 1,
   },
   // Legacy — kept so TS doesn't break on any remaining refs
