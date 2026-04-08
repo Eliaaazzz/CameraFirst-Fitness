@@ -1,17 +1,18 @@
 /**
- * NutritionRingsCard — Apple Fitness Activity Rings grade.
+ * NutritionRingsCard — Apple Fitness Activity Rings.
  *
- * Changes from research:
- * - Ring colors: vivid-500 level (not muted-600)
- * - Track opacity: 12% (not 7%)
- * - Ring max-width: 200px desktop (not 260)
- * - No white center fill — background shows through
- * - Legend: 8px dots, data-first typography, colored % text
- * - 20px padding (consistent with card system)
+ * EXACT replica of the reference image:
+ * - Outer (Protein): #FA114F hot pink — track 25% opacity
+ * - Middle (Fat): #92E82A electric lime — track 25% opacity
+ * - Inner (Carbs): #00D4FD cyan — track 25% opacity
+ * - Stroke: 22px CHUNKY
+ * - Rings tightly packed (85, 62, 39)
+ * - No center content — rings ARE the visual
+ * - Stats below: 3 columns with colored dots + big numbers
  */
-import { Flame, BookOpen, ArrowSquareOut } from 'phosphor-react-native';
+import { BookOpen, ArrowSquareOut } from 'phosphor-react-native';
 import React, { useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedProps,
@@ -23,13 +24,16 @@ import Svg, { Circle, G } from 'react-native-svg';
 
 import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/components/common/BentoCard';
 import { Text } from '@/components/Text';
-import { useLanguageStore } from '@/stores';
-import { BRAND_COLORS, NUTRITION_REFERENCES, openExternalUrl, spacing } from '@/utils';
+import { NUTRITION_REFERENCES, openExternalUrl } from '@/utils';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-// Types
+// ============================================================================
+// TYPES
+// ============================================================================
+
 interface MacroData { current: number; target: number; }
+
 export interface NutritionRingsData {
   calories: MacroData;
   protein: MacroData;
@@ -37,97 +41,113 @@ export interface NutritionRingsData {
   fat?: MacroData;
   bloodSugarRise?: number;
 }
+
 interface NutritionRingsCardProps {
   data: NutritionRingsData;
-  title?: string;
   showFat?: boolean;
   animated?: boolean;
   onMacroPress?: (macro: 'calories' | 'protein' | 'carbs' | 'fat') => void;
   onSourcesPress?: () => void;
 }
 
-// Vivid-500 colors (Apple Fitness saturation level)
-const RING_COLORS = {
-  protein: '#14B8A6',  // teal-500
-  fat: '#F97316',      // orange-500
-  carbs: '#84CC16',    // lime-500
+// ============================================================================
+// APPLE FITNESS NEON COLORS — exact from reference image
+// ============================================================================
+
+const NEON = {
+  pink:  { fill: '#FA114F', track: 'rgba(250, 17, 79, 0.25)' },
+  lime:  { fill: '#92E82A', track: 'rgba(146, 232, 42, 0.25)' },
+  cyan:  { fill: '#00D4FD', track: 'rgba(0, 212, 253, 0.25)' },
 };
 
-const STROKE_WIDTH = 12;
+// Ring mapping: Protein (outer/pink), Fat (middle/lime), Carbs (inner/cyan)
+const STROKE = 22; // Chunky like Apple Fitness
 
-interface RingConfig {
-  key: 'protein' | 'carbs' | 'fat';
+interface RingDef {
+  key: 'protein' | 'fat' | 'carbs';
   label: string;
+  unit: string;
   color: string;
   trackColor: string;
   radius: number;
 }
 
-const RING_CONFIGS: RingConfig[] = [
-  { key: 'protein', label: 'Protein', color: RING_COLORS.protein, trackColor: 'rgba(20, 184, 166, 0.12)', radius: 85 },
-  { key: 'fat', label: 'Fat', color: RING_COLORS.fat, trackColor: 'rgba(249, 115, 22, 0.12)', radius: 66 },
-  { key: 'carbs', label: 'Carbs', color: RING_COLORS.carbs, trackColor: 'rgba(132, 204, 22, 0.12)', radius: 47 },
+const RINGS: RingDef[] = [
+  { key: 'protein', label: 'Protein', unit: 'g', color: NEON.pink.fill, trackColor: NEON.pink.track, radius: 85 },
+  { key: 'fat',     label: 'Fat',     unit: 'g', color: NEON.lime.fill, trackColor: NEON.lime.track, radius: 62 },
+  { key: 'carbs',   label: 'Carbs',   unit: 'g', color: NEON.cyan.fill, trackColor: NEON.cyan.track, radius: 39 },
 ];
 
-// Animated Ring
-function AnimatedRing({ color, trackColor, radius, percentage, centerX, centerY, animated, delay }: {
+// ============================================================================
+// ANIMATED RING — chunky, round-capped
+// ============================================================================
+
+function Ring({ color, trackColor, radius, percentage, cx, cy, animated, delay }: {
   color: string; trackColor: string; radius: number; percentage: number;
-  centerX: number; centerY: number; animated: boolean; delay: number;
+  cx: number; cy: number; animated: boolean; delay: number;
 }) {
-  const circumference = 2 * Math.PI * radius;
-  const targetProgress = Math.min(percentage, 100) / 100;
+  const circ = 2 * Math.PI * radius;
+  const target = Math.min(percentage, 100) / 100;
   const progress = useSharedValue(0);
 
   useEffect(() => {
     progress.value = animated
-      ? withDelay(delay, withTiming(targetProgress, { duration: 800, easing: Easing.out(Easing.cubic) }))
-      : targetProgress;
-  }, [targetProgress, animated, delay]);
+      ? withDelay(delay, withTiming(target, { duration: 900, easing: Easing.out(Easing.cubic) }))
+      : target;
+  }, [target, animated, delay]);
 
   const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: circumference * (1 - progress.value),
+    strokeDashoffset: circ * (1 - progress.value),
   }));
 
   return (
     <>
-      <Circle cx={centerX} cy={centerY} r={radius} stroke={trackColor} strokeWidth={STROKE_WIDTH} fill="none" strokeLinecap="round" />
-      <G transform={`rotate(-90, ${centerX}, ${centerY})`}>
-        <AnimatedCircle cx={centerX} cy={centerY} r={radius} stroke={color} strokeWidth={STROKE_WIDTH} fill="none" strokeLinecap="round" strokeDasharray={[circumference, circumference]} animatedProps={animatedProps} />
+      <Circle cx={cx} cy={cy} r={radius} stroke={trackColor} strokeWidth={STROKE} fill="none" strokeLinecap="round" />
+      <G transform={`rotate(-90, ${cx}, ${cy})`}>
+        <AnimatedCircle cx={cx} cy={cy} r={radius} stroke={color} strokeWidth={STROKE} fill="none" strokeLinecap="round" strokeDasharray={[circ, circ]} animatedProps={animatedProps} />
       </G>
     </>
   );
 }
 
-// Legend Item
-function LegendItem({ color, label, current, target, unit, onPress }: {
+// ============================================================================
+// STAT COLUMN — Apple Fitness style: colored dot, big number, label
+// ============================================================================
+
+function StatColumn({ color, label, current, target, unit, onPress }: {
   color: string; label: string; current: number; target: number; unit: string; onPress?: () => void;
 }) {
   const pct = target > 0 ? Math.round((current / target) * 100) : 0;
   return (
-    <Pressable style={({ pressed }) => [styles.legendItem, pressed && { opacity: 0.7 }]} onPress={onPress}
-      accessibilityRole="button" accessibilityLabel={`${label}: ${Math.round(current)} of ${target}${unit}`}>
-      <View style={[styles.legendDot, { backgroundColor: color }]} />
-      <View style={styles.legendContent}>
-        <Text style={styles.legendLabel}>{label}</Text>
-        <View style={styles.legendValues}>
-          <Text style={styles.legendCurrent}>{Math.round(current)}</Text>
-          <Text style={styles.legendTarget}>/ {target}{unit}</Text>
-        </View>
+    <Pressable
+      style={({ pressed }) => [styles.statCol, pressed && { opacity: 0.7 }]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${Math.round(current)} of ${target}${unit}`}
+    >
+      <View style={styles.statHeader}>
+        <View style={[styles.statDot, { backgroundColor: color }]} />
+        <Text style={[styles.statLabel, { color }]}>{label}</Text>
       </View>
-      <Text style={[styles.legendPercent, { color }]}>{pct}%</Text>
+      <Text style={styles.statValue}>{Math.round(current)}<Text style={styles.statUnit}>/{target}{unit}</Text></Text>
+      <Text style={[styles.statPct, { color }]}>{pct}%</Text>
     </Pressable>
   );
 }
 
-// Main Component
-export function NutritionRingsCard({ data, title, showFat = true, animated = true, onMacroPress, onSourcesPress }: NutritionRingsCardProps) {
-  const { t } = useLanguageStore();
-  const displayTitle = title || t.todaysNutrition;
-  const { width } = useWindowDimensions();
-  const isMobile = width < 600;
-  const isTablet = !isMobile && Platform.OS !== 'web' && width >= 700;
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
-  const ringConfigs = showFat ? RING_CONFIGS : RING_CONFIGS.filter(c => c.key !== 'fat');
+export function NutritionRingsCard({
+  data,
+  showFat = true,
+  animated = true,
+  onMacroPress,
+  onSourcesPress,
+}: NutritionRingsCardProps) {
+  const rings = showFat ? RINGS : RINGS.filter(r => r.key !== 'fat');
+
   const pcts: Record<string, number> = {
     protein: data.protein.target > 0 ? (data.protein.current / data.protein.target) * 100 : 0,
     fat: data.fat && data.fat.target > 0 ? (data.fat.current / data.fat.target) * 100 : 0,
@@ -135,42 +155,40 @@ export function NutritionRingsCard({ data, title, showFat = true, animated = tru
   };
 
   return (
-    <View style={[styles.card, isTablet && styles.cardTablet]}>
-      <Text style={styles.title}>{displayTitle}</Text>
-
-      <View style={[styles.content, isMobile ? styles.contentMobile : styles.contentDesktop]}>
-        {/* Rings */}
-        <View style={[styles.ringsWrapper, isMobile ? styles.ringsWrapperMobile : styles.ringsWrapperDesktop]}
-          accessible accessibilityRole="summary">
-          <View style={styles.ringsAspectBox}>
-            <Svg width="100%" height="100%" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
-              {ringConfigs.map((c, i) => (
-                <AnimatedRing key={c.key} color={c.color} trackColor={c.trackColor} radius={c.radius}
-                  percentage={pcts[c.key]} centerX={100} centerY={100} animated={animated} delay={i * 100} />
-              ))}
-            </Svg>
-            {/* Center calories — no white fill, just floating text */}
-            <Pressable style={({ pressed }) => [styles.centerContent, pressed && { opacity: 0.7 }]}
-              onPress={() => onMacroPress?.('calories')} accessibilityRole="button">
-              <Flame size={isMobile ? 18 : 20} weight="fill" color="#111111" />
-              <Text style={isMobile ? [styles.centerCal, styles.centerCalMobile] : styles.centerCal}>
-                {Math.round(data.calories.current)}
-              </Text>
-              <Text style={styles.centerUnit}>kcal</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Legend */}
-        <View style={[styles.legend, isMobile ? styles.legendMobile : styles.legendDesktop]}>
-          <LegendItem color={RING_COLORS.protein} label="Protein" current={data.protein.current} target={data.protein.target} unit="g" onPress={() => onMacroPress?.('protein')} />
-          {showFat && <LegendItem color={RING_COLORS.fat} label="Fat" current={data.fat?.current || 0} target={data.fat?.target || 0} unit="g" onPress={() => onMacroPress?.('fat')} />}
-          <LegendItem color={RING_COLORS.carbs} label="Carbs" current={data.carbs.current} target={data.carbs.target} unit="g" onPress={() => onMacroPress?.('carbs')} />
-        </View>
+    <View style={styles.card}>
+      {/* Rings — THE hero visual, no text overlay */}
+      <View style={styles.ringsContainer} accessible accessibilityRole="summary"
+        accessibilityLabel={`Nutrition rings. Protein ${Math.round(pcts.protein)}%, Fat ${Math.round(pcts.fat)}%, Carbs ${Math.round(pcts.carbs)}%`}>
+        <Svg width="100%" height="100%" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
+          {rings.map((r, i) => (
+            <Ring key={r.key} color={r.color} trackColor={r.trackColor} radius={r.radius}
+              percentage={pcts[r.key]} cx={100} cy={100} animated={animated} delay={i * 120} />
+          ))}
+        </Svg>
       </View>
 
-      {/* Citation */}
-      <Pressable style={styles.citation} onPress={() => openExternalUrl(NUTRITION_REFERENCES.fdaDailyValues.url, 'Unable to open source', 'Open FDA reference.')}
+      {/* Calories — centered below rings */}
+      <Pressable
+        style={({ pressed }) => [styles.caloriesRow, pressed && { opacity: 0.7 }]}
+        onPress={() => onMacroPress?.('calories')}
+        accessibilityLabel={`Calories: ${Math.round(data.calories.current)} of ${data.calories.target}`}
+      >
+        <Text style={styles.caloriesValue}>{Math.round(data.calories.current)}</Text>
+        <Text style={styles.caloriesLabel}> / {data.calories.target} kcal</Text>
+      </Pressable>
+
+      {/* Stats row — 3 columns */}
+      <View style={styles.statsRow}>
+        <StatColumn color={NEON.pink.fill} label="Protein" current={data.protein.current} target={data.protein.target} unit="g" onPress={() => onMacroPress?.('protein')} />
+        {showFat && (
+          <StatColumn color={NEON.lime.fill} label="Fat" current={data.fat?.current || 0} target={data.fat?.target || 0} unit="g" onPress={() => onMacroPress?.('fat')} />
+        )}
+        <StatColumn color={NEON.cyan.fill} label="Carbs" current={data.carbs.current} target={data.carbs.target} unit="g" onPress={() => onMacroPress?.('carbs')} />
+      </View>
+
+      {/* Citation — compact footnote */}
+      <Pressable style={styles.citation}
+        onPress={() => openExternalUrl(NUTRITION_REFERENCES.fdaDailyValues.url, 'Unable to open source', 'Open FDA reference.')}
         accessibilityRole="link" accessibilityLabel={NUTRITION_REFERENCES.fdaDailyValues.title}>
         <BookOpen size={11} color="#9CA3AF" />
         <Text style={styles.citationText}>Source: FDA Daily Values (2,000 kcal · 50g P · 275g C · 78g F)</Text>
@@ -184,44 +202,104 @@ export function getCalorieSubtitle(current: number, target: number): string {
   return `${Math.round(current)} / ${target} kcal`;
 }
 
+// ============================================================================
+// STYLES
+// ============================================================================
+
 const styles = StyleSheet.create({
   card: {
     ...(Platform.OS === 'web' ? { ...BENTO_CARD_STYLES, ...(BENTO_CARD_WEB_STYLES as object) } : MOBILE_CARD_STYLES),
+    alignItems: 'center',
     overflow: 'hidden' as const,
   },
-  cardTablet: { maxWidth: 700, alignSelf: 'center' as const, width: '100%' as any },
-  title: { color: '#6B7280', fontSize: 14, fontWeight: '600', letterSpacing: 0.2, marginBottom: 16 },
 
-  content: { alignItems: 'center', justifyContent: 'center' },
-  contentDesktop: { flexDirection: 'row', gap: 32 },
-  contentMobile: { flexDirection: 'column', gap: spacing.lg },
+  // Rings — centered, square aspect ratio
+  ringsContainer: {
+    width: '100%',
+    maxWidth: 240,
+    aspectRatio: 1,
+  },
 
-  ringsWrapper: { alignItems: 'center', justifyContent: 'center' },
-  ringsWrapperDesktop: { flex: 1, maxWidth: 200, minWidth: 160 },
-  ringsWrapperMobile: { width: '100%', maxWidth: 200 },
-  ringsAspectBox: { width: '100%', aspectRatio: 1, position: 'relative' },
+  // Calories — below rings
+  caloriesRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    marginTop: 16,
+    marginBottom: 20,
+  },
+  caloriesValue: {
+    color: '#111111',
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -1,
+  },
+  caloriesLabel: {
+    color: '#9CA3AF',
+    fontSize: 16,
+    fontWeight: '400',
+  },
 
-  centerContent: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  centerCal: { color: '#111111', fontSize: 32, lineHeight: 36, fontWeight: '800', letterSpacing: -1 },
-  centerCalMobile: { fontSize: 26, lineHeight: 30 },
-  centerUnit: { color: '#9CA3AF', fontSize: 11, fontWeight: '500', textTransform: 'uppercase' as const, letterSpacing: 1.2, marginTop: 1 },
+  // Stats — 3 equal columns
+  statsRow: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  statCol: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+  },
+  statHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  statValue: {
+    color: '#111111',
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  statUnit: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    fontWeight: '400',
+  },
+  statPct: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
 
-  legend: { justifyContent: 'center' },
-  legendDesktop: { flex: 1, minWidth: 180, maxWidth: 260, gap: 20 },
-  legendMobile: { width: '100%', gap: 16 },
-
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  legendDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  legendContent: { flex: 1, minWidth: 0 },
-  legendLabel: { color: '#6B7280', fontSize: 12, fontWeight: '500', marginBottom: 1 },
-  legendValues: { flexDirection: 'row', alignItems: 'baseline' },
-  legendCurrent: { color: '#111111', fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
-  legendTarget: { color: '#9CA3AF', fontSize: 13, fontWeight: '400', marginLeft: 3 },
-  legendPercent: { fontSize: 13, fontWeight: '700', flexShrink: 0 },
-
-  citation: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20, paddingTop: 14,
-    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }) },
-  citationText: { flex: 1, fontSize: 11, fontWeight: '400', color: '#9CA3AF' },
+  // Citation
+  citation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 16,
+    paddingTop: 12,
+    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
+  },
+  citationText: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '400',
+    color: '#9CA3AF',
+  },
 });
 
 export default NutritionRingsCard;

@@ -856,60 +856,26 @@ const DashboardScreen = () => {
               </View>
             </View>
 
-            {/* ── PERFORMANCE TODAY — Hero rings + 2-col bento ── */}
+            {/* ── PERFORMANCE TODAY — Rings only ── */}
             <View style={webStyles.section}>
               <Text variant="heading2" weight="bold" style={webStyles.perfTitle}>
                 Performance today
               </Text>
-
-              {/* Hero: Nutrition Rings (full width, visual focal point) */}
-              <View style={webStyles.perfHero}>
-                {showNutritionLoading ? (
-                  <NutritionRingsSkeleton />
-                ) : (
-                  <NutritionRingsCard
-                    data={{
-                      calories: { current: nutritionData.calories, target: calorieGoal },
-                      protein: { current: nutritionData.protein.current, target: proteinGoal },
-                      carbs: { current: nutritionData.carbs.current, target: carbsGoal },
-                      fat: { current: nutritionData.fat.current, target: fatGoal },
-                    }}
-                    showFat={true}
-                    onMacroPress={handleMacroSearch}
-                    onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
-                  />
-                )}
-              </View>
-
-              {/* Secondary: Score + Tasks (2-col) */}
-              <View style={webStyles.perfRow}>
-                <View style={webStyles.perfHalf}>
-                  <DailyScoreCard
-                    data={{
-                      calories: nutritionData.calories,
-                      calorieGoal,
-                      protein: nutritionData.protein,
-                      carbs: nutritionData.carbs,
-                      fat: nutritionData.fat,
-                      hydrationCups,
-                      hydrationGoal: hydrationGoalCups,
-                      streak: currentUser.data?.currentStreak || 0,
-                    }}
-                  />
-                </View>
-                <View style={webStyles.perfHalf}>
-                  <DailyTasksCard
-                    data={{
-                      calories: nutritionData.calories,
-                      calorieGoal,
-                      protein: nutritionData.protein,
-                      mealCount: nutritionData.meals.length,
-                      hydrationCups,
-                      hydrationGoal: hydrationGoalCups,
-                    }}
-                  />
-                </View>
-              </View>
+              {showNutritionLoading ? (
+                <NutritionRingsSkeleton />
+              ) : (
+                <NutritionRingsCard
+                  data={{
+                    calories: { current: nutritionData.calories, target: calorieGoal },
+                    protein: { current: nutritionData.protein.current, target: proteinGoal },
+                    carbs: { current: nutritionData.carbs.current, target: carbsGoal },
+                    fat: { current: nutritionData.fat.current, target: fatGoal },
+                  }}
+                  showFat={true}
+                  onMacroPress={handleMacroSearch}
+                  onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
+                />
+              )}
             </View>
 
             <View style={webStyles.section}>
@@ -1295,7 +1261,7 @@ const DashboardScreen = () => {
               <WelcomeTourCard onStartTour={handleStartTour} onSkip={handleSkipTour} />
             )}
 
-            {/* ── PERFORMANCE TODAY — same structure as web (responsive) ── */}
+            {/* ── PERFORMANCE TODAY — Rings only (same as web) ── */}
             <View style={styles.mobileContentWrapper}>
               <Animated.View entering={staggerEnter(1)}>
                 <Text variant="heading2" weight="bold" style={styles.mobilePerfTitle}>
@@ -1303,38 +1269,8 @@ const DashboardScreen = () => {
                 </Text>
               </Animated.View>
 
-              {/* Hero: Nutrition Rings */}
               <Animated.View entering={staggerEnter(2)}>
                 {renderNutritionCard()}
-              </Animated.View>
-
-              {/* Score + Tasks — stacked on mobile */}
-              <Animated.View entering={staggerEnter(3)}>
-                <DailyScoreCard
-                  data={{
-                    calories: nutritionData.calories,
-                    calorieGoal,
-                    protein: nutritionData.protein,
-                    carbs: nutritionData.carbs,
-                    fat: nutritionData.fat,
-                    hydrationCups,
-                    hydrationGoal: hydrationGoalCups,
-                    streak: currentUser.data?.currentStreak || 0,
-                  }}
-                />
-              </Animated.View>
-
-              <Animated.View entering={staggerEnter(4)}>
-                <DailyTasksCard
-                  data={{
-                    calories: nutritionData.calories,
-                    calorieGoal,
-                    protein: nutritionData.protein,
-                    mealCount: nutritionData.meals.length,
-                    hydrationCups,
-                    hydrationGoal: hydrationGoalCups,
-                  }}
-                />
               </Animated.View>
 
                     {/* Nutrition Insights - Trend & Balance charts */}
