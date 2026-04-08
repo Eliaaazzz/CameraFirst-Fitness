@@ -24,7 +24,7 @@ export const NUTRITION_REFERENCES: Record<NutritionReference['id'], NutritionRef
     title: 'FDA Daily Values on the Nutrition Facts label',
     shortLabel: 'FDA Daily Values (2,000 kcal)',
     summary:
-      'General nutrition reference values for a 2,000-calorie diet, including fat 78 g, protein 50 g, carbohydrate 275 g, fiber 28 g, and added sugars 50 g.',
+      'The default targets used by Metriful come directly from this document: 2,000 kcal/day, protein 50 g, carbohydrate 275 g, total fat 78 g, fiber 28 g, added sugars 50 g.',
     url: 'https://www.fda.gov/media/135301/download',
     domainLabel: 'fda.gov',
   },
@@ -139,17 +139,17 @@ export function getNutritionTargetExplanation(goals?: GeneratedGoals | null): Nu
   }
 
   return {
-    title: 'Fallback target source',
+    title: 'Default targets — FDA Daily Values',
     summary:
-      'If no active plan is saved, Metriful falls back to general-reference values for a 2,000-calorie diet instead of personalised goals.',
+      'No active plan is saved. Metriful uses FDA Daily Values as the default reference: 2,000 kcal, protein 50 g, carbs 275 g, fat 78 g. These are the exact values shown on your dashboard.',
     calorieDetail:
-      'Calories default to the FDA general nutrition reference of 2,000 kcal/day.',
+      'FDA Daily Value: 2,000 kcal/day (general nutrition advice for adults).',
     macroDetail:
-      'Macros default to FDA Daily Values for general nutrition advice: protein 50 g, carbs 275 g, and fat 78 g.',
+      'FDA Daily Values: protein 50 g, carbohydrate 275 g, total fat 78 g — these are the numbers displayed on the Nutrition Facts label.',
     bloodSugarDetail:
       'Blood sugar estimate is a simplified net-carb plus protein model for context only, not a clinical measurement.',
     inputSummary:
-      'Fallback reference: FDA Daily Values for a 2,000-calorie diet, used only until you save a personalised goal.',
+      'Source: FDA Daily Values for a 2,000-calorie diet (fda.gov/media/135301/download). Save a plan to get personalised targets.',
     references: [
       NUTRITION_REFERENCES.fdaDailyValues,
     ],

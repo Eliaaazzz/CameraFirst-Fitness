@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { ArrowSquareOut, WarningCircle } from 'phosphor-react-native';
+import { ArrowLeft, ArrowSquareOut, WarningCircle } from 'phosphor-react-native';
 
 import { SafeAreaWrapper, Text } from '@/components';
 import type { GeneratedGoals } from '@/services/geminiApi';
@@ -32,7 +33,11 @@ function SourceCard({ title, body, url, domainLabel }: { title: string; body: st
   );
 }
 
+// Default values when user has no plan (FDA Daily Values)
+const DEFAULT_TARGETS = { calories: 2000, protein: 50, carbs: 275, fat: 78 };
+
 export function AboutNutritionDataScreen() {
+  const navigation = useNavigation();
   const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
 
   useEffect(() => {
@@ -55,9 +60,30 @@ export function AboutNutritionDataScreen() {
     (reference) => !targetExplanation.references.some((item) => item.id === reference.id)
   );
 
+  // Values to display: use plan if available, otherwise FDA defaults
+  const displayTargets = generatedGoals
+    ? {
+        calories: generatedGoals.dailyCalories.target,
+        protein: generatedGoals.macros_grams.protein_g,
+        carbs: generatedGoals.macros_grams.carbs_g,
+        fat: generatedGoals.macros_grams.fat_g,
+      }
+    : DEFAULT_TARGETS;
+
   return (
     <SafeAreaWrapper>
       <ScrollView contentContainerStyle={styles.container}>
+        {/* Back button */}
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <ArrowLeft size={20} color={BRAND_COLORS.textPrimary} />
+          <Text style={styles.backText}>Back</Text>
+        </Pressable>
+
         <Text style={styles.heading}>About Nutrition Data</Text>
         <Text style={styles.referenceLead}>
           Direct references and calculation notes for the calorie, macro, and blood sugar values shown in Metriful.
@@ -71,26 +97,24 @@ export function AboutNutritionDataScreen() {
             {targetExplanation.inputSummary || 'Build Plan currently defaults to age 30 and medium activity unless a saved plan includes different inputs.'}
           </Text>
 
-          {generatedGoals ? (
-            <View style={styles.currentTargetGrid}>
-              <View style={styles.metricPill}>
-                <Text style={styles.metricValue}>{generatedGoals.dailyCalories.target}</Text>
-                <Text style={styles.metricLabel}>kcal/day</Text>
-              </View>
-              <View style={styles.metricPill}>
-                <Text style={styles.metricValue}>{generatedGoals.macros_grams.protein_g}g</Text>
-                <Text style={styles.metricLabel}>Protein</Text>
-              </View>
-              <View style={styles.metricPill}>
-                <Text style={styles.metricValue}>{generatedGoals.macros_grams.carbs_g}g</Text>
-                <Text style={styles.metricLabel}>Carbs</Text>
-              </View>
-              <View style={styles.metricPill}>
-                <Text style={styles.metricValue}>{generatedGoals.macros_grams.fat_g}g</Text>
-                <Text style={styles.metricLabel}>Fat</Text>
-              </View>
+          <View style={styles.currentTargetGrid}>
+            <View style={styles.metricPill}>
+              <Text style={styles.metricValue}>{displayTargets.calories}</Text>
+              <Text style={styles.metricLabel}>kcal/day</Text>
             </View>
-          ) : null}
+            <View style={styles.metricPill}>
+              <Text style={styles.metricValue}>{displayTargets.protein}g</Text>
+              <Text style={styles.metricLabel}>Protein</Text>
+            </View>
+            <View style={styles.metricPill}>
+              <Text style={styles.metricValue}>{displayTargets.carbs}g</Text>
+              <Text style={styles.metricLabel}>Carbs</Text>
+            </View>
+            <View style={styles.metricPill}>
+              <Text style={styles.metricValue}>{displayTargets.fat}g</Text>
+              <Text style={styles.metricLabel}>Fat</Text>
+            </View>
+          </View>
 
           <Text style={styles.explanationLine}>Calories: {targetExplanation.calorieDetail}</Text>
           <Text style={styles.explanationLine}>Macros: {targetExplanation.macroDetail}</Text>
@@ -151,6 +175,19 @@ const styles = StyleSheet.create({
   container: {
     padding: spacing.lg,
     paddingBottom: spacing['2xl'],
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  backText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: BRAND_COLORS.textPrimary,
   },
   heading: {
     fontSize: 26,
