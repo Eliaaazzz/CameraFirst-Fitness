@@ -2756,20 +2756,21 @@ const webStyles = StyleSheet.create({
   serviceBody: {
     color: '#6B6B6B',
   },
-  // ── PERFORMANCE TODAY — Hero + 2-col bento ──
+  // ── PERFORMANCE TODAY — Apple Health style ──
   perfTitle: {
-    color: '#111111',
-    fontSize: 32,
-    lineHeight: 36,
-    letterSpacing: -1,
+    color: '#9CA3AF',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
     marginBottom: 20,
   },
   perfHero: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   perfRow: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 20,
   },
   perfHalf: {
     flex: 1,

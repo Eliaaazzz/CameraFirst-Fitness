@@ -4,31 +4,37 @@ import { Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { spacing } from '@/utils';
 
 /**
- * BentoCard — Apple Fitness / M3 card foundation.
+ * BentoCard — Unified card system.
  *
- * Rules:
- * - NO borders. Use micro-shadow only.
- * - Radius 14px (professional, not toy-like).
- * - Pure white on light gray background.
+ * Rules (Apple Health + Strava):
+ * - 14px radius
+ * - 1px border at 4% opacity (Apple's crisp edge trick)
+ * - Perceptible shadow (not invisible)
+ * - 20px padding everywhere (consistent)
+ * - Pure white #FFFFFF
  */
+
+const CARD_PADDING = 20;
 
 export const BENTO_CARD_STYLES: ViewStyle = {
   backgroundColor: '#FFFFFF',
   borderRadius: 14,
-  padding: spacing.xl,
-  borderWidth: 0,
+  padding: CARD_PADDING,
+  borderWidth: 1,
+  borderColor: 'rgba(0,0,0,0.04)',
 };
 
 export const MOBILE_CARD_STYLES: ViewStyle = {
   backgroundColor: '#FFFFFF',
   borderRadius: 14,
-  padding: spacing.xl,
-  borderWidth: 0,
+  padding: CARD_PADDING,
+  borderWidth: 1,
+  borderColor: 'rgba(0,0,0,0.04)',
   shadowColor: '#000000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowRadius: 12,
-  shadowOpacity: 0.04,
-  elevation: 3,
+  shadowOffset: { width: 0, height: 4 },
+  shadowRadius: 16,
+  shadowOpacity: 0.06,
+  elevation: 4,
 };
 
 export const BENTO_CARD_WEB_STYLES =
@@ -36,8 +42,9 @@ export const BENTO_CARD_WEB_STYLES =
     ? ({
         backgroundColor: '#FFFFFF',
         borderRadius: 14,
-        borderWidth: 0,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)',
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.04)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.05)',
       } as any)
     : {};
 
