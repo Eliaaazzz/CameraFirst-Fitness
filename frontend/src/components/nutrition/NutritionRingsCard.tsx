@@ -1,4 +1,15 @@
-import { CaretRight, Flame, Info, BookOpen, ArrowSquareOut } from 'phosphor-react-native';
+/**
+ * NutritionRingsCard — Apple Fitness-grade nutrition rings.
+ *
+ * Design rules applied:
+ * - Stroke 12px (down from 18) with round caps
+ * - Track color: 6% opacity of ring's own color (near-invisible)
+ * - Legend: 8px dots (not bars), no pill badges — colored bold % text only
+ * - Data-first typography: numbers black+bold, units light gray
+ * - No dividers — whitespace separates
+ * - Card: 14px radius, micro-shadow, no border
+ */
+import { Flame, BookOpen, ArrowSquareOut } from 'phosphor-react-native';
 import React, { useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
@@ -10,7 +21,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, G } from 'react-native-svg';
 
-import { AIDisclaimer } from '@/components/common/AIDisclaimer';
 import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/components/common/BentoCard';
 import { Text } from '@/components/Text';
 import { useLanguageStore } from '@/stores';
@@ -21,7 +31,6 @@ import {
   spacing,
 } from '@/utils';
 
-// Create animated circle component
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 // ============================================================================
@@ -38,7 +47,6 @@ export interface NutritionRingsData {
   protein: MacroData;
   carbs: MacroData;
   fat?: MacroData;
-  /** Estimated blood sugar rise in mg/dL (moderate T2 diabetes baseline) */
   bloodSugarRise?: number;
 }
 
@@ -52,25 +60,20 @@ interface NutritionRingsCardProps {
 }
 
 // ============================================================================
-// MACRO COLORS - Consistent & Bold
+// VIVID RING COLORS — Apple Fitness saturation level
 // ============================================================================
 
 const RING_COLORS = {
-  protein: BRAND_COLORS.secondary, // Cyan
-  fat: BRAND_COLORS.primary,       // Primary orange
-  carbs: BRAND_COLORS.rings.carbs,  // Olive green
-  calories: BRAND_COLORS.macros.calories,
-  bloodSugar: BRAND_COLORS.rings.bloodSugar, // Blood sugar ring
+  protein: '#0D9488',   // Vivid teal (up from muted #2F7A6A)
+  fat: '#EA580C',       // Vivid orange (up from muted #C96A34)
+  carbs: '#65A30D',     // Vivid lime (up from muted #8A9B4F)
 };
 
-const TRACK_COLOR = BRAND_COLORS.rings.track;
-
 // ============================================================================
-// RING CONFIGURATION
+// RING CONFIGURATION — thinner, more elegant
 // ============================================================================
 
-// Stroke width relative to viewBox (will scale with container)
-const STROKE_WIDTH = 18;
+const STROKE_WIDTH = 12; // Down from 18 — thinner, more refined
 
 interface RingConfig {
   key: 'protein' | 'carbs' | 'fat';
@@ -80,35 +83,32 @@ interface RingConfig {
   radius: number;
 }
 
-// 3 Rings Layout (Protein outer, Fat middle, Carbs inner)
-// ViewBox is 200x200, center at 100,100
-// Each ring has its own colored track for brighter readability
 const RING_CONFIGS: RingConfig[] = [
   {
     key: 'protein',
     label: 'Protein',
     color: RING_COLORS.protein,
-    trackColor: 'rgba(47, 122, 106, 0.18)',
+    trackColor: 'rgba(13, 148, 136, 0.07)', // 7% opacity — near invisible
     radius: 85,
   },
   {
     key: 'fat',
     label: 'Fat',
     color: RING_COLORS.fat,
-    trackColor: 'rgba(201, 106, 52, 0.18)',
-    radius: 64,
+    trackColor: 'rgba(234, 88, 12, 0.07)',
+    radius: 66,
   },
   {
     key: 'carbs',
     label: 'Carbs',
     color: RING_COLORS.carbs,
-    trackColor: 'rgba(138, 155, 79, 0.18)',
-    radius: 43,
+    trackColor: 'rgba(101, 163, 13, 0.07)',
+    radius: 47,
   },
 ];
 
 // ============================================================================
-// ANIMATED RING COMPONENT - Raw SVG Circle
+// ANIMATED RING
 // ============================================================================
 
 interface AnimatedRingProps {
@@ -151,14 +151,12 @@ function AnimatedRing({
     }
   }, [targetProgress, animated, delay]);
 
-  const animatedProps = useAnimatedProps(() => {
-    const strokeDashoffset = circumference * (1 - progress.value);
-    return { strokeDashoffset };
-  });
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - progress.value),
+  }));
 
   return (
     <>
-      {/* Background Track — per-ring color for vivid readout */}
       <Circle
         cx={centerX}
         cy={centerY}
@@ -166,10 +164,8 @@ function AnimatedRing({
         stroke={trackColor}
         strokeWidth={STROKE_WIDTH}
         fill="none"
-        opacity={1}
         strokeLinecap="round"
       />
-      {/* Progress Ring - Rotated -90deg to start from top */}
       <G transform={`rotate(-90, ${centerX}, ${centerY})`}>
         <AnimatedCircle
           cx={centerX}
@@ -188,103 +184,40 @@ function AnimatedRing({
 }
 
 // ============================================================================
-// LEGEND ITEM COMPONENT
+// LEGEND ITEM — Apple Fitness style: dot + data-first typography
 // ============================================================================
 
-interface LegendItemProps {
-  readonly color: string;
-  readonly label: string;
-  readonly current: number;
-  readonly target: number;
-  readonly unit: string;
-  readonly isCompact?: boolean;
-  readonly onPress?: () => void;
-}
-
-function LegendItem({ color, label, current, target, unit, isCompact = false, onPress }: LegendItemProps) {
+function LegendItem({ color, label, current, target, unit, onPress }: {
+  color: string;
+  label: string;
+  current: number;
+  target: number;
+  unit: string;
+  onPress?: () => void;
+}) {
   const percentage = target > 0 ? Math.round((current / target) * 100) : 0;
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.legendItem,
-        isCompact && styles.legendItemCompact,
-        pressed && { opacity: 0.7, transform: [{ scale: 0.98 }] }
+        pressed && { opacity: 0.7 }
       ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${Math.round(current)} of ${target}${unit}, ${percentage} percent`}
-      accessibilityHint={`View ${label.toLowerCase()} details`}
     >
-      {/* Colored dot indicator */}
       <View style={[styles.legendDot, { backgroundColor: color }]} />
-
-      {/* Label and values */}
       <View style={styles.legendContent}>
-        <Text variant="caption" style={styles.legendLabel}>
-          {label}
-        </Text>
+        <Text style={styles.legendLabel}>{label}</Text>
         <View style={styles.legendValues}>
-          <Text variant="body" weight="bold" style={styles.legendCurrent}>
-            {Math.round(current)}
-          </Text>
-          <Text variant="caption" style={styles.legendTarget}>
-            / {target}{unit}
-          </Text>
+          <Text style={styles.legendCurrent}>{Math.round(current)}</Text>
+          <Text style={styles.legendTarget}>/ {target}{unit}</Text>
         </View>
       </View>
-
-      {/* Percentage badge */}
-      <View style={[styles.percentBadge, { backgroundColor: `${color}20` }]}>
-        <Text style={[styles.percentText, { color }]}>
-          {percentage}%
-        </Text>
-      </View>
+      {/* No pill badge — just colored bold text */}
+      <Text style={[styles.legendPercent, { color }]}>{percentage}%</Text>
     </Pressable>
-  );
-}
-
-// ============================================================================
-// BLOOD SUGAR RISE ITEM
-// ============================================================================
-
-interface BloodSugarItemProps {
-  readonly value: number;
-  readonly isCompact?: boolean;
-}
-
-function BloodSugarItem({ value, isCompact = false }: BloodSugarItemProps) {
-  // Severity: <50 low, 50-100 moderate, >100 high
-  const severity: "low" | "moderate" | "high" = value < 50 ? 'low' : value < 100 ? 'moderate' : 'high';
-  const severityLabel = { low: 'Low', moderate: 'Med', high: 'High' }[severity];
-  const color = RING_COLORS.bloodSugar;
-
-  return (
-    <View
-      style={[styles.legendItem, isCompact && styles.legendItemCompact]}
-      accessibilityRole="text"
-      accessibilityLabel={`Blood sugar estimated rise: plus ${value} milligrams per deciliter, severity ${severityLabel.toLowerCase()}`}
-    >
-      <View style={[styles.legendDot, { backgroundColor: color }]} />
-      <View style={styles.legendContent}>
-        <Text variant="caption" style={styles.legendLabel}>
-          Blood Sugar Est.
-        </Text>
-        <View style={styles.legendValues}>
-          <Text variant="body" weight="bold" style={styles.legendCurrent}>
-            +{value}
-          </Text>
-          <Text variant="caption" style={styles.legendTarget}>
-            mg/dL
-          </Text>
-        </View>
-      </View>
-      <View style={[styles.percentBadge, { backgroundColor: `${color}20` }]}>
-        <Text style={[styles.percentText, { color }]}>
-          {severityLabel}
-        </Text>
-      </View>
-    </View>
   );
 }
 
@@ -303,81 +236,40 @@ export function NutritionRingsCard({
   const { t } = useLanguageStore();
   const displayTitle = title || t.todaysNutrition;
   const { width } = useWindowDimensions();
-
-  // Breakpoint: below 600px = mobile (vertical stack)
   const isMobile = width < 600;
-  // On tablets (iPad), constrain the card width for a balanced look
   const isTablet = !isMobile && Platform.OS !== 'web' && width >= 700;
 
   const ringConfigs = showFat
     ? RING_CONFIGS
     : RING_CONFIGS.filter((config) => config.key !== 'fat');
 
-  // SVG viewBox dimensions (fixed ratio, scales with container)
   const viewBoxSize = 200;
   const centerX = 100;
   const centerY = 100;
 
-  // Calculate percentages
   const percentages: Record<string, number> = {
-    calories: data.calories.target > 0
-      ? (data.calories.current / data.calories.target) * 100
-      : 0,
-    protein: data.protein.target > 0
-      ? (data.protein.current / data.protein.target) * 100
-      : 0,
-    fat: data.fat && data.fat.target > 0
-      ? (data.fat.current / data.fat.target) * 100
-      : 0,
-    carbs: data.carbs.target > 0
-      ? (data.carbs.current / data.carbs.target) * 100
-      : 0,
+    calories: data.calories.target > 0 ? (data.calories.current / data.calories.target) * 100 : 0,
+    protein: data.protein.target > 0 ? (data.protein.current / data.protein.target) * 100 : 0,
+    fat: data.fat && data.fat.target > 0 ? (data.fat.current / data.fat.target) * 100 : 0,
+    carbs: data.carbs.target > 0 ? (data.carbs.current / data.carbs.target) * 100 : 0,
   };
 
   return (
     <View style={[styles.card, isTablet && styles.cardTablet]}>
-      {/* Header — compact */}
+      {/* Header — minimal */}
       <View style={styles.header}>
-        <Text variant="heading3" weight="bold" style={styles.title} numberOfLines={1}>
-          {displayTitle}
-        </Text>
-        {onSourcesPress && (
-          <Pressable
-            onPress={onSourcesPress}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="View nutrition data sources"
-            style={({ pressed }) => pressed && { opacity: 0.5 }}
-          >
-            <Info size={18} color={BRAND_COLORS.textMuted} />
-          </Pressable>
-        )}
+        <Text style={styles.title}>{displayTitle}</Text>
       </View>
 
-      {/* Content: Flex container that wraps */}
-      {/* Desktop: flex-row (side-by-side), Mobile: flex-col (stacked) */}
-      <View style={[
-        styles.content,
-        isMobile ? styles.contentMobile : styles.contentDesktop
-      ]}>
-        {/* LEFT: Rings Container - scales based on parent width */}
-        <View
-          style={[
-            styles.ringsWrapper,
-            isMobile ? styles.ringsWrapperMobile : styles.ringsWrapperDesktop
-          ]}
-          accessible={true}
-          accessibilityRole="summary"
-          accessibilityLabel={`Nutrition rings. Protein: ${Math.round(data.protein.current)} of ${data.protein.target}g, ${Math.round(percentages.protein)} percent. ${showFat && data.fat ? `Fat: ${Math.round(data.fat.current)} of ${data.fat.target}g, ${Math.round(percentages.fat)} percent. ` : ''}Carbs: ${Math.round(data.carbs.current)} of ${data.carbs.target}g, ${Math.round(percentages.carbs)} percent.`}
+      {/* Content */}
+      <View style={[styles.content, isMobile ? styles.contentMobile : styles.contentDesktop]}>
+        {/* Rings */}
+        <View style={[styles.ringsWrapper, isMobile ? styles.ringsWrapperMobile : styles.ringsWrapperDesktop]}
+          accessible accessibilityRole="summary"
+          accessibilityLabel={`Nutrition rings. Protein: ${Math.round(percentages.protein)}%. Fat: ${Math.round(percentages.fat)}%. Carbs: ${Math.round(percentages.carbs)}%.`}
         >
           <View style={styles.ringsAspectBox}>
-            {/* SVG with viewBox for scaling */}
-            <Svg
-              width="100%"
-              height="100%"
-              viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
-              preserveAspectRatio="xMidYMid meet"
-            >
+            <Svg width="100%" height="100%" viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`} preserveAspectRatio="xMidYMid meet">
               {ringConfigs.map((config, index) => (
                 <AnimatedRing
                   key={config.key}
@@ -391,113 +283,48 @@ export function NutritionRingsCard({
                   delay={index * 100}
                 />
               ))}
-              {/* White circle to mask ring tracks behind center content */}
-              <Circle
-                cx={centerX}
-                cy={centerY}
-                r={36}
-                fill="white"
-                opacity={0.97}
-              />
+              <Circle cx={centerX} cy={centerY} r={38} fill="white" />
             </Svg>
 
-            {/* Center content - Calories display (NOT a ring) */}
+            {/* Center calories */}
             <Pressable
-              style={({ pressed }) => [
-                styles.centerContent,
-                pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }
-              ]}
+              style={({ pressed }) => [styles.centerContent, pressed && { opacity: 0.7 }]}
               onPress={() => onMacroPress?.('calories')}
               accessibilityRole="button"
-              accessibilityLabel={`Calories: ${Math.round(data.calories.current)} of ${data.calories.target}, ${data.calories.target > 0 ? Math.round((data.calories.current / data.calories.target) * 100) : 0} percent`}
-              accessibilityHint="View calorie details"
+              accessibilityLabel={`Calories: ${Math.round(data.calories.current)} of ${data.calories.target}`}
             >
-              <Flame
-                size={isMobile ? 20 : 22}
-                weight="fill"
-                color={BRAND_COLORS.primary}
-              />
-              <Text style={
-                isMobile
-                  ? [styles.centerCalories, styles.centerCaloriesMobile]
-                  : styles.centerCalories
-              }>
+              <Flame size={isMobile ? 18 : 20} weight="fill" color="#111111" />
+              <Text style={isMobile ? [styles.centerCalories, styles.centerCaloriesMobile] : styles.centerCalories}>
                 {Math.round(data.calories.current)}
               </Text>
-              {/* Blue Decorator Line */}
-              <View style={styles.centerDivider} />
-              <Text style={
-                isMobile
-                  ? [styles.centerSubtext, styles.centerSubtextMobile]
-                  : styles.centerSubtext
-              }>
-                KCAL
-              </Text>
+              <Text style={styles.centerSubtext}>kcal</Text>
             </Pressable>
           </View>
         </View>
 
-        {/* RIGHT: Legend - adapts layout based on screen size */}
-        <View style={[
-          styles.legend,
-          isMobile ? styles.legendMobile : styles.legendDesktop
-        ]}>
-          <LegendItem
-            color={RING_COLORS.protein}
-            label="Protein"
-            current={data.protein.current}
-            target={data.protein.target}
-            unit="g"
-            isCompact={isMobile}
-            onPress={() => onMacroPress?.('protein')}
-          />
-          {showFat && (
-            <LegendItem
-              color={RING_COLORS.fat}
-              label="Fat"
-              current={data.fat?.current || 0}
-              target={data.fat?.target || 0}
-              unit="g"
-              isCompact={isMobile}
-              onPress={() => onMacroPress?.('fat')}
-            />
-          )}
-          <LegendItem
-            color={RING_COLORS.carbs}
-            label="Carbs"
-            current={data.carbs.current}
-            target={data.carbs.target}
-            unit="g"
-            isCompact={isMobile}
-            onPress={() => onMacroPress?.('carbs')}
-          />
+        {/* Legend */}
+        <View style={[styles.legend, isMobile ? styles.legendMobile : styles.legendDesktop]}>
+          <LegendItem color={RING_COLORS.protein} label="Protein" current={data.protein.current} target={data.protein.target} unit="g" onPress={() => onMacroPress?.('protein')} />
+          {showFat && <LegendItem color={RING_COLORS.fat} label="Fat" current={data.fat?.current || 0} target={data.fat?.target || 0} unit="g" onPress={() => onMacroPress?.('fat')} />}
+          <LegendItem color={RING_COLORS.carbs} label="Carbs" current={data.carbs.current} target={data.carbs.target} unit="g" onPress={() => onMacroPress?.('carbs')} />
         </View>
       </View>
 
-      {/* Citation — Apple 1.4.1: compact single-line footnote */}
+      {/* Citation footnote */}
       <Pressable
         style={styles.citationFootnote}
-        onPress={() => openExternalUrl(
-          NUTRITION_REFERENCES.fdaDailyValues.url,
-          'Unable to open source',
-          'Please open the FDA reference in your browser.'
-        )}
+        onPress={() => openExternalUrl(NUTRITION_REFERENCES.fdaDailyValues.url, 'Unable to open source', 'Please open the FDA reference in your browser.')}
         accessibilityRole="link"
         accessibilityLabel={NUTRITION_REFERENCES.fdaDailyValues.title}
       >
-        <BookOpen size={11} color={BRAND_COLORS.textMuted} />
-        <Text style={styles.citationFootnoteText}>
-          Source: FDA Daily Values (2,000 kcal · 50 g P · 275 g C · 78 g F)
-        </Text>
-        <ArrowSquareOut size={10} color={BRAND_COLORS.textMuted} />
+        <BookOpen size={11} color="#9CA3AF" />
+        <Text style={styles.citationText}>Source: FDA Daily Values (2,000 kcal · 50g P · 275g C · 78g F)</Text>
+        <ArrowSquareOut size={10} color="#9CA3AF" />
       </Pressable>
     </View>
   );
 }
 
-/**
- * Get calorie subtitle string for use with DashboardCard
- */
 export function getCalorieSubtitle(current: number, target: number): string {
   return `${Math.round(current)} / ${target} kcal`;
 }
@@ -517,134 +344,95 @@ const styles = StyleSheet.create({
     width: '100%' as any,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   title: {
-    color: BRAND_COLORS.textPrimary,
-    fontWeight: '700',
-    flex: 1,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    flexShrink: 0,
-  },
-  headerSubtitle: {
-    color: '#374151',
-    flexShrink: 0,
+    color: '#6B7280', // Gray — subordinate to section title
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 
-  // ========== FLEX CONTAINER ==========
   content: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Desktop: side-by-side (row)
   contentDesktop: {
     flexDirection: 'row',
-    gap: spacing.xl,
+    gap: 32,
   },
-  // Mobile: vertical stack (column)
   contentMobile: {
     flexDirection: 'column',
     gap: spacing.lg,
   },
 
-  // ========== RINGS WRAPPER ==========
   ringsWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Desktop: constrained width, side-by-side with legend
   ringsWrapperDesktop: {
     flex: 1,
-    maxWidth: 280,
+    maxWidth: 260,
     minWidth: 200,
   },
-  // Mobile: full width, centered above legend
   ringsWrapperMobile: {
     width: '100%',
-    maxWidth: 260,
+    maxWidth: 240,
   },
-
-  // Aspect ratio box to maintain 1:1 ratio
   ringsAspectBox: {
     width: '100%',
     aspectRatio: 1,
     position: 'relative',
   },
 
-  // Center content (calories) - absolutely positioned in center
   centerContent: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
   },
   centerCalories: {
-    color: BRAND_COLORS.primary,
-    fontSize: 32,
+    color: '#111111',
+    fontSize: 34,
     lineHeight: 38,
     fontWeight: '800',
-    marginTop: 1,
-    textAlign: 'center',
+    letterSpacing: -1,
   },
   centerCaloriesMobile: {
-    fontSize: 26,
+    fontSize: 28,
     lineHeight: 32,
   },
-  centerDivider: {
-    height: 1.5,
-    width: 20,
-    backgroundColor: `${BRAND_COLORS.secondary}33`,
-    borderRadius: 1,
-    marginVertical: 2,
-  },
   centerSubtext: {
-    color: BRAND_COLORS.secondary,
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    textAlign: 'center',
-  },
-  centerSubtextMobile: {
-    fontSize: 10,
+    color: '#9CA3AF',
+    fontSize: 11,
+    fontWeight: '500',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1.2,
+    marginTop: 1,
   },
 
-  // ========== LEGEND ==========
   legend: {
     justifyContent: 'center',
   },
-  // Desktop: vertical list on the right
   legendDesktop: {
     flex: 1,
     minWidth: 180,
-    maxWidth: 240,
-    gap: spacing.lg,
+    maxWidth: 260,
+    gap: 20,
   },
-  // Mobile: below the chart, full width
   legendMobile: {
     width: '100%',
-    gap: spacing.md,
+    gap: 16,
   },
 
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-  },
-  legendItemCompact: {
-    gap: spacing.xs,
+    gap: 10,
   },
   legendDot: {
-    width: 4,
-    height: 34,
-    borderRadius: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     flexShrink: 0,
   },
   legendContent: {
@@ -652,9 +440,9 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   legendLabel: {
-    color: '#111111',
+    color: '#6B7280',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
     marginBottom: 1,
   },
   legendValues: {
@@ -662,43 +450,36 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
   },
   legendCurrent: {
-    color: BRAND_COLORS.textPrimary,
-    fontSize: 17,
+    color: '#111111',
+    fontSize: 20,
     fontWeight: '800',
+    letterSpacing: -0.5,
   },
   legendTarget: {
-    color: '#374151',
-    fontSize: 12,
-    fontWeight: '500',
-    marginLeft: 2,
+    color: '#9CA3AF',
+    fontSize: 13,
+    fontWeight: '400',
+    marginLeft: 3,
   },
-  percentBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+  legendPercent: {
+    fontSize: 13,
+    fontWeight: '700',
     flexShrink: 0,
   },
-  percentText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
 
-  // ========== CITATION — compact single-line footnote ==========
   citationFootnote: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: spacing.md,
-    paddingTop: spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(17, 17, 17, 0.06)',
+    marginTop: 20,
+    paddingTop: 14,
     ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
   },
-  citationFootnoteText: {
+  citationText: {
     flex: 1,
     fontSize: 11,
-    fontWeight: '500',
-    color: BRAND_COLORS.textMuted,
+    fontWeight: '400',
+    color: '#9CA3AF',
   },
 });
 

@@ -1,8 +1,11 @@
 /**
- * DailyTasksCard - Noom-inspired daily checklist
+ * DailyTasksCard — Clean checklist, Apple/M3 style.
  *
- * Dynamically generates tasks based on user goals and current progress.
- * Provides a structured engagement loop that encourages daily interaction.
+ * Design rules applied:
+ * - White task items, no tinted backgrounds or borders
+ * - Subtle spacing separates items (not lines)
+ * - Check circles: clean, minimal
+ * - Progress bar: 4px thin, subtle track
  */
 import * as Haptics from 'expo-haptics';
 import { Camera, Barbell, Drop, Flame, Check } from 'phosphor-react-native';
@@ -27,14 +30,10 @@ import { BRAND_COLORS, spacing } from '@/utils';
 // ============================================================================
 
 interface TaskData {
-  /** Current calorie intake */
   calories: number;
   calorieGoal: number;
-  /** Protein current vs target */
   protein: { current: number; goal: number };
-  /** Number of meals logged today */
   mealCount: number;
-  /** Hydration cups consumed */
   hydrationCups: number;
   hydrationGoal: number;
 }
@@ -62,42 +61,38 @@ function generateTasks(data: TaskData): DailyTask[] {
       label: 'Log a meal',
       completed: data.mealCount > 0,
       icon: 'Camera',
-      color: BRAND_COLORS.primary,
+      color: '#F97316',
     },
     {
       id: 'protein_target',
       label: 'Hit protein target',
       completed: data.protein.goal > 0 && data.protein.current >= data.protein.goal * 0.8,
       icon: 'Barbell',
-      color: BRAND_COLORS.macros.protein,
+      color: '#0D9488',
     },
     {
       id: 'hydration',
       label: `Drink ${Math.max(1, Math.ceil(data.hydrationGoal / 2))}+ cups of water`,
       completed: data.hydrationCups >= Math.ceil(data.hydrationGoal / 2),
       icon: 'Drop',
-      color: BRAND_COLORS.semantic.info,
+      color: '#3B82F6',
     },
     {
       id: 'calorie_balance',
       label: 'Stay within calorie target',
       completed: data.calorieGoal > 0 && data.calories > 0 && data.calories <= data.calorieGoal * 1.1,
       icon: 'Flame',
-      color: BRAND_COLORS.macros.calories,
+      color: '#EA580C',
     },
   ];
 }
-
-// ============================================================================
-// ICON MAP
-// ============================================================================
 
 const TaskIcons: Record<string, React.ComponentType<any>> = {
   Camera, Barbell, Drop, Flame,
 };
 
 // ============================================================================
-// ANIMATED TASK ITEM
+// TASK ITEM — white background, no border
 // ============================================================================
 
 function TaskItem({ task, index }: { task: DailyTask; index: number }) {
@@ -105,12 +100,10 @@ function TaskItem({ task, index }: { task: DailyTask; index: number }) {
   const prevCompleted = useRef(task.completed);
 
   useEffect(() => {
-    // Fire haptic when task transitions to completed
     if (task.completed && !prevCompleted.current && Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     }
     prevCompleted.current = task.completed;
-
     checkProgress.value = withDelay(
       index * 80,
       withTiming(task.completed ? 1 : 0, { duration: 400, easing: Easing.out(Easing.cubic) })
@@ -121,34 +114,30 @@ function TaskItem({ task, index }: { task: DailyTask; index: number }) {
     backgroundColor: interpolateColor(
       checkProgress.value,
       [0, 1],
-      ['rgba(249,115,22,0.12)', task.color]
+      ['rgba(0,0,0,0.06)', task.color]
     ),
-    transform: [{ scale: 0.9 + checkProgress.value * 0.1 }],
   }));
 
-  const textStyle = useAnimatedStyle(() => ({
-    opacity: 0.74 + checkProgress.value * 0.26,
-  }));
+  const IconComp = TaskIcons[task.icon];
 
   return (
     <View style={styles.taskItem}>
       <Animated.View style={[styles.taskCheck, checkStyle]}>
-        {task.completed && (
-          <Check size={14} color="#FFFFFF" weight="bold" />
-        )}
+        {task.completed && <Check size={12} color="#FFFFFF" weight="bold" />}
       </Animated.View>
-      <View style={[styles.taskIcon, { backgroundColor: `${task.color}18` }]}>
-        {TaskIcons[task.icon] && React.createElement(TaskIcons[task.icon], { size: 16, color: task.color, weight: 'regular' })}
-      </View>
-      <Animated.View style={[{ flex: 1 }, textStyle]}>
-        <Text
-          variant="body"
-          weight={task.completed ? 'medium' : 'regular'}
-          style={task.completed ? [styles.taskLabel, styles.taskLabelDone] : styles.taskLabel}
-        >
-          {task.label}
-        </Text>
-      </Animated.View>
+      {IconComp && (
+        <View style={styles.taskIconWrap}>
+          <IconComp size={15} color={task.completed ? task.color : '#9CA3AF'} weight="regular" />
+        </View>
+      )}
+      <Text
+        style={[
+          styles.taskLabel,
+          { color: task.completed ? '#111111' : '#6B7280' },
+        ]}
+      >
+        {task.label}
+      </Text>
     </View>
   );
 }
@@ -164,7 +153,6 @@ export function DailyTasksCard({ data }: DailyTasksCardProps) {
   const progress = totalCount > 0 ? completedCount / totalCount : 0;
   const allDone = completedCount === totalCount && totalCount > 0;
 
-  // Celebration state — trigger once when all tasks completed
   const [showCelebration, setShowCelebration] = useState(false);
   const [hasTriggered, setHasTriggered] = useState(false);
 
@@ -177,29 +165,22 @@ export function DailyTasksCard({ data }: DailyTasksCardProps) {
 
   return (
     <View style={[styles.card, BENTO_CARD_WEB_STYLES as any]}>
-      {/* Celebration overlay */}
-      <CelebrationOverlay
-        visible={showCelebration}
-        message="All Tasks Done!"
-        onComplete={() => setShowCelebration(false)}
-      />
+      <CelebrationOverlay visible={showCelebration} message="All Tasks Done!" onComplete={() => setShowCelebration(false)} />
 
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text variant="heading3" weight="bold" style={styles.title}>Today's Tasks</Text>
-          <Text variant="caption" style={styles.subtitle}>
-            {completedCount}/{totalCount} completed
-          </Text>
+          <Text style={styles.sectionLabel}>Today's Tasks</Text>
+          <Text style={styles.subtitle}>{completedCount}/{totalCount} completed</Text>
         </View>
         {allDone && (
           <View style={styles.allDoneBadge}>
-            <Text variant="caption" weight="bold" style={styles.allDoneText}>ALL DONE</Text>
+            <Text style={styles.allDoneText}>DONE</Text>
           </View>
         )}
       </View>
 
-      {/* Progress bar */}
+      {/* Progress bar — thin, clean */}
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
       </View>
@@ -222,85 +203,78 @@ const styles = StyleSheet.create({
   card: {
     ...(Platform.OS === 'web' ? BENTO_CARD_STYLES : MOBILE_CARD_STYLES),
     padding: spacing.lg,
-    ...(Platform.OS !== 'web' ? {
-      backgroundColor: '#FFFEFB',
-      borderColor: '#E9DED0',
-      borderRadius: 28,
-      shadowOpacity: 0.05,
-    } : {}),
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.sm,
+    marginBottom: 10,
   },
-  title: {
-    color: BRAND_COLORS.textPrimary,
+  sectionLabel: {
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   subtitle: {
-    color: '#374151',
+    color: '#9CA3AF',
+    fontSize: 12,
     marginTop: 2,
   },
   allDoneBadge: {
-    backgroundColor: BRAND_COLORS.semantic.successTint,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 0.5,
-    borderColor: 'rgba(16,185,129,0.25)',
+    backgroundColor: 'rgba(16,185,129,0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   allDoneText: {
-    color: BRAND_COLORS.semantic.success,
+    color: '#10B981',
     fontSize: 10,
-    letterSpacing: 0.5,
+    fontWeight: '700',
+    letterSpacing: 0.8,
   },
   progressTrack: {
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(16,185,129,0.10)',
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(16,185,129,0.08)',
     overflow: 'hidden',
-    marginBottom: spacing.md,
+    marginBottom: 14,
   },
   progressFill: {
     height: '100%',
     borderRadius: 2,
-    backgroundColor: BRAND_COLORS.semantic.success,
+    backgroundColor: '#10B981',
   },
   taskList: {
-    gap: 10,
+    gap: 6,
   },
   taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 18,
-    backgroundColor: '#FBF8F1',
-    borderWidth: 1,
-    borderColor: '#EDE3D8',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    // No background, no border — whitespace separates
   },
   taskCheck: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  taskIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  taskIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   taskLabel: {
-    color: '#111111',
+    flex: 1,
     fontSize: 14,
-  },
-  taskLabelDone: {
-    color: BRAND_COLORS.semantic.success,
+    fontWeight: '500',
   },
 });
 
