@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     maxWidth: 560,
   },
   imageCard: {
-    backgroundColor: '#F6F6F6',
+    backgroundColor: '#FFF1E6',
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
