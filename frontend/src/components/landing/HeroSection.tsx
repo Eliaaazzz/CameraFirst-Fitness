@@ -1,3 +1,11 @@
+/**
+ * HeroSection — Landing page hero.
+ *
+ * Left: headline + metrics + CTA.
+ * Right: CSS product preview (dark dashboard mockup) — no external illustration.
+ *
+ * Inspired by: Linear, Whoop, Noom landing heroes.
+ */
 import { ArrowRight, Drop, Fire, Target } from 'phosphor-react-native';
 import { Image } from 'expo-image';
 import React from 'react';
@@ -27,8 +35,8 @@ const HERO_METRICS = [
 
 export function HeroSection({
   eyebrow = 'METRIFUL',
-  title = `Bright daily coaching for food, rings, and recovery`,
-  body = `Built for mobile first. ${APP_NAME} turns meal photos, training targets, and weekly progress into one vivid daily flow.`,
+  title = `Track meals, close rings, own your day`,
+  body = `${APP_NAME} turns meal photos into macro breakdowns, builds personalized targets, and surfaces your progress through vivid daily rings.`,
   primaryCtaLabel = 'Start tracking',
   secondaryCtaLabel = 'See your account',
   onGetStarted,
@@ -43,9 +51,10 @@ export function HeroSection({
       style={[
         styles.container,
         isDesktop ? styles.containerDesktop : styles.containerMobile,
-        isDesktop ? { minHeight: Math.max(720, height - NAV_HEIGHT) } : null,
+        isDesktop ? { minHeight: Math.max(680, height - NAV_HEIGHT) } : null,
       ]}
     >
+      {/* ── COPY COLUMN ── */}
       <View style={[styles.copyColumn, isDesktop && styles.copyColumnDesktop]}>
         <View style={styles.eyebrowBadge}>
           <Image source={appLogo} style={styles.eyebrowIcon} contentFit="contain" />
@@ -100,61 +109,227 @@ export function HeroSection({
             </Text>
           </Pressable>
         </View>
+      </View>
 
-        <View style={styles.storyCard}>
-          <Text variant="caption" weight="bold" style={styles.storyLabel}>
-            MOBILE-FIRST FLOW
-          </Text>
-          <Text variant="body" style={styles.storyText}>
-            Snap a plate, hit your rings, and review the week without jumping between separate tools.
-          </Text>
+      {/* ── PRODUCT PREVIEW ── */}
+      <View style={[styles.visualColumn, isDesktop && styles.visualColumnDesktop]}>
+        <ProductPreview />
+      </View>
+    </View>
+  );
+}
+
+// ============================================================================
+// PRODUCT PREVIEW — Static dark dashboard mockup (replaces illustration)
+// ============================================================================
+
+const PREVIEW_METRICS = [
+  { label: 'Calories', current: 1420, target: 2000, pct: 71, color: '#F97316' },
+  { label: 'Protein', current: 85, target: 140, pct: 61, color: '#2F7A6A', unit: 'g' },
+  { label: 'Carbs', current: 178, target: 275, pct: 65, color: '#8A9B4F', unit: 'g' },
+  { label: 'Fat', current: 52, target: 78, pct: 67, color: '#F59E0B', unit: 'g' },
+];
+
+function ProductPreview() {
+  return (
+    <View style={pv.card}>
+      {/* Header */}
+      <View style={pv.header}>
+        <View style={pv.dotRow}>
+          <View style={[pv.dot, { backgroundColor: '#FF5F57' }]} />
+          <View style={[pv.dot, { backgroundColor: '#FEBC2E' }]} />
+          <View style={[pv.dot, { backgroundColor: '#28C840' }]} />
+        </View>
+        <Text style={pv.headerTitle}>{APP_NAME}</Text>
+      </View>
+
+      {/* Score */}
+      <View style={pv.scoreSection}>
+        <View style={pv.scoreCircle}>
+          <Text style={pv.scoreNumber}>87</Text>
+        </View>
+        <View style={pv.scoreMeta}>
+          <Text style={pv.scoreLabel}>Daily Score</Text>
+          <View style={pv.scoreBadge}>
+            <Text style={pv.scoreBadgeText}>Excellent</Text>
+          </View>
         </View>
       </View>
 
-      <View style={[styles.visualColumn, isDesktop && styles.visualColumnDesktop]}>
-        <View style={styles.visualShell}>
-          <View style={styles.routeChip}>
-            <Text variant="caption" weight="bold" style={styles.routeChipText}>
-              Today&apos;s momentum
-            </Text>
-          </View>
-
-          <View style={styles.phoneStage}>
-            <View style={styles.phoneShell}>
-              <Image source={appLogo} style={styles.heroArt} contentFit="contain" />
-            </View>
-          </View>
-
-          <View style={[styles.insightRail, !isDesktop && styles.insightRailMobile]}>
-            <View style={styles.insightCard}>
-              <Text variant="caption" weight="bold" style={styles.insightLabel}>
-                FAST START
-              </Text>
-              <Text variant="heading4" weight="bold" style={styles.insightTitle}>
-                Camera to log in one tap
-              </Text>
-              <Text variant="caption" style={styles.insightBody}>
-                Built to feel immediate on mobile, not like a shrunken web dashboard.
+      {/* Metric bars */}
+      <View style={pv.metricsSection}>
+        {PREVIEW_METRICS.map((m) => (
+          <View key={m.label} style={pv.metricRow}>
+            <View style={pv.metricMeta}>
+              <View style={[pv.metricDot, { backgroundColor: m.color }]} />
+              <Text style={pv.metricLabel}>{m.label}</Text>
+              <Text style={pv.metricValue}>
+                {m.current}{m.unit || ''}/{m.target}{m.unit || ''}
               </Text>
             </View>
-
-            <View style={[styles.insightCard, styles.insightCardDark]}>
-              <Text variant="caption" weight="bold" style={styles.insightLabelDark}>
-                APPLE FITNESS ENERGY
-              </Text>
-              <Text variant="heading4" weight="bold" style={styles.insightTitleDark}>
-                Bright rings, crisp goals
-              </Text>
-              <Text variant="caption" style={styles.insightBodyDark}>
-                Progress gets surfaced with color, contrast, and stronger hierarchy.
-              </Text>
+            <View style={pv.metricTrack}>
+              <View style={[pv.metricFill, { width: `${m.pct}%`, backgroundColor: m.color }]} />
             </View>
           </View>
+        ))}
+      </View>
+
+      {/* Bottom stats */}
+      <View style={pv.bottomRow}>
+        <View style={pv.bottomStat}>
+          <Text style={pv.bottomStatValue}>5/8</Text>
+          <Text style={pv.bottomStatLabel}>cups water</Text>
+        </View>
+        <View style={pv.bottomStat}>
+          <Text style={pv.bottomStatValue}>12d</Text>
+          <Text style={pv.bottomStatLabel}>streak</Text>
+        </View>
+        <View style={pv.bottomStat}>
+          <Text style={pv.bottomStatValue}>3/4</Text>
+          <Text style={pv.bottomStatLabel}>tasks done</Text>
         </View>
       </View>
     </View>
   );
 }
+
+const pv = StyleSheet.create({
+  card: {
+    backgroundColor: '#111111',
+    borderRadius: 28,
+    padding: 28,
+    gap: 24,
+    ...(typeof document !== 'undefined'
+      ? ({ boxShadow: '0 32px 64px rgba(17,17,17,0.18)' } as any)
+      : {}),
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dotRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  headerTitle: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  scoreSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  scoreCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 4,
+    borderColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreNumber: {
+    color: '#10B981',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -1,
+  },
+  scoreMeta: {
+    gap: 6,
+  },
+  scoreLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1,
+  },
+  scoreBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: 'rgba(16,185,129,0.15)',
+  },
+  scoreBadgeText: {
+    color: '#10B981',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  metricsSection: {
+    gap: 14,
+  },
+  metricRow: {
+    gap: 6,
+  },
+  metricMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  metricDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  metricLabel: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  metricValue: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  metricTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden' as const,
+  },
+  metricFill: {
+    height: '100%' as any,
+    borderRadius: 3,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  bottomStat: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+    paddingTop: 12,
+  },
+  bottomStatValue: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  bottomStatLabel: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+});
+
+// ============================================================================
+// MAIN STYLES
+// ============================================================================
 
 const styles = StyleSheet.create({
   container: {
@@ -208,27 +383,27 @@ const styles = StyleSheet.create({
   },
   headline: {
     color: EXPERIENCE_COLORS.ink,
-    maxWidth: 620,
+    maxWidth: 560,
   },
   headlineDesktop: {
-    fontSize: 76,
-    lineHeight: 80,
-    letterSpacing: -3,
+    fontSize: 72,
+    lineHeight: 76,
+    letterSpacing: -2.8,
   },
   headlineMobile: {
-    fontSize: 48,
-    lineHeight: 52,
-    letterSpacing: -1.8,
+    fontSize: 44,
+    lineHeight: 48,
+    letterSpacing: -1.6,
   },
   body: {
-    maxWidth: 560,
+    maxWidth: 520,
     color: EXPERIENCE_COLORS.inkSoft,
-    fontSize: 22,
-    lineHeight: 34,
+    fontSize: 20,
+    lineHeight: 32,
   },
   bodyMobile: {
-    fontSize: 18,
-    lineHeight: 30,
+    fontSize: 17,
+    lineHeight: 28,
   },
   metricRail: {
     flexDirection: 'row',
@@ -318,110 +493,12 @@ const styles = StyleSheet.create({
   linkPressed: {
     opacity: 0.72,
   },
-  storyCard: {
-    marginTop: spacing.sm,
-    maxWidth: 510,
-    gap: spacing.xs,
-    padding: spacing.lg,
-    borderRadius: 28,
-    backgroundColor: '#111111',
-    ...(typeof document !== 'undefined' ? ({ boxShadow: '0 18px 40px rgba(17,17,17,0.12)' } as any) : {}),
-  },
-  storyLabel: {
-    color: '#D8E5FF',
-  },
-  storyText: {
-    color: '#F5F9FF',
-    lineHeight: 26,
-  },
   visualColumn: {
     flex: 1,
     zIndex: 1,
   },
   visualColumnDesktop: {
-    minWidth: 500,
-  },
-  visualShell: {
-    gap: spacing.lg,
-  },
-  routeChip: {
-    alignSelf: 'flex-start',
-    minHeight: 40,
-    paddingHorizontal: 14,
-    justifyContent: 'center',
-    borderRadius: radii.pill,
-    backgroundColor: 'rgba(255,255,255,0.74)',
-    borderWidth: 1,
-    borderColor: EXPERIENCE_COLORS.stroke,
-  },
-  routeChipText: {
-    color: EXPERIENCE_COLORS.ink,
-  },
-  phoneStage: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.md,
-  },
-  phoneShell: {
-    width: '100%',
-    maxWidth: 430,
-    padding: 18,
-    borderRadius: 34,
-    backgroundColor: EXPERIENCE_COLORS.glassStrong,
-    borderWidth: 1,
-    borderColor: EXPERIENCE_COLORS.strokeStrong,
-    ...(typeof document !== 'undefined'
-      ? ({ boxShadow: '0 28px 54px rgba(26,60,109,0.16)' } as any)
-      : {
-          shadowColor: EXPERIENCE_COLORS.shadow,
-          shadowOffset: { width: 0, height: 24 },
-          shadowRadius: 32,
-          shadowOpacity: 0.16,
-          elevation: 12,
-        }),
-  },
-  heroArt: {
-    width: '100%',
-    height: 420,
-  },
-  insightRail: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: spacing.md,
-  },
-  insightRailMobile: {
-    flexDirection: 'column',
-  },
-  insightCard: {
-    flex: 1,
-    gap: spacing.xs,
-    padding: spacing.lg,
-    borderRadius: 26,
-    backgroundColor: EXPERIENCE_COLORS.glassStrong,
-    borderWidth: 1,
-    borderColor: EXPERIENCE_COLORS.stroke,
-  },
-  insightCardDark: {
-    backgroundColor: '#F6F4EF',
-    borderColor: 'rgba(17,17,17,0.06)',
-  },
-  insightLabel: {
-    color: EXPERIENCE_COLORS.inkSoft,
-  },
-  insightTitle: {
-    color: EXPERIENCE_COLORS.ink,
-  },
-  insightBody: {
-    color: EXPERIENCE_COLORS.inkSoft,
-  },
-  insightLabelDark: {
-    color: EXPERIENCE_COLORS.inkSoft,
-  },
-  insightTitleDark: {
-    color: EXPERIENCE_COLORS.ink,
-  },
-  insightBodyDark: {
-    color: EXPERIENCE_COLORS.inkSoft,
+    maxWidth: 480,
   },
 });
 

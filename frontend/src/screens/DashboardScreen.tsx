@@ -870,22 +870,13 @@ const DashboardScreen = () => {
               </View>
             </View>
 
+            {/* ── PERFORMANCE TODAY — Apple Fitness 3-column grid ── */}
             <View style={webStyles.section}>
-              <View style={webStyles.sectionHeader}>
-                <View style={[webStyles.sectionEyebrow, webStyles.sectionEyebrowWarm]}>
-                  <Text variant="label" weight="bold" style={webStyles.sectionEyebrowText}>
-                    Live nutrition
-                  </Text>
-                </View>
-                <Text variant="heading2" weight="bold" style={webStyles.sectionHeading}>
-                  Performance today
-                </Text>
-                <Text variant="body" style={webStyles.sectionSubheading}>
-                  Calories, macros, hydration, and daily score with clearer, brighter readouts.
-                </Text>
-              </View>
-              <View style={webStyles.performanceRow}>
-                <View style={webStyles.performancePrimary}>
+              <Text variant="heading2" weight="bold" style={webStyles.perfTitle}>
+                Performance today
+              </Text>
+              <View style={webStyles.perfGrid}>
+                <View style={webStyles.perfCell}>
                   {showNutritionLoading ? (
                     <NutritionRingsSkeleton />
                   ) : (
@@ -902,8 +893,7 @@ const DashboardScreen = () => {
                     />
                   )}
                 </View>
-
-                <View style={webStyles.performanceSecondary}>
+                <View style={webStyles.perfCell}>
                   <DailyScoreCard
                     data={{
                       calories: nutritionData.calories,
@@ -916,6 +906,8 @@ const DashboardScreen = () => {
                       streak: currentUser.data?.currentStreak || 0,
                     }}
                   />
+                </View>
+                <View style={webStyles.perfCell}>
                   <DailyTasksCard
                     data={{
                       calories: nutritionData.calories,
@@ -2760,21 +2752,27 @@ const webStyles = StyleSheet.create({
   serviceBody: {
     color: '#6B6B6B',
   },
-  performanceContainer: {
-    // kept for backwards compat — no longer used in layout
+  // ── PERFORMANCE TODAY — Apple Fitness 3-column grid ──
+  perfTitle: {
+    color: '#111111',
+    fontSize: 32,
+    lineHeight: 36,
+    letterSpacing: -1,
+    marginBottom: 20,
   },
-  performanceRow: {
+  perfGrid: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    gap: 20,
-  },
-  performancePrimary: {
-    flex: 1.2,
-  },
-  performanceSecondary: {
-    flex: 1,
     gap: 16,
   },
+  perfCell: {
+    flex: 1,
+  },
+  // Legacy — kept so TS doesn't break on any remaining refs
+  performanceContainer: {},
+  performanceRow: { flexDirection: 'row', gap: 16 },
+  performancePrimary: { flex: 1 },
+  performanceSecondary: { flex: 1, gap: 16 },
   planRow: {
     flexDirection: 'row',
     gap: 28,
