@@ -28,13 +28,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { navigationRef } from './navigationService';
 
 import { ErrorBoundary } from '@/components';
-import { Sidebar } from '@/components/layout';
+import { AuthenticatedNav, Sidebar } from '@/components/layout';
 import DashboardScreen from '@/screens/DashboardScreen';
 import LoginScreen from '@/screens/LoginScreen';
 import RegisterScreen from '@/screens/RegisterScreen';
 import OnboardingScreen from '@/screens/OnboardingScreen';
 import { MealHistoryScreen } from '@/screens/MealHistoryScreen';
-import NotificationsScreen from '@/screens/NotificationsScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
 import { RecipeDetailScreen } from '@/screens/RecipeDetailScreen';
 import { RecipesScreen } from '@/screens/RecipesScreen';
@@ -67,7 +66,6 @@ const SafeDashboardScreen = withErrorBoundary(DashboardScreen, 'Dashboard');
 const SafeWorkoutsScreen = withErrorBoundary(WorkoutsScreen, 'Workouts');
 const SafeRecipesScreen = withErrorBoundary(RecipesScreen, 'Recipes');
 const SafeProfileScreen = withErrorBoundary(ProfileScreen, 'Profile');
-const SafeNotificationsScreen = withErrorBoundary(NotificationsScreen, 'Notifications');
 const SafeRecipeDetailScreen = withErrorBoundary(RecipeDetailScreen, 'RecipeDetail');
 const SafeResultsScreen = withErrorBoundary(ResultsScreen, 'Results');
 const SafeReviewMealScreen = withErrorBoundary(ReviewMealScreen, 'ReviewMeal');
@@ -208,10 +206,9 @@ const tabBarStyles = StyleSheet.create({
 
 // Desktop layout styles
 const styles = StyleSheet.create({
-  desktopContainer: {
+  desktopContainerVertical: {
     flex: 1,
-    flexDirection: 'row',
-    backgroundColor: BRAND_COLORS.background,
+    flexDirection: 'column',
   },
   mainContent: {
     flex: 1,
@@ -302,7 +299,6 @@ const RecipesStackScreen = createTabStackNavigator([
 // Stack navigator for Profile tab: Profile -> WeeklyInsights / MealHistory / SavedWorkouts / SavedRecipes
 const ProfileStackScreen = createTabStackNavigator([
   { name: 'ProfileMain', component: SafeProfileScreen },
-  { name: 'Notifications', component: SafeNotificationsScreen },
   { name: 'WeeklyInsights', component: SafeWeeklyInsightsScreen },
   { name: 'MealHistory', component: SafeMealHistoryScreen },
   { name: 'SavedWorkouts', component: SafeSavedWorkoutsScreen },
@@ -496,8 +492,8 @@ const MainTabs = () => {
 
   if (showSidebar) {
     return (
-      <View style={styles.desktopContainer}>
-        <Sidebar />
+      <View style={styles.desktopContainerVertical}>
+        <AuthenticatedNav />
         <View style={styles.mainContent}>
           <Tab.Navigator
             initialRouteName="Dashboard"

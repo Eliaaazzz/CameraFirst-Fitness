@@ -1594,7 +1594,7 @@ const ProfileScreen = () => {
             'bell-outline',
             'Notifications',
             'Manage reminders',
-            () => navigation.navigate('Notifications' as any)
+            () => Alert.alert('Coming Soon', 'Notification settings will be available soon.')
           )}
           {renderMenuItem(
             'account-remove-outline',

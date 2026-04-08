@@ -884,7 +884,6 @@ const DashboardScreen = () => {
                   Calories, macros, hydration, and daily score with clearer, brighter readouts.
                 </Text>
               </View>
-              <View style={webStyles.performanceContainer}>
               <View style={webStyles.performanceRow}>
                 <View style={webStyles.performancePrimary}>
                   {showNutritionLoading ? (
@@ -896,7 +895,6 @@ const DashboardScreen = () => {
                         protein: { current: nutritionData.protein.current, target: proteinGoal },
                         carbs: { current: nutritionData.carbs.current, target: carbsGoal },
                         fat: { current: nutritionData.fat.current, target: fatGoal },
-                        bloodSugarRise: nutritionData.bloodSugarRise,
                       }}
                       showFat={true}
                       onMacroPress={handleMacroSearch}
@@ -906,16 +904,6 @@ const DashboardScreen = () => {
                 </View>
 
                 <View style={webStyles.performanceSecondary}>
-                  <DailyTasksCard
-                    data={{
-                      calories: nutritionData.calories,
-                      calorieGoal,
-                      protein: nutritionData.protein,
-                      mealCount: nutritionData.meals.length,
-                      hydrationCups,
-                      hydrationGoal: hydrationGoalCups,
-                    }}
-                  />
                   <DailyScoreCard
                     data={{
                       calories: nutritionData.calories,
@@ -928,8 +916,17 @@ const DashboardScreen = () => {
                       streak: currentUser.data?.currentStreak || 0,
                     }}
                   />
+                  <DailyTasksCard
+                    data={{
+                      calories: nutritionData.calories,
+                      calorieGoal,
+                      protein: nutritionData.protein,
+                      mealCount: nutritionData.meals.length,
+                      hydrationCups,
+                      hydrationGoal: hydrationGoalCups,
+                    }}
+                  />
                 </View>
-              </View>
               </View>
             </View>
 
@@ -2764,26 +2761,19 @@ const webStyles = StyleSheet.create({
     color: '#6B6B6B',
   },
   performanceContainer: {
-    backgroundColor: '#FBFAF7',
-    borderRadius: 26,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#E6E1D8',
-    boxShadow: '0 16px 36px rgba(17,17,17,0.05)',
+    // kept for backwards compat — no longer used in layout
   },
   performanceRow: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    gap: 24,
-    minHeight: 480,
+    gap: 20,
   },
   performancePrimary: {
-    flex: 1.5,
+    flex: 1.2,
   },
   performanceSecondary: {
     flex: 1,
     gap: 16,
-    justifyContent: 'space-between',
   },
   planRow: {
     flexDirection: 'row',

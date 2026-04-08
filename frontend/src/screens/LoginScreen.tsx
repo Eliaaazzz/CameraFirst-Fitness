@@ -833,9 +833,6 @@ export default function LoginScreen() {
                   contentFit="contain"
                 />
               </Animated.View>
-              <Animated.View entering={FadeInUp.duration(520).delay(160)} style={styles.brandPreviewCard}>
-                <Image source={brandMotionIllustration} style={styles.brandPreviewImage} contentFit="contain" />
-              </Animated.View>
               <View style={styles.brandBadgeRow}>
                 <View style={styles.brandBadge}>
                   <Text variant="caption" weight="bold" style={styles.brandBadgeText}>

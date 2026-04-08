@@ -6,8 +6,7 @@ import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components';
 import { APP_NAME, EXPERIENCE_COLORS, radii, spacing } from '@/utils';
 
-const heroIllustration = require('@/../assets/illustrations/brand-motion-coach.svg');
-const mascotIcon = require('@/../assets/app-icon-1024-transparent.png');
+const appLogo = require('@/../assets/app-icon-1024-transparent.png');
 const NAV_HEIGHT = 96;
 
 interface HeroSectionProps {
@@ -27,7 +26,7 @@ const HERO_METRICS = [
 ] as const;
 
 export function HeroSection({
-  eyebrow = 'AURA COACH',
+  eyebrow = 'METRIFUL',
   title = `Bright daily coaching for food, rings, and recovery`,
   body = `Built for mobile first. ${APP_NAME} turns meal photos, training targets, and weekly progress into one vivid daily flow.`,
   primaryCtaLabel = 'Start tracking',
@@ -49,7 +48,7 @@ export function HeroSection({
     >
       <View style={[styles.copyColumn, isDesktop && styles.copyColumnDesktop]}>
         <View style={styles.eyebrowBadge}>
-          <Image source={mascotIcon} style={styles.eyebrowIcon} contentFit="contain" />
+          <Image source={appLogo} style={styles.eyebrowIcon} contentFit="contain" />
           <Text variant="label" weight="bold" style={styles.eyebrow}>
             {eyebrow}
           </Text>
@@ -122,7 +121,7 @@ export function HeroSection({
 
           <View style={styles.phoneStage}>
             <View style={styles.phoneShell}>
-              <Image source={heroIllustration} style={styles.heroArt} contentFit="contain" />
+              <Image source={appLogo} style={styles.heroArt} contentFit="contain" />
             </View>
           </View>
 

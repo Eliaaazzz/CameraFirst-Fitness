@@ -526,9 +526,6 @@ export default function RegisterScreen() {
               <View style={styles.brandOrb}>
                 <Image source={require('@/../assets/app-icon-1024.png')} style={styles.brandOrbLogo} contentFit="contain" />
               </View>
-              <View style={styles.brandPreviewCard}>
-                <Image source={brandMotionIllustration} style={styles.brandPreviewImage} contentFit="contain" />
-              </View>
             </View>
 
             <View style={styles.card}>

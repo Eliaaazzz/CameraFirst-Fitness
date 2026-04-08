@@ -336,27 +336,22 @@ export function NutritionRingsCard({
 
   return (
     <View style={[styles.card, isTablet && styles.cardTablet]}>
-      {/* Header */}
+      {/* Header — compact */}
       <View style={styles.header}>
         <Text variant="heading3" weight="bold" style={styles.title} numberOfLines={1}>
           {displayTitle}
         </Text>
-        <View style={styles.headerRight}>
-          {onSourcesPress && (
-            <Pressable
-              onPress={onSourcesPress}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="View nutrition data sources"
-              style={({ pressed }) => pressed && { opacity: 0.5 }}
-            >
-              <Info size={18} color={BRAND_COLORS.textMuted} />
-            </Pressable>
-          )}
-          <Text variant="caption" style={styles.headerSubtitle} numberOfLines={1}>
-            {Math.round(data.calories.current)} / {data.calories.target} kcal
-          </Text>
-        </View>
+        {onSourcesPress && (
+          <Pressable
+            onPress={onSourcesPress}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="View nutrition data sources"
+            style={({ pressed }) => pressed && { opacity: 0.5 }}
+          >
+            <Info size={18} color={BRAND_COLORS.textMuted} />
+          </Pressable>
+        )}
       </View>
 
       {/* Content: Flex container that wraps */}
@@ -476,43 +471,26 @@ export function NutritionRingsCard({
             isCompact={isMobile}
             onPress={() => onMacroPress?.('carbs')}
           />
-          {data.bloodSugarRise != null && (
-            <BloodSugarItem
-              value={data.bloodSugarRise}
-              isCompact={isMobile}
-            />
-          )}
-          {data.bloodSugarRise != null && (
-            <AIDisclaimer compact />
-          )}
         </View>
       </View>
 
-      {/* Citation footer — Apple 1.4.1: single clear source with data values */}
-      <View style={styles.citationFooter}>
-        <View style={styles.citationHeader}>
-          <BookOpen size={12} color={BRAND_COLORS.textSecondary} />
-          <Text style={styles.citationLabel}>Source</Text>
-        </View>
-        <Text style={styles.targetSourceBody}>
-          Targets based on FDA Daily Values: 2,000 kcal · Protein 50 g · Carbs 275 g · Fat 78 g
+      {/* Citation — Apple 1.4.1: compact single-line footnote */}
+      <Pressable
+        style={styles.citationFootnote}
+        onPress={() => openExternalUrl(
+          NUTRITION_REFERENCES.fdaDailyValues.url,
+          'Unable to open source',
+          'Please open the FDA reference in your browser.'
+        )}
+        accessibilityRole="link"
+        accessibilityLabel={NUTRITION_REFERENCES.fdaDailyValues.title}
+      >
+        <BookOpen size={11} color={BRAND_COLORS.textMuted} />
+        <Text style={styles.citationFootnoteText}>
+          Source: FDA Daily Values (2,000 kcal · 50 g P · 275 g C · 78 g F)
         </Text>
-        <Pressable
-          onPress={() => openExternalUrl(
-            NUTRITION_REFERENCES.fdaDailyValues.url,
-            'Unable to open source',
-            'Please open the FDA reference in your browser.'
-          )}
-          accessibilityRole="link"
-          accessibilityLabel={NUTRITION_REFERENCES.fdaDailyValues.title}
-          style={({ pressed }) => pressed && { opacity: 0.6 }}
-        >
-          <View style={styles.citationLinkRow}>
-            <ArrowSquareOut size={11} color={BRAND_COLORS.secondary} />
-            <Text style={styles.citationLink}>{NUTRITION_REFERENCES.fdaDailyValues.shortLabel}</Text>
-          </View>
-        </Pressable>
-      </View>
+        <ArrowSquareOut size={10} color={BRAND_COLORS.textMuted} />
+      </Pressable>
     </View>
   );
 }
@@ -705,75 +683,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // ========== CITATION FOOTER — Apple 1.4.1 direct links ==========
-  citationFooter: {
+  // ========== CITATION — compact single-line footnote ==========
+  citationFootnote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginTop: spacing.md,
-    paddingTop: spacing.md,
-    paddingHorizontal: spacing.sm,
-    paddingBottom: spacing.sm,
+    paddingTop: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(17, 17, 17, 0.08)',
-    backgroundColor: '#FAF8F3',
-    borderRadius: 14,
-    gap: 6,
+    borderTopColor: 'rgba(17, 17, 17, 0.06)',
+    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
   },
-  targetSourceCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 16,
-    backgroundColor: '#FBF8F2',
-    borderWidth: 1,
-    borderColor: '#E8E1D4',
-    gap: 6,
-  },
-  targetSourceTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: BRAND_COLORS.textPrimary,
-  },
-  targetSourceBody: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: '#374151',
-  },
-  targetSourceMeta: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: BRAND_COLORS.textMuted,
-  },
-  targetSourceDetail: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: '#4B5563',
-  },
-  citationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginBottom: 2,
-  },
-  citationLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: BRAND_COLORS.textSecondary,
-  },
-  citationLinkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 2,
-  },
-  citationLink: {
+  citationFootnoteText: {
+    flex: 1,
     fontSize: 11,
     fontWeight: '500',
-    color: BRAND_COLORS.secondary,
-    textDecorationLine: 'underline',
-  },
-  citationMore: {
-    fontSize: 11,
-    fontWeight: '600',
     color: BRAND_COLORS.textMuted,
-    marginTop: 2,
   },
 });
 

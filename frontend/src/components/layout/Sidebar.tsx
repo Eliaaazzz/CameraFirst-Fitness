@@ -90,29 +90,26 @@ function NavItemButton({
     transform: [{ scale: scale.value }],
   }));
 
+  // Uber-style: white icons on dark background, subtle active highlight
   const iconColor = isActive
     ? '#FFFFFF'
     : isHovered
-      ? EXPERIENCE_COLORS.ink
-      : EXPERIENCE_COLORS.inkSoft;
+      ? '#FFFFFF'
+      : 'rgba(255,255,255,0.6)';
 
   const labelColor = isActive
     ? '#FFFFFF'
     : isHovered
-      ? EXPERIENCE_COLORS.ink
-      : EXPERIENCE_COLORS.inkSoft;
+      ? '#FFFFFF'
+      : 'rgba(255,255,255,0.6)';
 
   const rowBg = isActive
-    ? EXPERIENCE_COLORS.ink
+    ? 'rgba(255,255,255,0.12)'
     : isHovered
-      ? 'rgba(255,255,255,0.74)'
+      ? 'rgba(255,255,255,0.06)'
       : 'transparent';
 
-  const chipBg = isActive
-    ? 'rgba(255,255,255,0.16)'
-    : isHovered
-      ? 'rgba(15,28,54,0.08)'
-      : 'transparent';
+  const chipBg = 'transparent';
 
   return (
     <AnimatedPressable
@@ -123,18 +120,7 @@ function NavItemButton({
         styles.navItem,
         {
           backgroundColor: rowBg,
-          borderColor: isActive
-            ? '#111111'
-            : isHovered
-              ? colors.light.border
-              : 'transparent',
-          ...(Platform.OS === 'web' && ({
-            boxShadow: isActive
-              ? '0 12px 24px rgba(17,17,17,0.08)'
-              : isHovered
-                ? '0 6px 18px rgba(17,17,17,0.04)'
-                : 'none',
-          } as any)),
+          borderColor: 'transparent',
         },
         isCollapsed && styles.navItemCollapsed,
         animatedStyle,
@@ -260,7 +246,7 @@ export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
         ]}
       >
         <View style={styles.toggleIcon}>
-          <Text variant="heading3" weight="bold" style={{ color: EXPERIENCE_COLORS.ink, fontSize: 18 }}>A</Text>
+          <Text variant="heading3" weight="bold" style={{ color: '#FFFFFF', fontSize: 18 }}>M</Text>
         </View>
         {!isCollapsed && (
           <Animated.View style={[styles.brandContainer, textStyle]}>
@@ -296,11 +282,11 @@ export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
         onPress={() => handleNavPress('Profile')}
       >
         <View style={styles.userAvatar}>
-          <UserCircle size={24} weight="fill" color={BRAND_COLORS.textPrimary} />
+          <UserCircle size={24} weight="fill" color="rgba(255,255,255,0.6)" />
         </View>
         {!isCollapsed && (
           <Animated.View style={[styles.userInfo, textStyle]}>
-            <Text variant="body" weight="semibold" numberOfLines={1}>
+            <Text variant="body" weight="semibold" numberOfLines={1} style={{ color: 'rgba(255,255,255,0.7)' }}>
               {currentUser.data?.username || 'User'}
             </Text>
           </Animated.View>
@@ -318,16 +304,10 @@ const styles = StyleSheet.create({
   container: {
     width: LAYOUT_DIMENSIONS.sidebarWidth,
     height: '100%',
-    backgroundColor: EXPERIENCE_COLORS.glassStrong,
-    borderRightWidth: 1,
-    borderRightColor: EXPERIENCE_COLORS.stroke,
+    backgroundColor: '#111111',
+    borderRightWidth: 0,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.sm,
-    ...(Platform.OS === 'web' && ({
-      backdropFilter: 'blur(24px)',
-      WebkitBackdropFilter: 'blur(24px)',
-      boxShadow: 'inset -1px 0 0 rgba(17,17,17,0.04)',
-    } as any)),
   },
 
   // Header
@@ -352,15 +332,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
   },
   headerPressed: {
-    backgroundColor: colors.light.surfaceVariant,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   toggleIcon: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.74)',
-    borderWidth: 1,
-    borderColor: EXPERIENCE_COLORS.stroke,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 0,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -369,7 +348,7 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   brandText: {
-    color: EXPERIENCE_COLORS.ink,
+    color: '#FFFFFF',
     letterSpacing: -0.3,
   },
 
@@ -427,7 +406,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     marginHorizontal: spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: EXPERIENCE_COLORS.stroke,
+    borderTopColor: 'rgba(255,255,255,0.1)',
     marginTop: spacing.md,
     gap: spacing.sm,
     ...(Platform.OS === 'web' && {
@@ -443,9 +422,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.74)',
-    borderWidth: 1,
-    borderColor: EXPERIENCE_COLORS.stroke,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 0,
     justifyContent: 'center',
     alignItems: 'center',
   },
