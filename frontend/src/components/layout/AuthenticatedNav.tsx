@@ -98,8 +98,15 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
 
   const handleLogout = useCallback(async () => {
     setDropdownOpen(false);
-    await signOut();
-    navigation.reset({ index: 0, routes: [{ name: 'Landing' } as any] });
+    try {
+      await signOut();
+    } catch (e) {
+      console.warn('[AuthenticatedNav] signOut error:', e);
+    }
+    // signOut already calls navigateToLogin(), but force-reset as fallback
+    try {
+      navigation.reset({ index: 0, routes: [{ name: 'Landing' } as any] });
+    } catch (_) { /* ignore if already navigated */ }
   }, [signOut, navigation]);
 
   const navItems: Array<{ key: NavKey; label: string }> = [

@@ -1,31 +1,37 @@
 /**
- * LandingScreen — Uber.com clone structure.
+ * LandingScreen — Uber-inspired marketing landing page (web only)
  *
- * Sections (Uber exact order):
+ * Sections (Uber order):
  * 1. Nav (black) — LandingNav
- * 2. Hero — headline left + product preview right
- * 3. Discover — "Discover what you can do with Metriful" + 3 cards
- * 4. CTA banner — sign up prompt
- * 5. Footer — LandingFooter
+ * 2. Hero — headline left + illustration right
+ * 3. Feature grid — 6 capability cards (Discover)
+ * 4. AI Steps — how the AI pipeline works
+ * 5. Account split CTA
+ * 6. Program hub
+ * 7. CTA banner (black)
+ * 8. Footer
  */
 
 import React, { useCallback, useEffect, useRef } from 'react';
 import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
+import AccountSplitSection from '@/components/landing/AccountSplitSection';
+import AIStepsSection from '@/components/landing/AIStepsSection';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { FeatureGrid } from '@/components/landing/FeatureGrid';
+import ProgramHubSection from '@/components/landing/ProgramHubSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { Text } from '@/components';
 import { startBackendWarmup } from '@/services/backendWarmup';
 import { useAuthStore } from '@/stores';
-import { APP_NAME, APP_PAGE_PATHS, SUPPORT_EMAIL_URL, openAppPage, openExternalUrl } from '@/utils';
+import { APP_PAGE_PATHS, SUPPORT_EMAIL_URL, openAppPage, openExternalUrl } from '@/utils';
 
 const NAV_SECTION_MAP: Record<string, string> = {
   Track: 'featureGrid',
-  Programs: 'featureGrid',
-  Reports: 'featureGrid',
+  Programs: 'programHub',
+  Reports: 'aiSteps',
   About: 'footer',
 };
 
@@ -72,8 +78,10 @@ export default function LandingScreen() {
 
   const handleFooterLinkPress = useCallback((linkId: string) => {
     switch (linkId) {
-      case 'meal-logging': case 'workout-planning': case 'targets': case 'weekly-reports':
+      case 'meal-logging': case 'targets': case 'weekly-reports':
         scrollToSection('featureGrid'); return;
+      case 'workout-planning':
+        scrollToSection('programHub'); return;
       case 'help-centre': case 'export-data': navigation.navigate('Help'); return;
       case 'data-sources': navigation.navigate('AboutNutritionData'); return;
       case 'release-notes': void openAppPage(APP_PAGE_PATHS.releaseNotes); return;
@@ -100,17 +108,32 @@ export default function LandingScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 1. HERO ── */}
+        {/* 1. Hero */}
         <View style={[styles.sectionWrap, { maxWidth }]}>
           <HeroSection onGetStarted={navigateSignup} onLogin={navigateLogin} />
         </View>
 
-        {/* ── 2. DISCOVER ── */}
+        {/* 2. Feature Grid (6 cards — Discover) */}
         <View style={[styles.sectionWrap, { maxWidth }]} onLayout={handleSectionLayout('featureGrid')}>
           <FeatureGrid onExplore={navigateSignup} />
         </View>
 
-        {/* ── 3. CTA BANNER ── */}
+        {/* 3. AI Steps */}
+        <View style={[styles.sectionWrap, { maxWidth }]} onLayout={handleSectionLayout('aiSteps')}>
+          <AIStepsSection />
+        </View>
+
+        {/* 4. Account Split */}
+        <View style={[styles.sectionWrap, { maxWidth }]}>
+          <AccountSplitSection onLogin={navigateLogin} onSignup={navigateSignup} />
+        </View>
+
+        {/* 5. Program Hub */}
+        <View style={[styles.sectionWrap, { maxWidth }]} onLayout={handleSectionLayout('programHub')}>
+          <ProgramHubSection />
+        </View>
+
+        {/* 6. CTA Banner */}
         <View style={styles.ctaBanner}>
           <View style={[styles.ctaBannerInner, { maxWidth }]}>
             <Text style={isDesktop ? styles.ctaTitle : [styles.ctaTitle, styles.ctaTitleMobile]}>
@@ -125,7 +148,7 @@ export default function LandingScreen() {
           </View>
         </View>
 
-        {/* ── 4. FOOTER ── */}
+        {/* 7. Footer */}
         <View style={[styles.sectionWrap, { maxWidth }]} onLayout={handleSectionLayout('footer')}>
           <LandingFooter
             onGetStarted={navigateSignup}
@@ -151,7 +174,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
 
-  // ── CTA Banner — Uber-style full-width dark section ──
+  // CTA Banner — Uber-style full-width black section
   ctaBanner: {
     width: '100%',
     backgroundColor: '#000000',

@@ -30,16 +30,9 @@ export function LandingNav({ onLogin, onSignup, onNavPress, onHelp, onLanguage }
       <View style={[styles.bar, { maxWidth, minHeight: width >= 720 ? 88 : 76 }]}>
         <View style={styles.brandSide}>
           <Image source={brandIcon} style={styles.brandIcon} contentFit="contain" />
-          <View>
-            <Text variant="heading3" weight="bold" style={styles.brand}>
-              {APP_NAME}
-            </Text>
-            {!isCompact && (
-              <Text variant="caption" weight="medium" style={styles.brandMeta}>
-                Meals, rings, recovery
-              </Text>
-            )}
-          </View>
+          <Text variant="heading3" weight="bold" style={styles.brand}>
+            {APP_NAME}
+          </Text>
         </View>
 
         {showCenterNav && (

@@ -1,11 +1,6 @@
 /**
- * FeatureGrid — Uber "Discover what you can do" 3-card row.
- *
- * Uber rules:
- * - #F6F6F6 card background, no border, no shadow
- * - Bold title, gray description
- * - Illustration bottom-right
- * - 52px heading, tight letter-spacing
+ * FeatureGrid — Uber "Discover" section with 6 feature cards.
+ * Each card has a distinct background color matching its illustration.
  */
 import { Image } from 'expo-image';
 import React from 'react';
@@ -16,19 +11,40 @@ import { APP_NAME } from '@/utils';
 
 const FEATURES = [
   {
-    title: 'Scan meals',
-    description: 'Snap a photo, get instant macro breakdown. AI-powered nutrition logging in under 3 seconds.',
+    title: 'Meal Logging',
+    description: 'Open the camera, snap a photo, and get an instant macro breakdown powered by AI.',
     illustration: require('@/../assets/illustrations/cooking.svg'),
+    bg: '#FFF1E6',
   },
   {
-    title: 'Daily rings',
-    description: 'Apple Fitness-style rings track protein, carbs, and fat against your personalized targets.',
+    title: 'Workout Planning',
+    description: 'Build a week that balances strength, cardio, and recovery with video-guided sessions.',
+    illustration: require('@/../assets/illustrations/fitness-tracker.svg'),
+    bg: '#E3EFFF',
+  },
+  {
+    title: 'Progress Tracking',
+    description: 'Apple Fitness-style rings track protein, carbs, and fat against your daily targets.',
     illustration: require('@/../assets/illustrations/fitness-stats.svg'),
+    bg: '#E6F9ED',
   },
   {
-    title: 'Weekly insights',
-    description: 'See trends, streaks, and progress in a clear weekly report. Know exactly where you stand.',
+    title: 'Targets',
+    description: 'AI-generated calorie, macro, and hydration targets tailored to your body and goals.',
+    illustration: require('@/../assets/illustrations/healthy-habit.svg'),
+    bg: '#FFF8DB',
+  },
+  {
+    title: 'Recipes',
+    description: 'Browse meals that fit your macro targets instead of forcing workarounds later in the day.',
+    illustration: require('@/../assets/illustrations/chef.svg'),
+    bg: '#F3E8FF',
+  },
+  {
+    title: 'Weekly Reports',
+    description: 'See trends, streaks, adherence, and nutrition balance in one clear weekly report.',
     illustration: require('@/../assets/illustrations/data-trends.svg'),
+    bg: '#E0F4FF',
   },
 ] as const;
 
@@ -57,11 +73,11 @@ export function FeatureGrid({ onExplore }: FeatureGridProps) {
               pressed && { opacity: 0.92 },
             ]}
           >
-            <Text style={styles.cardTitle}>{feature.title}</Text>
-            <Text style={styles.cardDescription}>{feature.description}</Text>
-            <View style={styles.illustrationWrap}>
+            <View style={[styles.illustrationWrap, { backgroundColor: feature.bg }]}>
               <Image source={feature.illustration} style={styles.illustration} contentFit="contain" />
             </View>
+            <Text style={styles.cardTitle}>{feature.title}</Text>
+            <Text style={styles.cardDescription}>{feature.description}</Text>
           </Pressable>
         ))}
       </View>
@@ -91,6 +107,7 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 16,
   },
   gridMobile: {
@@ -98,37 +115,41 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: '#F6F6F6',
+    minWidth: 280,
     borderRadius: 16,
-    padding: 24,
-    minHeight: 320,
-    justifyContent: 'flex-start',
+    overflow: 'hidden',
   },
   cardDesktop: {
-    // Equal width via flex: 1
+    flexBasis: 'calc(33.333% - 11px)' as any,
+    flexGrow: 0,
+  },
+  illustrationWrap: {
+    height: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  illustration: {
+    width: '70%',
+    height: 160,
   },
   cardTitle: {
     color: '#000000',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     letterSpacing: -0.3,
-    marginBottom: 8,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 6,
+    backgroundColor: '#F6F6F6',
   },
   cardDescription: {
     color: '#6B6B6B',
-    fontSize: 15,
-    lineHeight: 24,
-    marginBottom: 20,
-  },
-  illustrationWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    minHeight: 140,
-  },
-  illustration: {
-    width: '80%',
-    height: 140,
+    fontSize: 14,
+    lineHeight: 22,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: '#F6F6F6',
   },
 });
 
