@@ -1360,11 +1360,7 @@ const DashboardScreen = () => {
               )}
             </Animated.View>
 
-            {Platform.OS !== 'web' && (
-              <Animated.View entering={staggerEnter(1)}>{renderMobileHero()}</Animated.View>
-            )}
-
-            {/* Quick-log bar — Uber "Where to?" pattern, mobile only */}
+            {/* Quick-log bar — mobile only */}
             {Platform.OS !== 'web' && (
               <View style={styles.quickLogRow}>
                 <TourGuideZone
@@ -1391,86 +1387,51 @@ const DashboardScreen = () => {
               </View>
             )}
 
-            {/* Welcome Tour Card for new users */}
             {showWelcomeCard && (
-              <WelcomeTourCard
-                onStartTour={handleStartTour}
-                onSkip={handleSkipTour}
-              />
+              <WelcomeTourCard onStartTour={handleStartTour} onSkip={handleSkipTour} />
             )}
 
-            {/* Goals card/prompt - only in main column when right panel is hidden */}
-            {!showSidebar && !showRightPanel && !showInlineGoalsRow && (
-              <View>
-                <SectionHeader title="Your Goal" action="Edit" onAction={() => navigation.navigate('BuildPlan' as any)} />
-                {renderGoalsSection()}
-              </View>
-            )}
-            {showSidebar && !showRightPanel && !showInlineGoalsRow && renderGoalsSection()}
+            {/* ── PERFORMANCE TODAY — same structure as web (responsive) ── */}
+            <View style={styles.mobileContentWrapper}>
+              <Animated.View entering={staggerEnter(1)}>
+                <Text variant="heading2" weight="bold" style={styles.mobilePerfTitle}>
+                  Performance today
+                </Text>
+              </Animated.View>
 
-                    {/* Main content wrapper — 24px gap on mobile (Uber rhythm) */}
-                  <View
-                    style={
-                      showSidebar
-                        ? showRightPanel
-                          ? styles.desktopContentWrapper
-                          : styles.sidebarContentWrapper
-                        : styles.mobileContentWrapper
-                    }
-                  >
-                    {/* Daily Tasks */}
-                    {!nutritionLoading && generatedGoals && (
-                      <Animated.View entering={staggerEnter(1)}>
-                        {!showSidebar && <SectionHeader title="Today's Tasks" />}
-                        <DailyTasksCard
-                          data={{
-                            calories: nutritionData.calories,
-                            calorieGoal: nutritionData.goal,
-                            protein: nutritionData.protein,
-                            mealCount: nutritionData.meals.length,
-                            hydrationCups,
-                            hydrationGoal: hydrationGoalCups,
-                          }}
-                        />
-                      </Animated.View>
-                    )}
+              {/* Hero: Nutrition Rings */}
+              <Animated.View entering={staggerEnter(2)}>
+                {renderNutritionCard()}
+              </Animated.View>
 
-                    {/* Daily Score is secondary after the task center */}
-                    {!nutritionLoading && generatedGoals && (
-                      <Animated.View entering={staggerEnter(2)}>
-                        {!showSidebar && <SectionHeader title="Daily Score" />}
-                        <DailyScoreCard
-                          data={{
-                            calories: nutritionData.calories,
-                            calorieGoal: nutritionData.goal,
-                            protein: nutritionData.protein,
-                            carbs: nutritionData.carbs,
-                            fat: nutritionData.fat,
-                            hydrationCups,
-                            hydrationGoal: hydrationGoalCups,
-                            streak: currentUser.data?.currentStreak || 0,
-                          }}
-                        />
-                      </Animated.View>
-                    )}
+              {/* Score + Tasks — stacked on mobile */}
+              <Animated.View entering={staggerEnter(3)}>
+                <DailyScoreCard
+                  data={{
+                    calories: nutritionData.calories,
+                    calorieGoal,
+                    protein: nutritionData.protein,
+                    carbs: nutritionData.carbs,
+                    fat: nutritionData.fat,
+                    hydrationCups,
+                    hydrationGoal: hydrationGoalCups,
+                    streak: currentUser.data?.currentStreak || 0,
+                  }}
+                />
+              </Animated.View>
 
-                    <Animated.View entering={staggerEnter(3)}>
-                    {showInlineGoalsRow ? (
-                      <View style={styles.inlineTopRow}>
-                        <View style={styles.inlineColumn}>
-                          {renderGoalsSection(styles.inlineCard)}
-                        </View>
-                        <View style={styles.inlineColumn}>
-                          {renderNutritionCard()}
-                        </View>
-                      </View>
-                    ) : (
-                      <View>
-                        {!showSidebar && <SectionHeader title="Nutrition" />}
-                        {renderNutritionCard()}
-                      </View>
-                    )}
-                    </Animated.View>
+              <Animated.View entering={staggerEnter(4)}>
+                <DailyTasksCard
+                  data={{
+                    calories: nutritionData.calories,
+                    calorieGoal,
+                    protein: nutritionData.protein,
+                    mealCount: nutritionData.meals.length,
+                    hydrationCups,
+                    hydrationGoal: hydrationGoalCups,
+                  }}
+                />
+              </Animated.View>
 
                     {/* Nutrition Insights - Trend & Balance charts */}
                     {!nutritionLoading && generatedGoals && (
@@ -1953,7 +1914,14 @@ const styles = StyleSheet.create({
   sectionTitle: { color: '#111111', fontSize: 20, letterSpacing: -0.5 },
   sectionAction: { color: '#111111', fontSize: 14 },
   // Mobile content wrapper — uniform 24px gap between sections
-  mobileContentWrapper: { gap: 28 },
+  mobileContentWrapper: { gap: 16 },
+  mobilePerfTitle: {
+    color: '#111111',
+    fontSize: 28,
+    lineHeight: 32,
+    letterSpacing: -0.8,
+    marginBottom: 12,
+  },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
