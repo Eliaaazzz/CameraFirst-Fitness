@@ -483,64 +483,8 @@ export const WorkoutsScreen = () => {
 
   const listHeaderComponent = (
     <View style={styles.header}>
-      <Animated.View entering={staggerEnter(0)} style={styles.introCard}>
-        <View style={styles.introTopRow}>
-          <Text variant="label" weight="bold" style={styles.introKicker}>
-            TRAINING LIBRARY
-          </Text>
-          <View style={styles.introBadge}>
-            <Text variant="caption" weight="bold" style={styles.introBadgeText}>
-              SEARCH + SAVE
-            </Text>
-          </View>
-        </View>
-        <Text variant="heading1" weight="bold" style={styles.introTitle}>
-          Workouts
-        </Text>
-        <Text variant="body" style={styles.introBody}>
-          Find focused routines, keep the best ones in rotation, and make the library feel tighter on mobile.
-        </Text>
-        <View style={styles.introFocusCard}>
-          <Text variant="caption" weight="bold" style={styles.introFocusKicker}>
-            TODAY'S DIRECTION
-          </Text>
-          <Text variant="body" weight="bold" style={styles.introFocusTitle}>
-            {workoutFocus}
-          </Text>
-          <Text variant="caption" style={styles.introFocusMeta}>
-            {recommendedItems.length} recommended · {savedWorkouts.length} saved
-          </Text>
-        </View>
-        <View style={styles.introStatsRow}>
-          <View style={[styles.introStat, styles.introStatWarm]}>
-            <Text variant="caption" weight="medium" style={styles.introStatLabel}>
-              Recommended
-            </Text>
-            <Text variant="body" weight="bold" style={styles.introStatValue}>
-              {recommendedItems.length}
-            </Text>
-          </View>
-          <View style={[styles.introStat, styles.introStatMint]}>
-            <Text variant="caption" weight="medium" style={styles.introStatLabel}>
-              Saved
-            </Text>
-            <Text variant="body" weight="bold" style={styles.introStatValue}>
-              {savedWorkouts.length}
-            </Text>
-          </View>
-          <View style={[styles.introStat, styles.introStatSky]}>
-            <Text variant="caption" weight="medium" style={styles.introStatLabel}>
-              Flow
-            </Text>
-            <Text variant="body" weight="bold" style={styles.introStatValue}>
-              Search + save
-            </Text>
-          </View>
-        </View>
-      </Animated.View>
-
       {/* Search Bar - Tour Zone 4 */}
-      <Animated.View entering={staggerEnter(1)}>
+      <Animated.View entering={staggerEnter(0)}>
         <TourGuideZone
           zone={WORKOUTS_TOUR_STEP.zone}
           text={WORKOUTS_TOUR_STEP.text}
@@ -614,7 +558,7 @@ export const WorkoutsScreen = () => {
 
       {/* Recommended Section - hidden when search UI is active */}
       {!showSearchUI && (
-        <Animated.View entering={staggerEnter(2)} style={styles.section}>
+        <Animated.View entering={staggerEnter(1)} style={styles.section}>
           <Text variant="heading2" weight="semibold" style={styles.sectionTitle}>
             Recommended for you
           </Text>
@@ -630,8 +574,8 @@ export const WorkoutsScreen = () => {
             <Text variant="caption" style={[styles.recommendedNote, { color: theme.colors.textSecondary }]}>
               No recommendations yet.
             </Text>
-          ) : showSidebar ? (
-            <ResponsiveGrid columns={{ desktop: 3, wide: 4 }} gap={spacing.md}>
+          ) : (
+            <ResponsiveGrid columns={{ mobile: 1, tablet: 2, desktop: 3, wide: 4 }} gap={spacing.md}>
               {recommendedItems.map((item) => (
                 <WorkoutCard
                   key={item.id}
@@ -642,23 +586,6 @@ export const WorkoutsScreen = () => {
                 />
               ))}
             </ResponsiveGrid>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.recommendedList}
-            >
-              {recommendedItems.map((item) => (
-                <View key={item.id} style={styles.recommendedCard}>
-                  <WorkoutCard
-                    item={item}
-                    isSaved={savedWorkoutIds.has(item.id)}
-                    onSave={(id) => saveWorkout.mutateAsync(id).then(() => true)}
-                    onRemove={(id) => removeWorkout.mutateAsync(id).then(() => true)}
-                  />
-                </View>
-              ))}
-            </ScrollView>
           )}
         </Animated.View>
       )}

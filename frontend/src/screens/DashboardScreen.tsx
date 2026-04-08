@@ -15,6 +15,7 @@ import {
     Pressable,
     RefreshControl,
     StyleSheet,
+    useWindowDimensions,
     View
 } from 'react-native';
 import Animated, {
@@ -221,9 +222,13 @@ const DashboardScreen = () => {
   const navigation = useNavigation<any>();
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId || '';
+  const { width } = useWindowDimensions();
   const showRightPanel = useRightPanelVisible();
   const showSidebar = useSidebarVisible(); // Desktop mode detection
   const { t } = useLanguageStore();
+  const isDashboardDesktop = width >= 1024;
+  const isDashboardTablet = width >= 720;
+  const isDashboardCompact = width < 420;
 
   const { data: nutritionData, isLoading: nutritionLoading, refresh } = useDailyNutrition();
   const goals = useGoals(userId);
@@ -544,7 +549,7 @@ const DashboardScreen = () => {
   // Pattern: Uber logged-in homepage with hero + suggestions + account activity
   // Mobile layout is completely unchanged below this block.
   // ============================================================================
-  if (showSidebar && Platform.OS === 'web') {
+  const renderSharedDashboard = () => {
     const suggestionCards = [
       { title: 'Log meal', illustration: illustrationScanMeal, backgroundColor: '#FBE4D6', onPress: handleAddFood },
       { title: 'Workouts', illustration: illustrationWorkouts, backgroundColor: '#DDEEFF', onPress: () => navigation.navigate('Main', { screen: 'Workouts' } as any) },
@@ -606,9 +611,9 @@ const DashboardScreen = () => {
             contentContainerStyle={webStyles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <View style={webStyles.heroSection}>
+            <View style={[webStyles.heroSection, !isDashboardDesktop && webStyles.heroSectionMobile, isDashboardCompact && webStyles.heroSectionCompact]}>
               <View style={webStyles.heroLeft}>
-                <View style={webStyles.heroEyebrowRow}>
+                <View style={[webStyles.heroEyebrowRow, !isDashboardTablet && webStyles.heroEyebrowRowMobile]}>
                   <View style={webStyles.heroEyebrowChip}>
                     <FlagCheckered size={16} weight="fill" color="#111111" />
                     <Text variant="body" weight="semibold" style={webStyles.heroEyebrowText}>
@@ -625,10 +630,20 @@ const DashboardScreen = () => {
                   </Pressable>
                 </View>
 
-                <Text variant="heading1" weight="bold" style={webStyles.heroTitle}>
+                <Text
+                  variant="heading1"
+                  weight="bold"
+                  style={
+                    isDashboardCompact
+                      ? [webStyles.heroTitle, webStyles.heroTitleMobile, webStyles.heroTitleCompact]
+                      : !isDashboardDesktop
+                        ? [webStyles.heroTitle, webStyles.heroTitleMobile]
+                        : webStyles.heroTitle
+                  }
+                >
                   Build today&apos;s plan
                 </Text>
-                <Text variant="body" style={webStyles.heroSubtitle}>
+                <Text style={isDashboardCompact ? [webStyles.heroSubtitle, webStyles.heroSubtitleCompact] : webStyles.heroSubtitle}>
                   Log meals, hit your macros, and review weekly progress — all in one place.
                 </Text>
 
@@ -646,7 +661,7 @@ const DashboardScreen = () => {
                 >
                   <Pressable
                     onPress={handleAddFood}
-                    style={({ pressed }) => [webStyles.heroInputCard, pressed && webStyles.heroInputPressed]}
+                    style={({ pressed }) => [webStyles.heroInputCard, !isDashboardDesktop && webStyles.heroInputCardMobile, pressed && webStyles.heroInputPressed]}
                   >
                     <View style={webStyles.heroInputConnector}>
                       <View style={webStyles.heroInputDot} />
@@ -668,7 +683,7 @@ const DashboardScreen = () => {
 
                 <Pressable
                   onPress={() => navigation.navigate('Main', { screen: 'Workouts' } as any)}
-                  style={({ pressed }) => [webStyles.heroInputCard, pressed && webStyles.heroInputPressed]}
+                  style={({ pressed }) => [webStyles.heroInputCard, !isDashboardDesktop && webStyles.heroInputCardMobile, pressed && webStyles.heroInputPressed]}
                 >
                   <View style={[webStyles.heroInputConnector, webStyles.heroInputConnectorHidden]} />
                   <View style={webStyles.heroInputIcon}>
@@ -684,10 +699,10 @@ const DashboardScreen = () => {
                   </View>
                 </Pressable>
 
-                <View style={webStyles.heroActions}>
+                <View style={[webStyles.heroActions, !isDashboardTablet && webStyles.heroActionsMobile]}>
                   <Pressable
                     onPress={handleAddFood}
-                    style={({ pressed }) => [webStyles.heroPrimaryCta, pressed && webStyles.heroCtaPressed]}
+                    style={({ pressed }) => [webStyles.heroPrimaryCta, !isDashboardTablet && webStyles.heroPrimaryCtaMobile, pressed && webStyles.heroCtaPressed]}
                   >
                     <Text variant="body" weight="bold" style={webStyles.heroPrimaryCtaText}>
                       Start tracking
@@ -704,32 +719,50 @@ const DashboardScreen = () => {
                 </View>
               </View>
 
-              <View style={webStyles.heroRight}>
-                <Text variant="heading3" weight="bold" style={webStyles.suggestionsTitle}>
+              <View style={[webStyles.heroRight, !isDashboardDesktop && webStyles.heroRightMobile]}>
+                <Text
+                  variant="heading3"
+                  weight="bold"
+                  style={isDashboardCompact ? [webStyles.suggestionsTitle, webStyles.suggestionsTitleCompact] : webStyles.suggestionsTitle}
+                >
                   Suggestions
                 </Text>
                 <SuggestionGrid cards={suggestionCards} />
               </View>
             </View>
 
-            <View style={webStyles.section}>
-              <Text variant="heading2" weight="bold" style={webStyles.sectionHeading}>
+            <View style={[webStyles.section, isDashboardCompact && webStyles.sectionCompact]}>
+              <Text
+                variant="heading2"
+                weight="bold"
+                style={
+                  isDashboardCompact
+                    ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile, webStyles.sectionHeadingCompact]
+                    : !isDashboardDesktop
+                      ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile]
+                      : webStyles.sectionHeading
+                }
+              >
                 Your account and activity
               </Text>
-              <View style={webStyles.activityCard}>
-                <View style={webStyles.activityCol1}>
+              <View style={[webStyles.activityCard, !isDashboardDesktop && webStyles.activityCardMobile]}>
+                <View style={[webStyles.activityCol1, !isDashboardDesktop && webStyles.activityColMobile]}>
                   <Text variant="heading4" weight="bold" style={webStyles.colTitle}>
                     Most recent
                   </Text>
                   <Pressable
                     onPress={() => navigation.navigate('BuildPlan', { initialGoal: planPreviewGoal })}
-                    style={({ pressed }) => [webStyles.programCard, pressed && webStyles.programCardPressed]}
+                    style={({ pressed }) => [webStyles.programCard, !isDashboardDesktop && webStyles.programCardMobile, pressed && webStyles.programCardPressed]}
                   >
                     <View style={webStyles.programCardCopy}>
                       <Text variant="label" weight="bold" style={webStyles.programCardLabel}>
                         Current program
                       </Text>
-                      <Text variant="heading2" weight="bold" style={webStyles.programCardTitle}>
+                      <Text
+                        variant="heading2"
+                        weight="bold"
+                        style={!isDashboardDesktop ? [webStyles.programCardTitle, webStyles.programCardTitleMobile] : webStyles.programCardTitle}
+                      >
                         {currentProgramTitle}
                       </Text>
                       <Text variant="body" style={webStyles.programCardBody}>
@@ -741,7 +774,11 @@ const DashboardScreen = () => {
                         </Text>
                       </View>
                     </View>
-                    <Image source={illustrationTargets} style={webStyles.programCardIllustration as any} contentFit="contain" />
+                    <Image
+                      source={illustrationTargets}
+                      style={[webStyles.programCardIllustration, !isDashboardDesktop && webStyles.programCardIllustrationMobile] as any}
+                      contentFit="contain"
+                    />
                   </Pressable>
 
                   <View style={webStyles.metricStack}>
@@ -777,7 +814,7 @@ const DashboardScreen = () => {
                   </View>
                 </View>
 
-                <View style={webStyles.activityCol2}>
+                <View style={[webStyles.activityCol2, !isDashboardDesktop && webStyles.activityColMobile]}>
                   <Text variant="heading4" weight="bold" style={webStyles.colTitle}>
                     Past
                   </Text>
@@ -828,7 +865,7 @@ const DashboardScreen = () => {
                   )}
                 </View>
 
-                <View style={webStyles.activityCol3}>
+                <View style={[webStyles.activityCol3, !isDashboardDesktop && webStyles.activityColMobileLast]}>
                   <Text variant="heading4" weight="bold" style={webStyles.colTitle}>
                     Services
                   </Text>
@@ -857,8 +894,8 @@ const DashboardScreen = () => {
             </View>
 
             {/* ── PERFORMANCE TODAY — Rings only ── */}
-            <View style={webStyles.section}>
-              <Text variant="heading2" weight="bold" style={webStyles.perfTitle}>
+            <View style={[webStyles.section, isDashboardCompact && webStyles.sectionCompact]}>
+              <Text variant="heading2" weight="bold" style={!isDashboardDesktop ? [webStyles.perfTitle, webStyles.perfTitleMobile] : webStyles.perfTitle}>
                 Performance today
               </Text>
               {showNutritionLoading ? (
@@ -878,35 +915,49 @@ const DashboardScreen = () => {
               )}
             </View>
 
-            <View style={webStyles.section}>
+            <View style={[webStyles.section, isDashboardCompact && webStyles.sectionCompact]}>
               <View style={webStyles.sectionHeader}>
                 <View style={[webStyles.sectionEyebrow, webStyles.sectionEyebrowCool]}>
                   <Text variant="label" weight="bold" style={webStyles.sectionEyebrowText}>
                     Weekly planner
                   </Text>
                 </View>
-                <Text variant="heading2" weight="bold" style={webStyles.sectionHeading}>
+                <Text
+                  variant="heading2"
+                  weight="bold"
+                  style={
+                    isDashboardCompact
+                      ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile, webStyles.sectionHeadingCompact]
+                      : !isDashboardDesktop
+                        ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile]
+                        : webStyles.sectionHeading
+                  }
+                >
                   Plan for later
                 </Text>
                 <Text variant="body" style={webStyles.sectionSubheading}>
                   Pick a direction now. Build my plan only needs sex, height, and weight after this selection.
                 </Text>
               </View>
-              <View style={webStyles.planRow}>
-                <View style={webStyles.planAccentCard}>
+              <View style={[webStyles.planRow, !isDashboardDesktop && webStyles.planRowMobile]}>
+                <View style={[webStyles.planAccentCard, !isDashboardDesktop && webStyles.planAccentCardMobile]}>
                   <View style={webStyles.planBadge}>
                     <Text variant="label" weight="bold" style={webStyles.planBadgeText}>
                       Weekly planner
                     </Text>
                   </View>
-                  <Text variant="heading2" weight="bold" style={webStyles.planAccentTitle}>
+                  <Text
+                    variant="heading2"
+                    weight="bold"
+                    style={!isDashboardDesktop ? [webStyles.planAccentTitle, webStyles.planAccentTitleMobile] : webStyles.planAccentTitle}
+                  >
                     {selectedPlanPreview.title}
                   </Text>
                   <Text variant="body" style={webStyles.planAccentBody}>
                     {selectedPlanPreview.description}
                   </Text>
 
-                  <View style={webStyles.planTabsRow}>
+                  <View style={[webStyles.planTabsRow, !isDashboardTablet && webStyles.planTabsRowMobile]}>
                     {(Object.keys(GOAL_TYPE_CONFIG) as GoalType[]).map((goalKey) => {
                       const option = GOAL_TYPE_CONFIG[goalKey];
                       const isSelected = planPreviewGoal === goalKey;
@@ -920,6 +971,7 @@ const DashboardScreen = () => {
                           }}
                           style={({ pressed }) => [
                             webStyles.planTab,
+                            !isDashboardTablet && webStyles.planTabMobile,
                             {
                               backgroundColor: isSelected ? `${option.color}18` : '#FFFFFF',
                               borderColor: isSelected ? option.color : 'rgba(17,17,17,0.08)',
@@ -941,7 +993,7 @@ const DashboardScreen = () => {
                     })}
                   </View>
 
-                  <View style={webStyles.planPreviewStats}>
+                  <View style={[webStyles.planPreviewStats, !isDashboardTablet && webStyles.planPreviewStatsMobile]}>
                     <View style={webStyles.planField}>
                       <Text variant="caption" style={webStyles.planFieldLabel}>Focus</Text>
                       <Text variant="body" weight="semibold" style={webStyles.planFieldValue}>{selectedPlanPreview.focus}</Text>
@@ -967,7 +1019,7 @@ const DashboardScreen = () => {
 
                   <Image
                     source={illustrationWorkouts}
-                    style={webStyles.planIllustration as any}
+                    style={[webStyles.planIllustration, !isDashboardDesktop && webStyles.planIllustrationMobile] as any}
                     contentFit="contain"
                   />
                 </View>
@@ -1010,7 +1062,7 @@ const DashboardScreen = () => {
               </View>
             </View>
 
-            <View style={webStyles.footerWrap}>
+            <View style={[webStyles.footerWrap, isDashboardCompact && webStyles.footerWrapCompact]}>
               <LandingFooter
                 onGetStarted={() => navigation.navigate('Profile')}
                 onLogin={() => navigation.navigate('Profile')}
@@ -1022,7 +1074,7 @@ const DashboardScreen = () => {
         </View>
       </SafeAreaWrapper>
     );
-  }
+  };
 
   const renderGoalsSection = (styleOverride?: object) => {
     if (generatedGoals) {
@@ -1181,250 +1233,7 @@ const DashboardScreen = () => {
     />
   );
 
-  return (
-    <SafeAreaWrapper>
-      <View style={styles.screenRoot}>
-        {Platform.OS !== 'web' && (
-          <View pointerEvents="none" style={styles.mobileBackdropLayer}>
-            <View style={[styles.mobileBackdropBand, styles.mobileBackdropBandWarm]} />
-            <View style={[styles.mobileBackdropBand, styles.mobileBackdropBandMint]} />
-            <View style={[styles.mobileBackdropBand, styles.mobileBackdropBandSky]} />
-          </View>
-        )}
-        <ScreenLayout rightPanel={renderRightPanel()} scrollable={false}>
-          <TourScrollView
-            style={styles.container}
-            contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
-            screenName="Dashboard"
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor={BRAND_COLORS.primary}
-                progressViewOffset={20}
-              />
-            }
-          >
-            {/* Header — Uber typography: greeting is hero, name is secondary */}
-            <Animated.View entering={staggerEnter(0)} style={styles.header}>
-              <View style={styles.headerLeft}>
-                <Text variant={Platform.OS !== 'web' ? 'heading2' : 'caption'} weight={Platform.OS !== 'web' ? 'bold' : undefined} style={styles.greeting}>{greeting}</Text>
-                <View style={styles.nameRow}>
-                  <Text variant={Platform.OS !== 'web' ? 'body' : 'heading1'} weight={Platform.OS !== 'web' ? 'medium' : 'bold'} style={styles.userName}>
-                    {currentUser.data?.username || 'User'}
-                  </Text>
-                  <StreakBadge streak={currentUser.data?.currentStreak || 0} compact />
-                </View>
-                <Text variant="caption" style={styles.contextLine}>{contextLine}</Text>
-              </View>
-              {/* Profile button: web only (mobile uses Profile tab) */}
-              {Platform.OS === 'web' && !showRightPanel && (
-                <View style={styles.headerActions}>
-                  <Pressable
-                    style={styles.profileButton}
-                    onPress={() => navigation.navigate('Profile')}
-                  >
-                    <User size={22} color={BRAND_COLORS.textPrimary} weight="regular" />
-                  </Pressable>
-                </View>
-              )}
-            </Animated.View>
-
-            {/* Quick-log bar — mobile only */}
-            {Platform.OS !== 'web' && (
-              <View style={styles.quickLogRow}>
-                <TourGuideZone
-                  zone={SNAP_MEAL_STEP.zone}
-                  text={SNAP_MEAL_STEP.text}
-                  title={SNAP_MEAL_STEP.title}
-                  icon="📸"
-                  style={{ flex: 1 }}
-                >
-                  <Pressable onPress={handleAddFood} style={({pressed}) => [styles.quickLogBar, pressed && styles.quickLogBarPressed]}>
-                    <View style={styles.quickLogBarIcon}>
-                      <Camera size={20} color="#FFFFFF" weight="regular" />
-                    </View>
-                    <View style={styles.quickLogBarCopy}>
-                      <Text style={styles.quickLogBarText}>Snap a meal</Text>
-                      <Text style={styles.quickLogBarSubtext}>Camera or gallery</Text>
-                    </View>
-                  </Pressable>
-                </TourGuideZone>
-                <Pressable onPress={() => setShowWeightModal(true)} style={({pressed}) => [styles.quickLogWeightBtn, pressed && styles.quickLogBarPressed]}>
-                  <Scales size={20} color={BRAND_COLORS.primary} weight="regular" />
-                  <Text style={styles.quickLogWeightText}>Weight</Text>
-                </Pressable>
-              </View>
-            )}
-
-            {showWelcomeCard && (
-              <WelcomeTourCard onStartTour={handleStartTour} onSkip={handleSkipTour} />
-            )}
-
-            {/* ── PERFORMANCE TODAY — Rings only (same as web) ── */}
-            <View style={styles.mobileContentWrapper}>
-              <Animated.View entering={staggerEnter(1)}>
-                <Text variant="heading2" weight="bold" style={styles.mobilePerfTitle}>
-                  Performance today
-                </Text>
-              </Animated.View>
-
-              <Animated.View entering={staggerEnter(2)}>
-                {renderNutritionCard()}
-              </Animated.View>
-
-                    {/* Nutrition Insights - Trend & Balance charts */}
-                    {!nutritionLoading && generatedGoals && (
-                      <View>
-                        <NutritionInsightsCard
-                          trendData={trendData}
-                          target={{
-                            calories: nutritionData.goal,
-                            protein: nutritionData.protein.goal,
-                            carbs: nutritionData.carbs.goal,
-                            fat: nutritionData.fat.goal,
-                          }}
-                          currentMacros={{
-                            protein: nutritionData.protein.current,
-                            carbs: nutritionData.carbs.current,
-                            fat: nutritionData.fat.current,
-                          }}
-                        />
-                      </View>
-                    )}
-
-                    {/* Keep inline quick actions on web only; mobile removes this section */}
-                    {Platform.OS === 'web' && !showRightPanel && (
-                      <View>
-                        <QuickActionsCard />
-                      </View>
-                    )}
-
-                  {/* Today's Meals */}
-                  <Animated.View entering={staggerEnter(4)}>
-                  {!showSidebar && <SectionHeader title="Today's Meals" />}
-                  <View
-                    style={[
-                      Platform.OS !== 'web' ? MOBILE_CARD_STYLES : undefined,
-                      styles.mealsCard,
-                      showSidebar && (showRightPanel ? styles.mealsCardDesktop : styles.mealsCardSidebar),
-                    ]}
-                  >
-                    {/* Header - matches NutritionRingsCard header (web only on mobile, section header replaces it) */}
-                    {showSidebar && (
-                    <View style={styles.mealsHeader}>
-                      <View>
-                        <Text variant="heading3" weight="bold" style={styles.mealsTitle}>
-                          {t.todaysMeals}
-                        </Text>
-                        {nutritionData.meals.length > 0 && (
-                          <Text variant="caption" style={styles.mealsSubtitle}>
-                            {nutritionData.meals.length} {nutritionData.meals.length === 1 ? t.mealLogged : t.mealsLogged}
-                          </Text>
-                        )}
-                      </View>
-
-                      {/* Compact Snap Button (web only, main tour anchor lives in the hero CTA) */}
-                      {Platform.OS === 'web' && (
-                        <Pressable
-                          onPress={handleAddFood}
-                          style={({pressed}) => [styles.compactSnapBtn, pressed && styles.compactSnapBtnPressed]}
-                        >
-                           <Camera size={16} color="#FFFFFF" weight="regular" />
-                           <Text style={styles.compactSnapBtnText}>Snap Meal</Text>
-                        </Pressable>
-                      )}
-                    </View>
-                    )}
-
-              {nutritionData.meals.length === 0 ? (
-                <View style={styles.emptyMealsWrapper}>
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.emptyMealsContent,
-                      pressed && styles.emptyMealsContentPressed,
-                    ]}
-                    onPress={handleAddFood}
-                  >
-                    <View style={styles.emptyMealsIconContainer}>
-                      <CameraPlus size={24} color={BRAND_COLORS.primary} weight="regular" />
-                    </View>
-                    <View style={styles.emptyMealsTextContainer}>
-                      <Text variant="body" weight="semibold" style={styles.emptyMealsTitle}>
-                        Your meal log is waiting
-                      </Text>
-                      <Text variant="caption" style={styles.emptyMealsHint}>
-                        Snap a photo and your nutrition story starts here
-                      </Text>
-                    </View>
-                  </Pressable>
-                </View>
-              ) : (
-                <View style={styles.mealsList}>
-                  {nutritionData.meals.map((meal, mealIndex) => (
-                    <Animated.View key={meal.id} entering={reduceMotion ? undefined : FadeInRight.duration(300).delay(mealIndex * 60)} style={styles.mealItem}>
-                      <MealImage
-                        imageUrl={meal.imageUrl}
-                        size={Platform.OS !== 'web' ? 64 : 56}
-                        borderRadius={Platform.OS !== 'web' ? 14 : 12}
-                      />
-                      <View style={styles.mealDetails}>
-                        <View style={styles.mealHeader}>
-                          <View style={{ flex: 1, marginRight: spacing.sm }}>
-                            <Text variant="body" weight="bold" style={{ color: BRAND_COLORS.textPrimary }}>
-                              {getMealType(new Date(meal.consumedAt))}
-                            </Text>
-                            <Text variant="caption" numberOfLines={1} style={{ color: colors.light.textSecondary }}>
-                              {formatMealName(meal.name)}
-                            </Text>
-                          </View>
-                          <Text variant="body" weight="bold" style={styles.mealCalories}>
-                            {meal.calories} kcal
-                          </Text>
-                        </View>
-                        <View style={styles.mealMetaRow}>
-                          <Text variant="caption" style={styles.mealTime}>
-                            {new Date(meal.consumedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </Text>
-                          <View style={styles.mealMacros}>
-                            <Text variant="caption" style={styles.mealMacroText}>
-                              P {Math.round(meal.protein || 0)}g
-                            </Text>
-                            <Text variant="caption" style={styles.mealMacroDivider}>·</Text>
-                            <Text variant="caption" style={styles.mealMacroText}>
-                              C {Math.round(meal.carbs || 0)}g
-                            </Text>
-                            <Text variant="caption" style={styles.mealMacroDivider}>·</Text>
-                            <Text variant="caption" style={styles.mealMacroText}>
-                              F {Math.round(meal.fat || 0)}g
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    </Animated.View>
-                  ))}
-                </View>
-              )}
-            </View>
-            </Animated.View>
-
-                    {/* Support contact — Apple requires visible support reference */}
-                    <Pressable
-                      onPress={() => Linking.openURL('mailto:support@aurafitness.org').catch(() => {})}
-                      style={({ pressed }) => [styles.supportRow, pressed && { opacity: 0.7 }]}
-                    >
-                      <EnvelopeSimple size={14} color={BRAND_COLORS.textMuted} />
-                      <Text variant="caption" style={styles.supportText}>
-                        Need help? support@aurafitness.org
-                      </Text>
-                    </Pressable>
-          </View>
-          </TourScrollView>
-        </ScreenLayout>
-      </View>
-      <WeightLogModal visible={showWeightModal} onDismiss={() => setShowWeightModal(false)} />
-    </SafeAreaWrapper>
-  );
+  return renderSharedDashboard();
 };
 
 const styles = StyleSheet.create({
@@ -2161,6 +1970,15 @@ const webStyles = StyleSheet.create({
     paddingTop: 56,
     paddingBottom: 56,
   },
+  heroSectionMobile: {
+    flexDirection: 'column',
+    gap: 28,
+    paddingTop: 32,
+    paddingBottom: 40,
+  },
+  heroSectionCompact: {
+    paddingHorizontal: spacing.lg,
+  },
   heroLeft: {
     flex: 1,
     maxWidth: 560,
@@ -2171,6 +1989,10 @@ const webStyles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.lg,
     marginBottom: spacing.lg,
+  },
+  heroEyebrowRowMobile: {
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
   },
   heroEyebrowChip: {
     flexDirection: 'row',
@@ -2201,12 +2023,26 @@ const webStyles = StyleSheet.create({
     letterSpacing: -2.8,
     maxWidth: 520,
   },
+  heroTitleMobile: {
+    fontSize: 46,
+    lineHeight: 48,
+    letterSpacing: -1.8,
+  },
+  heroTitleCompact: {
+    fontSize: 38,
+    lineHeight: 40,
+    letterSpacing: -1.4,
+  },
   heroSubtitle: {
     color: '#4B4B4B',
     fontSize: 18,
     lineHeight: 30,
     marginTop: 20,
     maxWidth: 520,
+  },
+  heroSubtitleCompact: {
+    fontSize: 16,
+    lineHeight: 26,
   },
   heroModePill: {
     alignSelf: 'flex-start',
@@ -2234,6 +2070,10 @@ const webStyles = StyleSheet.create({
       cursor: 'pointer' as any,
       transition: 'background-color 0.15s ease-out',
     }),
+  },
+  heroInputCardMobile: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   heroInputPressed: {
     backgroundColor: '#ECECEC',
@@ -2284,6 +2124,10 @@ const webStyles = StyleSheet.create({
     gap: spacing.xl,
     marginTop: spacing.lg,
   },
+  heroActionsMobile: {
+    flexWrap: 'wrap',
+    gap: spacing.lg,
+  },
   heroPrimaryCta: {
     backgroundColor: '#111111',
     paddingHorizontal: 36,
@@ -2292,6 +2136,10 @@ const webStyles = StyleSheet.create({
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
     }),
+  },
+  heroPrimaryCtaMobile: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
   },
   heroPrimaryCtaText: {
     color: '#FFFFFF',
@@ -2314,12 +2162,19 @@ const webStyles = StyleSheet.create({
     flex: 1.05,
     paddingTop: 92,
   },
+  heroRightMobile: {
+    paddingTop: 0,
+  },
   suggestionsTitle: {
     color: '#111111',
     fontSize: 28,
     lineHeight: 32,
     letterSpacing: -0.8,
     marginBottom: 20,
+  },
+  suggestionsTitleCompact: {
+    fontSize: 24,
+    lineHeight: 28,
   },
   section: {
     maxWidth: 1360,
@@ -2328,6 +2183,9 @@ const webStyles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: 32,
     paddingBottom: 40,
+  },
+  sectionCompact: {
+    paddingHorizontal: spacing.lg,
   },
   sectionHeader: {
     marginBottom: 28,
@@ -2354,6 +2212,16 @@ const webStyles = StyleSheet.create({
     lineHeight: 58,
     letterSpacing: -2.2,
   },
+  sectionHeadingMobile: {
+    fontSize: 40,
+    lineHeight: 42,
+    letterSpacing: -1.4,
+  },
+  sectionHeadingCompact: {
+    fontSize: 34,
+    lineHeight: 36,
+    letterSpacing: -1.1,
+  },
   sectionSubheading: {
     color: '#111111',
     fontSize: 18,
@@ -2367,6 +2235,9 @@ const webStyles = StyleSheet.create({
     borderRadius: 22,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
+  },
+  activityCardMobile: {
+    flexDirection: 'column',
   },
   activityCol1: {
     flex: 2.1,
@@ -2382,6 +2253,14 @@ const webStyles = StyleSheet.create({
   },
   activityCol3: {
     flex: 1.9,
+    padding: 24,
+  },
+  activityColMobile: {
+    borderRightWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ECECEC',
+  },
+  activityColMobileLast: {
     padding: 24,
   },
   colTitle: {
@@ -2403,6 +2282,10 @@ const webStyles = StyleSheet.create({
       transition: 'opacity 0.15s ease-out',
     }),
   },
+  programCardMobile: {
+    minHeight: 220,
+    padding: 18,
+  },
   programCardPressed: {
     opacity: 0.92,
   },
@@ -2419,6 +2302,11 @@ const webStyles = StyleSheet.create({
     fontSize: 44,
     lineHeight: 46,
     letterSpacing: -1.6,
+  },
+  programCardTitleMobile: {
+    fontSize: 34,
+    lineHeight: 36,
+    letterSpacing: -1.2,
   },
   programCardBody: {
     color: '#343434',
@@ -2441,6 +2329,10 @@ const webStyles = StyleSheet.create({
     bottom: 4,
     width: 180,
     height: 180,
+  },
+  programCardIllustrationMobile: {
+    width: 140,
+    height: 140,
   },
   metricStack: {
     gap: 10,
@@ -2573,6 +2465,11 @@ const webStyles = StyleSheet.create({
     letterSpacing: -1.6,
     marginBottom: 28,
   },
+  perfTitleMobile: {
+    fontSize: 34,
+    lineHeight: 38,
+    letterSpacing: -1.2,
+  },
   perfHero: {
     marginBottom: 20,
   },
@@ -2592,6 +2489,9 @@ const webStyles = StyleSheet.create({
     flexDirection: 'row',
     gap: 28,
   },
+  planRowMobile: {
+    flexDirection: 'column',
+  },
   planAccentCard: {
     flex: 2.2,
     borderRadius: 28,
@@ -2601,6 +2501,10 @@ const webStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E6E1D8',
     backgroundColor: '#FFF7EA',
+  },
+  planAccentCardMobile: {
+    minHeight: 0,
+    padding: 22,
   },
   planBadge: {
     alignSelf: 'flex-start',
@@ -2622,6 +2526,11 @@ const webStyles = StyleSheet.create({
     letterSpacing: -2,
     maxWidth: 560,
   },
+  planAccentTitleMobile: {
+    fontSize: 36,
+    lineHeight: 38,
+    letterSpacing: -1.3,
+  },
   planAccentBody: {
     color: '#2C2C2C',
     fontSize: 18,
@@ -2634,6 +2543,9 @@ const webStyles = StyleSheet.create({
     gap: 12,
     marginTop: 28,
     marginBottom: 18,
+  },
+  planTabsRowMobile: {
+    flexDirection: 'column',
   },
   planTab: {
     flex: 1,
@@ -2654,6 +2566,9 @@ const webStyles = StyleSheet.create({
     opacity: 0.92,
     transform: [{ scale: 0.99 }],
   },
+  planTabMobile: {
+    width: '100%',
+  },
   planTabIcon: {
     width: 34,
     height: 34,
@@ -2669,6 +2584,9 @@ const webStyles = StyleSheet.create({
     gap: 12,
     marginBottom: 18,
   },
+  planPreviewStatsMobile: {
+    flexDirection: 'column',
+  },
   planField: {
     flex: 1,
     minHeight: 96,
@@ -2678,7 +2596,9 @@ const webStyles = StyleSheet.create({
     paddingVertical: 16,
     borderWidth: 1,
     borderColor: '#EAE4D9',
-    boxShadow: '0 10px 22px rgba(17,17,17,0.04)',
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 10px 22px rgba(17,17,17,0.04)' } as any)
+      : {}),
   },
   planFieldLabel: {
     color: 'rgba(17,17,17,0.62)',
@@ -2708,6 +2628,12 @@ const webStyles = StyleSheet.create({
     width: 220,
     height: 220,
     opacity: 0.25,
+  },
+  planIllustrationMobile: {
+    width: 170,
+    height: 170,
+    right: -20,
+    bottom: -18,
   },
   planBenefitsPanel: {
     flex: 1,
@@ -2759,6 +2685,9 @@ const webStyles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: 32,
     paddingBottom: 56,
+  },
+  footerWrapCompact: {
+    paddingHorizontal: spacing.lg,
   },
 });
 

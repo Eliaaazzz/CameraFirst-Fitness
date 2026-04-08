@@ -1,7 +1,8 @@
 import { CaretDown, GlobeHemisphereWest, Question } from 'phosphor-react-native';
 import { Image } from 'expo-image';
 import React from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components';
 import { APP_NAME, EXPERIENCE_COLORS, LANDING_COLORS, motion, radii, spacing } from '@/utils';
@@ -19,18 +20,20 @@ const brandIcon = require('@/../assets/app-icon-1024-transparent.png');
 
 export function LandingNav({ onLogin, onSignup, onNavPress, onHelp, onLanguage }: LandingNavProps) {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const isCompact = width < 680;
+  const isSmallPhone = width < 420;
   const maxWidth = Math.min(width - (isCompact ? 20 : 32), 1360);
   const showCenterNav = width >= 1080;
   const showLocaleAction = width >= 760;
   const showHelpAction = width >= 420;
 
   return (
-    <View style={styles.wrapper}>
-      <View style={[styles.bar, { maxWidth, minHeight: width >= 720 ? 88 : 76 }]}>
+    <View style={[styles.wrapper, Platform.OS !== 'web' && { paddingTop: insets.top }]}>
+      <View style={[styles.bar, { maxWidth, minHeight: width >= 720 ? 88 : 76 }, isCompact && styles.barCompact]}>
         <View style={styles.brandSide}>
           <Image source={brandIcon} style={styles.brandIcon} contentFit="contain" />
-          <Text variant="heading3" weight="bold" style={styles.brand}>
+          <Text variant="heading3" weight="bold" style={isSmallPhone ? [styles.brand, styles.brandCompact] : styles.brand}>
             {APP_NAME}
           </Text>
         </View>
@@ -53,7 +56,7 @@ export function LandingNav({ onLogin, onSignup, onNavPress, onHelp, onLanguage }
           </View>
         )}
 
-        <View style={styles.actions}>
+        <View style={[styles.actions, isCompact && styles.actionsCompact]}>
           {showLocaleAction && (
             <Pressable
               onPress={onLanguage}
@@ -86,7 +89,7 @@ export function LandingNav({ onLogin, onSignup, onNavPress, onHelp, onLanguage }
 
           <Pressable
             onPress={onLogin}
-            style={({ pressed }) => [styles.loginBtn, pressed && styles.faded]}
+            style={({ pressed }) => [styles.loginBtn, isCompact && styles.loginBtnCompact, pressed && styles.faded]}
             accessibilityRole="button"
             accessibilityLabel="Log in to your account"
           >
@@ -97,7 +100,7 @@ export function LandingNav({ onLogin, onSignup, onNavPress, onHelp, onLanguage }
 
           <Pressable
             onPress={onSignup}
-            style={({ pressed }) => [styles.signupBtn, pressed && styles.signupBtnPressed]}
+            style={({ pressed }) => [styles.signupBtn, isCompact && styles.signupBtnCompact, pressed && styles.signupBtnPressed]}
             accessibilityRole="button"
             accessibilityLabel="Create a new account"
           >
@@ -118,7 +121,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'transparent',
     zIndex: 100,
-    ...({ position: 'sticky', top: 0 } as any),
+    ...(Platform.OS === 'web' ? ({ position: 'sticky', top: 0 } as any) : {}),
   },
   bar: {
     width: '100%',
@@ -144,6 +147,9 @@ const styles = StyleSheet.create({
           elevation: 8,
         }),
   },
+  barCompact: {
+    paddingHorizontal: spacing.sm,
+  },
   brandSide: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -153,6 +159,9 @@ const styles = StyleSheet.create({
   brand: {
     color: EXPERIENCE_COLORS.ink,
     letterSpacing: -0.5,
+  },
+  brandCompact: {
+    fontSize: 20,
   },
   brandMeta: {
     color: EXPERIENCE_COLORS.inkSoft,
@@ -180,6 +189,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     flexShrink: 0,
   },
+  actionsCompact: {
+    gap: spacing.xs,
+  },
   utilityAction: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -203,6 +215,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: EXPERIENCE_COLORS.stroke,
   },
+  loginBtnCompact: {
+    paddingHorizontal: 14,
+  },
   signupBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -212,7 +227,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     justifyContent: 'center',
     backgroundColor: EXPERIENCE_COLORS.ink,
-    transitionDuration: `${motion.fast}ms`,
+    ...(Platform.OS === 'web' ? ({ transitionDuration: `${motion.fast}ms` } as any) : {}),
     ...(typeof document !== 'undefined'
       ? ({ boxShadow: '0 14px 26px rgba(17,17,17,0.12)' } as any)
       : {
@@ -223,6 +238,9 @@ const styles = StyleSheet.create({
           elevation: 6,
         }),
   } as any,
+  signupBtnCompact: {
+    paddingHorizontal: 14,
+  },
   signupBtnPressed: {
     opacity: 0.88,
   },

@@ -98,7 +98,7 @@ export default function SplashScreen() {
 
     navigation.reset({
       index: 0,
-      routes: [{ name: isAuthenticated ? 'Main' : 'Login' } as any],
+      routes: [{ name: isAuthenticated ? 'Main' : 'Landing' } as any],
     });
   }, [isAuthenticated, isRestoringToken, navigation]);
 

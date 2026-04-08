@@ -8,7 +8,7 @@
 
 import { Image } from 'expo-image';
 import React from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components/Text';
 import { spacing } from '@/utils';
@@ -26,6 +26,10 @@ interface SuggestionGridProps {
 }
 
 export function SuggestionGrid({ cards }: SuggestionGridProps) {
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 720;
+  const isDesktop = width >= 1024;
+
   return (
     <View style={styles.grid}>
       {cards.map((card) => (
@@ -34,6 +38,9 @@ export function SuggestionGrid({ cards }: SuggestionGridProps) {
           onPress={card.onPress}
           style={({ pressed }) => [
             styles.card,
+            !isTablet && styles.cardMobile,
+            isTablet && !isDesktop && styles.cardTablet,
+            isDesktop && styles.cardDesktop,
             card.backgroundColor ? { backgroundColor: card.backgroundColor } : null,
             pressed && styles.cardPressed,
           ]}
@@ -60,8 +67,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   card: {
-    width: 'calc(33.333% - 11px)' as any,
-    minWidth: 140,
+    width: '100%',
+    minWidth: 0,
     minHeight: 146,
     backgroundColor: '#F3F3F3',
     borderRadius: 16,
@@ -74,6 +81,16 @@ const styles = StyleSheet.create({
       cursor: 'pointer' as any,
       transition: 'background-color 0.15s ease-out',
     }),
+  },
+  cardMobile: {
+    width: '48%',
+    minHeight: 136,
+  },
+  cardTablet: {
+    width: '48%',
+  },
+  cardDesktop: {
+    width: '48%',
   },
   cardPressed: {
     opacity: 0.92,

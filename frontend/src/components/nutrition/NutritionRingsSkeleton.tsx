@@ -1,306 +1,112 @@
 /**
- * NutritionRingsSkeleton — Shimmer loading placeholder for NutritionRingsCard
- *
- * Matches the exact layout of NutritionRingsCard (ring radii 85, 64, 43,
- * viewBox 200x200, header + content row with legend) so the transition
- * from skeleton to real data is seamless.
- *
- * Uses React Native's built-in Animated API (not Reanimated) for a simple
- * opacity pulse loop — lighter dependency for a non-interactive element.
+ * NutritionRingsSkeleton — Shimmer loading placeholder for NutritionRingsCard.
+ * Matches the compact vertical layout: rings → P/F/C → calories → macro rows.
  */
 
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
-import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES } from '@/components/common/BentoCard';
-import { spacing } from '@/utils';
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface NutritionRingsSkeletonProps {
-  /** Whether using mobile layout */
-  isMobile?: boolean;
-}
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
+import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/components/common/BentoCard';
 
 const SKELETON_COLOR = '#E5E7EB';
-const TRACK_COLOR = '#E5E7EB';
-const STROKE_WIDTH = 18;
-const VIEW_BOX_SIZE = 200;
-const CENTER = 100;
-const RING_RADII = [85, 64, 43];
+const STROKE_WIDTH = 20;
+const RING_RADII = [82, 60, 38];
 
-// ============================================================================
-// SHIMMER HOOK
-// ============================================================================
-
-/**
- * Returns an Animated.Value that pulses between 0.3 and 0.7
- * in a continuous loop (1000ms easeInOut).
- */
 function useShimmerOpacity(): Animated.Value {
   const opacity = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
     const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.7,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
+        Animated.timing(opacity, { toValue: 0.7, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.3, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ])
     );
-
     animation.start();
-
     return () => animation.stop();
   }, [opacity]);
 
   return opacity;
 }
 
-// ============================================================================
-// SKELETON BUILDING BLOCKS
-// ============================================================================
-
-interface SkeletonRectProps {
-  width: number;
-  height: number;
-  opacity: Animated.Value;
-  borderRadius?: number;
-  style?: object;
+function SkeletonRect({ width, height, opacity, borderRadius = 4, style }: {
+  width: number; height: number; opacity: Animated.Value; borderRadius?: number; style?: object;
+}) {
+  return <Animated.View style={[{ width, height, borderRadius, backgroundColor: SKELETON_COLOR, opacity }, style]} />;
 }
 
-function SkeletonRect({ width, height, opacity, borderRadius = 4, style }: SkeletonRectProps) {
+function MacroRowSkeleton({ opacity }: { opacity: Animated.Value }) {
   return (
-    <Animated.View
-      style={[
-        {
-          width,
-          height,
-          borderRadius,
-          backgroundColor: SKELETON_COLOR,
-          opacity,
-        },
-        style,
-      ]}
-    />
-  );
-}
-
-// ============================================================================
-// LEGEND ITEM SKELETON
-// ============================================================================
-
-interface LegendItemSkeletonProps {
-  opacity: Animated.Value;
-}
-
-function LegendItemSkeleton({ opacity }: LegendItemSkeletonProps) {
-  return (
-    <View style={styles.legendItem}>
-      {/* Colored dot placeholder */}
-      <Animated.View
-        style={[styles.legendDot, { opacity }]}
-      />
-
-      {/* Text placeholders */}
-      <View style={styles.legendContent}>
-        <SkeletonRect width={48} height={10} opacity={opacity} />
-        <View style={styles.legendValues}>
-          <SkeletonRect width={32} height={14} opacity={opacity} />
-          <SkeletonRect width={40} height={10} opacity={opacity} style={{ marginLeft: 4 }} />
-        </View>
+    <View style={styles.macroRow}>
+      <Animated.View style={[styles.dot, { opacity }]} />
+      <SkeletonRect width={48} height={12} opacity={opacity} />
+      <View style={styles.barTrack}>
+        <Animated.View style={[styles.barFillSkeleton, { opacity }]} />
       </View>
-
-      {/* Percentage badge placeholder */}
-      <SkeletonRect width={40} height={20} opacity={opacity} borderRadius={10} />
+      <SkeletonRect width={60} height={12} opacity={opacity} />
+      <SkeletonRect width={30} height={14} opacity={opacity} />
     </View>
   );
 }
 
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
-
-export function NutritionRingsSkeleton({ isMobile = false }: NutritionRingsSkeletonProps) {
-  const shimmerOpacity = useShimmerOpacity();
+export function NutritionRingsSkeleton() {
+  const shimmer = useShimmerOpacity();
 
   return (
     <View style={styles.card}>
-      {/* Header skeleton */}
-      <View style={styles.header}>
-        <SkeletonRect width={140} height={18} opacity={shimmerOpacity} />
-        <SkeletonRect width={90} height={14} opacity={shimmerOpacity} />
+      {/* Ring tracks */}
+      <View style={styles.ringsContainer}>
+        <Animated.View style={{ opacity: shimmer, width: '100%', height: '100%' }}>
+          <Svg width="100%" height="100%" viewBox="0 0 200 175" preserveAspectRatio="xMidYMid meet">
+            {RING_RADII.map((r) => (
+              <Circle key={r} cx={100} cy={100} r={r} stroke={SKELETON_COLOR} strokeWidth={STROKE_WIDTH}
+                fill="none" strokeLinecap="round" />
+            ))}
+          </Svg>
+        </Animated.View>
       </View>
 
-      {/* Content row / column */}
-      <View
-        style={[
-          styles.content,
-          isMobile ? styles.contentMobile : styles.contentDesktop,
-        ]}
-      >
-        {/* LEFT: Ring tracks */}
-        <View
-          style={[
-            styles.ringsWrapper,
-            isMobile ? styles.ringsWrapperMobile : styles.ringsWrapperDesktop,
-          ]}
-        >
-          <View style={styles.ringsAspectBox}>
-            <Animated.View style={{ opacity: shimmerOpacity, width: '100%', height: '100%' }}>
-              <Svg
-                width="100%"
-                height="100%"
-                viewBox={`0 0 ${VIEW_BOX_SIZE} ${VIEW_BOX_SIZE}`}
-                preserveAspectRatio="xMidYMid meet"
-              >
-                {RING_RADII.map((radius) => (
-                  <Circle
-                    key={radius}
-                    cx={CENTER}
-                    cy={CENTER}
-                    r={radius}
-                    stroke={TRACK_COLOR}
-                    strokeWidth={STROKE_WIDTH}
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                ))}
-                {/* Center mask — matches NutritionRingsCard white center */}
-                <Circle
-                  cx={CENTER}
-                  cy={CENTER}
-                  r={36}
-                  fill="white"
-                  opacity={0.97}
-                />
-              </Svg>
-            </Animated.View>
-          </View>
-        </View>
+      {/* P / F / C placeholders */}
+      <View style={styles.ringLabels}>
+        <SkeletonRect width={14} height={14} opacity={shimmer} borderRadius={7} />
+        <SkeletonRect width={14} height={14} opacity={shimmer} borderRadius={7} />
+        <SkeletonRect width={14} height={14} opacity={shimmer} borderRadius={7} />
+      </View>
 
-        {/* RIGHT: Legend skeletons (3 items matching protein / fat / carbs) */}
-        <View
-          style={[
-            styles.legend,
-            isMobile ? styles.legendMobile : styles.legendDesktop,
-          ]}
-        >
-          <LegendItemSkeleton opacity={shimmerOpacity} />
-          <LegendItemSkeleton opacity={shimmerOpacity} />
-          <LegendItemSkeleton opacity={shimmerOpacity} />
-        </View>
+      {/* Calorie placeholder */}
+      <View style={styles.calorieSection}>
+        <SkeletonRect width={120} height={28} opacity={shimmer} borderRadius={6} />
+      </View>
+
+      {/* Macro row placeholders */}
+      <View style={styles.macroRows}>
+        <MacroRowSkeleton opacity={shimmer} />
+        <MacroRowSkeleton opacity={shimmer} />
+        <MacroRowSkeleton opacity={shimmer} />
       </View>
     </View>
   );
 }
 
-// ============================================================================
-// STYLES — mirror NutritionRingsCard layout for seamless transition
-// ============================================================================
-
 const styles = StyleSheet.create({
   card: {
-    ...BENTO_CARD_STYLES,
-    ...(BENTO_CARD_WEB_STYLES as object),
+    ...(Platform.OS === 'web' ? { ...BENTO_CARD_STYLES, ...(BENTO_CARD_WEB_STYLES as object) } : MOBILE_CARD_STYLES),
+    alignItems: 'center',
     overflow: 'hidden' as const,
   },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
+  ringsContainer: { width: '100%', maxWidth: 200, aspectRatio: 200 / 175 },
 
-  // Content layout
-  content: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  contentDesktop: {
-    flexDirection: 'row',
-    gap: spacing.xl,
-  },
-  contentMobile: {
-    flexDirection: 'column',
-    gap: spacing.lg,
-  },
+  ringLabels: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 4, marginBottom: 8 },
 
-  // Rings wrapper
-  ringsWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ringsWrapperDesktop: {
-    flex: 1,
-    maxWidth: 280,
-    minWidth: 200,
-  },
-  ringsWrapperMobile: {
-    width: '100%',
-    maxWidth: 260,
-  },
-  ringsAspectBox: {
-    width: '100%',
-    aspectRatio: 1,
-    position: 'relative',
-  },
+  calorieSection: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 20 },
 
-  // Legend layout
-  legend: {
-    justifyContent: 'center',
-  },
-  legendDesktop: {
-    flex: 1,
-    minWidth: 180,
-    maxWidth: 240,
-    gap: spacing.lg,
-  },
-  legendMobile: {
-    width: '100%',
-    gap: spacing.md,
-  },
-
-  // Legend item skeleton
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: SKELETON_COLOR,
-    flexShrink: 0,
-  },
-  legendContent: {
-    flex: 1,
-    minWidth: 0,
-    gap: 4,
-  },
-  legendValues: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  macroRows: { width: '100%', gap: 14 },
+  macroRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: SKELETON_COLOR },
+  barTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.04)', overflow: 'hidden' },
+  barFillSkeleton: { width: '30%', height: '100%', borderRadius: 4, backgroundColor: SKELETON_COLOR },
 });
 
 export default NutritionRingsSkeleton;

@@ -79,20 +79,25 @@ export function LandingFooter({ onGetStarted, onLogin, showFinalCTA = true, onLi
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
   const isTablet = width >= 720;
+  const isCompact = width < 420;
 
   return (
     <View style={styles.wrapper}>
       {showFinalCTA && (
         <View style={[styles.finalCtaSection, isDesktop && styles.finalCtaDesktop]}>
-          <View style={styles.finalVisual}>
-            <Image source={finalIllustration} style={styles.finalIllustration} contentFit="contain" />
+          <View style={[styles.finalVisual, !isDesktop && styles.finalVisualMobile, isCompact && styles.finalVisualCompact]}>
+            <Image
+              source={finalIllustration}
+              style={[styles.finalIllustration, !isDesktop && styles.finalIllustrationMobile, isCompact && styles.finalIllustrationCompact]}
+              contentFit="contain"
+            />
           </View>
 
           <View style={styles.finalCopy}>
             <Text
               variant="heading1"
               weight="bold"
-              style={isDesktop ? [styles.finalTitle] : [styles.finalTitle, styles.finalTitleMobile]}
+              style={isDesktop ? [styles.finalTitle] : isCompact ? [styles.finalTitle, styles.finalTitleMobile, styles.finalTitleCompact] : [styles.finalTitle, styles.finalTitleMobile]}
             >
               Start today. Join thousands tracking smarter with AI.
             </Text>
@@ -216,9 +221,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: spacing['2xl'],
   },
+  finalVisualMobile: {
+    minHeight: 300,
+    padding: spacing.xl,
+  },
+  finalVisualCompact: {
+    minHeight: 260,
+    padding: spacing.lg,
+  },
   finalIllustration: {
     width: '100%',
     height: 360,
+  },
+  finalIllustrationMobile: {
+    height: 240,
+  },
+  finalIllustrationCompact: {
+    height: 210,
   },
   finalCopy: {
     flex: 1,
@@ -234,6 +253,11 @@ const styles = StyleSheet.create({
     fontSize: 40,
     lineHeight: 44,
     letterSpacing: -1.4,
+  },
+  finalTitleCompact: {
+    fontSize: 34,
+    lineHeight: 38,
+    letterSpacing: -1.1,
   },
   finalSubtitle: {
     color: EXPERIENCE_COLORS.inkSoft,

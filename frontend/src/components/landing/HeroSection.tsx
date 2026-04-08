@@ -34,16 +34,17 @@ export function HeroSection({
 }: HeroSectionProps) {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  const isCompact = width < 420;
 
   return (
-    <View style={[styles.container, isDesktop && styles.containerDesktop]}>
+    <View style={[styles.container, !isDesktop && styles.containerMobile, isDesktop && styles.containerDesktop]}>
       {/* ── LEFT: Copy ── */}
       <View style={[styles.copyColumn, isDesktop && styles.copyColumnDesktop]}>
-        <Text style={isDesktop ? styles.headline : [styles.headline, styles.headlineMobile]}>
+        <Text style={isDesktop ? styles.headline : isCompact ? [styles.headline, styles.headlineMobile, styles.headlineCompact] : [styles.headline, styles.headlineMobile]}>
           {title}
         </Text>
 
-        <Text style={styles.body}>
+        <Text style={isCompact ? [styles.body, styles.bodyCompact] : styles.body}>
           {body}
         </Text>
 
@@ -61,8 +62,12 @@ export function HeroSection({
 
       {/* ── RIGHT: Illustration (Uber uses a large colorful image) ── */}
       <View style={[styles.visualColumn, isDesktop && styles.visualColumnDesktop]}>
-        <View style={styles.imageCard}>
-          <Image source={heroIllustration} style={styles.heroImage} contentFit="contain" />
+        <View style={[styles.imageCard, !isDesktop && styles.imageCardMobile, isCompact && styles.imageCardCompact]}>
+          <Image
+            source={heroIllustration}
+            style={[styles.heroImage, !isDesktop && styles.heroImageMobile, isCompact && styles.heroImageCompact]}
+            contentFit="contain"
+          />
         </View>
       </View>
     </View>
@@ -77,6 +82,11 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
     backgroundColor: '#FFFFFF',
     flexDirection: 'column',
+  },
+  containerMobile: {
+    gap: 24,
+    paddingTop: 40,
+    paddingBottom: 56,
   },
   containerDesktop: {
     flexDirection: 'row',
@@ -105,11 +115,20 @@ const styles = StyleSheet.create({
     lineHeight: 46,
     letterSpacing: -1.6,
   },
+  headlineCompact: {
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: -1.2,
+  },
   body: {
     color: '#6B6B6B',
     fontSize: 18,
     lineHeight: 28,
     maxWidth: 480,
+  },
+  bodyCompact: {
+    fontSize: 17,
+    lineHeight: 26,
   },
   ctaRow: {
     flexDirection: 'row',
@@ -154,9 +173,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 380,
   },
+  imageCardMobile: {
+    minHeight: 300,
+    padding: 18,
+  },
+  imageCardCompact: {
+    minHeight: 268,
+    padding: 16,
+  },
   heroImage: {
     width: '100%',
     height: 340,
+  },
+  heroImageMobile: {
+    height: 250,
+  },
+  heroImageCompact: {
+    height: 220,
   },
 });
 

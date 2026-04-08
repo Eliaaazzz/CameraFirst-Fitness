@@ -1,5 +1,5 @@
 /**
- * LandingScreen — Uber-inspired marketing landing page (web only)
+ * LandingScreen — responsive marketing landing page shared across web and mobile
  *
  * Sections (Uber order):
  * 1. Nav (black) — LandingNav
@@ -49,7 +49,9 @@ export default function LandingScreen() {
 
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  const isCompact = width < 420;
   const maxWidth = 1200;
+  const pagePadding = isCompact ? 16 : width < 720 ? 20 : 24;
 
   const navigateLogin = () => navigation.navigate('Login');
   const navigateSignup = () => navigation.navigate('Register');
@@ -109,47 +111,58 @@ export default function LandingScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* 1. Hero */}
-        <View style={[styles.sectionWrap, { maxWidth }]}>
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]}>
           <HeroSection onGetStarted={navigateSignup} onLogin={navigateLogin} />
         </View>
 
         {/* 2. Feature Grid (6 cards — Discover) */}
-        <View style={[styles.sectionWrap, { maxWidth }]} onLayout={handleSectionLayout('featureGrid')}>
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]} onLayout={handleSectionLayout('featureGrid')}>
           <FeatureGrid onExplore={navigateSignup} />
         </View>
 
         {/* 3. AI Steps */}
-        <View style={[styles.sectionWrap, { maxWidth }]} onLayout={handleSectionLayout('aiSteps')}>
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]} onLayout={handleSectionLayout('aiSteps')}>
           <AIStepsSection />
         </View>
 
         {/* 4. Account Split */}
-        <View style={[styles.sectionWrap, { maxWidth }]}>
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]}>
           <AccountSplitSection onLogin={navigateLogin} onSignup={navigateSignup} />
         </View>
 
         {/* 5. Program Hub */}
-        <View style={[styles.sectionWrap, { maxWidth }]} onLayout={handleSectionLayout('programHub')}>
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]} onLayout={handleSectionLayout('programHub')}>
           <ProgramHubSection />
         </View>
 
         {/* 6. CTA Banner */}
-        <View style={styles.ctaBanner}>
+        <View style={[styles.ctaBanner, { paddingHorizontal: pagePadding }, isCompact && styles.ctaBannerCompact]}>
           <View style={[styles.ctaBannerInner, { maxWidth }]}>
-            <Text style={isDesktop ? styles.ctaTitle : [styles.ctaTitle, styles.ctaTitleMobile]}>
+            <Text
+              style={
+                isDesktop
+                  ? styles.ctaTitle
+                  : isCompact
+                    ? [styles.ctaTitle, styles.ctaTitleMobile, styles.ctaTitleCompact]
+                    : [styles.ctaTitle, styles.ctaTitleMobile]
+              }
+            >
               Start tracking your nutrition today
             </Text>
-            <Text style={styles.ctaBody}>
+            <Text style={isCompact ? [styles.ctaBody, styles.ctaBodyCompact] : styles.ctaBody}>
               Sign up and log your first meal in under 30 seconds. No credit card required.
             </Text>
-            <Pressable onPress={navigateSignup} style={({ pressed }) => [styles.ctaButton, pressed && { opacity: 0.85 }]}>
+            <Pressable
+              onPress={navigateSignup}
+              style={({ pressed }) => [styles.ctaButton, isCompact && styles.ctaButtonCompact, pressed && { opacity: 0.85 }]}
+            >
               <Text style={styles.ctaButtonText}>Sign up to start</Text>
             </Pressable>
           </View>
         </View>
 
         {/* 7. Footer */}
-        <View style={[styles.sectionWrap, { maxWidth }]} onLayout={handleSectionLayout('footer')}>
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]} onLayout={handleSectionLayout('footer')}>
           <LandingFooter
             onGetStarted={navigateSignup}
             onLogin={navigateLogin}
@@ -179,8 +192,10 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#000000',
     paddingVertical: 80,
-    paddingHorizontal: 24,
     alignItems: 'center',
+  },
+  ctaBannerCompact: {
+    paddingVertical: 56,
   },
   ctaBannerInner: {
     width: '100%',
@@ -198,11 +213,20 @@ const styles = StyleSheet.create({
     lineHeight: 40,
     letterSpacing: -1.2,
   },
+  ctaTitleCompact: {
+    fontSize: 30,
+    lineHeight: 34,
+    letterSpacing: -1,
+  },
   ctaBody: {
     color: 'rgba(255,255,255,0.7)',
     fontSize: 18,
     lineHeight: 28,
     maxWidth: 520,
+  },
+  ctaBodyCompact: {
+    fontSize: 16,
+    lineHeight: 24,
   },
   ctaButton: {
     alignSelf: 'flex-start',
@@ -211,6 +235,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 8,
     marginTop: 8,
+  },
+  ctaButtonCompact: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
   },
   ctaButtonText: {
     color: '#000000',

@@ -15,6 +15,7 @@ interface AccountSplitSectionProps {
 export function AccountSplitSection({ onLogin, onSignup }: AccountSplitSectionProps) {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  const isCompact = width < 420;
 
   return (
     <View style={[styles.section, isDesktop && styles.sectionDesktop]}>
@@ -22,7 +23,7 @@ export function AccountSplitSection({ onLogin, onSignup }: AccountSplitSectionPr
         <Text
           variant="heading1"
           weight="bold"
-          style={isDesktop ? [styles.title] : [styles.title, styles.titleMobile]}
+          style={isDesktop ? [styles.title] : isCompact ? [styles.title, styles.titleMobile, styles.titleCompact] : [styles.title, styles.titleMobile]}
         >
           Log in to see your account details
         </Text>
@@ -45,8 +46,12 @@ export function AccountSplitSection({ onLogin, onSignup }: AccountSplitSectionPr
         </View>
       </View>
 
-      <View style={styles.visualPanel}>
-        <Image source={accountIllustration} style={styles.illustration} contentFit="contain" />
+      <View style={[styles.visualPanel, !isDesktop && styles.visualPanelMobile, isCompact && styles.visualPanelCompact]}>
+        <Image
+          source={accountIllustration}
+          style={[styles.illustration, !isDesktop && styles.illustrationMobile, isCompact && styles.illustrationCompact]}
+          contentFit="contain"
+        />
       </View>
     </View>
   );
@@ -77,6 +82,11 @@ const styles = StyleSheet.create({
     fontSize: 40,
     lineHeight: 44,
     letterSpacing: -1.4,
+  },
+  titleCompact: {
+    fontSize: 34,
+    lineHeight: 38,
+    letterSpacing: -1.1,
   },
   body: {
     color: EXPERIENCE_COLORS.inkSoft,
@@ -124,9 +134,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: spacing['2xl'],
   },
+  visualPanelMobile: {
+    minHeight: 300,
+    padding: spacing.xl,
+  },
+  visualPanelCompact: {
+    minHeight: 260,
+    padding: spacing.lg,
+  },
   illustration: {
     width: '100%',
     height: 320,
+  },
+  illustrationMobile: {
+    height: 240,
+  },
+  illustrationCompact: {
+    height: 210,
   },
   pressed: {
     opacity: 0.88,

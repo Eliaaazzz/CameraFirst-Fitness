@@ -12,6 +12,7 @@ const PROGRAMS = ['Build Muscle', 'Fat Loss', 'General Health'];
 export function ProgramHubSection() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  const isCompact = width < 420;
   const [activeProgram, setActiveProgram] = useState(PROGRAMS[0]);
 
   return (
@@ -20,7 +21,7 @@ export function ProgramHubSection() {
         <Text
           variant="heading1"
           weight="bold"
-          style={isDesktop ? [styles.title] : [styles.title, styles.titleMobile]}
+          style={isDesktop ? [styles.title] : isCompact ? [styles.title, styles.titleMobile, styles.titleCompact] : [styles.title, styles.titleMobile]}
         >
           Build one program for training, nutrition, and recovery
         </Text>
@@ -54,8 +55,12 @@ export function ProgramHubSection() {
         </View>
       </View>
 
-      <View style={styles.visualPanel}>
-        <Image source={programIllustration} style={styles.illustration} contentFit="cover" />
+      <View style={[styles.visualPanel, !isDesktop && styles.visualPanelMobile, isCompact && styles.visualPanelCompact]}>
+        <Image
+          source={programIllustration}
+          style={[styles.illustration, !isDesktop && styles.illustrationMobile, isCompact && styles.illustrationCompact]}
+          contentFit="cover"
+        />
       </View>
     </View>
   );
@@ -86,6 +91,11 @@ const styles = StyleSheet.create({
     fontSize: 40,
     lineHeight: 44,
     letterSpacing: -1.4,
+  },
+  titleCompact: {
+    fontSize: 34,
+    lineHeight: 38,
+    letterSpacing: -1.1,
   },
   body: {
     color: EXPERIENCE_COLORS.inkSoft,
@@ -131,10 +141,22 @@ const styles = StyleSheet.create({
     minHeight: 420,
     overflow: 'hidden',
   },
+  visualPanelMobile: {
+    minHeight: 300,
+  },
+  visualPanelCompact: {
+    minHeight: 260,
+  },
   illustration: {
     width: '100%',
     height: '100%',
     minHeight: 420,
+  },
+  illustrationMobile: {
+    minHeight: 300,
+  },
+  illustrationCompact: {
+    minHeight: 260,
   },
   pressed: {
     opacity: 0.82,

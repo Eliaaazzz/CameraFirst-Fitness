@@ -481,64 +481,8 @@ export const RecipesScreen = () => {
 
   const listHeaderComponent = (
     <View style={styles.header}>
-      <Animated.View entering={staggerEnter(0)} style={styles.introCard}>
-        <View style={styles.introTopRow}>
-          <Text variant="label" weight="bold" style={styles.introKicker}>
-            RECIPE LIBRARY
-          </Text>
-          <View style={styles.introBadge}>
-            <Text variant="caption" weight="bold" style={styles.introBadgeText}>
-              SEARCH + COOK
-            </Text>
-          </View>
-        </View>
-        <Text variant="heading1" weight="bold" style={styles.introTitle}>
-          Recipes
-        </Text>
-        <Text variant="body" style={styles.introBody}>
-          Keep healthy meals easy to discover, easy to save, and brighter to scan on mobile.
-        </Text>
-        <View style={styles.introFocusCard}>
-          <Text variant="caption" weight="bold" style={styles.introFocusKicker}>
-            TODAY'S DIRECTION
-          </Text>
-          <Text variant="body" weight="bold" style={styles.introFocusTitle}>
-            {recipeFocus}
-          </Text>
-          <Text variant="caption" style={styles.introFocusMeta}>
-            {recommendedRecipes.length} recommended · {savedRecipes.length} saved
-          </Text>
-        </View>
-        <View style={styles.introStatsRow}>
-          <View style={[styles.introStat, styles.introStatWarm]}>
-            <Text variant="caption" weight="medium" style={styles.introStatLabel}>
-              Recommended
-            </Text>
-            <Text variant="body" weight="bold" style={styles.introStatValue}>
-              {recommendedRecipes.length}
-            </Text>
-          </View>
-          <View style={[styles.introStat, styles.introStatMint]}>
-            <Text variant="caption" weight="medium" style={styles.introStatLabel}>
-              Saved
-            </Text>
-            <Text variant="body" weight="bold" style={styles.introStatValue}>
-              {savedRecipes.length}
-            </Text>
-          </View>
-          <View style={[styles.introStat, styles.introStatSky]}>
-            <Text variant="caption" weight="medium" style={styles.introStatLabel}>
-              Flow
-            </Text>
-            <Text variant="body" weight="bold" style={styles.introStatValue}>
-              Search + cook
-            </Text>
-          </View>
-        </View>
-      </Animated.View>
-
       {/* Search Bar - Tour Zone 5 */}
-      <Animated.View entering={staggerEnter(1)}>
+      <Animated.View entering={staggerEnter(0)}>
         <TourGuideZone
           zone={RECIPES_TOUR_STEP.zone}
           text={RECIPES_TOUR_STEP.text}
@@ -610,7 +554,7 @@ export const RecipesScreen = () => {
 
       {/* Recommended Recipes Section - hidden when search UI is active */}
       {!showSearchUI && (
-        <Animated.View entering={staggerEnter(2)} style={styles.section}>
+        <Animated.View entering={staggerEnter(1)} style={styles.section}>
           <Text variant="heading2" weight="semibold" style={styles.sectionTitle}>
             Recommended for you
           </Text>
@@ -626,8 +570,8 @@ export const RecipesScreen = () => {
             <Text variant="caption" style={[styles.recommendedNote, { color: theme.colors.textSecondary }]}>
               No recommendations yet.
             </Text>
-          ) : showSidebar ? (
-            <ResponsiveGrid columns={{ desktop: 3, wide: 4 }} gap={spacing.md}>
+          ) : (
+            <ResponsiveGrid columns={{ mobile: 1, tablet: 2, desktop: 3, wide: 4 }} gap={spacing.md}>
               {recommendedRecipes.map((item) => (
                 <RecipeCard
                   key={item.id}
@@ -638,23 +582,6 @@ export const RecipesScreen = () => {
                 />
               ))}
             </ResponsiveGrid>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.recommendedList}
-            >
-              {recommendedRecipes.map((item) => (
-                <View key={item.id} style={styles.recommendedCard}>
-                  <RecipeCard
-                    item={item}
-                    isSaved={savedRecipeIds.has(item.id)}
-                    onSave={(id) => saveRecipe.mutateAsync(id).then(() => true)}
-                    onRemove={(id) => removeRecipe.mutateAsync(id).then(() => true)}
-                  />
-                </View>
-              ))}
-            </ScrollView>
           )}
         </Animated.View>
       )}

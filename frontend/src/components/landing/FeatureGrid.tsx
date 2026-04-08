@@ -55,26 +55,34 @@ interface FeatureGridProps {
 export function FeatureGrid({ onExplore }: FeatureGridProps) {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  const isTablet = width >= 720;
+  const isCompact = width < 420;
 
   return (
     <View style={styles.section}>
-      <Text style={isDesktop ? styles.heading : [styles.heading, styles.headingMobile]}>
+      <Text style={isDesktop ? styles.heading : isCompact ? [styles.heading, styles.headingMobile, styles.headingCompact] : [styles.heading, styles.headingMobile]}>
         Discover what you can do with {APP_NAME}
       </Text>
 
-      <View style={[styles.grid, !isDesktop && styles.gridMobile]}>
+      <View style={[styles.grid, !isTablet && styles.gridMobile]}>
         {FEATURES.map((feature) => (
           <Pressable
             key={feature.title}
             onPress={onExplore}
             style={({ pressed }) => [
               styles.card,
+              !isTablet && styles.cardMobile,
+              isTablet && !isDesktop && styles.cardTablet,
               isDesktop && styles.cardDesktop,
               pressed && { opacity: 0.92 },
             ]}
           >
-            <View style={[styles.illustrationWrap, { backgroundColor: feature.bg }]}>
-              <Image source={feature.illustration} style={styles.illustration} contentFit="contain" />
+            <View style={[styles.illustrationWrap, { backgroundColor: feature.bg }, !isTablet && styles.illustrationWrapMobile]}>
+              <Image
+                source={feature.illustration}
+                style={[styles.illustration, !isTablet && styles.illustrationMobile]}
+                contentFit="contain"
+              />
             </View>
             <Text style={styles.cardTitle}>{feature.title}</Text>
             <Text style={styles.cardDescription}>{feature.description}</Text>
@@ -105,6 +113,11 @@ const styles = StyleSheet.create({
     letterSpacing: -1.2,
     marginBottom: 28,
   },
+  headingCompact: {
+    fontSize: 32,
+    lineHeight: 36,
+    letterSpacing: -1,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -119,9 +132,19 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
   },
-  cardDesktop: {
-    flexBasis: 'calc(33.333% - 11px)' as any,
+  cardMobile: {
+    minWidth: 0,
+    width: '100%',
+  },
+  cardTablet: {
+    flexBasis: '48%',
     flexGrow: 0,
+    minWidth: 0,
+  },
+  cardDesktop: {
+    flexBasis: '31.8%',
+    flexGrow: 0,
+    minWidth: 0,
   },
   illustrationWrap: {
     height: 200,
@@ -129,9 +152,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  illustrationWrapMobile: {
+    height: 176,
+  },
   illustration: {
     width: '70%',
     height: 160,
+  },
+  illustrationMobile: {
+    width: '72%',
+    height: 136,
   },
   cardTitle: {
     color: '#000000',
