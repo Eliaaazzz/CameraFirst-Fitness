@@ -1,12 +1,12 @@
 /**
- * NutritionRingsCard — Clean rings, compact layout, no text overlap.
+ * NutritionRingsCard — Clean rings, compact layout, vertical macro bars.
  *
  * Layout (vertical):
  * - White card, subtle shadow
  * - 270° arc rings (clean — no center text overlap)
  * - P/F/C letters below ring endpoints
  * - Calorie text centered below rings
- * - 3 compact macro rows (dot + label + bar + value + %)
+ * - 3 vertical macro bar columns side by side
  * - FDA citation footnote
  */
 import { BookOpen, ArrowSquareOut } from 'phosphor-react-native';
@@ -88,18 +88,17 @@ function ArcRing({ color, trackColor, radius, percentage, cx, cy, animated, dela
   );
 }
 
-// Compact macro row: dot + label + bar + value + %
-function MacroRow({ color, label, current, target, unit, percentage, onPress }: {
-  color: string; label: string; current: number; target: number; unit: string;
+// Vertical macro bar column
+function MacroColumn({ color, trackColor, label, current, target, unit, percentage, onPress }: {
+  color: string; trackColor: string; label: string; current: number; target: number; unit: string;
   percentage: number; onPress?: () => void;
 }) {
   const pct = Math.min(100, Math.max(0, percentage));
   return (
-    <Pressable style={({ pressed }) => [styles.macroRow, pressed && { opacity: 0.7 }]} onPress={onPress}>
-      <View style={[styles.macroDot, { backgroundColor: color }]} />
-      <Text style={styles.macroLabel}>{label}</Text>
-      <View style={styles.macroBarTrack}>
-        <View style={[styles.macroBarFill, { width: `${pct}%`, backgroundColor: color }]} />
+    <Pressable style={({ pressed }) => [styles.macroCol, pressed && { opacity: 0.7 }]} onPress={onPress}>
+      <Text style={[styles.macroLabel, { color }]}>{label}</Text>
+      <View style={[styles.vertBarTrack, { backgroundColor: trackColor }]}>
+        <View style={[styles.vertBarFill, { height: `${Math.max(pct, 2)}%`, backgroundColor: color }]} />
       </View>
       <Text style={styles.macroValue}>{Math.round(current)}/{target}{unit}</Text>
       <Text style={[styles.macroPct, { color }]}>{Math.round(pct)}%</Text>
@@ -139,12 +138,12 @@ export function NutritionRingsCard({ data, showFat = true, animated = true, onMa
         <Text style={styles.calorieSlash}> / {data.calories.target.toLocaleString()} kcal</Text>
       </View>
 
-      {/* Compact macro rows (combined stats + progress bars) */}
-      <View style={styles.macroRows}>
+      {/* Vertical macro bar columns */}
+      <View style={styles.macroColumns}>
         {rings.map(r => {
           const d = r.key === 'fat' ? data.fat : data[r.key];
           return (
-            <MacroRow key={r.key} color={r.color} label={r.label}
+            <MacroColumn key={r.key} color={r.color} trackColor={r.trackColor} label={r.label}
               current={d?.current || 0} target={d?.target || 0} unit={r.unit}
               percentage={pcts[r.key]} onPress={() => onMacroPress?.(r.key)} />
           );
@@ -182,14 +181,13 @@ const styles = StyleSheet.create({
   calorieCurrent: { color: '#111111', fontSize: 32, fontWeight: '800', letterSpacing: -1 },
   calorieSlash: { color: '#9CA3AF', fontSize: 15, fontWeight: '500' },
 
-  macroRows: { width: '100%', gap: 14 },
-  macroRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  macroDot: { width: 8, height: 8, borderRadius: 4 },
-  macroLabel: { color: '#6B7280', fontSize: 13, fontWeight: '600', width: 56 },
-  macroBarTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.06)', overflow: 'hidden' },
-  macroBarFill: { height: '100%', borderRadius: 4 },
-  macroValue: { color: '#374151', fontSize: 13, fontWeight: '600', width: 72, textAlign: 'right' },
-  macroPct: { fontSize: 14, fontWeight: '700', width: 38, textAlign: 'right' },
+  macroColumns: { flexDirection: 'row', width: '100%', maxWidth: 320, gap: 20, justifyContent: 'center' },
+  macroCol: { flex: 1, alignItems: 'center', gap: 6 },
+  macroLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
+  vertBarTrack: { width: 28, height: 80, borderRadius: 14, overflow: 'hidden', justifyContent: 'flex-end' },
+  vertBarFill: { width: '100%', borderRadius: 14, minHeight: 2 },
+  macroValue: { color: '#374151', fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  macroPct: { fontSize: 14, fontWeight: '800' },
 
   citation: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20, paddingTop: 14,
     ...(Platform.OS === 'web' && { cursor: 'pointer' as any }) },

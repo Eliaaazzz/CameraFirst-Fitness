@@ -553,7 +553,7 @@ const DashboardScreen = () => {
     const suggestionCards = [
       { title: 'Log meal', illustration: illustrationScanMeal, backgroundColor: '#FBE4D6', onPress: handleAddFood },
       { title: 'Workouts', illustration: illustrationWorkouts, backgroundColor: '#DDEEFF', onPress: () => navigation.navigate('Main', { screen: 'Workouts' } as any) },
-      { title: 'Recipes', illustration: illustrationRecipes, backgroundColor: '#FFE9D8', onPress: () => navigation.navigate('Main', { screen: 'Recipes' } as any) },
+      { title: 'Recipes', illustration: illustrationRecipes, backgroundColor: '#D4F5E9', onPress: () => navigation.navigate('Main', { screen: 'Recipes' } as any) },
       { title: 'Reports', illustration: illustrationWeekly, backgroundColor: '#DDF3EC', onPress: () => navigation.navigate('Main', { screen: 'Profile', params: { screen: 'WeeklyInsights' } } as any) },
       { title: 'Targets', illustration: illustrationTargets, backgroundColor: '#FFF3C7', onPress: () => navigation.navigate('BuildPlan', { initialGoal: planPreviewGoal }) },
       { title: 'History', illustration: illustrationHistory, backgroundColor: '#F2E9FF', onPress: () => navigation.navigate('Main', { screen: 'Profile', params: { screen: 'MealHistory' } } as any) },
@@ -574,8 +574,8 @@ const DashboardScreen = () => {
         backgroundColor: '#E0F5EF',   // Green/Mint
       },
       {
-        title: 'Weekly reports',
-        body: 'Review adherence, macro balance, and progress before you export.',
+        title: 'Weight logging',
+        body: 'Log weight, track trends, and export your progress charts.',
         illustration: illustrationWeekly,
         onPress: () => navigation.navigate('Main', { screen: 'Profile', params: { screen: 'WeeklyInsights' } } as any),
         backgroundColor: '#FFF1E7',   // Peach/Orange
@@ -895,7 +895,17 @@ const DashboardScreen = () => {
 
             {/* ── PERFORMANCE TODAY — Rings only ── */}
             <View style={[webStyles.section, isDashboardCompact && webStyles.sectionCompact]}>
-              <Text variant="heading2" weight="bold" style={!isDashboardDesktop ? [webStyles.perfTitle, webStyles.perfTitleMobile] : webStyles.perfTitle}>
+              <Text
+                variant="heading2"
+                weight="bold"
+                style={
+                  isDashboardCompact
+                    ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile, webStyles.sectionHeadingCompact]
+                    : !isDashboardDesktop
+                      ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile]
+                      : webStyles.sectionHeading
+                }
+              >
                 Performance today
               </Text>
               {showNutritionLoading ? (

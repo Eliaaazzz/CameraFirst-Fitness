@@ -1,6 +1,6 @@
 /**
  * NutritionRingsSkeleton — Shimmer loading placeholder for NutritionRingsCard.
- * Matches the compact vertical layout: rings → P/F/C → calories → macro rows.
+ * Matches the compact vertical layout: rings -> P/F/C -> calories -> vertical macro bars.
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -36,16 +36,13 @@ function SkeletonRect({ width, height, opacity, borderRadius = 4, style }: {
   return <Animated.View style={[{ width, height, borderRadius, backgroundColor: SKELETON_COLOR, opacity }, style]} />;
 }
 
-function MacroRowSkeleton({ opacity }: { opacity: Animated.Value }) {
+function MacroColSkeleton({ opacity }: { opacity: Animated.Value }) {
   return (
-    <View style={styles.macroRow}>
-      <Animated.View style={[styles.dot, { opacity }]} />
+    <View style={styles.macroCol}>
+      <SkeletonRect width={40} height={12} opacity={opacity} />
+      <Animated.View style={[styles.vertBar, { opacity }]} />
       <SkeletonRect width={48} height={12} opacity={opacity} />
-      <View style={styles.barTrack}>
-        <Animated.View style={[styles.barFillSkeleton, { opacity }]} />
-      </View>
-      <SkeletonRect width={60} height={12} opacity={opacity} />
-      <SkeletonRect width={30} height={14} opacity={opacity} />
+      <SkeletonRect width={28} height={14} opacity={opacity} />
     </View>
   );
 }
@@ -79,11 +76,11 @@ export function NutritionRingsSkeleton() {
         <SkeletonRect width={120} height={28} opacity={shimmer} borderRadius={6} />
       </View>
 
-      {/* Macro row placeholders */}
-      <View style={styles.macroRows}>
-        <MacroRowSkeleton opacity={shimmer} />
-        <MacroRowSkeleton opacity={shimmer} />
-        <MacroRowSkeleton opacity={shimmer} />
+      {/* Vertical macro bar column placeholders */}
+      <View style={styles.macroColumns}>
+        <MacroColSkeleton opacity={shimmer} />
+        <MacroColSkeleton opacity={shimmer} />
+        <MacroColSkeleton opacity={shimmer} />
       </View>
     </View>
   );
@@ -102,11 +99,9 @@ const styles = StyleSheet.create({
 
   calorieSection: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 20 },
 
-  macroRows: { width: '100%', gap: 14 },
-  macroRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: SKELETON_COLOR },
-  barTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.04)', overflow: 'hidden' },
-  barFillSkeleton: { width: '30%', height: '100%', borderRadius: 4, backgroundColor: SKELETON_COLOR },
+  macroColumns: { flexDirection: 'row', width: '100%', maxWidth: 320, gap: 20, justifyContent: 'center' },
+  macroCol: { flex: 1, alignItems: 'center', gap: 6 },
+  vertBar: { width: 28, height: 80, borderRadius: 14, backgroundColor: SKELETON_COLOR },
 });
 
 export default NutritionRingsSkeleton;

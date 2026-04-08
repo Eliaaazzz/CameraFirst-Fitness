@@ -180,6 +180,17 @@ export const HelpScreen = () => {
             contentContainerStyle={webStyles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
+            {/* Back button */}
+            <Pressable
+              onPress={() => (navigation as any).navigate('Main', { screen: 'Dashboard' })}
+              style={({ pressed }) => [webStyles.backButton, pressed && { opacity: 0.7 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Back to homepage"
+            >
+              <ArrowLeft size={20} color="#111111" />
+              <Text variant="body" weight="semibold" style={{ color: '#111111' }}>Home</Text>
+            </Pressable>
+
             {/* Hero */}
             <View style={webStyles.hero}>
               <Text variant="heading1" weight="bold" style={webStyles.heroTitle}>
@@ -460,6 +471,19 @@ const faqStyles = StyleSheet.create({
 // ============================================================================
 
 const webStyles = StyleSheet.create({
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: '#EFEFEF',
+    marginTop: 32,
+    marginLeft: 48,
+    cursor: 'pointer' as any,
+  },
   scroll: {
     flex: 1,
     backgroundColor: '#F7F7F5',
