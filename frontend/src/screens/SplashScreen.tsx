@@ -57,17 +57,18 @@ export default function SplashScreen() {
   }, [dotScale1, dotScale2, dotScale3, logoOpacity, logoScale, textOpacity]);
 
   useEffect(() => {
-    // Web: show landing page INSTANTLY (pure frontend, 0ms load).
-    // Auth check runs in background; if user has a valid token,
-    // LandingScreen or login flow will redirect to Main.
+    // Web: restore token first, then route based on auth state.
+    // If user has a valid token → straight to Dashboard (no landing flash).
+    // If not → Landing page.
     if (Platform.OS === 'web') {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Landing' } as any],
-      });
-      // Still restore token in background so auth state is ready
-      // when user clicks "Log in" or navigates
-      restoreToken();
+      (async () => {
+        await restoreToken();
+        const authenticated = useAuthStore.getState().isAuthenticated;
+        navigation.reset({
+          index: 0,
+          routes: [{ name: authenticated ? 'Main' : 'Landing' } as any],
+        });
+      })();
       return;
     }
 
