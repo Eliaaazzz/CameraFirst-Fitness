@@ -30,6 +30,7 @@ import { APP_NAME, BRAND_COLORS, spacing } from '@/utils';
 const brandIcon = require('@/../assets/app-icon-1024-transparent.png');
 
 type MainRouteName = 'Dashboard' | 'Workouts' | 'Recipes' | 'Profile';
+type ProfileRouteName = 'Help' | 'MealHistory' | 'WeeklyInsights' | 'ManageAccount';
 type NavKey = 'Home' | 'Workouts' | 'Recipes' | 'Reports';
 
 interface AuthenticatedNavProps {
@@ -70,24 +71,36 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
     return 'Home';
   }, [currentRouteName]);
 
-  const goToMain = (routeName: MainRouteName) => {
+  const runMenuAction = useCallback((action: () => void) => {
+    setDropdownOpen(false);
+    setTimeout(action, 0);
+  }, []);
+
+  const goToMain = useCallback((routeName: MainRouteName) => {
     navigation.dispatch(
       CommonActions.navigate({ name: 'Main', params: { screen: routeName } })
     );
-  };
-
-  const openProfileScreen = useCallback((screen: string) => {
-    setDropdownOpen(false);
-    navigation.dispatch(
-      CommonActions.navigate({
-        name: 'Main',
-        params: {
-          screen: 'Profile',
-          params: { screen },
-        },
-      })
-    );
   }, [navigation]);
+
+  const openProfileScreen = useCallback((screen: ProfileRouteName) => {
+    runMenuAction(() => {
+      navigation.dispatch(
+        CommonActions.navigate({
+          name: 'Main',
+          params: {
+            screen: 'Profile',
+            params: { screen },
+          },
+        })
+      );
+    });
+  }, [navigation, runMenuAction]);
+
+  const openHelpScreen = useCallback(() => {
+    runMenuAction(() => {
+      navigation.navigate('Help');
+    });
+  }, [navigation, runMenuAction]);
 
   const handleNavPress = (key: NavKey) => {
     if (key === 'Home') { goToMain('Dashboard'); return; }
@@ -118,6 +131,15 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
 
   return (
     <View style={styles.wrapper}>
+      {dropdownOpen && (
+        <Pressable
+          onPress={() => setDropdownOpen(false)}
+          style={styles.backdrop}
+          accessibilityRole="button"
+          accessibilityLabel="Close account menu"
+        />
+      )}
+
       <View style={styles.bar}>
         {/* Brand */}
         <Pressable
@@ -165,9 +187,7 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
         {/* Right actions */}
         <View style={styles.actions}>
           <Pressable
-            onPress={() => {
-              openProfileScreen('Help');
-            }}
+            onPress={openHelpScreen}
             style={({ pressed }) => [styles.utilityAction, pressed && styles.faded]}
             accessibilityRole="button"
             accessibilityLabel="Open help"
@@ -217,7 +237,7 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
                 <View style={styles.quickActions}>
                   <Pressable
                     onPress={() => {
-                      openProfileScreen('Help');
+                      openHelpScreen();
                     }}
                     style={({ pressed }) => [styles.quickAction, pressed && styles.quickActionPressed]}
                     accessibilityRole="button"
@@ -264,7 +284,7 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
                   <Text variant="body" weight="medium" style={styles.menuItemText}>Manage account</Text>
                 </Pressable>
                 <Pressable
-                  onPress={() => { setDropdownOpen(false); goToMain('Workouts'); }}
+                  onPress={() => runMenuAction(() => goToMain('Workouts'))}
                   style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
                   accessibilityRole="menuitem"
                   accessibilityLabel="Workouts"
@@ -273,7 +293,7 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
                   <Text variant="body" weight="medium" style={styles.menuItemText}>Workouts</Text>
                 </Pressable>
                 <Pressable
-                  onPress={() => { setDropdownOpen(false); goToMain('Recipes'); }}
+                  onPress={() => runMenuAction(() => goToMain('Recipes'))}
                   style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
                   accessibilityRole="menuitem"
                   accessibilityLabel="Recipes"
@@ -298,22 +318,13 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
           </View>
         </View>
       </View>
-
-      {/* Backdrop to close dropdown */}
-      {dropdownOpen && (
-        <Pressable
-          onPress={() => setDropdownOpen(false)}
-          style={styles.backdrop}
-          accessibilityRole="button"
-          accessibilityLabel="Close account menu"
-        />
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrapper: {
+    position: 'relative',
     width: '100%',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -322,6 +333,8 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   bar: {
+    position: 'relative',
+    zIndex: 2,
     width: '100%',
     maxWidth: 1360,
     minHeight: 88,
@@ -514,7 +527,7 @@ const styles = StyleSheet.create({
       left: 0,
       right: 0,
       bottom: 0,
-      zIndex: 99,
+      zIndex: 1,
     } as any)),
   },
   faded: {

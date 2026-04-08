@@ -51,7 +51,6 @@ import {
   APP_PAGE_PATHS,
   BRAND_COLORS,
   EXPERIENCE_COLORS,
-  getNutritionTargetExplanation,
   SUPPORT_EMAIL_URL,
   colors,
   openAppPage,
@@ -224,8 +223,6 @@ const DashboardScreen = () => {
   const userId = currentUser.data?.userId || '';
   const showRightPanel = useRightPanelVisible();
   const showSidebar = useSidebarVisible(); // Desktop mode detection
-  const showInlineGoalsRow = showSidebar && !showRightPanel;
-
   const { t } = useLanguageStore();
 
   const { data: nutritionData, isLoading: nutritionLoading, refresh } = useDailyNutrition();
@@ -486,20 +483,9 @@ const DashboardScreen = () => {
   const proteinGoal = generatedGoals?.macros_grams.protein_g || nutritionData.protein.goal;
   const carbsGoal = generatedGoals?.macros_grams.carbs_g || nutritionData.carbs.goal;
   const fatGoal = generatedGoals?.macros_grams.fat_g || nutritionData.fat.goal;
-  const nutritionTargetExplanation = useMemo(() => getNutritionTargetExplanation(generatedGoals), [generatedGoals]);
-
   const goalTypeConfig = generatedGoals?.goalType
     ? GOAL_TYPE_CONFIG[generatedGoals.goalType]
     : null;
-  const openActionCount = [
-    nutritionData.meals.length === 0,
-    proteinGoal > 0 && nutritionData.protein.current < proteinGoal * 0.8,
-    hydrationGoalCups > 0 && hydrationCups < Math.ceil(hydrationGoalCups / 2),
-    calorieGoal > 0 && (nutritionData.calories === 0 || nutritionData.calories < calorieGoal * 0.75),
-  ].filter(Boolean).length;
-  const welcomeSummary = openActionCount > 0
-    ? `${openActionCount} actions ready for today`
-    : 'Today’s plan is complete';
 
   if (currentUser.isLoading) {
     return (
@@ -1221,88 +1207,6 @@ const DashboardScreen = () => {
       )}
     </View>
   );
-
-  const renderMobileHero = () => {
-    const calorieDelta = Math.max(0, calorieGoal - nutritionData.calories);
-    const proteinPercent = proteinGoal > 0 ? Math.min(100, Math.round((nutritionData.protein.current / proteinGoal) * 100)) : 0;
-    const calorieProgress = calorieGoal > 0 ? Math.min(100, Math.round((nutritionData.calories / calorieGoal) * 100)) : 0;
-    const hydrationPercent = hydrationGoalCups > 0 ? Math.min(100, Math.round((hydrationCups / hydrationGoalCups) * 100)) : 0;
-    const activePlanLabel = goalTypeConfig?.label || 'General reference';
-    const focusMessage = nutritionData.meals.length === 0
-      ? 'Log your first meal to start the day with a real baseline.'
-      : proteinPercent < 80
-        ? 'Protein is still trailing. Use your next meal to close the gap.'
-        : hydrationPercent < 60
-          ? 'Hydration is behind pace. A few more cups will sharpen the day.'
-          : 'You are on pace. Keep meals and hydration steady to hold your score.';
-
-    return (
-      <View style={styles.mobileHeroCard}>
-        <View style={styles.mobileHeroHeader}>
-          <View style={styles.mobileHeroTopRow}>
-            <Text variant="label" weight="bold" style={styles.mobileHeroKicker}>SUMMARY</Text>
-            <View style={styles.mobileHeroBadge}>
-              <Text variant="caption" weight="bold" style={styles.mobileHeroBadgeText}>
-                {welcomeSummary}
-              </Text>
-            </View>
-          </View>
-          <Text variant="heading2" weight="bold" style={styles.mobileHeroTitle}>
-            Fuel your day
-          </Text>
-          <Text variant="body" style={styles.mobileHeroSubtitle}>
-            A brighter summary for food, hydration, and recovery at a glance.
-          </Text>
-        </View>
-
-        <View style={styles.mobileHeroFocusCard}>
-          <View style={styles.mobileHeroFocusHeader}>
-            <Text variant="caption" weight="bold" style={styles.mobileHeroFocusKicker}>CURRENT FOCUS</Text>
-            <View style={styles.mobileHeroPlanChip}>
-              <Text variant="caption" weight="bold" style={styles.mobileHeroPlanChipText}>{activePlanLabel}</Text>
-            </View>
-          </View>
-          <Text variant="body" weight="bold" style={styles.mobileHeroFocusTitle}>
-            {focusMessage}
-          </Text>
-          <Text variant="caption" style={styles.mobileHeroFocusMeta}>
-            {currentUser.data?.currentStreak || 0} day streak · {nutritionData.meals.length} meals logged
-          </Text>
-        </View>
-
-        <View style={styles.mobileHeroMetricRow}>
-          <View style={[styles.mobileHeroMetric, styles.mobileHeroMetricWarm]}>
-            <Text variant="caption" style={styles.mobileHeroMetricLabel}>Calories left</Text>
-            <Text variant="heading3" weight="bold" style={styles.mobileHeroMetricValue}>{calorieDelta}</Text>
-            <Text variant="caption" style={styles.mobileHeroMetricMeta}>{calorieProgress}% of target used</Text>
-            <View style={[styles.mobileHeroProgressTrack, { backgroundColor: 'rgba(249,115,22,0.14)' }]}>
-              <View style={[styles.mobileHeroProgressFill, { width: `${calorieProgress}%`, backgroundColor: '#F97316' }]} />
-            </View>
-          </View>
-          <View style={[styles.mobileHeroMetric, styles.mobileHeroMetricMint]}>
-            <Text variant="caption" style={styles.mobileHeroMetricLabel}>Protein</Text>
-            <Text variant="heading3" weight="bold" style={styles.mobileHeroMetricValue}>{proteinPercent}%</Text>
-            <Text variant="caption" style={styles.mobileHeroMetricMeta}>
-              {Math.round(nutritionData.protein.current)}/{proteinGoal}g
-            </Text>
-            <View style={[styles.mobileHeroProgressTrack, { backgroundColor: 'rgba(47,122,106,0.14)' }]}>
-              <View style={[styles.mobileHeroProgressFill, { width: `${proteinPercent}%`, backgroundColor: '#2F7A6A' }]} />
-            </View>
-          </View>
-          <View style={[styles.mobileHeroMetric, styles.mobileHeroMetricSky]}>
-            <Text variant="caption" style={styles.mobileHeroMetricLabel}>Hydration</Text>
-            <Text variant="heading3" weight="bold" style={styles.mobileHeroMetricValue}>{hydrationPercent}%</Text>
-            <Text variant="caption" style={styles.mobileHeroMetricMeta}>
-              {hydrationCups}/{hydrationGoalCups} cups
-            </Text>
-            <View style={[styles.mobileHeroProgressTrack, { backgroundColor: 'rgba(59,130,246,0.14)' }]}>
-              <View style={[styles.mobileHeroProgressFill, { width: `${hydrationPercent}%`, backgroundColor: '#3B82F6' }]} />
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  };
 
   // Render right panel widgets (only shown on wide screens)
   const renderRightPanel = () => (

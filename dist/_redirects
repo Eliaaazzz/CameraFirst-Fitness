@@ -1,0 +1,8 @@
+# Cloudflare Pages Redirects
+# Proxy all API requests to the backend on Cloud Run
+
+# API endpoints - proxy to backend
+/api/* https://aurafitv-113023901864.australia-southeast1.run.app/api/:splat 200
+
+# SPA fallback - serve index.html for all other routes
+/* /index.html 200
