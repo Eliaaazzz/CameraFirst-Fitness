@@ -1,5 +1,5 @@
 import { launchImageLibraryAsync, MediaTypeOptions } from 'expo-image-picker';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Image, Linking, ScrollView, StyleSheet, View } from 'react-native';
 
 import {
@@ -13,7 +13,6 @@ import {
     useSnackbar,
 } from '@/components';
 import { EquipmentChoice, EquipmentSelectionModal } from '@/components/EquipmentSelectionModal';
-import { PermissionDialog } from '@/components/PermissionDialog';
 import { useCameraPermission } from '@/hooks/useCameraPermission';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useGalleryPermission } from '@/hooks/useGalleryPermission';
@@ -43,6 +42,7 @@ export const CaptureScreen = () => {
   const { requestWithTopSnackbar } = usePermissionHelper();
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
+  const hasRequestedCameraPermissionRef = useRef(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ResultTab>('workouts');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -69,14 +69,17 @@ export const CaptureScreen = () => {
     });
   }, [currentUser.isError, currentUser.error, showTopSnackbar]);
 
-  const handleRequestCamera = async () => {
-    const ok = await requestWithTopSnackbar(cameraPerm.request, cameraPerm.refresh, {
-      denied: 'Camera access denied. Open settings to enable.',
-      granted: 'Camera access granted',
-      stillDenied: 'Still denied. You can enable camera in Settings.',
+  useEffect(() => {
+    if (cameraPerm.state !== 'undetermined' || hasRequestedCameraPermissionRef.current) {
+      return;
+    }
+
+    hasRequestedCameraPermissionRef.current = true;
+    cameraPerm.request().catch((error) => {
+      console.warn('Camera permission request failed', error);
+      hasRequestedCameraPermissionRef.current = false;
     });
-    if (ok) setErrorMessage(null);
-  };
+  }, [cameraPerm]);
 
   const openSettings = () => {
     Linking.openSettings().catch(() => {
@@ -224,7 +227,6 @@ export const CaptureScreen = () => {
   );
 
   const shouldShowCamera = cameraPerm.state === 'granted';
-  const permissionDenied = cameraPerm.state === 'denied';
 
   const renderResults = useMemo(() => {
     if (!capturedImage) {
@@ -296,27 +298,29 @@ export const CaptureScreen = () => {
   }
 
   if (!shouldShowCamera) {
-    // Render an empty shell with Material Dialog on top
+    if (cameraPerm.state === 'undetermined') {
+      return (
+        <SafeAreaWrapper>
+          <LoadingState label="Opening camera permission…" />
+        </SafeAreaWrapper>
+      );
+    }
+
     return (
       <SafeAreaWrapper>
-        <Container>
-          <PermissionDialog
-            visible
-            onRequestPermission={handleRequestCamera}
-            onOpenSettings={async () => {
-              // mirror the dialog open-settings flow with the helper
-              await requestWithTopSnackbar(
-                async () => ({ status: 'denied' as const }),
-                cameraPerm.refresh,
-                {
-                  denied: 'Opening settings…',
-                  granted: 'Camera access granted',
-                  stillDenied: 'Still denied. You can enable camera in Settings.',
-                },
-              );
-            }}
-            permissionDenied={permissionDenied}
-          />
+        <Container style={styles.permissionFallback}>
+          <Card style={styles.permissionFallbackCard}>
+            <Text variant="heading2" weight="bold">
+              Camera access is off
+            </Text>
+            <Text variant="body" color="rgba(71,85,105,0.94)">
+              Enable camera access in Settings to capture equipment or ingredients, or choose a photo from your library.
+            </Text>
+            <View style={styles.permissionFallbackActions}>
+              <Button title="Open Settings" onPress={openSettings} />
+              <Button title="Choose from Library" variant="secondary" onPress={pickImageFromGallery} />
+            </View>
+          </Card>
         </Container>
       </SafeAreaWrapper>
     );
@@ -386,6 +390,16 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  permissionFallback: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  permissionFallbackCard: {
+    gap: 16,
+  },
+  permissionFallbackActions: {
+    gap: 12,
   },
   resultsWrapper: {
     position: 'absolute',

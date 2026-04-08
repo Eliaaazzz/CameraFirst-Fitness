@@ -62,7 +62,7 @@ export const EmptyStateCard = ({
 const styles = StyleSheet.create({
   outerCard: {
     backgroundColor: BRAND_COLORS.surfaceElevated,
-    borderRadius: radii.xl,
+    borderRadius: radii['2xl'],
     padding: spacing.lg,
     gap: spacing.lg,
     borderWidth: 1,
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   },
   innerPanel: {
     backgroundColor: BRAND_COLORS.surfaceVariant,
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     padding: spacing.xl,
     alignItems: 'center',
     gap: spacing.lg,
@@ -102,10 +102,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   ctaButton: {
-    backgroundColor: BRAND_COLORS.primary,
+    backgroundColor: BRAND_COLORS.textPrimary,
     paddingVertical: 14,
     paddingHorizontal: spacing.xl,
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 48,
@@ -122,4 +122,3 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 });
-

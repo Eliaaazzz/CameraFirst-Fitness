@@ -11,7 +11,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft,
   Barbell,
@@ -468,12 +467,7 @@ export const BuildPlanScreen = () => {
       <GoalTabs selectedGoal={selectedGoal} onSelect={setSelectedGoal} />
 
       {selectedGoalConfig && (
-        <LinearGradient
-          colors={['#FFF9EF', selectedGoalConfig.tint]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.goalInsightCard}
-        >
+        <View style={[styles.goalInsightCard, { backgroundColor: selectedGoalConfig.tint }]}>
           <View style={[styles.goalInsightIcon, { backgroundColor: `${selectedGoalConfig.color}18` }]}>
             <selectedGoalConfig.Icon size={24} weight="fill" color={selectedGoalConfig.color} />
           </View>
@@ -490,7 +484,7 @@ export const BuildPlanScreen = () => {
             <SummaryStat label="Cadence" value={selectedGoalConfig.cadence} />
             <SummaryStat label="Output" value={selectedGoalConfig.outcome} />
           </View>
-        </LinearGradient>
+        </View>
       )}
 
       <View style={styles.sectionCard}>
@@ -593,12 +587,7 @@ export const BuildPlanScreen = () => {
   );
 
   const renderGenerating = () => (
-    <LinearGradient
-      colors={['#FFF4D8', '#FFECD2', '#E8F5E9', '#E3F2FD']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.generatingFull}
-    >
+    <View style={styles.generatingFull}>
       <View style={styles.generatingContent}>
         <View style={styles.generatingIconRing}>
           <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
@@ -624,7 +613,7 @@ export const BuildPlanScreen = () => {
           </View>
         </View>
       </View>
-    </LinearGradient>
+    </View>
   );
 
   const renderComplete = () => {
@@ -1006,6 +995,9 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
   },
   generatingContent: {
     alignItems: 'center',
@@ -1016,7 +1008,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: '#F6F4EF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,

@@ -6,7 +6,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
     ActionSheetIOS,
     ActivityIndicator,
@@ -48,7 +47,22 @@ import { useTourStatus } from '@/hooks/useTourStatus';
 import { GeneratedGoals, getActiveGoal, GoalType } from '@/services/geminiApi';
 import { useGoals, useGoalStatistics } from '@/services/goalsApi';
 import { useHydrationStore, useLanguageStore } from '@/stores';
-import { BRAND_COLORS, colors, radii, saasShadows, spacing, useContentBottomPadding, useRightPanelVisible, useSidebarVisible } from '@/utils';
+import {
+  APP_PAGE_PATHS,
+  BRAND_COLORS,
+  EXPERIENCE_COLORS,
+  getNutritionTargetExplanation,
+  SUPPORT_EMAIL_URL,
+  colors,
+  openAppPage,
+  openExternalUrl,
+  radii,
+  saasShadows,
+  spacing,
+  useContentBottomPadding,
+  useRightPanelVisible,
+  useSidebarVisible,
+} from '@/utils';
 import { GENERATED_GOALS_KEY } from './ProfileScreen';
 
 // Illustration assets for web suggestion grid
@@ -472,6 +486,7 @@ const DashboardScreen = () => {
   const proteinGoal = generatedGoals?.macros_grams.protein_g || nutritionData.protein.goal;
   const carbsGoal = generatedGoals?.macros_grams.carbs_g || nutritionData.carbs.goal;
   const fatGoal = generatedGoals?.macros_grams.fat_g || nutritionData.fat.goal;
+  const nutritionTargetExplanation = useMemo(() => getNutritionTargetExplanation(generatedGoals), [generatedGoals]);
 
   const goalTypeConfig = generatedGoals?.goalType
     ? GOAL_TYPE_CONFIG[generatedGoals.goalType]
@@ -497,6 +512,46 @@ const DashboardScreen = () => {
   // Nutrition loading state — shared by both web and mobile layouts
   const hasNutritionData = nutritionData.calories > 0 || nutritionData.protein.current > 0 || nutritionData.meals.length > 0;
   const showNutritionLoading = nutritionLoading && !hasNutritionData;
+
+  const handleLandingFooterLink = useCallback((linkId: string) => {
+    switch (linkId) {
+      case 'meal-logging':
+        navigation.navigate('ReviewMeal', { openCamera: true });
+        return;
+      case 'workout-planning':
+      case 'targets':
+        navigation.navigate('BuildPlan');
+        return;
+      case 'weekly-reports':
+      case 'export-data':
+        navigation.navigate('Profile', { screen: 'WeeklyInsights' });
+        return;
+      case 'help-centre':
+      case 'about':
+        navigation.navigate('Help');
+        return;
+      case 'data-sources':
+        navigation.navigate('AboutNutritionData');
+        return;
+      case 'release-notes':
+        void openAppPage(APP_PAGE_PATHS.releaseNotes);
+        return;
+      case 'contact':
+        void openExternalUrl(SUPPORT_EMAIL_URL, 'Unable to open email', 'Please email support@aurafitness.org.');
+        return;
+      case 'privacy-policy':
+        void openAppPage(APP_PAGE_PATHS.privacy);
+        return;
+      case 'terms-of-service':
+        void openAppPage(APP_PAGE_PATHS.terms);
+        return;
+      case 'accessibility':
+        void openAppPage(APP_PAGE_PATHS.accessibility);
+        return;
+      default:
+        return;
+    }
+  }, [navigation]);
 
   // ============================================================================
   // WEB DESKTOP — Uber-style full-page scrollable layout
@@ -597,26 +652,33 @@ const DashboardScreen = () => {
                   </Text>
                 </View>
 
-                <Pressable
-                  onPress={handleAddFood}
-                  style={({ pressed }) => [webStyles.heroInputCard, pressed && webStyles.heroInputPressed]}
+                <TourGuideZone
+                  zone={SNAP_MEAL_STEP.zone}
+                  text={SNAP_MEAL_STEP.text}
+                  title={SNAP_MEAL_STEP.title}
+                  icon="📸"
                 >
-                  <View style={webStyles.heroInputConnector}>
-                    <View style={webStyles.heroInputDot} />
-                    <View style={webStyles.heroInputLine} />
-                  </View>
-                  <View style={webStyles.heroInputIcon}>
-                    <Camera size={20} weight="regular" color="#111111" />
-                  </View>
-                  <View style={webStyles.heroInputCopy}>
-                    <Text variant="heading4" weight="semibold" style={webStyles.heroInputTitle}>
-                      Log your next meal
-                    </Text>
-                    <Text variant="body" style={webStyles.heroInputBody}>
-                      Scan a plate or upload from your gallery.
-                    </Text>
-                  </View>
-                </Pressable>
+                  <Pressable
+                    onPress={handleAddFood}
+                    style={({ pressed }) => [webStyles.heroInputCard, pressed && webStyles.heroInputPressed]}
+                  >
+                    <View style={webStyles.heroInputConnector}>
+                      <View style={webStyles.heroInputDot} />
+                      <View style={webStyles.heroInputLine} />
+                    </View>
+                    <View style={webStyles.heroInputIcon}>
+                      <Camera size={20} weight="regular" color="#111111" />
+                    </View>
+                    <View style={webStyles.heroInputCopy}>
+                      <Text variant="heading4" weight="semibold" style={webStyles.heroInputTitle}>
+                        Log your next meal
+                      </Text>
+                      <Text variant="body" style={webStyles.heroInputBody}>
+                        Scan a plate or upload from your gallery.
+                      </Text>
+                    </View>
+                  </Pressable>
+                </TourGuideZone>
 
                 <Pressable
                   onPress={() => navigation.navigate('Main', { screen: 'Workouts' } as any)}
@@ -837,6 +899,7 @@ const DashboardScreen = () => {
                         bloodSugarRise: nutritionData.bloodSugarRise,
                       }}
                       showFat={true}
+                      targetExplanation={nutritionTargetExplanation}
                       onMacroPress={handleMacroSearch}
                       onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
                     />
@@ -886,12 +949,7 @@ const DashboardScreen = () => {
                 </Text>
               </View>
               <View style={webStyles.planRow}>
-                <LinearGradient
-                  colors={['#FFF3D6', '#FFE7D4', '#EEF8F2']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={webStyles.planAccentCard}
-                >
+                <View style={webStyles.planAccentCard}>
                   <View style={webStyles.planBadge}>
                     <Text variant="label" weight="bold" style={webStyles.planBadgeText}>
                       Weekly planner
@@ -968,7 +1026,7 @@ const DashboardScreen = () => {
                     style={webStyles.planIllustration as any}
                     contentFit="contain"
                   />
-                </LinearGradient>
+                </View>
 
                 <View style={webStyles.planBenefitsPanel}>
                   <Text variant="heading3" weight="bold" style={webStyles.planBenefitsTitle}>
@@ -1013,6 +1071,7 @@ const DashboardScreen = () => {
                 onGetStarted={() => navigation.navigate('Profile')}
                 onLogin={() => navigation.navigate('Profile')}
                 showFinalCTA={false}
+                onLinkPress={handleLandingFooterLink}
               />
             </View>
           </RNScrollView>
@@ -1025,8 +1084,6 @@ const DashboardScreen = () => {
     if (generatedGoals) {
       return (
         <View style={[Platform.OS !== 'web' ? MOBILE_CARD_STYLES : BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES as any, styles.goalsCard, styleOverride]}>
-          {/* Header: hidden on mobile (SectionHeader replaces it) */}
-          {(Platform.OS === 'web') && (
           <View style={styles.goalsHeader}>
             <View style={styles.goalsHeaderLeft}>
               {goalTypeConfig && (
@@ -1039,7 +1096,7 @@ const DashboardScreen = () => {
                 </View>
               )}
               <View>
-                <Text variant="caption" style={styles.goalLabel}>Your Goal</Text>
+                <Text variant="caption" style={styles.goalLabel}>{Platform.OS !== 'web' ? 'ACTIVE PLAN' : 'Your Goal'}</Text>
                 {goalTypeConfig && (
                   <Text variant="body" weight="bold" style={{ color: goalTypeConfig.color }}>
                     {goalTypeConfig.label}
@@ -1054,11 +1111,10 @@ const DashboardScreen = () => {
               <PencilSimple size={16} color={BRAND_COLORS.primary} weight="regular" />
             </Pressable>
           </View>
-          )}
 
           <View style={styles.goalsGrid}>
             <Pressable 
-              style={({ pressed }) => [styles.goalItem, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.goalItem, styles.goalItemCalories, pressed && { opacity: 0.7 }]}
               onPress={() => handleMacroSearch('calories')}
             >
               <Fire size={20} weight="fill" color={BRAND_COLORS.macros.calories} />
@@ -1066,7 +1122,7 @@ const DashboardScreen = () => {
               <Text variant="caption" style={styles.goalItemLabel}>kcal/day</Text>
             </Pressable>
             <Pressable 
-              style={({ pressed }) => [styles.goalItem, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.goalItem, styles.goalItemProtein, pressed && { opacity: 0.7 }]}
               onPress={() => handleMacroSearch('protein')}
             >
               <Barbell size={20} weight="fill" color={BRAND_COLORS.macros.protein} />
@@ -1074,7 +1130,7 @@ const DashboardScreen = () => {
               <Text variant="caption" style={styles.goalItemLabel}>Protein</Text>
             </Pressable>
             <Pressable 
-              style={({ pressed }) => [styles.goalItem, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.goalItem, styles.goalItemCarbs, pressed && { opacity: 0.7 }]}
               onPress={() => handleMacroSearch('carbs')}
             >
               <Grains size={20} weight="fill" color={BRAND_COLORS.macros.carbs} />
@@ -1082,7 +1138,7 @@ const DashboardScreen = () => {
               <Text variant="caption" style={styles.goalItemLabel}>Carbs</Text>
             </Pressable>
             <Pressable 
-              style={({ pressed }) => [styles.goalItem, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.goalItem, styles.goalItemFat, pressed && { opacity: 0.7 }]}
               onPress={() => handleMacroSearch('fat')}
             >
               <Drop size={20} weight="fill" color={BRAND_COLORS.macros.fat} />
@@ -1157,6 +1213,7 @@ const DashboardScreen = () => {
             bloodSugarRise: nutritionData.bloodSugarRise,
           }}
           showFat={true}
+          targetExplanation={nutritionTargetExplanation}
           onMacroPress={handleMacroSearch}
           onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
         />
@@ -1174,6 +1231,88 @@ const DashboardScreen = () => {
     </View>
   );
 
+  const renderMobileHero = () => {
+    const calorieDelta = Math.max(0, calorieGoal - nutritionData.calories);
+    const proteinPercent = proteinGoal > 0 ? Math.min(100, Math.round((nutritionData.protein.current / proteinGoal) * 100)) : 0;
+    const calorieProgress = calorieGoal > 0 ? Math.min(100, Math.round((nutritionData.calories / calorieGoal) * 100)) : 0;
+    const hydrationPercent = hydrationGoalCups > 0 ? Math.min(100, Math.round((hydrationCups / hydrationGoalCups) * 100)) : 0;
+    const activePlanLabel = goalTypeConfig?.label || 'General reference';
+    const focusMessage = nutritionData.meals.length === 0
+      ? 'Log your first meal to start the day with a real baseline.'
+      : proteinPercent < 80
+        ? 'Protein is still trailing. Use your next meal to close the gap.'
+        : hydrationPercent < 60
+          ? 'Hydration is behind pace. A few more cups will sharpen the day.'
+          : 'You are on pace. Keep meals and hydration steady to hold your score.';
+
+    return (
+      <View style={styles.mobileHeroCard}>
+        <View style={styles.mobileHeroHeader}>
+          <View style={styles.mobileHeroTopRow}>
+            <Text variant="label" weight="bold" style={styles.mobileHeroKicker}>SUMMARY</Text>
+            <View style={styles.mobileHeroBadge}>
+              <Text variant="caption" weight="bold" style={styles.mobileHeroBadgeText}>
+                {welcomeSummary}
+              </Text>
+            </View>
+          </View>
+          <Text variant="heading2" weight="bold" style={styles.mobileHeroTitle}>
+            Fuel your day
+          </Text>
+          <Text variant="body" style={styles.mobileHeroSubtitle}>
+            A brighter summary for food, hydration, and recovery at a glance.
+          </Text>
+        </View>
+
+        <View style={styles.mobileHeroFocusCard}>
+          <View style={styles.mobileHeroFocusHeader}>
+            <Text variant="caption" weight="bold" style={styles.mobileHeroFocusKicker}>CURRENT FOCUS</Text>
+            <View style={styles.mobileHeroPlanChip}>
+              <Text variant="caption" weight="bold" style={styles.mobileHeroPlanChipText}>{activePlanLabel}</Text>
+            </View>
+          </View>
+          <Text variant="body" weight="bold" style={styles.mobileHeroFocusTitle}>
+            {focusMessage}
+          </Text>
+          <Text variant="caption" style={styles.mobileHeroFocusMeta}>
+            {currentUser.data?.currentStreak || 0} day streak · {nutritionData.meals.length} meals logged
+          </Text>
+        </View>
+
+        <View style={styles.mobileHeroMetricRow}>
+          <View style={[styles.mobileHeroMetric, styles.mobileHeroMetricWarm]}>
+            <Text variant="caption" style={styles.mobileHeroMetricLabel}>Calories left</Text>
+            <Text variant="heading3" weight="bold" style={styles.mobileHeroMetricValue}>{calorieDelta}</Text>
+            <Text variant="caption" style={styles.mobileHeroMetricMeta}>{calorieProgress}% of target used</Text>
+            <View style={[styles.mobileHeroProgressTrack, { backgroundColor: 'rgba(249,115,22,0.14)' }]}>
+              <View style={[styles.mobileHeroProgressFill, { width: `${calorieProgress}%`, backgroundColor: '#F97316' }]} />
+            </View>
+          </View>
+          <View style={[styles.mobileHeroMetric, styles.mobileHeroMetricMint]}>
+            <Text variant="caption" style={styles.mobileHeroMetricLabel}>Protein</Text>
+            <Text variant="heading3" weight="bold" style={styles.mobileHeroMetricValue}>{proteinPercent}%</Text>
+            <Text variant="caption" style={styles.mobileHeroMetricMeta}>
+              {Math.round(nutritionData.protein.current)}/{proteinGoal}g
+            </Text>
+            <View style={[styles.mobileHeroProgressTrack, { backgroundColor: 'rgba(47,122,106,0.14)' }]}>
+              <View style={[styles.mobileHeroProgressFill, { width: `${proteinPercent}%`, backgroundColor: '#2F7A6A' }]} />
+            </View>
+          </View>
+          <View style={[styles.mobileHeroMetric, styles.mobileHeroMetricSky]}>
+            <Text variant="caption" style={styles.mobileHeroMetricLabel}>Hydration</Text>
+            <Text variant="heading3" weight="bold" style={styles.mobileHeroMetricValue}>{hydrationPercent}%</Text>
+            <Text variant="caption" style={styles.mobileHeroMetricMeta}>
+              {hydrationCups}/{hydrationGoalCups} cups
+            </Text>
+            <View style={[styles.mobileHeroProgressTrack, { backgroundColor: 'rgba(59,130,246,0.14)' }]}>
+              <View style={[styles.mobileHeroProgressFill, { width: `${hydrationPercent}%`, backgroundColor: '#3B82F6' }]} />
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   // Render right panel widgets (only shown on wide screens)
   const renderRightPanel = () => (
     <DashboardWidgets
@@ -1184,21 +1323,13 @@ const DashboardScreen = () => {
   return (
     <SafeAreaWrapper>
       <View style={styles.screenRoot}>
-        {Platform.OS === 'web' && (
-        <View pointerEvents="none" style={styles.ambientLayer}>
-          <LinearGradient
-            colors={['#F7F7F5', '#FAFAF8']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.ambientGradient}
-          />
-          <View style={[styles.ambientWarmCloud, styles.ambientWarmCloudWeb]} />
-          <View style={[styles.ambientCoolCloud, styles.ambientCoolCloudWeb]} />
-          <View style={[styles.ambientMintCloud, styles.ambientMintCloudWeb]} />
-          <View style={styles.ambientNoise} />
-        </View>
+        {Platform.OS !== 'web' && (
+          <View pointerEvents="none" style={styles.mobileBackdropLayer}>
+            <View style={[styles.mobileBackdropBand, styles.mobileBackdropBandWarm]} />
+            <View style={[styles.mobileBackdropBand, styles.mobileBackdropBandMint]} />
+            <View style={[styles.mobileBackdropBand, styles.mobileBackdropBandSky]} />
+          </View>
         )}
-
         <ScreenLayout rightPanel={renderRightPanel()} scrollable={false}>
           <TourScrollView
             style={styles.container}
@@ -1238,15 +1369,33 @@ const DashboardScreen = () => {
               )}
             </Animated.View>
 
+            {Platform.OS !== 'web' && (
+              <Animated.View entering={staggerEnter(1)}>{renderMobileHero()}</Animated.View>
+            )}
+
             {/* Quick-log bar — Uber "Where to?" pattern, mobile only */}
             {Platform.OS !== 'web' && (
               <View style={styles.quickLogRow}>
-                <Pressable onPress={handleAddFood} style={({pressed}) => [styles.quickLogBar, { flex: 1 }, pressed && styles.quickLogBarPressed]}>
-                  <Camera size={20} color="#FFFFFF" weight="regular" />
-                  <Text style={styles.quickLogBarText}>Snap a meal</Text>
-                </Pressable>
+                <TourGuideZone
+                  zone={SNAP_MEAL_STEP.zone}
+                  text={SNAP_MEAL_STEP.text}
+                  title={SNAP_MEAL_STEP.title}
+                  icon="📸"
+                  style={{ flex: 1 }}
+                >
+                  <Pressable onPress={handleAddFood} style={({pressed}) => [styles.quickLogBar, pressed && styles.quickLogBarPressed]}>
+                    <View style={styles.quickLogBarIcon}>
+                      <Camera size={20} color="#FFFFFF" weight="regular" />
+                    </View>
+                    <View style={styles.quickLogBarCopy}>
+                      <Text style={styles.quickLogBarText}>Snap a meal</Text>
+                      <Text style={styles.quickLogBarSubtext}>Camera or gallery</Text>
+                    </View>
+                  </Pressable>
+                </TourGuideZone>
                 <Pressable onPress={() => setShowWeightModal(true)} style={({pressed}) => [styles.quickLogWeightBtn, pressed && styles.quickLogBarPressed]}>
                   <Scales size={20} color={BRAND_COLORS.primary} weight="regular" />
+                  <Text style={styles.quickLogWeightText}>Weight</Text>
                 </Pressable>
               </View>
             )}
@@ -1383,14 +1532,8 @@ const DashboardScreen = () => {
                         )}
                       </View>
 
-                      {/* Compact Snap Button - Tour Zone 1 (web only, mobile has quick-log bar) */}
+                      {/* Compact Snap Button (web only, main tour anchor lives in the hero CTA) */}
                       {Platform.OS === 'web' && (
-                      <TourGuideZone
-                        zone={SNAP_MEAL_STEP.zone}
-                        text={SNAP_MEAL_STEP.text}
-                        title={SNAP_MEAL_STEP.title}
-                        icon="📸"
-                      >
                         <Pressable
                           onPress={handleAddFood}
                           style={({pressed}) => [styles.compactSnapBtn, pressed && styles.compactSnapBtnPressed]}
@@ -1398,7 +1541,6 @@ const DashboardScreen = () => {
                            <Camera size={16} color="#FFFFFF" weight="regular" />
                            <Text style={styles.compactSnapBtnText}>Snap Meal</Text>
                         </Pressable>
-                      </TourGuideZone>
                       )}
                     </View>
                     )}
@@ -1496,67 +1638,36 @@ const DashboardScreen = () => {
 const styles = StyleSheet.create({
   screenRoot: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFF9F2',
   },
-  ambientLayer: {
+  mobileBackdropLayer: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
   },
-  ambientGradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  ambientWarmCloud: {
+  mobileBackdropBand: {
     position: 'absolute',
-    width: 360,
-    height: 360,
-    borderRadius: 180,
-    top: -120,
-    right: -100,
-    backgroundColor: 'rgba(17,17,17,0.04)',
-    ...(Platform.OS === 'web' && ({
-      filter: 'blur(90px)',
-    } as any)),
+    borderRadius: 999,
   },
-  ambientWarmCloudWeb: {
-    backgroundColor: 'rgba(17,17,17,0.03)',
+  mobileBackdropBandWarm: {
+    width: 240,
+    height: 240,
+    top: -70,
+    right: -60,
+    backgroundColor: 'rgba(255, 209, 178, 0.42)',
   },
-  ambientCoolCloud: {
-    position: 'absolute',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    top: 160,
-    right: 60,
-    backgroundColor: 'rgba(17,17,17,0.02)',
-    ...(Platform.OS === 'web' && ({
-      filter: 'blur(84px)',
-    } as any)),
+  mobileBackdropBandMint: {
+    width: 220,
+    height: 220,
+    top: 240,
+    left: -110,
+    backgroundColor: 'rgba(190, 241, 226, 0.4)',
   },
-  ambientCoolCloudWeb: {
-    backgroundColor: 'rgba(17,17,17,0.015)',
-  },
-  ambientMintCloud: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    bottom: -120,
-    left: -80,
-    backgroundColor: 'rgba(17,17,17,0.02)',
-    ...(Platform.OS === 'web' && ({
-      filter: 'blur(90px)',
-    } as any)),
-  },
-  ambientMintCloudWeb: {
-    backgroundColor: 'rgba(17,17,17,0.015)',
-  },
-  ambientNoise: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.02,
-    ...(Platform.OS === 'web' && ({
-      backgroundImage:
-        'repeating-linear-gradient(0deg, rgba(17,17,17,0.08) 0px, rgba(17,17,17,0.08) 1px, transparent 1px, transparent 4px)',
-    } as any)),
+  mobileBackdropBandSky: {
+    width: 260,
+    height: 260,
+    bottom: 140,
+    right: -120,
+    backgroundColor: 'rgba(205, 232, 255, 0.32)',
   },
   container: {
     flex: 1,
@@ -1564,6 +1675,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
+    paddingTop: spacing.md,
     width: '100%',
     alignSelf: 'center',
     ...(Platform.OS === 'web' && {
@@ -1608,8 +1720,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Platform.OS !== 'web' ? spacing.md : spacing.xl,
+    alignItems: 'flex-end',
+    marginBottom: Platform.OS !== 'web' ? spacing.lg : spacing.xl,
   },
   headerLeft: {
     flex: 1,
@@ -1622,11 +1734,11 @@ const styles = StyleSheet.create({
       letterSpacing: 0.6,
     },
     default: {
-      color: '#111111',
-      fontSize: 24,
+      color: '#5F5A52',
+      fontSize: 14,
       fontWeight: '700' as const,
-      letterSpacing: -0.5,
-      marginBottom: 4,
+      letterSpacing: 0.8,
+      marginBottom: 2,
     },
   }),
   nameRow: {
@@ -1640,16 +1752,155 @@ const styles = StyleSheet.create({
       letterSpacing: -0.7,
     },
     default: {
-      color: BRAND_COLORS.textSecondary,
-      fontSize: 15,
-      fontWeight: '500' as const,
-      letterSpacing: 0,
+      color: '#111111',
+      fontSize: 28,
+      fontWeight: '700' as const,
+      letterSpacing: -0.8,
     },
   }),
   contextLine: {
-    color: BRAND_COLORS.textMuted,
+    color: '#6B665F',
     marginTop: Platform.OS !== 'web' ? 4 : 6,
     fontSize: Platform.OS !== 'web' ? 13 : 14,
+  },
+  mobileHeroCard: {
+    marginBottom: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: 32,
+    backgroundColor: '#FFFDF9',
+    borderWidth: 1,
+    borderColor: '#E9E0D2',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 14 },
+    shadowRadius: 28,
+    shadowOpacity: 0.07,
+    elevation: 8,
+  },
+  mobileHeroHeader: {
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  mobileHeroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  mobileHeroKicker: {
+    color: '#8A7560',
+    letterSpacing: 1.3,
+  },
+  mobileHeroTitle: {
+    color: '#111111',
+    fontSize: 38,
+    lineHeight: 42,
+    letterSpacing: -1.4,
+  },
+  mobileHeroSubtitle: {
+    color: '#374151',
+    marginTop: 6,
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  mobileHeroBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    backgroundColor: '#FFF3E6',
+    borderWidth: 1,
+    borderColor: '#F1D7B8',
+  },
+  mobileHeroBadgeText: {
+    color: '#8C4A1D',
+  },
+  mobileHeroFocusCard: {
+    backgroundColor: '#121212',
+    borderRadius: 26,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  mobileHeroFocusHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  mobileHeroFocusKicker: {
+    color: 'rgba(255,255,255,0.72)',
+    letterSpacing: 1,
+  },
+  mobileHeroPlanChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  mobileHeroPlanChipText: {
+    color: '#FFFFFF',
+  },
+  mobileHeroFocusTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    lineHeight: 28,
+    letterSpacing: -0.5,
+  },
+  mobileHeroFocusMeta: {
+    color: 'rgba(255,255,255,0.68)',
+    marginTop: spacing.sm,
+  },
+  mobileHeroMetricRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  mobileHeroMetric: {
+    flex: 1,
+    minWidth: 100,
+    minHeight: 108,
+    padding: spacing.md,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#ECE3D7',
+    justifyContent: 'space-between',
+  },
+  mobileHeroMetricWarm: {
+    backgroundColor: '#FFF4EA',
+    borderColor: '#F3D7BE',
+    borderTopWidth: 3,
+    borderTopColor: '#F97316',
+  },
+  mobileHeroMetricMint: {
+    backgroundColor: '#ECF9F3',
+    borderColor: '#CBEBDD',
+    borderTopWidth: 3,
+    borderTopColor: '#2F7A6A',
+  },
+  mobileHeroMetricSky: {
+    backgroundColor: '#EEF6FF',
+    borderColor: '#D7E8FB',
+    borderTopWidth: 3,
+    borderTopColor: '#3B82F6',
+  },
+  mobileHeroMetricLabel: {
+    color: '#6B665F',
+  },
+  mobileHeroMetricValue: {
+    color: '#111111',
+    fontSize: 30,
+    letterSpacing: -0.7,
+  },
+  mobileHeroMetricMeta: {
+    color: '#4B5563',
+  },
+  mobileHeroProgressTrack: {
+    height: 5,
+    borderRadius: 3,
+    overflow: 'hidden' as const,
+    marginTop: 4,
+  },
+  mobileHeroProgressFill: {
+    height: '100%' as any,
+    borderRadius: 3,
   },
   // Quick-log bar — Uber "Where to?" pattern
   quickLogRow: {
@@ -1660,29 +1911,58 @@ const styles = StyleSheet.create({
   quickLogBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: '#111111',
-    borderRadius: radii.lg,
+    gap: 12,
+    backgroundColor: EXPERIENCE_COLORS.ink,
+    borderRadius: 28,
     paddingVertical: 16,
+    paddingHorizontal: 16,
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 8,
   },
-  quickLogWeightBtn: {
-    width: 52,
+  quickLogBarIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: BRAND_COLORS.surface,
-    borderRadius: radii.lg,
+  },
+  quickLogBarCopy: {
+    flex: 1,
+  },
+  quickLogWeightBtn: {
+    minWidth: 98,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
+    borderColor: '#E4DACE',
   },
   quickLogBarPressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
   quickLogBarText: { color: '#FFFFFF', fontSize: 17, fontWeight: '700' as const },
+  quickLogBarSubtext: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 12,
+    marginTop: 1,
+  },
+  quickLogWeightText: {
+    color: '#111111',
+    fontSize: 13,
+    fontWeight: '700' as const,
+  },
   // Section headers — Uber bold labels
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
-  sectionTitle: { color: '#111111', fontSize: 18, letterSpacing: -0.3 },
-  sectionAction: { color: BRAND_COLORS.primary, fontSize: 14 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionTitle: { color: '#111111', fontSize: 20, letterSpacing: -0.5 },
+  sectionAction: { color: '#111111', fontSize: 14 },
   // Mobile content wrapper — uniform 24px gap between sections
-  mobileContentWrapper: { gap: 24 },
+  mobileContentWrapper: { gap: 28 },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1722,13 +2002,18 @@ const styles = StyleSheet.create({
   },
   // Goals card - extends BentoCard with margin
   goalsCard: {
-    // marginBottom removed — gap in mobileContentWrapper handles spacing
+    ...(Platform.OS !== 'web' ? {
+      backgroundColor: '#FFFEFB',
+      borderColor: '#E8DED2',
+      borderRadius: 28,
+      shadowOpacity: 0.05,
+    } : {}),
   },
   goalsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   goalsHeaderLeft: {
     flexDirection: 'row',
@@ -1743,14 +2028,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   goalLabel: {
-    color: BRAND_COLORS.textSecondary,
+    color: Platform.OS !== 'web' ? '#8A7560' : BRAND_COLORS.textSecondary,
     marginBottom: 2,
   },
   editGoalsButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: BRAND_COLORS.primaryTint,
+    backgroundColor: Platform.OS !== 'web' ? '#F8EFE4' : BRAND_COLORS.primaryTint,
+    borderWidth: Platform.OS !== 'web' ? 1 : 0,
+    borderColor: Platform.OS !== 'web' ? '#EADAC4' : 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     ...(Platform.OS === 'web' && {
@@ -1770,20 +2057,26 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: 64,
-    minHeight: 74,
-    borderRadius: 12,
-    paddingVertical: spacing.xs,
-    backgroundColor: Platform.OS !== 'web' ? '#F5F5F5' : 'rgba(255,255,255,0.58)',
-    ...(Platform.OS === 'web' ? { borderWidth: 0.5, borderColor: 'rgba(242,233,222,0.8)' } : {}),
+    minHeight: 84,
+    borderRadius: 18,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(242,233,222,0.8)',
+    backgroundColor: Platform.OS !== 'web' ? '#F8F4ED' : 'rgba(255,255,255,0.58)',
   },
+  goalItemCalories: { backgroundColor: '#FFF1E5', borderColor: '#F4D5B9' },
+  goalItemProtein: { backgroundColor: '#EAF8F2', borderColor: '#CEE8DB' },
+  goalItemCarbs: { backgroundColor: '#F0F5E8', borderColor: '#DAE4C2' },
+  goalItemFat: { backgroundColor: '#FFF4E9', borderColor: '#F2D8BF' },
   goalItemLabel: {
-    color: colors.light.textSecondary,
-    marginTop: 2,
+    color: '#6B665F',
+    marginTop: 4,
     textAlign: 'center',
   },
   activityRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
     ...(Platform.OS === 'web'
       ? { paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.light.border }
       : { marginTop: spacing.md }),
@@ -1792,14 +2085,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: Platform.OS !== 'web' ? '#F8F4ED' : 'transparent',
+    borderWidth: Platform.OS !== 'web' ? 1 : 0,
+    borderColor: Platform.OS !== 'web' ? '#EADFD0' : 'transparent',
   },
   // Set goals prompt - Aura look with SaaS shadow
   setGoalsPrompt: {
-    borderRadius: radii.lg, // 16
-    borderWidth: Platform.OS === 'web' ? 1 : 0,
-    borderColor: BRAND_COLORS.border,
-    backgroundColor: '#FFFFFF',
-    ...(Platform.OS !== 'web' ? saasShadows.subtle : {}),
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: Platform.OS !== 'web' ? '#E7DCCF' : BRAND_COLORS.border,
+    backgroundColor: '#FFFEFB',
+    ...(Platform.OS !== 'web' ? {
+      shadowColor: '#111111',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.05,
+      shadowRadius: 22,
+      elevation: 6,
+    } : {}),
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'all 0.2s ease-out',
@@ -2030,7 +2336,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   supportText: {
-    color: BRAND_COLORS.textMuted,
+    color: '#4B5563',
   },
 
 });
@@ -2460,11 +2766,11 @@ const webStyles = StyleSheet.create({
     color: '#6B6B6B',
   },
   performanceContainer: {
-    backgroundColor: '#FFFCF7',
+    backgroundColor: '#FBFAF7',
     borderRadius: 26,
     padding: 24,
     borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.08)',
+    borderColor: '#E6E1D8',
     boxShadow: '0 16px 36px rgba(17,17,17,0.05)',
   },
   performanceRow: {
@@ -2492,15 +2798,18 @@ const webStyles = StyleSheet.create({
     overflow: 'hidden',
     minHeight: 460,
     borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
+    borderColor: '#E6E1D8',
+    backgroundColor: '#FFF7EA',
   },
   planBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.74)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 8,
     marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#EAE4D9',
   },
   planBadgeText: {
     color: '#111111',
@@ -2567,7 +2876,7 @@ const webStyles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 16,
     borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.08)',
+    borderColor: '#EAE4D9',
     boxShadow: '0 10px 22px rgba(17,17,17,0.04)',
   },
   planFieldLabel: {

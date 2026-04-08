@@ -142,10 +142,10 @@ export const WelcomeTourCard: React.FC<WelcomeTourCardProps> = ({
           <View style={styles.contentColumn}>
             <View style={styles.textContainer}>
               <Text variant="heading3" weight="bold" style={styles.title}>
-                Welcome to AuraFitness!
+                Take a quick tour
               </Text>
               <Text variant="body" style={styles.subtitle} numberOfLines={3}>
-                Track meals with our AI camera, discover workouts, and hit your goals.
+                We&apos;ll show meal logging, nutrition, workouts, and recipes in under a minute.
               </Text>
             </View>
 
@@ -166,7 +166,7 @@ export const WelcomeTourCard: React.FC<WelcomeTourCardProps> = ({
                 >
                   <PlayCircle size={16} color="#111827" />
                   <Text variant="caption" weight="bold" style={styles.tourButtonTextCompact}>
-                    Take Tour
+                    Take a Tour
                   </Text>
                 </LinearGradient>
               </Pressable>

@@ -1,6 +1,5 @@
 import { TourGuideZone } from '@/components/tour/TourProvider';
 import { Barbell, WarningCircle } from 'phosphor-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
@@ -49,12 +48,52 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   header: {
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
+    gap: spacing.md,
+    marginBottom: spacing.md,
   },
   subtitle: {
     color: BRAND_COLORS.textMuted,
     marginTop: 2,
+  },
+  introCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    gap: spacing.md,
+  },
+  introKicker: {
+    color: BRAND_COLORS.textMuted,
+    letterSpacing: 1.2,
+  },
+  introTitle: {
+    color: BRAND_COLORS.textPrimary,
+  },
+  introBody: {
+    color: BRAND_COLORS.textSecondary,
+    maxWidth: 560,
+  },
+  introStatsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  introStat: {
+    minWidth: 104,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 18,
+    backgroundColor: BRAND_COLORS.surfaceVariant,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.05)',
+    gap: 2,
+  },
+  introStatLabel: {
+    color: BRAND_COLORS.textMuted,
+  },
+  introStatValue: {
+    color: BRAND_COLORS.textPrimary,
   },
   searchContainer: {
     marginTop: spacing.md,
@@ -342,13 +381,42 @@ export const WorkoutsScreen = () => {
 
   const listHeaderComponent = (
     <View style={styles.header}>
-      <Animated.View entering={staggerEnter(0)}>
-        <Text variant="heading1" weight="bold" style={{ color: BRAND_COLORS.textPrimary }}>
+      <Animated.View entering={staggerEnter(0)} style={styles.introCard}>
+        <Text variant="label" weight="bold" style={styles.introKicker}>
+          TRAINING LIBRARY
+        </Text>
+        <Text variant="heading1" weight="bold" style={styles.introTitle}>
           Workouts
         </Text>
-        <Text variant="body" style={styles.subtitle}>
+        <Text variant="body" style={styles.introBody}>
           Find focused routines, then save the ones you want to repeat.
         </Text>
+        <View style={styles.introStatsRow}>
+          <View style={styles.introStat}>
+            <Text variant="caption" weight="medium" style={styles.introStatLabel}>
+              Recommended
+            </Text>
+            <Text variant="body" weight="bold" style={styles.introStatValue}>
+              {recommendedItems.length}
+            </Text>
+          </View>
+          <View style={styles.introStat}>
+            <Text variant="caption" weight="medium" style={styles.introStatLabel}>
+              Saved
+            </Text>
+            <Text variant="body" weight="bold" style={styles.introStatValue}>
+              {savedWorkouts.length}
+            </Text>
+          </View>
+          <View style={styles.introStat}>
+            <Text variant="caption" weight="medium" style={styles.introStatLabel}>
+              Flow
+            </Text>
+            <Text variant="body" weight="bold" style={styles.introStatValue}>
+              Search + save
+            </Text>
+          </View>
+        </View>
       </Animated.View>
 
       {/* Search Bar - Tour Zone 4 */}
@@ -480,19 +548,6 @@ export const WorkoutsScreen = () => {
   return (
     <SafeAreaWrapper>
       <ScreenLayout scrollable={false}>
-        {/* Ambient gradient background */}
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          <LinearGradient
-            colors={
-              Platform.OS === 'web'
-                ? ['rgba(255,248,241,0.6)', 'rgba(246,248,251,0.5)']
-                : ['rgba(255,252,248,0.94)', 'rgba(251,252,255,0.9)']
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
         <Container style={styles.container}>
           <FlatList
             ref={listRef}

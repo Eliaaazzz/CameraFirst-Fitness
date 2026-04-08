@@ -106,3 +106,36 @@ export const LANDING_COLORS = {
   /* ── stars ───────────────────────────────────────────── */
   star: '#F59E0B',
 } as const;
+
+/**
+ * Shared bright-experience palette used for the refreshed mobile landing,
+ * auth, and dashboard surfaces. It keeps the product feeling energetic and
+ * premium without rewriting the whole app theme.
+ */
+export const EXPERIENCE_COLORS = {
+  ink: '#0F1C36',
+  inkSoft: '#36507C',
+  sky: '#E8F7FF',
+  skyStrong: '#D7F0FF',
+  cloud: '#F9FDFF',
+  mint: '#DAF9D2',
+  lime: '#D4FF72',
+  coral: '#FF844B',
+  coralStrong: '#FF6A3D',
+  pink: '#FF5E8A',
+  violet: '#7A7CFF',
+  teal: '#2BBFCF',
+  gold: '#FFC247',
+  navy: '#091A38',
+  glass: 'rgba(255,255,255,0.72)',
+  glassStrong: 'rgba(255,255,255,0.90)',
+  glassSoft: 'rgba(255,255,255,0.56)',
+  stroke: 'rgba(15,28,54,0.08)',
+  strokeStrong: 'rgba(15,28,54,0.14)',
+  shadow: 'rgba(26,60,109,0.16)',
+  shadowSoft: 'rgba(26,60,109,0.08)',
+  glow: 'rgba(255,132,75,0.28)',
+  gradientTop: '#F8FDFF',
+  gradientMid: '#EDF7FF',
+  gradientBottom: '#FFF5EB',
+} as const;

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AuraFitness Accessibility</title>
+  <style>
+    :root {
+      --bg: #fff7ed;
+      --card: #ffffff;
+      --line: #fed7aa;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --brand: #ea580c;
+      --brand-dark: #9a3412;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 28%),
+        linear-gradient(155deg, var(--bg), #ffffff 68%);
+      min-height: 100vh;
+      padding: 40px 18px;
+    }
+
+    .shell {
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 30px 28px;
+      box-shadow: 0 22px 44px rgba(17, 24, 39, 0.08);
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #fff7ed;
+      color: var(--brand-dark);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.2;
+    }
+
+    h2 {
+      margin: 24px 0 8px;
+      font-size: 18px;
+      color: #111827;
+    }
+
+    p, li {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #374151;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+
+    a {
+      color: var(--brand);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <article class="card">
+      <span class="eyebrow">AuraFitness Accessibility</span>
+      <h1>Accessibility Statement</h1>
+      <p>AuraFitness aims to provide a usable experience across iPhone, iPad, Android, and web. We continue refining readability, focus states, and tap targets as the product evolves.</p>
+
+      <h2>Current accessibility work</h2>
+      <ul>
+        <li>Visible labels and direct references for nutrition and health-related content.</li>
+        <li>Large tap targets for primary actions on mobile.</li>
+        <li>Improved route wiring so interactive controls do not lead to dead ends.</li>
+      </ul>
+
+      <h2>Need help using the app?</h2>
+      <p>Email <a href="mailto:support@aurafitness.org">support@aurafitness.org</a> and describe the issue, device, and app version so we can investigate.</p>
+    </article>
+  </main>
+</body>
+</html>

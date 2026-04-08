@@ -18,7 +18,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -31,10 +31,11 @@ import {
 } from '@env';
 import { Image } from 'expo-image';
 import { Text } from '@/components';
+import { startBackendWarmup } from '@/services/backendWarmup';
 import { api } from '../services/apiClient';
 import { queryClient } from '../services/queryClient';
 import { useAuthStore } from '../stores';
-import { BRAND_COLORS, radii, spacing } from '@/utils';
+import { BRAND_COLORS, EXPERIENCE_COLORS, radii, spacing } from '@/utils';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -179,6 +180,7 @@ const COLORS = {
 
 const SPACING = spacing;
 const RADII = radii;
+const brandMotionIllustration = require('@/../assets/illustrations/brand-motion-coach.svg');
 
 // ============================================================================
 // Google Icon Component
@@ -242,14 +244,8 @@ export default function LoginScreen() {
 
   // Pre-warm the backend on mount so serverless cold start is absorbed
   // before the user finishes tapping a login button.
-  // Retry once after 3s if the first attempt fails (backend still booting).
   useEffect(() => {
-    const warmUp = () => fetch(`${APPLE_API_BASE_URL}/api/v1/auth/google/client-id`).catch(() => null);
-    warmUp().then((res) => {
-      if (!res || !res.ok) {
-        setTimeout(warmUp, 3000);
-      }
-    });
+    void startBackendWarmup();
   }, []);
 
   // Auth state
@@ -826,17 +822,49 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
           onScrollBeginDrag={handleOutsideTap}
         >
-            <Animated.View entering={FadeInUp.duration(500).delay(100)} style={styles.card}>
-              {/* Logo Section */}
-              <View style={styles.logoSection}>
+          <View style={styles.authStack}>
+            <Animated.View entering={FadeInDown.duration(420)} style={styles.brandShowcase}>
+              <View style={styles.brandHaloSoft} />
+              <View style={styles.brandHaloWarm} />
+              <Animated.View entering={ZoomIn.duration(520).delay(100)} style={styles.brandOrb}>
                 <Image
                   source={require('@/../assets/app-icon-1024.png')}
-                  style={styles.appLogo}
+                  style={styles.brandOrbLogo}
                   contentFit="contain"
                 />
+              </Animated.View>
+              <Animated.View entering={FadeInUp.duration(520).delay(160)} style={styles.brandPreviewCard}>
+                <Image source={brandMotionIllustration} style={styles.brandPreviewImage} contentFit="contain" />
+              </Animated.View>
+              <View style={styles.brandBadgeRow}>
+                <View style={styles.brandBadge}>
+                  <Text variant="caption" weight="bold" style={styles.brandBadgeText}>
+                    1 tap logging
+                  </Text>
+                </View>
+                <View style={styles.brandBadge}>
+                  <Text variant="caption" weight="bold" style={styles.brandBadgeText}>
+                    Bright daily rings
+                  </Text>
+                </View>
+              </View>
+            </Animated.View>
+
+            <Animated.View entering={FadeInUp.duration(500).delay(180)} style={styles.card}>
+              {/* Logo Section */}
+              <View style={styles.logoSection}>
+                <Animated.View entering={ZoomIn.duration(420).delay(220)} style={styles.logoOrb}>
+                  <View style={styles.logoOrbRing} />
+                  <Image
+                    source={require('@/../assets/app-icon-1024.png')}
+                    style={styles.appLogo}
+                    contentFit="contain"
+                  />
+                </Animated.View>
+                <Text variant="label" weight="bold" style={styles.logoKicker}>AURA MEMBER ACCESS</Text>
                 <Text variant="heading1" weight="bold" style={styles.title}>AuraFitness</Text>
                 <Text variant="body" style={styles.subtitle}>
-                  Sign in to keep your nutrition, training, and weekly progress in one place.
+                  Sign in to continue with a brighter mobile dashboard for nutrition, training, and weekly progress.
                 </Text>
               </View>
 
@@ -902,14 +930,15 @@ export default function LoginScreen() {
                         </View>
                         <TextInput
                           style={styles.input}
-                          placeholder="Email"
-                          placeholderTextColor={COLORS.gray400}
-                          value={email}
-                          onChangeText={setEmail}
-                          keyboardType="email-address"
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          editable={!isLoading}
+                        placeholder="Email"
+                        placeholderTextColor={COLORS.gray400}
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        inputMode="email"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        editable={!isLoading}
                         />
                       </View>
                       <View style={styles.inputContainer}>
@@ -936,9 +965,11 @@ export default function LoginScreen() {
                         onPress={handleEmailLogin}
                         disabled={isLoading}
                       >
-                        <Text style={styles.signInButtonText}>
-                          {isLoading ? 'Signing in...' : 'Sign In'}
-                        </Text>
+                        <View style={styles.signInButtonFill}>
+                          <Text style={styles.signInButtonText}>
+                            {isLoading ? 'Signing in...' : 'Sign In'}
+                          </Text>
+                        </View>
                       </Pressable>
                     </View>
                   )}
@@ -969,6 +1000,7 @@ export default function LoginScreen() {
                 </Text>
               </View>
             </Animated.View>
+          </View>
           </ScrollView>
         </KeyboardAvoidingView>
     </View>
@@ -981,7 +1013,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F8F7F3',
   },
   keyboardView: {
     flex: 1,
@@ -990,20 +1022,97 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: SPACING['2xl'],
+    paddingHorizontal: SPACING.lg,
+  },
+  authStack: {
+    width: '100%',
+    maxWidth: 460,
+    gap: SPACING.lg,
+  },
+  brandShowcase: {
+    minHeight: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: SPACING.md,
+  },
+  brandHaloSoft: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(17,17,17,0.03)',
+  },
+  brandHaloWarm: {
+    position: 'absolute',
+    top: 24,
+    width: 164,
+    height: 164,
+    borderRadius: 82,
+    backgroundColor: 'rgba(17,17,17,0.05)',
+  },
+  brandOrb: {
+    width: 94,
+    height: 94,
+    borderRadius: 47,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
+    shadowColor: EXPERIENCE_COLORS.shadow,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.16,
+    shadowRadius: 28,
+    elevation: 10,
+  },
+  brandOrbLogo: {
+    width: 72,
+    height: 72,
+  },
+  brandPreviewCard: {
+    width: '100%',
+    marginTop: -12,
+    borderRadius: 30,
+    padding: 14,
+    backgroundColor: EXPERIENCE_COLORS.glass,
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
+  },
+  brandPreviewImage: {
+    width: '100%',
+    height: 140,
+  },
+  brandBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  brandBadge: {
+    minHeight: 36,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
+  },
+  brandBadgeText: {
+    color: EXPERIENCE_COLORS.ink,
   },
   card: {
-    backgroundColor: COLORS.white,
-    borderRadius: RADII['2xl'],
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
+    borderRadius: 30,
     paddingHorizontal: SPACING['2xl'],
     paddingVertical: SPACING['4xl'],
-    shadowColor: '#171511',
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.08,
-    shadowRadius: 34,
-    elevation: 8,
+    shadowColor: EXPERIENCE_COLORS.shadow,
+    shadowOffset: { width: 0, height: 22 },
+    shadowOpacity: 0.16,
+    shadowRadius: 36,
+    elevation: 12,
     borderWidth: 1,
-    borderColor: COLORS.gray200,
+    borderColor: EXPERIENCE_COLORS.stroke,
     maxWidth: 410,
     minHeight: Platform.OS === 'web' ? 620 : undefined,
     width: '100%',
@@ -1016,17 +1125,38 @@ const styles = StyleSheet.create({
     marginBottom: SPACING['2xl'],
     gap: SPACING.xs,
   },
-  appLogo: {
-    width: 96,
-    height: 96,
+  logoOrb: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SPACING.sm,
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
+  },
+  logoOrbRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 56,
+    borderWidth: 8,
+    borderColor: 'rgba(255,132,75,0.10)',
+  },
+  appLogo: {
+    width: 82,
+    height: 82,
+  },
+  logoKicker: {
+    color: EXPERIENCE_COLORS.inkSoft,
+    letterSpacing: 1.4,
+    marginBottom: 2,
   },
   title: {
-    color: COLORS.gray900,
+    color: EXPERIENCE_COLORS.ink,
     textAlign: 'center',
   },
   subtitle: {
-    color: COLORS.gray500,
+    color: EXPERIENCE_COLORS.inkSoft,
     textAlign: 'center',
     maxWidth: 300,
   },
@@ -1034,9 +1164,11 @@ const styles = StyleSheet.create({
   // Error
   errorContainer: {
     backgroundColor: COLORS.errorBg,
-    borderRadius: RADII.sm,
+    borderRadius: RADII.lg,
     padding: SPACING.md,
     marginBottom: SPACING.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(208,92,65,0.14)',
   },
   errorText: {
     color: COLORS.error,
@@ -1050,15 +1182,15 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: RADII.lg,
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.gray200,
+    borderColor: EXPERIENCE_COLORS.stroke,
     height: 52,
   },
   inputContainerFocused: {
-    borderColor: COLORS.brand500,
-    backgroundColor: COLORS.white,
+    borderColor: EXPERIENCE_COLORS.coral,
+    backgroundColor: 'rgba(255,255,255,0.96)',
   },
   inputIconContainer: {
     paddingLeft: SPACING.md,
@@ -1068,7 +1200,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     fontSize: 15,
-    color: COLORS.gray800,
+    color: EXPERIENCE_COLORS.ink,
   },
   eyeButton: {
     padding: SPACING.md,
@@ -1083,19 +1215,22 @@ const styles = StyleSheet.create({
     color: COLORS.brand600,
   },
   signInButton: {
-    backgroundColor: COLORS.brand500,
-    borderRadius: RADII.lg,
-    height: 52,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 8,
+  },
+  signInButtonFill: {
+    minHeight: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: COLORS.brand500,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: '#111111',
   },
   signInButtonDisabled: {
-    backgroundColor: COLORS.gray400,
+    opacity: 0.48,
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -1121,12 +1256,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.gray100,
+    backgroundColor: EXPERIENCE_COLORS.stroke,
   },
   dividerText: {
     fontSize: 12,
     fontWeight: '500',
-    color: COLORS.gray400,
+    color: EXPERIENCE_COLORS.inkSoft,
     marginHorizontal: SPACING.lg,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -1146,10 +1281,10 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
   },
   authSectionTitle: {
-    color: COLORS.gray900,
+    color: EXPERIENCE_COLORS.ink,
   },
   authSectionSubtitle: {
-    color: COLORS.gray500,
+    color: EXPERIENCE_COLORS.inkSoft,
     textAlign: 'center',
   },
   appleNativeButton: {
@@ -1162,15 +1297,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: SPACING.md,
     height: 54,
-    borderRadius: RADII.md,
-    backgroundColor: '#000000',
+    borderRadius: 20,
+    backgroundColor: EXPERIENCE_COLORS.ink,
   },
   socialButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     height: 54,
-    borderRadius: RADII.md,
+    borderRadius: 20,
     gap: SPACING.md,
   },
   socialButtonPressed: {
@@ -1178,12 +1313,12 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   googleButton: {
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(255,255,255,0.82)',
     borderWidth: 1,
-    borderColor: COLORS.gray200,
+    borderColor: EXPERIENCE_COLORS.stroke,
   },
   socialButtonText: {
-    color: COLORS.gray700,
+    color: EXPERIENCE_COLORS.ink,
   },
   whiteSocialButtonText: {
     color: COLORS.white,
@@ -1192,7 +1327,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   emailToggleText: {
-    color: COLORS.gray500,
+    color: EXPERIENCE_COLORS.inkSoft,
     textAlign: 'center',
     marginTop: SPACING.sm,
   },
@@ -1205,10 +1340,10 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     marginTop: SPACING.lg,
     padding: SPACING.md,
-    borderRadius: RADII.lg,
-    backgroundColor: COLORS.gray50,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.72)',
     borderWidth: 1,
-    borderColor: COLORS.gray200,
+    borderColor: EXPERIENCE_COLORS.stroke,
   },
   supportRow: {
     flexDirection: 'row',
@@ -1216,7 +1351,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   supportText: {
-    color: COLORS.gray700,
+    color: EXPERIENCE_COLORS.inkSoft,
   },
 
   // Footer
@@ -1226,12 +1361,12 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   legalText: {
-    color: COLORS.gray400,
+    color: EXPERIENCE_COLORS.inkSoft,
     textAlign: 'center',
     paddingHorizontal: SPACING.lg,
   },
   legalLink: {
-    color: COLORS.brand600,
+    color: EXPERIENCE_COLORS.ink,
     textDecorationLine: 'underline',
   },
 });

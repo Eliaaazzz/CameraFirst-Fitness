@@ -566,15 +566,9 @@ export function useUpdateGoal(): UseMutationResult<
 
   return useMutation({
     mutationFn: ({ goalId, payload }) => updateGoal(goalId, payload),
-    onSuccess: (_, variables) => {
-      const goals = queryClient.getQueryData<Goal[]>(['goals']);
-      if (goals) {
-        const goal = goals.find((g) => g.id === variables.goalId);
-        if (goal) {
-          queryClient.invalidateQueries({ queryKey: ['goals', goal.userId] });
-          queryClient.invalidateQueries({ queryKey: ['goalStatistics', goal.userId] });
-        }
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      queryClient.invalidateQueries({ queryKey: ['goalStatistics'] });
     },
   });
 }

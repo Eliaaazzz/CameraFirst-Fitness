@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AuraFitness Release Notes</title>
+  <style>
+    :root {
+      --bg: #fff7ed;
+      --card: #ffffff;
+      --line: #fed7aa;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --brand: #ea580c;
+      --brand-dark: #9a3412;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(251, 146, 60, 0.18), transparent 30%),
+        linear-gradient(160deg, var(--bg), #ffffff 70%);
+      min-height: 100vh;
+      padding: 40px 18px;
+    }
+
+    .shell {
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 30px 28px;
+      box-shadow: 0 22px 44px rgba(17, 24, 39, 0.08);
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #fff7ed;
+      color: var(--brand-dark);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.2;
+    }
+
+    .sub {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .note {
+      margin-top: 24px;
+      padding: 18px 20px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #fffaf5;
+    }
+
+    .release {
+      margin-top: 26px;
+      padding-top: 18px;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      color: #111827;
+    }
+
+    p, li {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #374151;
+    }
+
+    ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+
+    a {
+      color: var(--brand);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <article class="card">
+      <span class="eyebrow">AuraFitness Updates</span>
+      <h1>Release Notes</h1>
+      <p class="sub">Recent product changes and review-related updates.</p>
+
+      <div class="note">
+        <p><strong>Current release focus:</strong> App Store review fixes for permission flow, clearer nutrition references, and tighter mobile polish across landing and meal logging.</p>
+      </div>
+
+      <section class="release">
+        <h2>Version 1.0</h2>
+        <ul>
+          <li>Refined the meal capture flow so camera permission requests go straight to the system prompt.</li>
+          <li>Added direct nutrition reference links for daily targets and blood sugar impact explanations.</li>
+          <li>Improved landing-page routing so footer and help actions lead somewhere concrete.</li>
+          <li>Added backend warm-up on app entry to reduce cold-start delay before auth and nutrition actions.</li>
+        </ul>
+      </section>
+
+      <section class="release">
+        <h2>Need support?</h2>
+        <p>Contact <a href="mailto:support@aurafitness.org">support@aurafitness.org</a> or visit the <a href="/support.html">Support page</a>.</p>
+      </section>
+    </article>
+  </main>
+</body>
+</html>

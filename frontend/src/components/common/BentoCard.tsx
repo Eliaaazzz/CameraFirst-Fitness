@@ -15,10 +15,15 @@ export const BENTO_CARD_STYLES: ViewStyle = {
 /** Flat Uber-style card for mobile — no border, lighter shadow, 16px radius */
 export const MOBILE_CARD_STYLES: ViewStyle = {
   backgroundColor: '#FFFFFF',
-  borderRadius: radii.lg, // 16
+  borderRadius: 24,
   padding: spacing.xl,    // 24
-  borderWidth: 0,
-  ...saasShadows.subtle,  // shadowRadius 8, shadowOpacity 0.04
+  borderWidth: 1,
+  borderColor: 'rgba(17,17,17,0.08)',
+  shadowColor: '#111111',
+  shadowOffset: { width: 0, height: 10 },
+  shadowRadius: 24,
+  shadowOpacity: 0.06,
+  elevation: 6,
 };
 
 export const BENTO_CARD_WEB_STYLES =

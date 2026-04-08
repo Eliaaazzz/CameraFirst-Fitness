@@ -8,7 +8,6 @@ import { DarkTheme, DefaultTheme, NavigationContainer, useIsFocused } from '@rea
 import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/stack';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
 import {
   Platform,
@@ -93,20 +92,10 @@ const TabBarBackground = () => (
     {Platform.OS === 'web' ? (
       <View style={tabBarStyles.webFallbackBlur} />
     ) : (
-      <BlurView intensity={28} tint="light" style={tabBarStyles.blurLayer} />
+      <BlurView intensity={34} tint="light" style={tabBarStyles.blurLayer} />
     )}
-    <LinearGradient
-      colors={[BRAND_COLORS.glassFillStrong, BRAND_COLORS.glassFill]}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
-      style={tabBarStyles.tintLayer}
-    />
-    <LinearGradient
-      colors={['rgba(255,255,255,0.54)', 'rgba(255,255,255,0)']}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
-      style={tabBarStyles.topSpecular}
-    />
+    <View style={tabBarStyles.fillLayer} />
+    <View style={tabBarStyles.topHighlight} />
     <View style={tabBarStyles.outline} />
   </View>
 );
@@ -128,7 +117,7 @@ const TabIconShell = ({ focused, children }: { focused: boolean; children: React
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-    opacity: 0.46 + bgOpacity.value * 0.54,
+    opacity: 0.64 + bgOpacity.value * 0.36,
   }));
 
   return (
@@ -155,7 +144,7 @@ const tabBarStyles = StyleSheet.create({
   },
   shell: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 28,
+    borderRadius: 30,
     overflow: 'hidden',
   },
   blurLayer: {
@@ -163,38 +152,40 @@ const tabBarStyles = StyleSheet.create({
   },
   webFallbackBlur: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: BRAND_COLORS.glassFillStrong,
+    backgroundColor: 'rgba(255,255,255,0.86)',
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
   } as any,
-  tintLayer: {
+  fillLayer: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.78)',
   },
-  topSpecular: {
+  topHighlight: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 12,
+    height: 14,
+    backgroundColor: 'rgba(255,255,255,0.52)',
   },
   outline: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 28,
+    borderRadius: 30,
     borderWidth: 1,
-    borderColor: BRAND_COLORS.glassStroke,
+    borderColor: 'rgba(17,17,17,0.06)',
   },
   iconShell: {
-    width: 42,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 0,
   },
   iconShellFocused: {
-    backgroundColor: BRAND_COLORS.primaryTint,
+    backgroundColor: 'rgba(17,17,17,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(201,106,52,0.16)',
+    borderColor: 'rgba(17,17,17,0.06)',
   },
   label: {
     fontSize: 12,
@@ -206,7 +197,7 @@ const tabBarStyles = StyleSheet.create({
     textAlign: 'center',
   },
   labelFocused: {
-    color: BRAND_COLORS.primaryDark,
+    color: BRAND_COLORS.textPrimary,
   },
   labelInactive: {
     color: BRAND_COLORS.textMuted,
@@ -389,14 +380,6 @@ const CameraTabButton = ({
     ]}
   >
     <View style={cameraButtonStyles.shell}>
-      <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient
-          colors={[BRAND_COLORS.primary, BRAND_COLORS.primaryDark]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-        />
-      </View>
       <Camera size={24} color="#FFFFFF" weight="fill" />
     </View>
   </Pressable>
@@ -434,7 +417,7 @@ const cameraButtonStyles = StyleSheet.create({
     borderRadius: 27,
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
+    backgroundColor: '#111111',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.22)',
   },
@@ -541,7 +524,7 @@ const MainTabs = () => {
       tabBar={renderTabBar}
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: BRAND_COLORS.primaryDark,
+        tabBarActiveTintColor: BRAND_COLORS.textPrimary,
         tabBarInactiveTintColor: BRAND_COLORS.textSecondary,
         tabBarHideOnKeyboard: true,
         tabBarShowLabel: true,
@@ -569,11 +552,11 @@ const MainTabs = () => {
           paddingTop: tabBarPaddingTop,
           backgroundColor: 'transparent',
           borderTopWidth: 0,
-          borderRadius: 28,
+          borderRadius: 30,
           shadowColor: '#0F172A',
-          shadowOpacity: 0.14,
-          shadowRadius: 28,
-          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.08,
+          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 8 },
           elevation: 0,
           width: '100%',
         },
@@ -671,6 +654,10 @@ export const AppNavigator = () => {
         <Stack.Screen
           name="AboutNutritionData"
           component={SafeAboutNutritionDataScreen}
+        />
+        <Stack.Screen
+          name="Help"
+          component={SafeHelpScreen}
         />
         <Stack.Screen
           name="BuildPlan"

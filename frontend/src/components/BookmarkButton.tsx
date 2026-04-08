@@ -153,8 +153,10 @@ export const BookmarkButton = ({
 const getStyles = () => StyleSheet.create({
   container: {
     padding: spacing.xs,
-    borderRadius: radii.md,
-    backgroundColor: 'transparent',
+    borderRadius: radii.lg,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: 40,

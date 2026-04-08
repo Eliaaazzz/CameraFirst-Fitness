@@ -29,9 +29,10 @@ import {
 import { Image } from 'expo-image';
 import { Text } from '@/components';
 import { api } from '@/services/apiClient';
+import { startBackendWarmup } from '@/services/backendWarmup';
 import { queryClient } from '@/services/queryClient';
 import { useAuthStore } from '@/stores';
-import { BRAND_COLORS, radii, spacing } from '@/utils';
+import { BRAND_COLORS, EXPERIENCE_COLORS, radii, spacing } from '@/utils';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -77,6 +78,7 @@ declare global {
 
 const APPLE_STATE_KEY = 'apple_signup_state';
 const APPLE_NONCE_KEY = 'apple_signup_nonce';
+const brandMotionIllustration = require('@/../assets/illustrations/brand-motion-coach.svg');
 
 type AppleWebSignInPayload = {
   authorization?: { code?: string; id_token?: string; state?: string };
@@ -162,6 +164,7 @@ function InputField({
         autoCapitalize="none"
         autoCorrect={false}
         keyboardType={keyboardType}
+        inputMode={keyboardType === 'email-address' ? 'email' : 'text'}
       />
       {showToggle ? (
         <Pressable onPress={onToggleSecure} hitSlop={8}>
@@ -240,8 +243,7 @@ export default function RegisterScreen() {
 
   // ── Pre-warm backend ───────────────────────────────
   useEffect(() => {
-    const warmUp = () => fetch(`${APPLE_API_BASE_URL}/api/v1/auth/google/client-id`).catch(() => null);
-    warmUp().then((res) => { if (!res || !res.ok) setTimeout(warmUp, 3000); });
+    void startBackendWarmup();
   }, []);
 
   // ── Apple availability check ───────────────────────
@@ -517,13 +519,29 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.card}>
+          <View style={styles.authStack}>
+            <View style={styles.brandShowcase}>
+              <View style={styles.brandHaloSoft} />
+              <View style={styles.brandHaloWarm} />
+              <View style={styles.brandOrb}>
+                <Image source={require('@/../assets/app-icon-1024.png')} style={styles.brandOrbLogo} contentFit="contain" />
+              </View>
+              <View style={styles.brandPreviewCard}>
+                <Image source={brandMotionIllustration} style={styles.brandPreviewImage} contentFit="contain" />
+              </View>
+            </View>
+
+            <View style={styles.card}>
             {/* Logo */}
             <View style={styles.logoSection}>
-              <Image source={require('@/../assets/app-icon-1024.png')} style={styles.appLogo} contentFit="contain" />
+              <View style={styles.logoOrb}>
+                <View style={styles.logoOrbRing} />
+                <Image source={require('@/../assets/app-icon-1024.png')} style={styles.appLogo} contentFit="contain" />
+              </View>
+              <Text variant="label" weight="bold" style={styles.logoKicker}>START YOUR PLAN</Text>
               <Text variant="heading1" weight="bold" style={styles.title}>Create your account</Text>
-              <Text variant="body" color={BRAND_COLORS.textSecondary} style={styles.subtitle}>
-                Start with a calmer way to track food, training, and progress.
+              <Text variant="body" color={EXPERIENCE_COLORS.inkSoft} style={styles.subtitle}>
+                Start with a brighter mobile flow for food, workouts, and progress.
               </Text>
             </View>
 
@@ -623,9 +641,11 @@ export default function RegisterScreen() {
                     pressed && isFormValid && !isLoading && styles.primaryButtonPressed,
                   ]}
                 >
-                  <Text variant="body" weight="bold" style={styles.whiteButtonText}>
-                    {isLoading ? 'Creating account...' : 'Create account'}
-                  </Text>
+                  <View style={styles.primaryButtonFill}>
+                    <Text variant="body" weight="bold" style={styles.whiteButtonText}>
+                      {isLoading ? 'Creating account...' : 'Create account'}
+                    </Text>
+                  </View>
                 </Pressable>
               </View>
             )}
@@ -636,6 +656,7 @@ export default function RegisterScreen() {
               <Pressable onPress={() => navigation.goBack()}>
                 <Text variant="caption" weight="semibold" style={styles.footerLink}>Sign in</Text>
               </Pressable>
+            </View>
             </View>
           </View>
         </ScrollView>
@@ -648,22 +669,104 @@ export default function RegisterScreen() {
 // Styles
 // ============================================================================
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: BRAND_COLORS.background },
+  screen: { flex: 1, backgroundColor: '#F8F7F3' },
   keyboardView: { flex: 1 },
   scrollContent: {
     flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.lg,
   },
+  authStack: {
+    width: '100%',
+    maxWidth: 460,
+    gap: spacing.lg,
+  },
+  brandShowcase: {
+    minHeight: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: spacing.md,
+  },
+  brandHaloSoft: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(17,17,17,0.03)',
+  },
+  brandHaloWarm: {
+    position: 'absolute',
+    top: 24,
+    width: 164,
+    height: 164,
+    borderRadius: 82,
+    backgroundColor: 'rgba(17,17,17,0.05)',
+  },
+  brandOrb: {
+    width: 94,
+    height: 94,
+    borderRadius: 47,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
+    shadowColor: EXPERIENCE_COLORS.shadow,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.16,
+    shadowRadius: 28,
+    elevation: 10,
+  },
+  brandOrbLogo: {
+    width: 72,
+    height: 72,
+  },
+  brandPreviewCard: {
+    width: '100%',
+    marginTop: -12,
+    borderRadius: 30,
+    padding: 14,
+    backgroundColor: EXPERIENCE_COLORS.glass,
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
+  },
+  brandPreviewImage: {
+    width: '100%',
+    height: 140,
+  },
   card: {
-    width: '100%', maxWidth: 420, backgroundColor: BRAND_COLORS.surfaceElevated,
-    borderRadius: radii['2xl'], borderWidth: 1, borderColor: BRAND_COLORS.borderSubtle,
+    width: '100%', maxWidth: 420, backgroundColor: EXPERIENCE_COLORS.glassStrong,
+    borderRadius: 30, borderWidth: 1, borderColor: EXPERIENCE_COLORS.stroke,
     padding: spacing.xl, gap: spacing.lg,
+    shadowColor: EXPERIENCE_COLORS.shadow,
+    shadowOffset: { width: 0, height: 22 },
+    shadowOpacity: 0.16,
+    shadowRadius: 36,
+    elevation: 12,
   },
   logoSection: { alignItems: 'center', gap: spacing.sm },
-  appLogo: { width: 80, height: 80, marginBottom: spacing.xs },
-  title: { textAlign: 'center' },
+  logoOrb: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
+  },
+  logoOrbRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 56,
+    borderWidth: 8,
+    borderColor: 'rgba(255,132,75,0.10)',
+  },
+  appLogo: { width: 82, height: 82 },
+  logoKicker: { color: EXPERIENCE_COLORS.inkSoft, letterSpacing: 1.4 },
+  title: { textAlign: 'center', color: EXPERIENCE_COLORS.ink },
   subtitle: { textAlign: 'center', maxWidth: 280 },
   errorContainer: {
     backgroundColor: 'rgba(208, 92, 65, 0.10)', borderRadius: radii.md, padding: spacing.md,
+    borderWidth: 1, borderColor: 'rgba(208,92,65,0.14)',
   },
   errorText: { color: BRAND_COLORS.error, textAlign: 'center' },
 
@@ -672,43 +775,55 @@ const styles = StyleSheet.create({
   appleNativeButton: { width: '100%', height: 52 },
   appleWebButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: spacing.md, height: 52, borderRadius: radii.lg, backgroundColor: '#000000',
+    gap: spacing.md, height: 52, borderRadius: 20, backgroundColor: EXPERIENCE_COLORS.ink,
   },
   googleButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: spacing.md, height: 52, borderRadius: radii.lg,
-    backgroundColor: BRAND_COLORS.surfaceElevated,
-    borderWidth: 1, borderColor: BRAND_COLORS.border,
+    gap: spacing.md, height: 52, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: 1, borderColor: EXPERIENCE_COLORS.stroke,
   },
-  googleButtonText: { color: BRAND_COLORS.textSecondary },
+  googleButtonText: { color: EXPERIENCE_COLORS.ink },
   whiteButtonText: { color: '#FFFFFF' },
   socialButtonPressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
   buttonDisabled: { opacity: 0.5 },
 
   // Divider
   divider: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  dividerLine: { flex: 1, height: 1, backgroundColor: BRAND_COLORS.border },
-  dividerText: { color: BRAND_COLORS.textMuted },
+  dividerLine: { flex: 1, height: 1, backgroundColor: EXPERIENCE_COLORS.stroke },
+  dividerText: { color: EXPERIENCE_COLORS.inkSoft },
 
-  emailToggle: { color: BRAND_COLORS.textMuted, textAlign: 'center' },
+  emailToggle: { color: EXPERIENCE_COLORS.inkSoft, textAlign: 'center' },
 
   // Email form
   formSection: { gap: spacing.md },
   inputContainer: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: BRAND_COLORS.surface, borderRadius: radii.lg,
-    borderWidth: 1, borderColor: BRAND_COLORS.border, minHeight: 52, paddingHorizontal: spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.88)', borderRadius: 20,
+    borderWidth: 1, borderColor: EXPERIENCE_COLORS.stroke, minHeight: 52, paddingHorizontal: spacing.md,
   },
-  inputContainerFocused: { borderColor: BRAND_COLORS.primary },
-  input: { flex: 1, fontSize: 15, color: BRAND_COLORS.textPrimary, minHeight: 52 },
+  inputContainerFocused: { borderColor: EXPERIENCE_COLORS.coral },
+  input: { flex: 1, fontSize: 15, color: EXPERIENCE_COLORS.ink, minHeight: 52 },
   primaryButton: {
-    minHeight: 52, borderRadius: radii.lg, backgroundColor: BRAND_COLORS.primary,
+    minHeight: 52, borderRadius: 20, overflow: 'hidden',
     alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 8,
   },
-  primaryButtonDisabled: { backgroundColor: BRAND_COLORS.textDisabled },
+  primaryButtonFill: {
+    minHeight: 52,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#111111',
+  },
+  primaryButtonDisabled: { opacity: 0.48 },
   primaryButtonPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
 
   // Footer
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: spacing.xs },
-  footerLink: { color: BRAND_COLORS.primaryDark },
+  footerLink: { color: EXPERIENCE_COLORS.ink },
 });

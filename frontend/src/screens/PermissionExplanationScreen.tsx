@@ -13,8 +13,8 @@ interface PermissionExplanationScreenProps {
 }
 
 export const PermissionExplanationScreen = ({
-  description = 'We need camera access to help you discover workouts and recipes based on your equipment and ingredients.',
-  onRequestPermission,
+  description = 'Use the system permission prompt to continue with camera features.',
+  onRequestPermission: _onRequestPermission,
   onOpenSettings,
   permissionDenied = false,
 }: PermissionExplanationScreenProps) => (
@@ -24,38 +24,16 @@ export const PermissionExplanationScreen = ({
         <CameraSlash size={48} color="#FF6B6B" />
       </View>
       <Text variant="heading1" weight="bold" style={styles.heading}>
-        Camera Access Needed
+        {permissionDenied ? 'Camera Access Is Off' : 'Waiting for System Permission'}
       </Text>
       <Text variant="body" style={styles.body}>
         {description}
       </Text>
-      <View style={styles.bullets}>
-        <View style={styles.bulletRow}>
-          <Text variant="body" weight="bold">
-            📸
-          </Text>
-          <Text variant="body">Take photos of your equipment</Text>
-        </View>
-        <View style={styles.bulletRow}>
-          <Text variant="body" weight="bold">
-            🍽️
-          </Text>
-          <Text variant="body">Snap pictures of ingredients</Text>
-        </View>
-        <View style={styles.bulletRow}>
-          <Text variant="body" weight="bold">
-            🔒
-          </Text>
-          <Text variant="body">Photos are never stored without your permission</Text>
-        </View>
-      </View>
-      <View style={styles.actions}>
-        {permissionDenied ? (
+      {permissionDenied && (
+        <View style={styles.actions}>
           <Button title="Open Settings" onPress={onOpenSettings} />
-        ) : (
-          <Button title="Continue" onPress={onRequestPermission} />
-        )}
-      </View>
+        </View>
+      )}
     </Container>
   </SafeAreaWrapper>
 );
@@ -77,15 +55,6 @@ const styles = StyleSheet.create({
   body: {
     textAlign: 'center',
     color: 'rgba(148, 163, 184, 0.9)',
-  },
-  bullets: {
-    gap: spacing.sm,
-    width: '100%',
-  },
-  bulletRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
   },
   actions: {
     width: '100%',

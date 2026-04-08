@@ -4,7 +4,7 @@ import React from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components';
-import { BRAND_COLORS, LANDING_COLORS, radii, spacing } from '@/utils';
+import { BRAND_COLORS, EXPERIENCE_COLORS, LANDING_COLORS, radii, spacing } from '@/utils';
 
 const plannerIllustration = require('@/../assets/illustrations/fruit-salad.svg');
 
@@ -47,7 +47,7 @@ function PlannerField({
         {label}
       </Text>
       <View style={styles.fieldInput}>
-        <Icon size={18} weight="regular" color={LANDING_COLORS.text} />
+        <Icon size={18} weight="regular" color={EXPERIENCE_COLORS.ink} />
         <Text variant="body" weight="medium" style={styles.fieldValue}>
           {value}
         </Text>
@@ -59,6 +59,7 @@ function PlannerField({
 export function HowItWorks({ onGetStarted }: HowItWorksProps) {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  const isTablet = width >= 720;
 
   return (
     <View style={styles.section}>
@@ -86,7 +87,7 @@ export function HowItWorks({ onGetStarted }: HowItWorksProps) {
               </Text>
             </View>
 
-            <View style={styles.fieldsRow}>
+            <View style={[styles.fieldsRow, !isTablet && styles.fieldsColumn]}>
               <PlannerField label="Goal" value="Build Muscle" Icon={Target} onPress={onGetStarted} />
               <PlannerField label="Focus" value="Nutrition + Strength" Icon={CalendarBlank} onPress={onGetStarted} />
               <PlannerField label="Weekly time" value="4 sessions" Icon={Clock} onPress={onGetStarted} />
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['3xl'],
   },
   sectionTitle: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
     fontSize: 56,
     lineHeight: 60,
     letterSpacing: -2,
@@ -158,12 +159,21 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    borderRadius: radii['2xl'],
-    backgroundColor: LANDING_COLORS.accent.teal,
+    borderRadius: 32,
+    backgroundColor: '#FFF0DE',
     borderWidth: 1,
-    borderColor: LANDING_COLORS.border,
+    borderColor: EXPERIENCE_COLORS.stroke,
     padding: 28,
     overflow: 'hidden',
+    ...(typeof document !== 'undefined'
+      ? ({ boxShadow: '0 22px 44px rgba(26,60,109,0.08)' } as any)
+      : {
+          shadowColor: EXPERIENCE_COLORS.shadowSoft,
+          shadowOffset: { width: 0, height: 16 },
+          shadowRadius: 28,
+          shadowOpacity: 0.12,
+          elevation: 6,
+        }),
   },
   cardDesktop: {
     flex: 2,
@@ -183,7 +193,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   cardTitle: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
     fontSize: 54,
     lineHeight: 56,
     letterSpacing: -2,
@@ -194,7 +204,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1.2,
   },
   cardSubtitle: {
-    color: LANDING_COLORS.textOnAccent,
+    color: EXPERIENCE_COLORS.inkSoft,
     fontSize: 20,
     lineHeight: 30,
   },
@@ -204,6 +214,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.lg,
   },
+  fieldsColumn: {
+    flexDirection: 'column',
+  },
   field: {
     flex: 1,
     minWidth: 180,
@@ -212,7 +225,7 @@ const styles = StyleSheet.create({
     opacity: 0.88,
   },
   fieldLabel: {
-    color: LANDING_COLORS.fieldLabel,
+    color: EXPERIENCE_COLORS.inkSoft,
     marginBottom: spacing.xs,
   },
   fieldInput: {
@@ -221,18 +234,18 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: 18,
     paddingVertical: 18,
-    backgroundColor: LANDING_COLORS.bg,
-    borderRadius: radii.md,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: LANDING_COLORS.borderField,
+    borderColor: EXPERIENCE_COLORS.stroke,
   },
   fieldValue: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
   },
   primaryCta: {
     marginTop: spacing.sm,
-    backgroundColor: LANDING_COLORS.ctaBg,
-    borderRadius: radii.md,
+    backgroundColor: EXPERIENCE_COLORS.ink,
+    borderRadius: 22,
     paddingVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
@@ -249,7 +262,7 @@ const styles = StyleSheet.create({
     bottom: -28,
     width: 280,
     height: 280,
-    opacity: 0.72,
+    opacity: 0.82,
   },
   cardIllustrationMobile: {
     position: 'relative',
@@ -261,10 +274,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   benefitsPanel: {
-    borderRadius: radii['2xl'],
-    backgroundColor: LANDING_COLORS.bg,
+    borderRadius: 30,
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
     borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
+    borderColor: EXPERIENCE_COLORS.stroke,
     padding: 24,
     gap: spacing.lg,
   },
@@ -272,14 +285,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   benefitsTitle: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
   },
   benefitRow: {
     flexDirection: 'row',
     gap: spacing.md,
     paddingBottom: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: BRAND_COLORS.borderSubtle,
+    borderBottomColor: EXPERIENCE_COLORS.stroke,
   },
   benefitIconBox: {
     width: 44,
@@ -287,17 +300,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: BRAND_COLORS.surfaceVariant,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
   },
   benefitCopy: {
     flex: 1,
   },
   benefitTitle: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
     marginBottom: 4,
   },
   benefitText: {
-    color: BRAND_COLORS.textSecondary,
+    color: EXPERIENCE_COLORS.inkSoft,
     lineHeight: 24,
   },
   pressed: {

@@ -1,6 +1,6 @@
 import { CaretRight, Flame, Info, BookOpen, ArrowSquareOut } from 'phosphor-react-native';
 import React, { useEffect } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedProps,
@@ -14,7 +14,13 @@ import { AIDisclaimer } from '@/components/common/AIDisclaimer';
 import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/components/common/BentoCard';
 import { Text } from '@/components/Text';
 import { useLanguageStore } from '@/stores';
-import { BRAND_COLORS, spacing } from '@/utils';
+import {
+  BRAND_COLORS,
+  NutritionTargetExplanation,
+  NUTRITION_REFERENCES,
+  openExternalUrl,
+  spacing,
+} from '@/utils';
 
 // Create animated circle component
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -44,6 +50,7 @@ interface NutritionRingsCardProps {
   animated?: boolean;
   onMacroPress?: (macro: 'calories' | 'protein' | 'carbs' | 'fat') => void;
   onSourcesPress?: () => void;
+  targetExplanation?: NutritionTargetExplanation;
 }
 
 // ============================================================================
@@ -71,30 +78,34 @@ interface RingConfig {
   key: 'protein' | 'carbs' | 'fat';
   label: string;
   color: string;
-  radius: number; // Relative to viewBox center
+  trackColor: string;
+  radius: number;
 }
 
 // 3 Rings Layout (Protein outer, Fat middle, Carbs inner)
 // ViewBox is 200x200, center at 100,100
-// Radii are calculated to fit nicely with gaps
+// Each ring has its own colored track for brighter readability
 const RING_CONFIGS: RingConfig[] = [
   {
     key: 'protein',
     label: 'Protein',
     color: RING_COLORS.protein,
-    radius: 85, // Outer ring
+    trackColor: 'rgba(47, 122, 106, 0.18)',
+    radius: 85,
   },
   {
     key: 'fat',
     label: 'Fat',
     color: RING_COLORS.fat,
-    radius: 64, // Middle ring
+    trackColor: 'rgba(201, 106, 52, 0.18)',
+    radius: 64,
   },
   {
     key: 'carbs',
     label: 'Carbs',
     color: RING_COLORS.carbs,
-    radius: 43, // Inner ring
+    trackColor: 'rgba(138, 155, 79, 0.18)',
+    radius: 43,
   },
 ];
 
@@ -104,6 +115,7 @@ const RING_CONFIGS: RingConfig[] = [
 
 interface AnimatedRingProps {
   readonly color: string;
+  readonly trackColor: string;
   readonly radius: number;
   readonly percentage: number;
   readonly centerX: number;
@@ -114,6 +126,7 @@ interface AnimatedRingProps {
 
 function AnimatedRing({
   color,
+  trackColor,
   radius,
   percentage,
   centerX,
@@ -147,12 +160,12 @@ function AnimatedRing({
 
   return (
     <>
-      {/* Background Track - Gray (Apple Watch style) */}
+      {/* Background Track — per-ring color for vivid readout */}
       <Circle
         cx={centerX}
         cy={centerY}
         r={radius}
-        stroke={TRACK_COLOR}
+        stroke={trackColor}
         strokeWidth={STROKE_WIDTH}
         fill="none"
         opacity={1}
@@ -288,6 +301,7 @@ export function NutritionRingsCard({
   animated = true,
   onMacroPress,
   onSourcesPress,
+  targetExplanation,
 }: NutritionRingsCardProps) {
   const { t } = useLanguageStore();
   const displayTitle = title || t.todaysNutrition;
@@ -376,6 +390,7 @@ export function NutritionRingsCard({
                 <AnimatedRing
                   key={config.key}
                   color={config.color}
+                  trackColor={config.trackColor}
                   radius={config.radius}
                   percentage={percentages[config.key]}
                   centerX={centerX}
@@ -478,32 +493,44 @@ export function NutritionRingsCard({
 
       {/* Citation footer — Apple 1.4.1 requires visible, direct source links */}
       <View style={styles.citationFooter}>
+        {targetExplanation && (
+          <View style={styles.targetSourceCard}>
+            <Text style={styles.targetSourceTitle}>{targetExplanation.title}</Text>
+            <Text style={styles.targetSourceBody}>{targetExplanation.summary}</Text>
+            {targetExplanation.inputSummary ? (
+              <Text style={styles.targetSourceMeta}>{targetExplanation.inputSummary}</Text>
+            ) : null}
+            <Text style={styles.targetSourceDetail}>Calories: {targetExplanation.calorieDetail}</Text>
+            <Text style={styles.targetSourceDetail}>Macros: {targetExplanation.macroDetail}</Text>
+            <Text style={styles.targetSourceDetail}>{targetExplanation.bloodSugarDetail}</Text>
+          </View>
+        )}
         <View style={styles.citationHeader}>
           <BookOpen size={12} color={BRAND_COLORS.textSecondary} />
-          <Text style={styles.citationLabel}>Sources</Text>
+          <Text style={styles.citationLabel}>Direct references</Text>
         </View>
-        <Pressable
-          onPress={() => Linking.openURL('https://www.dietaryguidelines.gov/').catch(() => {})}
-          accessibilityRole="link"
-          accessibilityLabel="USDA Dietary Guidelines website"
-          style={({ pressed }) => pressed && { opacity: 0.6 }}
-        >
-          <View style={styles.citationLinkRow}>
-            <ArrowSquareOut size={11} color={BRAND_COLORS.secondary} />
-            <Text style={styles.citationLink}>USDA Dietary Guidelines 2020–2025</Text>
-          </View>
-        </Pressable>
-        <Pressable
-          onPress={() => Linking.openURL('https://nap.nationalacademies.org/catalog/10490/dietary-reference-intakes-for-energy-carbohydrate-fiber-fat-fatty-acids-cholesterol-protein-and-amino-acids').catch(() => {})}
-          accessibilityRole="link"
-          accessibilityLabel="Institute of Medicine Dietary Reference Intakes"
-          style={({ pressed }) => pressed && { opacity: 0.6 }}
-        >
-          <View style={styles.citationLinkRow}>
-            <ArrowSquareOut size={11} color={BRAND_COLORS.secondary} />
-            <Text style={styles.citationLink}>Institute of Medicine — Dietary Reference Intakes</Text>
-          </View>
-        </Pressable>
+        {(targetExplanation?.references || [
+          NUTRITION_REFERENCES.dietaryGuidance,
+          NUTRITION_REFERENCES.dietaryReferenceIntakes,
+          ...(data.bloodSugarRise != null ? [NUTRITION_REFERENCES.glycemicLoad] : []),
+        ]).map((reference) => (
+          <Pressable
+            key={reference.id}
+            onPress={() => openExternalUrl(
+              reference.url,
+              'Unable to open source',
+              'Please open the reference in your browser.'
+            )}
+            accessibilityRole="link"
+            accessibilityLabel={reference.title}
+            style={({ pressed }) => pressed && { opacity: 0.6 }}
+          >
+            <View style={styles.citationLinkRow}>
+              <ArrowSquareOut size={11} color={BRAND_COLORS.secondary} />
+              <Text style={styles.citationLink}>{reference.shortLabel}</Text>
+            </View>
+          </Pressable>
+        ))}
         {onSourcesPress && (
           <Pressable
             onPress={onSourcesPress}
@@ -666,9 +693,9 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 4,
+    height: 34,
+    borderRadius: 2,
     flexShrink: 0,
   },
   legendContent: {
@@ -687,8 +714,8 @@ const styles = StyleSheet.create({
   },
   legendCurrent: {
     color: BRAND_COLORS.textPrimary,
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
   },
   legendTarget: {
     color: '#374151',
@@ -703,17 +730,50 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   percentText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
   },
 
   // ========== CITATION FOOTER — Apple 1.4.1 direct links ==========
   citationFooter: {
     marginTop: spacing.md,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(156, 163, 175, 0.2)',
+    borderTopColor: 'rgba(17, 17, 17, 0.08)',
+    backgroundColor: '#FAF8F3',
+    borderRadius: 14,
     gap: 6,
+  },
+  targetSourceCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    borderRadius: 16,
+    backgroundColor: '#FBF8F2',
+    borderWidth: 1,
+    borderColor: '#E8E1D4',
+    gap: 6,
+  },
+  targetSourceTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: BRAND_COLORS.textPrimary,
+  },
+  targetSourceBody: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#374151',
+  },
+  targetSourceMeta: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: BRAND_COLORS.textMuted,
+  },
+  targetSourceDetail: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#4B5563',
   },
   citationHeader: {
     flexDirection: 'row',

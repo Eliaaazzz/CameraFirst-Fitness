@@ -3,7 +3,7 @@ import React from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components';
-import { BRAND_COLORS, LANDING_COLORS, radii, spacing } from '@/utils';
+import { BRAND_COLORS, EXPERIENCE_COLORS, LANDING_COLORS, radii, spacing } from '@/utils';
 
 const accountIllustration = require('@/../assets/illustrations/healthy-habit.svg');
 
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   title: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
     fontSize: 60,
     lineHeight: 62,
     letterSpacing: -2.2,
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1.4,
   },
   body: {
-    color: BRAND_COLORS.textSecondary,
+    color: EXPERIENCE_COLORS.inkSoft,
     fontSize: 20,
     lineHeight: 32,
     maxWidth: 520,
@@ -96,8 +96,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   primaryCta: {
-    backgroundColor: LANDING_COLORS.ctaBg,
-    borderRadius: radii.md,
+    backgroundColor: EXPERIENCE_COLORS.ink,
+    borderRadius: 22,
     paddingHorizontal: 28,
     paddingVertical: 18,
   },
@@ -111,14 +111,14 @@ const styles = StyleSheet.create({
     borderBottomColor: LANDING_COLORS.borderLink,
   },
   linkText: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
   },
   visualPanel: {
     flex: 1,
-    backgroundColor: LANDING_COLORS.surface,
-    borderRadius: radii['2xl'],
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
+    borderRadius: 30,
     borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
+    borderColor: EXPERIENCE_COLORS.stroke,
     minHeight: 420,
     alignItems: 'center',
     justifyContent: 'center',

@@ -28,7 +28,7 @@ import { CommonActions, useNavigation, useNavigationState } from '@react-navigat
 
 import { Text } from '@/components/Text';
 import useCurrentUser from '@/hooks/useCurrentUser';
-import { APP_NAME, BRAND_COLORS, LAYOUT_DIMENSIONS, colors, spacing } from '@/utils';
+import { APP_NAME, BRAND_COLORS, EXPERIENCE_COLORS, LAYOUT_DIMENSIONS, colors, spacing } from '@/utils';
 
 // Animation config - fast & snappy
 const SIDEBAR_EASING = Easing.bezier(0.2, 0.8, 0.2, 1);
@@ -93,25 +93,25 @@ function NavItemButton({
   const iconColor = isActive
     ? '#FFFFFF'
     : isHovered
-      ? colors.light.textPrimary
-      : colors.light.textSecondary;
+      ? EXPERIENCE_COLORS.ink
+      : EXPERIENCE_COLORS.inkSoft;
 
   const labelColor = isActive
     ? '#FFFFFF'
     : isHovered
-      ? colors.light.textPrimary
-      : colors.light.textSecondary;
+      ? EXPERIENCE_COLORS.ink
+      : EXPERIENCE_COLORS.inkSoft;
 
   const rowBg = isActive
-    ? '#111111'
+    ? EXPERIENCE_COLORS.ink
     : isHovered
-      ? colors.light.surfaceVariant
+      ? 'rgba(255,255,255,0.74)'
       : 'transparent';
 
   const chipBg = isActive
-    ? 'rgba(255,255,255,0.12)'
+    ? 'rgba(255,255,255,0.16)'
     : isHovered
-      ? 'rgba(17,17,17,0.06)'
+      ? 'rgba(15,28,54,0.08)'
       : 'transparent';
 
   return (
@@ -260,7 +260,7 @@ export function Sidebar({ onLogFood: _onLogFood }: SidebarProps) {
         ]}
       >
         <View style={styles.toggleIcon}>
-          <Text variant="heading3" weight="bold" style={{ color: colors.light.textPrimary, fontSize: 18 }}>A</Text>
+          <Text variant="heading3" weight="bold" style={{ color: EXPERIENCE_COLORS.ink, fontSize: 18 }}>A</Text>
         </View>
         {!isCollapsed && (
           <Animated.View style={[styles.brandContainer, textStyle]}>
@@ -318,12 +318,14 @@ const styles = StyleSheet.create({
   container: {
     width: LAYOUT_DIMENSIONS.sidebarWidth,
     height: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
     borderRightWidth: 1,
-    borderRightColor: colors.light.border,
+    borderRightColor: EXPERIENCE_COLORS.stroke,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.sm,
     ...(Platform.OS === 'web' && ({
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
       boxShadow: 'inset -1px 0 0 rgba(17,17,17,0.04)',
     } as any)),
   },
@@ -356,9 +358,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: colors.light.surfaceVariant,
+    backgroundColor: 'rgba(255,255,255,0.74)',
     borderWidth: 1,
-    borderColor: colors.light.border,
+    borderColor: EXPERIENCE_COLORS.stroke,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -367,7 +369,7 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   brandText: {
-    color: colors.light.textPrimary,
+    color: EXPERIENCE_COLORS.ink,
     letterSpacing: -0.3,
   },
 
@@ -425,7 +427,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     marginHorizontal: spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: colors.light.borderSubtle,
+    borderTopColor: EXPERIENCE_COLORS.stroke,
     marginTop: spacing.md,
     gap: spacing.sm,
     ...(Platform.OS === 'web' && {
@@ -441,9 +443,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.light.surfaceVariant,
+    backgroundColor: 'rgba(255,255,255,0.74)',
     borderWidth: 1,
-    borderColor: colors.light.border,
+    borderColor: EXPERIENCE_COLORS.stroke,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -3,7 +3,6 @@ import type { WorkoutCard as Workout } from '@/types';
 import { cardStyles, getTheme, radii, spacing, useResponsiveValue } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useState } from 'react';
 import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -128,15 +127,9 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved, disableHoverEffec
           <View style={[styles.image, { backgroundColor: theme.colors.surfaceVariant }]} />
         )}
         
-        {/* Gradient overlay */}
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.6)']}
-          style={styles.gradient}
-        />
-        
         {/* Level chip */}
-        <View style={[styles.chip, { backgroundColor: theme.colors.primary }]}>
-          <Text variant="label" style={{ color: '#FFF', fontSize: 11 }}>{level}</Text>
+        <View style={styles.chip}>
+          <Text variant="label" style={styles.chipText}>{level}</Text>
         </View>
       </View>
 
@@ -160,13 +153,12 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved, disableHoverEffec
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
               setShowPlayer(true);
             }}
-            style={{ backgroundColor: theme.colors.primary }}
           />
           <BookmarkButton
             isSaved={!!isSaved}
             isLoading={saving}
             onPress={handleBookmark}
-            color={theme.colors.primary}
+            color={theme.colors.textPrimary}
           />
         </View>
       </View>
@@ -185,16 +177,16 @@ export const WorkoutCard = ({ item, onSave, onRemove, isSaved, disableHoverEffec
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(255,255,255,0.78)',
+    backgroundColor: '#FFFFFF',
     borderRadius: radii['2xl'],
     overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.48)',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#171511',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 4,
   },
   imageContainer: {
     position: 'relative',
@@ -204,16 +196,20 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  gradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
   chip: {
     position: 'absolute',
     top: spacing.sm,
     right: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
-    borderRadius: radii.sm,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+  },
+  chipText: {
+    color: '#111111',
+    fontSize: 11,
   },
   content: {
     padding: spacing.lg,

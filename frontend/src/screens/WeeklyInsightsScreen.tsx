@@ -7,7 +7,6 @@ import { ArrowLeft, CalendarDots, ChartPie, Drop, ForkKnife, Grains, Target, War
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
@@ -325,12 +324,7 @@ export const WeeklyInsightsScreen = () => {
 
         {/* Summary Card */}
         <Card style={styles.summaryCard}>
-          <LinearGradient
-            colors={[BRAND_COLORS.primary + '20', BRAND_COLORS.secondary + '20']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.summaryGradient}
-          >
+          <View style={styles.summaryGradient}>
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
                 <Text variant="heading3" weight="bold" style={styles.summaryValue}>
@@ -349,7 +343,7 @@ export const WeeklyInsightsScreen = () => {
                 </Text>
               </View>
             </View>
-          </LinearGradient>
+          </View>
         </Card>
 
         {/* Macros Distribution */}
@@ -600,6 +594,7 @@ const styles = StyleSheet.create({
   },
   summaryGradient: {
     padding: spacing.lg,
+    backgroundColor: BRAND_COLORS.surfaceVariant,
   },
   summaryRow: {
     flexDirection: 'row',

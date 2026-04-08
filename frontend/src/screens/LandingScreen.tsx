@@ -26,7 +26,9 @@ import FaqSection from '@/components/landing/FaqSection';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import ProgramHubSection from '@/components/landing/ProgramHubSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import { startBackendWarmup } from '@/services/backendWarmup';
 import { useAuthStore } from '@/stores';
+import { APP_PAGE_PATHS, SUPPORT_EMAIL_URL, openAppPage, openExternalUrl } from '@/utils';
 
 /** Map nav item labels to section keys */
 const NAV_SECTION_MAP: Record<string, string> = {
@@ -42,6 +44,10 @@ export default function LandingScreen() {
 
   // If user is already logged in (token restored in background), redirect to Main
   useEffect(() => {
+    void startBackendWarmup();
+  }, []);
+
+  useEffect(() => {
     if (!isRestoringToken && isAuthenticated) {
       navigation.reset({
         index: 0,
@@ -50,7 +56,8 @@ export default function LandingScreen() {
     }
   }, [isAuthenticated, isRestoringToken, navigation]);
   const { width } = useWindowDimensions();
-  const maxWidth = Math.min(width - 48, 1360);
+  const horizontalInset = width >= 768 ? 24 : 14;
+  const maxWidth = Math.min(width - horizontalInset * 2, 1360);
 
   const navigateLogin = () => navigation.navigate('Login');
   const navigateSignup = () => navigation.navigate('Register');
@@ -66,17 +73,79 @@ export default function LandingScreen() {
     [],
   );
 
-  const handleNavPress = useCallback((item: string) => {
-    const sectionKey = NAV_SECTION_MAP[item];
+  const scrollToSection = useCallback((sectionKey: string) => {
     const y = sectionPositions.current[sectionKey];
     if (y !== undefined) {
       scrollRef.current?.scrollTo({ y, animated: true });
     }
   }, []);
 
+  const handleNavPress = useCallback((item: string) => {
+    const sectionKey = NAV_SECTION_MAP[item];
+    if (sectionKey) {
+      scrollToSection(sectionKey);
+    }
+  }, [scrollToSection]);
+
+  const handleHelpPress = useCallback(() => {
+    navigation.navigate('Help');
+  }, [navigation]);
+
+  const handleLanguagePress = useCallback(() => {
+    void openAppPage(`${APP_PAGE_PATHS.support}#language`);
+  }, []);
+
+  const handleFooterLinkPress = useCallback((linkId: string) => {
+    switch (linkId) {
+      case 'meal-logging':
+        scrollToSection('featureGrid');
+        return;
+      case 'workout-planning':
+        scrollToSection('programHub');
+        return;
+      case 'targets':
+      case 'weekly-reports':
+        scrollToSection('howItWorks');
+        return;
+      case 'help-centre':
+      case 'export-data':
+        navigation.navigate('Help');
+        return;
+      case 'data-sources':
+        navigation.navigate('AboutNutritionData');
+        return;
+      case 'release-notes':
+        void openAppPage(APP_PAGE_PATHS.releaseNotes);
+        return;
+      case 'about':
+        scrollToSection('footer');
+        return;
+      case 'contact':
+        void openExternalUrl(SUPPORT_EMAIL_URL, 'Unable to open email', 'Please email support@aurafitness.org.');
+        return;
+      case 'privacy-policy':
+        void openAppPage(APP_PAGE_PATHS.privacy);
+        return;
+      case 'terms-of-service':
+        void openAppPage(APP_PAGE_PATHS.terms);
+        return;
+      case 'accessibility':
+        void openAppPage(APP_PAGE_PATHS.accessibility);
+        return;
+      default:
+        return;
+    }
+  }, [navigation, scrollToSection]);
+
   return (
     <View style={styles.root}>
-      <LandingNav onLogin={navigateLogin} onSignup={navigateSignup} onNavPress={handleNavPress} />
+      <LandingNav
+        onLogin={navigateLogin}
+        onSignup={navigateSignup}
+        onNavPress={handleNavPress}
+        onHelp={handleHelpPress}
+        onLanguage={handleLanguagePress}
+      />
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
@@ -105,7 +174,11 @@ export default function LandingScreen() {
           <FaqSection />
         </View>
         <View style={[styles.section, { maxWidth }]} onLayout={handleSectionLayout('footer')}>
-          <LandingFooter onGetStarted={navigateSignup} onLogin={navigateLogin} />
+          <LandingFooter
+            onGetStarted={navigateSignup}
+            onLogin={navigateLogin}
+            onLinkPress={handleFooterLinkPress}
+          />
         </View>
       </ScrollView>
     </View>
@@ -113,8 +186,15 @@ export default function LandingScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FFFFFF' },
+  root: {
+    flex: 1,
+    backgroundColor: '#F8F7F3',
+  },
   scroll: { flex: 1 },
   scrollContent: { alignItems: 'center' },
-  section: { width: '100%', paddingHorizontal: 24, alignSelf: 'center' },
+  section: {
+    width: '100%',
+    paddingHorizontal: 14,
+    alignSelf: 'center',
+  },
 });

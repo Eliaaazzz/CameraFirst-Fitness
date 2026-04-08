@@ -65,6 +65,8 @@ export const Tooltip: React.FC<TooltipProps> = ({
 
       <View style={styles.tooltipContent}>
         <View style={styles.tooltipHeader}>
+          <Text style={styles.stepCounter}>{currentStepIndex + 1} of {totalSteps}</Text>
+
           {/* Close Button at top right */}
           <Pressable hitSlop={15} onPress={onStop} style={styles.closeBtnContainer}>
             <Text style={styles.closeBtn}>✕</Text>
@@ -96,7 +98,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
             {/* Next button with step counter */}
             <Pressable onPress={onNext} style={styles.nextBtn}>
               <Text style={styles.nextBtnText}>
-                {isLast ? 'Finish' : `Next (Step ${currentStepIndex + 1} of ${totalSteps})`}
+                {isLast ? 'Finish' : 'Next'}
               </Text>
             </Pressable>
           </View>
@@ -125,13 +127,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tooltipHeader: {
-    position: 'absolute',
-    top: -15,
-    right: -15,
-    zIndex: 1,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    minHeight: 24,
+  },
+  stepCounter: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B7280',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   closeBtnContainer: {
-    padding: 5,
+    marginRight: -4,
+    padding: 4,
   },
   closeBtn: {
     fontSize: 18,
@@ -141,15 +153,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800', // Extra bold
     color: '#333333',
-    marginBottom: 12,
-    textAlign: 'center',
+    marginBottom: 10,
+    textAlign: 'left',
+    width: '100%',
   },
   tooltipText: {
     fontSize: 15,
     color: '#555555',
     lineHeight: 22,
     marginBottom: 24,
-    textAlign: 'center',
+    textAlign: 'left',
+    width: '100%',
   },
   tooltipFooter: {
     flexDirection: 'row',

@@ -14,6 +14,7 @@ import Animated, {
 import { Image } from 'expo-image';
 import { Text } from '@/components';
 import { useAppleCredentialCheck } from '@/hooks/useAppleCredentialCheck';
+import { startBackendWarmup } from '@/services/backendWarmup';
 import { useAuthStore } from '@/stores';
 import { BRAND_COLORS } from '@/utils';
 
@@ -32,6 +33,8 @@ export default function SplashScreen() {
   useAppleCredentialCheck();
 
   useEffect(() => {
+    void startBackendWarmup();
+
     logoOpacity.value = withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) });
     logoScale.value = withTiming(1, { duration: 620, easing: Easing.out(Easing.back(1.05)) });
     textOpacity.value = withDelay(220, withTiming(1, { duration: 420, easing: Easing.out(Easing.cubic) }));
@@ -201,4 +204,3 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 });
-

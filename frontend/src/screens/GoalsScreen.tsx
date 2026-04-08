@@ -2,7 +2,7 @@ import { SignOut, Target } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { Alert, FlatList, Platform, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { ActivityIndicator, Chip, FAB } from 'react-native-paper';
+import { ActivityIndicator, Button as PaperButton, Chip, Dialog, FAB, Portal, TextInput } from 'react-native-paper';
 
 import {
     Button,
@@ -14,7 +14,7 @@ import {
     Text,
 } from '@/components';
 import useCurrentUser from '@/hooks/useCurrentUser';
-import { useCreateGoal, useDeleteGoal, useGoals, useGoalStatistics, useLogGoalProgress } from '@/services/goalsApi';
+import { useCreateGoal, useDeleteGoal, useGoals, useGoalStatistics, useLogGoalProgress, useUpdateGoal } from '@/services/goalsApi';
 import type { Goal, GoalType } from '@/types';
 import { formatLocalDateKey, spacing } from '@/utils';
 import { clearJWT } from '@/utils/jwtStorage';
@@ -31,10 +31,16 @@ export const GoalsScreen = () => {
   const deleteGoal = useDeleteGoal();
   const logProgress = useLogGoalProgress();
   const createGoal = useCreateGoal(userId);
+  const updateGoal = useUpdateGoal();
 
   const [filter, setFilter] = useState<FilterType>('all');
   const [showFab, setShowFab] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editTargetValue, setEditTargetValue] = useState('');
+  const [editTargetUnit, setEditTargetUnit] = useState('');
 
   const handleLogout = () => {
     Alert.alert(
@@ -84,6 +90,59 @@ export const GoalsScreen = () => {
   // Handle delete goal
   const handleDelete = (goalId: string) => {
     deleteGoal.mutate(goalId);
+  };
+
+  const openEditGoal = (goal: Goal) => {
+    setEditingGoal(goal);
+    setEditTitle(goal.title);
+    setEditDescription(goal.description || '');
+    setEditTargetValue(goal.targetValue != null ? String(goal.targetValue) : '');
+    setEditTargetUnit(goal.targetUnit || '');
+  };
+
+  const closeEditGoal = () => {
+    setEditingGoal(null);
+    setEditTitle('');
+    setEditDescription('');
+    setEditTargetValue('');
+    setEditTargetUnit('');
+  };
+
+  const handleSaveGoalEdit = () => {
+    if (!editingGoal) {
+      return;
+    }
+
+    const normalizedTitle = editTitle.trim();
+    const normalizedTargetValue = editTargetValue.trim();
+    const parsedTargetValue = normalizedTargetValue ? Number(normalizedTargetValue) : undefined;
+
+    if (!normalizedTitle) {
+      Alert.alert('Goal title required', 'Please enter a goal title before saving.');
+      return;
+    }
+
+    if (normalizedTargetValue && (Number.isNaN(parsedTargetValue) || (parsedTargetValue ?? 0) <= 0)) {
+      Alert.alert('Invalid target', 'Enter a target value greater than 0.');
+      return;
+    }
+
+    updateGoal.mutate(
+      {
+        goalId: editingGoal.id,
+        payload: {
+          title: normalizedTitle,
+          description: editDescription.trim() || undefined,
+          targetValue: parsedTargetValue,
+          targetUnit: parsedTargetValue != null ? (editTargetUnit.trim() || editingGoal.targetUnit) : undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          closeEditGoal();
+        },
+      },
+    );
   };
 
   // Render statistics cards
@@ -163,10 +222,7 @@ export const GoalsScreen = () => {
       goal={item}
       onQuickProgress={() => handleQuickProgress(item)}
       onDelete={() => handleDelete(item.id)}
-      onEdit={() => {
-        // TODO: Open edit modal
-        console.log('Edit goal:', item.id);
-      }}
+      onEdit={() => openEditGoal(item)}
     />
   );
 
@@ -282,6 +338,52 @@ export const GoalsScreen = () => {
           }}
           isLoading={createGoal.isPending}
         />
+
+        <Portal>
+          <Dialog visible={!!editingGoal} onDismiss={closeEditGoal} style={styles.editDialog}>
+            <Dialog.Title>Edit Goal</Dialog.Title>
+            <Dialog.Content style={styles.editDialogContent}>
+              <TextInput
+                label="Goal Title"
+                mode="outlined"
+                value={editTitle}
+                onChangeText={setEditTitle}
+                style={styles.editInput}
+              />
+              <TextInput
+                label="Description"
+                mode="outlined"
+                multiline
+                value={editDescription}
+                onChangeText={setEditDescription}
+                style={styles.editInput}
+              />
+              <TextInput
+                label="Target Value"
+                mode="outlined"
+                keyboardType="decimal-pad"
+                value={editTargetValue}
+                onChangeText={setEditTargetValue}
+                style={styles.editInput}
+              />
+              <TextInput
+                label="Target Unit"
+                mode="outlined"
+                value={editTargetUnit}
+                onChangeText={setEditTargetUnit}
+                style={styles.editInput}
+              />
+            </Dialog.Content>
+            <Dialog.Actions>
+              <PaperButton onPress={closeEditGoal} disabled={updateGoal.isPending}>
+                Cancel
+              </PaperButton>
+              <PaperButton onPress={handleSaveGoalEdit} loading={updateGoal.isPending}>
+                Save
+              </PaperButton>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
       </Container>
     </SafeAreaWrapper>
   );
@@ -376,5 +478,14 @@ const styles = StyleSheet.create({
   },
   fabHidden: {
     transform: [{ translateY: 100 }],
+  },
+  editDialog: {
+    borderRadius: spacing.lg,
+  },
+  editDialogContent: {
+    gap: spacing.md,
+  },
+  editInput: {
+    backgroundColor: '#FFFFFF',
   },
 });

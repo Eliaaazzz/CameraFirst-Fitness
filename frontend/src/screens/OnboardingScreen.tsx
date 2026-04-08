@@ -155,7 +155,7 @@ function CTAButton({
       <Text
         variant="body"
         weight="bold"
-        style={[ctaStyles.text, disabled && ctaStyles.textDisabled]}
+        style={disabled ? [ctaStyles.text, ctaStyles.textDisabled] : ctaStyles.text}
       >
         {label}
       </Text>

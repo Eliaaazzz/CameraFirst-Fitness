@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components';
-import { BRAND_COLORS, LANDING_COLORS, radii, spacing } from '@/utils';
+import { BRAND_COLORS, EXPERIENCE_COLORS, LANDING_COLORS, radii, spacing } from '@/utils';
 
 const programIllustration = require('@/../assets/illustrations/data-trends.svg');
 
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   title: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
     fontSize: 60,
     lineHeight: 62,
     letterSpacing: -2.2,
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1.4,
   },
   body: {
-    color: BRAND_COLORS.textSecondary,
+    color: EXPERIENCE_COLORS.inkSoft,
     fontSize: 20,
     lineHeight: 32,
     maxWidth: 540,
@@ -104,27 +104,30 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   programPill: {
-    backgroundColor: LANDING_COLORS.text,
+    backgroundColor: 'rgba(255,255,255,0.72)',
     borderRadius: radii.pill,
     paddingHorizontal: 20,
     paddingVertical: 15,
-    opacity: 0.78,
+    opacity: 0.88,
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
   },
   programPillActive: {
     opacity: 1,
+    backgroundColor: EXPERIENCE_COLORS.ink,
   },
   programPillText: {
-    color: LANDING_COLORS.textOnDark,
+    color: EXPERIENCE_COLORS.ink,
   },
   programPillTextActive: {
     color: LANDING_COLORS.textOnDark,
   },
   visualPanel: {
     flex: 1,
-    backgroundColor: LANDING_COLORS.surface,
-    borderRadius: radii['2xl'],
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
+    borderRadius: 30,
     borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
+    borderColor: EXPERIENCE_COLORS.stroke,
     minHeight: 420,
     overflow: 'hidden',
   },

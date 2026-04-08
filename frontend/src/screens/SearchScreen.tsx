@@ -1,9 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { launchImageLibraryAsync } from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Image,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -13,7 +11,8 @@ import {
     View,
 } from 'react-native';
 
-import { CameraView, LoadingState, SafeAreaWrapper, Text, useSnackbar } from '@/components';
+import { CameraView, SafeAreaWrapper, Text, useSnackbar } from '@/components';
+import { RecognitionProcessingHero } from '@/components/common/RecognitionProcessingHero';
 import { useCameraPermission } from '@/hooks/useCameraPermission';
 import { useGalleryPermission } from '@/hooks/useGalleryPermission';
 import { usePermissionHelper } from '@/hooks/usePermissionHelper';
@@ -26,7 +25,7 @@ type SearchMode = 'home' | 'camera' | 'processing';
 
 /**
  * SearchScreen - Multi-function search page
- * Supports: Camera, Gallery, Voice, Keyword - 4 search methods
+ * Supports: Camera, Gallery, Help, Keyword - 4 search methods
  */
 export const SearchScreen = () => {
   const navigation = useNavigation<any>();
@@ -39,6 +38,7 @@ export const SearchScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingPhase, setProcessingPhase] = useState<1 | 2 | 3>(1);
   const [searchType, setSearchType] = useState<'workout' | 'recipe'>('workout');
 
   const uploadWorkout = useUploadWorkout();
@@ -46,6 +46,22 @@ export const SearchScreen = () => {
 
   // Use light mode colors for better readability
   const light = colors.light;
+
+  useEffect(() => {
+    if (!(mode === 'processing' || isProcessing)) {
+      setProcessingPhase(1);
+      return;
+    }
+
+    setProcessingPhase(1);
+    const timer1 = setTimeout(() => setProcessingPhase(2), 700);
+    const timer2 = setTimeout(() => setProcessingPhase(3), 1550);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [isProcessing, mode]);
 
   // Open camera
   const handleOpenCamera = async () => {
@@ -89,10 +105,9 @@ export const SearchScreen = () => {
     }
   };
 
-  // Voice search (placeholder)
-  const handleVoiceSearch = () => {
+  const handleHelpPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    showSnackbar('Voice search coming soon', { variant: 'success' });
+    navigation.navigate('Help');
   };
 
   // Keyword search
@@ -105,6 +120,7 @@ export const SearchScreen = () => {
 
     setIsProcessing(true);
     setMode('processing');
+    setProcessingPhase(1);
 
     try {
       if (searchType === 'workout') {
@@ -162,6 +178,7 @@ export const SearchScreen = () => {
   const handleProcessImage = async (uri: string) => {
     setIsProcessing(true);
     setMode('processing');
+    setProcessingPhase(1);
 
     try {
       if (searchType === 'workout') {
@@ -196,13 +213,34 @@ export const SearchScreen = () => {
 
   // Processing state
   if (mode === 'processing' || isProcessing) {
+    const processingTitle =
+      searchType === 'workout'
+        ? 'Matching your photo to workouts'
+        : 'Matching your photo to recipes';
+    const processingSubtitle =
+      searchType === 'workout'
+        ? 'Aura is reading shapes, identifying equipment cues, and ranking the best-fit sessions.'
+        : 'Aura is reading ingredients, dish patterns, and likely meal matches from the photo.';
+    const callouts =
+      searchType === 'workout'
+        ? ['Equipment cues', 'Movement match', 'Session ranking']
+        : ['Ingredients', 'Dish match', 'Recipe ranking'];
+
     return (
       <SafeAreaWrapper>
         <View style={[styles.container, { backgroundColor: light.background }]}>
-          <LoadingState label="AI is analyzing image..." />
-          {capturedImage && (
-            <Image source={{ uri: capturedImage }} style={styles.previewImage} />
-          )}
+          <View style={styles.processingWrap}>
+            <RecognitionProcessingHero
+              imageUri={capturedImage}
+              modeLabel={searchType === 'workout' ? 'AURA MATCH' : 'AURA RECIPE'}
+              title={processingTitle}
+              subtitle={processingSubtitle}
+              activePhase={processingPhase}
+              phaseLabels={['Read', 'Match', 'Build']}
+              callouts={callouts}
+              compact
+            />
+          </View>
         </View>
       </SafeAreaWrapper>
     );
@@ -225,7 +263,7 @@ export const SearchScreen = () => {
               Search
             </Text>
             <Text variant="body" style={{ color: light.textSecondary, marginTop: spacing.xs }}>
-              Camera, Gallery, Voice or Keyword
+              Camera, Gallery, Keyword or Help
             </Text>
           </View>
 
@@ -287,18 +325,15 @@ export const SearchScreen = () => {
               ]}
               onPress={handleOpenCamera}
             >
-              <LinearGradient
-                colors={[light.primary, light.primaryDark]}
-                style={styles.methodGradient}
-              >
-                <CameraIcon size={32} color="#FFF" />
+              <View style={[styles.methodFill, { backgroundColor: '#FFF2EA' }]}>
+                <CameraIcon size={32} color={light.textPrimary} />
                 <Text variant="body" weight="semibold" style={styles.methodLabel}>
                   Camera
                 </Text>
                 <Text variant="caption" style={styles.methodDesc}>
                   Capture equipment or food
                 </Text>
-              </LinearGradient>
+              </View>
             </Pressable>
 
             {/* Gallery */}
@@ -309,40 +344,34 @@ export const SearchScreen = () => {
               ]}
               onPress={handlePickImage}
             >
-              <LinearGradient
-                colors={[light.secondary, '#DB2777']}
-                style={styles.methodGradient}
-              >
-                <GalleryIcon size={32} color="#FFF" />
+              <View style={[styles.methodFill, { backgroundColor: '#EEF8F4' }]}>
+                <GalleryIcon size={32} color={light.textPrimary} />
                 <Text variant="body" weight="semibold" style={styles.methodLabel}>
                   Gallery
                 </Text>
                 <Text variant="caption" style={styles.methodDesc}>
                   Pick from photos
                 </Text>
-              </LinearGradient>
+              </View>
             </Pressable>
 
-            {/* Voice */}
+            {/* Help */}
             <Pressable 
               style={({ pressed }) => [
                 styles.methodCard,
                 { transform: [{ scale: pressed ? 0.96 : 1 }] },
               ]}
-              onPress={handleVoiceSearch}
+              onPress={handleHelpPress}
             >
-              <LinearGradient
-                colors={['#F59E0B', '#D97706']}
-                style={styles.methodGradient}
-              >
-                <MicIcon size={32} color="#FFF" />
+              <View style={[styles.methodFill, { backgroundColor: '#FFF7E8' }]}>
+                <HelpIcon size={32} color={light.textPrimary} />
                 <Text variant="body" weight="semibold" style={styles.methodLabel}>
-                  Voice
+                  Help
                 </Text>
                 <Text variant="caption" style={styles.methodDesc}>
-                  Speak your workout
+                  Learn search tips
                 </Text>
-              </LinearGradient>
+              </View>
             </Pressable>
 
             {/* Keyword */}
@@ -356,18 +385,15 @@ export const SearchScreen = () => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
               }}
             >
-              <LinearGradient
-                colors={['#10B981', '#059669']}
-                style={styles.methodGradient}
-              >
-                <SearchIcon size={32} color="#FFF" />
+              <View style={[styles.methodFill, { backgroundColor: '#EFF6FF' }]}>
+                <SearchIcon size={32} color={light.textPrimary} />
                 <Text variant="body" weight="semibold" style={styles.methodLabel}>
                   Keyword
                 </Text>
                 <Text variant="caption" style={styles.methodDesc}>
                   Type to search
                 </Text>
-              </LinearGradient>
+              </View>
             </Pressable>
           </View>
 
@@ -428,24 +454,19 @@ const GalleryIcon = ({ size = 24, color = '#FFF' }) => (
   </View>
 );
 
-const MicIcon = ({ size = 24, color = '#FFF' }) => (
+const HelpIcon = ({ size = 24, color = '#FFF' }) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <View style={{
-      width: size * 0.35,
-      height: size * 0.55,
-      borderRadius: size * 0.175,
-      backgroundColor: color,
-    }} />
-    <View style={{
-      width: size * 0.5,
-      height: size * 0.25,
+      width: size * 0.78,
+      height: size * 0.78,
+      borderRadius: size * 0.39,
       borderWidth: 2,
       borderColor: color,
-      borderTopWidth: 0,
-      borderBottomLeftRadius: size * 0.25,
-      borderBottomRightRadius: size * 0.25,
-      marginTop: -size * 0.1,
-    }} />
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}>
+      <Text style={{ color, fontSize: size * 0.44, fontWeight: '700' }}>?</Text>
+    </View>
   </View>
 );
 
@@ -524,22 +545,25 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: radii.xl,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    backgroundColor: '#FFFFFF',
     ...(Platform.OS === 'web' && {
       transition: 'transform 0.15s ease',
     }),
   },
-  methodGradient: {
+  methodFill: {
     flex: 1,
     padding: spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   methodLabel: {
-    color: '#FFF',
+    color: '#111111',
     marginTop: spacing.sm,
   },
   methodDesc: {
-    color: 'rgba(255,255,255,0.8)',
+    color: colors.light.textSecondary,
     marginTop: spacing.xs,
   },
   tips: {
@@ -560,11 +584,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  previewImage: {
-    width: 120,
-    height: 90,
-    borderRadius: radii.md,
-    marginTop: spacing.lg,
+  processingWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
   },
 });
 

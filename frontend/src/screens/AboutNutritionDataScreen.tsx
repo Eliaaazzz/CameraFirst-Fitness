@@ -1,79 +1,136 @@
-import React from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ArrowSquareOut, WarningCircle } from 'phosphor-react-native';
 
 import { SafeAreaWrapper, Text } from '@/components';
-import { BRAND_COLORS, spacing } from '@/utils';
+import type { GeneratedGoals } from '@/services/geminiApi';
+import {
+  ABOUT_NUTRITION_REFERENCE_ORDER,
+  BRAND_COLORS,
+  getNutritionTargetExplanation,
+  openExternalUrl,
+  spacing,
+} from '@/utils';
 
-const SOURCES = [
-  {
-    title: 'Default Calorie Target (2,000 kcal)',
-    body: 'Based on the USDA Dietary Guidelines for Americans 2020–2025, which recommend approximately 2,000 kcal/day for a moderately active adult.',
-    url: 'https://www.dietaryguidelines.gov/',
-  },
-  {
-    title: 'Protein Recommendation (130 g)',
-    body: 'Derived from the Institute of Medicine Dietary Reference Intakes (DRI). The RDA for protein is 0.8 g/kg body weight; 130 g reflects a fitness-oriented target for active individuals.',
-    url: 'https://nap.nationalacademies.org/catalog/10490/dietary-reference-intakes-for-energy-carbohydrate-fiber-fat-fatty-acids-cholesterol-protein-and-amino-acids',
-  },
-  {
-    title: 'Carbohydrate & Fat Targets',
-    body: 'The Acceptable Macronutrient Distribution Ranges (AMDR) recommend 45–65% of calories from carbohydrates and 20–35% from fat (Institute of Medicine).',
-    url: 'https://nap.nationalacademies.org/catalog/10490/dietary-reference-intakes-for-energy-carbohydrate-fiber-fat-fatty-acids-cholesterol-protein-and-amino-acids',
-  },
-  {
-    title: 'Blood Sugar Estimation',
-    body: 'The estimated blood sugar impact shown in the app is a simplified model based on the glycemic load concept. It is not a clinical measurement and should not be used for medical decisions. Consult a healthcare professional for blood sugar management.',
-    url: 'https://www.health.harvard.edu/diseases-and-conditions/glycemic-index-and-glycemic-load-for-100-foods',
-  },
-];
+const GENERATED_GOALS_KEY = '@generated_fitness_goals';
 
-function openURL(url: string) {
-  Linking.openURL(url).catch(() => {
-    Alert.alert('Unable to open link', 'Please visit the URL manually in your browser.');
-  });
-}
-
-function SourceCard({ title, body, url }: typeof SOURCES[number]) {
+function SourceCard({ title, body, url, domainLabel }: { title: string; body: string; url: string; domainLabel: string }) {
   return (
     <View style={styles.sourceCard}>
       <Text style={styles.sourceTitle}>{title}</Text>
       <Text style={styles.sourceBody}>{body}</Text>
-      {url && (
-        <Pressable onPress={() => openURL(url)} style={styles.linkRow}>
-          <ArrowSquareOut size={14} color={BRAND_COLORS.secondary} />
-          <Text style={styles.linkText}>View source</Text>
-        </Pressable>
-      )}
+      <Text style={styles.sourceMeta}>{domainLabel}</Text>
+      <Pressable
+        onPress={() => openExternalUrl(url, 'Unable to open source', 'Please open the reference in your browser.')}
+        style={styles.linkRow}
+      >
+        <ArrowSquareOut size={14} color={BRAND_COLORS.secondary} />
+        <Text style={styles.linkText}>{title}</Text>
+      </Pressable>
     </View>
   );
 }
 
 export function AboutNutritionDataScreen() {
+  const [generatedGoals, setGeneratedGoals] = useState<GeneratedGoals | null>(null);
+
+  useEffect(() => {
+    const loadGoals = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(GENERATED_GOALS_KEY);
+        if (saved) {
+          setGeneratedGoals(JSON.parse(saved));
+        }
+      } catch (error) {
+        console.warn('[AboutNutritionDataScreen] Failed to load saved goals:', error);
+      }
+    };
+
+    void loadGoals();
+  }, []);
+
+  const targetExplanation = useMemo(() => getNutritionTargetExplanation(generatedGoals), [generatedGoals]);
+  const overflowReferences = ABOUT_NUTRITION_REFERENCE_ORDER.filter(
+    (reference) => !targetExplanation.references.some((item) => item.id === reference.id)
+  );
+
   return (
     <SafeAreaWrapper>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.heading}>About Nutrition Data</Text>
-
-        {/* Section 1: Daily targets */}
-        <Text style={styles.sectionTitle}>Daily Nutrition Targets</Text>
-        <Text style={styles.paragraph}>
-          The default daily calorie and macronutrient targets displayed in AuraFitness are based on
-          established dietary guidelines. Individual needs vary based on age, sex, weight, height,
-          and activity level. Consult a registered dietitian or healthcare provider for personalised
-          advice.
+        <Text style={styles.referenceLead}>
+          Direct references and calculation notes for the calorie, macro, and blood sugar values shown in AuraFitness.
         </Text>
 
-        {SOURCES.map((s) => (
-          <SourceCard key={s.title} {...s} />
+        <Text style={styles.sectionTitle}>Current Dashboard Targets</Text>
+        <View style={styles.currentTargetCard}>
+          <Text style={styles.currentTargetTitle}>{targetExplanation.title}</Text>
+          <Text style={styles.currentTargetBody}>{targetExplanation.summary}</Text>
+          <Text style={styles.currentTargetMeta}>
+            {targetExplanation.inputSummary || 'Build Plan currently defaults to age 30 and medium activity unless a saved plan includes different inputs.'}
+          </Text>
+
+          {generatedGoals ? (
+            <View style={styles.currentTargetGrid}>
+              <View style={styles.metricPill}>
+                <Text style={styles.metricValue}>{generatedGoals.dailyCalories.target}</Text>
+                <Text style={styles.metricLabel}>kcal/day</Text>
+              </View>
+              <View style={styles.metricPill}>
+                <Text style={styles.metricValue}>{generatedGoals.macros_grams.protein_g}g</Text>
+                <Text style={styles.metricLabel}>Protein</Text>
+              </View>
+              <View style={styles.metricPill}>
+                <Text style={styles.metricValue}>{generatedGoals.macros_grams.carbs_g}g</Text>
+                <Text style={styles.metricLabel}>Carbs</Text>
+              </View>
+              <View style={styles.metricPill}>
+                <Text style={styles.metricValue}>{generatedGoals.macros_grams.fat_g}g</Text>
+                <Text style={styles.metricLabel}>Fat</Text>
+              </View>
+            </View>
+          ) : null}
+
+          <Text style={styles.explanationLine}>Calories: {targetExplanation.calorieDetail}</Text>
+          <Text style={styles.explanationLine}>Macros: {targetExplanation.macroDetail}</Text>
+          <Text style={styles.explanationLine}>{targetExplanation.bloodSugarDetail}</Text>
+        </View>
+
+        <Text style={styles.sectionTitle}>Direct References</Text>
+        {targetExplanation.references.map((reference) => (
+          <SourceCard
+            key={reference.id}
+            title={reference.title}
+            body={reference.summary}
+            url={reference.url}
+            domainLabel={reference.domainLabel}
+          />
         ))}
 
-        {/* Section 2: AI estimates */}
+        {overflowReferences.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Reference Library</Text>
+            <View style={styles.referenceList}>
+              {overflowReferences.map((reference) => (
+                <Pressable
+                  key={reference.id}
+                  onPress={() => openExternalUrl(reference.url, 'Unable to open source', 'Please open the reference in your browser.')}
+                  style={styles.referenceListItem}
+                >
+                  <Text style={styles.referenceTitle}>{reference.shortLabel}</Text>
+                  <Text style={styles.referenceDomain}>{reference.domainLabel}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
+
         <Text style={styles.sectionTitle}>AI-Generated Estimates</Text>
         <Text style={styles.paragraph}>
-          When you scan a meal using your camera, nutritional values (calories, protein,
-          carbohydrates, fat, and sugar) are estimated using AI image recognition. These values are
-          approximate and may not reflect the exact nutritional content of your food.
+          When you scan a meal using your camera, nutritional values such as calories, protein,
+          carbohydrates, fat, and sugar are estimated using AI image recognition. These values are
+          approximate and may not match the exact nutritional content of your food.
         </Text>
 
         <View style={styles.disclaimerBox}>
@@ -99,6 +156,12 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '700',
     color: BRAND_COLORS.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  referenceLead: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: BRAND_COLORS.textMuted,
     marginBottom: spacing.lg,
   },
   sectionTitle: {
@@ -107,6 +170,60 @@ const styles = StyleSheet.create({
     color: BRAND_COLORS.textPrimary,
     marginTop: spacing.xl,
     marginBottom: spacing.sm,
+  },
+  currentTargetCard: {
+    backgroundColor: '#FBF8F2',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E7DED1',
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  currentTargetTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: BRAND_COLORS.textPrimary,
+  },
+  currentTargetBody: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#374151',
+  },
+  currentTargetMeta: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: BRAND_COLORS.textMuted,
+  },
+  currentTargetGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  metricPill: {
+    minWidth: 92,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E7DED1',
+  },
+  metricValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: BRAND_COLORS.textPrimary,
+  },
+  metricLabel: {
+    marginTop: 2,
+    fontSize: 11,
+    color: BRAND_COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  explanationLine: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#4B5563',
   },
   paragraph: {
     fontSize: 14,
@@ -133,9 +250,17 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: BRAND_COLORS.textDisabled,
   },
+  sourceMeta: {
+    marginTop: 10,
+    fontSize: 11,
+    fontWeight: '600',
+    color: BRAND_COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
   linkRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 6,
     marginTop: 10,
   },
@@ -143,6 +268,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: BRAND_COLORS.secondary,
+    textDecorationLine: 'underline',
+    flex: 1,
+  },
+  referenceList: {
+    gap: spacing.sm,
+  },
+  referenceListItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BRAND_COLORS.border,
+    padding: spacing.md,
+  },
+  referenceTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: BRAND_COLORS.textPrimary,
+  },
+  referenceDomain: {
+    marginTop: 4,
+    fontSize: 12,
+    color: BRAND_COLORS.textMuted,
   },
   disclaimerBox: {
     flexDirection: 'row',

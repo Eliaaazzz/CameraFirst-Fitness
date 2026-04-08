@@ -59,6 +59,8 @@ export const TourGuideProvider: React.FC<{
 
   // All zones from tour steps config
   const allZones = useMemo(() => ALL_TOUR_STEPS.map(s => s.zone).sort((a, b) => a - b), []);
+  const firstZone = allZones[0] ?? null;
+  const hasStartingZoneRegistered = firstZone !== null && steps.has(firstZone);
 
   const registerStep = useCallback((step: TourStep) => {
     setSteps(prev => new Map(prev).set(step.zone, step));
@@ -188,12 +190,15 @@ export const TourGuideProvider: React.FC<{
   }, [activeZone, scrollToZone]);
 
   const start = useCallback(() => {
-    if (allZones.length > 0) {
-      setIsActive(true);
-      emit('start');
-      goToZone(allZones[0]);
+    if (firstZone === null || !hasStartingZoneRegistered) {
+      console.warn('[TourProvider] Cannot start tour before the first zone is registered');
+      return;
     }
-  }, [allZones, emit, goToZone]);
+
+    setIsActive(true);
+    emit('start');
+    goToZone(firstZone);
+  }, [emit, firstZone, goToZone, hasStartingZoneRegistered]);
 
   const next = useCallback(() => {
     if (activeZone === null) return;
@@ -247,9 +252,9 @@ export const TourGuideProvider: React.FC<{
 
   // Controller for hook
   const controller = useMemo(() => ({
-    start, stop, canStart: allZones.length > 0,
+    start, stop, canStart: hasStartingZoneRegistered,
     eventEmitter: { on, off }
-  }), [start, stop, allZones.length, on, off]);
+  }), [start, stop, hasStartingZoneRegistered, on, off]);
 
   // Extended context with navigation helpers
   const extendedValue = useMemo(() => ({

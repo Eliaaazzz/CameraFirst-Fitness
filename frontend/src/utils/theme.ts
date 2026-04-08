@@ -12,12 +12,12 @@ const lightColors = {
   secondary: '#2F7A6A',
   secondaryContainer: '#E4F0EB',
 
-  background: '#F7F7F5',
-  backgroundGradient: ['#F7F7F5', '#FAFAF8', '#FFFFFF'],
-  surface: '#FBFAF8',
+  background: '#F8F7F3',
+  backgroundGradient: ['#F8F7F3', '#F8F7F3', '#F8F7F3'],
+  surface: '#F4F2ED',
   surfaceElevated: '#FFFFFF',
-  surfaceVariant: '#F2F1ED',
-  surfaceMuted: '#EBE8E2',
+  surfaceVariant: '#F6F4EF',
+  surfaceMuted: '#EEEAE3',
 
   textPrimary: '#111111',
   textSecondary: '#3E3C38',
@@ -30,10 +30,10 @@ const lightColors = {
   warning: '#B88428',
   info: '#4A6FA5',
 
-  border: '#E2DED7',
-  borderStrong: '#D2CEC7',
-  borderSubtle: '#ECE9E2',
-  borderHover: '#CAC5BD',
+  border: 'rgba(17,17,17,0.08)',
+  borderStrong: 'rgba(17,17,17,0.14)',
+  borderSubtle: 'rgba(17,17,17,0.05)',
+  borderHover: 'rgba(17,17,17,0.18)',
 
   shadow: 'rgba(17, 17, 17, 0.07)',
   overlay: 'rgba(15, 13, 10, 0.42)',
@@ -86,17 +86,17 @@ export const typography = {
     regular: Platform.select({
       ios: 'System',
       android: 'Roboto',
-      default: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      default: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     }),
     medium: Platform.select({
       ios: 'System',
       android: 'Roboto-Medium',
-      default: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      default: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     }),
     bold: Platform.select({
       ios: 'System',
       android: 'Roboto-Bold',
-      default: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      default: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     }),
   },
   size: {

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components';
-import { BRAND_COLORS, radii, spacing } from '@/utils';
+import { BRAND_COLORS, EXPERIENCE_COLORS, radii, spacing } from '@/utils';
 
 const FAQS = [
   {
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['2xl'],
   },
   title: {
-    color: '#111111',
+    color: EXPERIENCE_COLORS.ink,
     fontSize: 52,
     lineHeight: 56,
     letterSpacing: -2,
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1.4,
   },
   subtitle: {
-    color: BRAND_COLORS.textSecondary,
+    color: EXPERIENCE_COLORS.inkSoft,
     marginBottom: spacing['2xl'],
     fontSize: 20,
     lineHeight: 32,
@@ -107,10 +107,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   item: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: radii.xl,
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
+    borderRadius: 26,
     borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
+    borderColor: EXPERIENCE_COLORS.stroke,
     paddingHorizontal: 24,
     paddingVertical: 20,
   },
@@ -122,10 +122,10 @@ const styles = StyleSheet.create({
   },
   question: {
     flex: 1,
-    color: '#111111',
+    color: EXPERIENCE_COLORS.ink,
   },
   answer: {
-    color: BRAND_COLORS.textSecondary,
+    color: EXPERIENCE_COLORS.inkSoft,
     marginTop: spacing.md,
     lineHeight: 26,
     maxWidth: 840,

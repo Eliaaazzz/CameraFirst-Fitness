@@ -33,7 +33,6 @@ import { useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -1109,10 +1108,7 @@ const ProfileScreen = () => {
           {/* Step 4: Generating (with overlay effect) */}
           {step === 'generating' && (
             <View style={styles.generatingContent}>
-              <LinearGradient
-                colors={[theme.colors.primary + '20', theme.colors.secondary + '20']}
-                style={styles.generatingOverlay}
-              >
+              <View style={[styles.generatingOverlay, { borderColor: theme.colors.border }]}>
                 <View style={styles.generatingInner}>
                   <ActivityIndicator size="large" color={theme.colors.primary} />
                   <Text variant="heading3" weight="semibold" style={[styles.generatingText, { color: theme.colors.textPrimary }]}>
@@ -1122,7 +1118,7 @@ const ProfileScreen = () => {
                     We’re turning your profile into a clear daily starting point
                   </Text>
                 </View>
-              </LinearGradient>
+              </View>
             </View>
           )}
 
@@ -1237,7 +1233,6 @@ const ProfileScreen = () => {
               <Pressable
                 style={({ pressed }) => [
                   styles.ctaButton,
-                  { backgroundColor: theme.colors.primary },
                   !canProceedToMeasurements && styles.ctaButtonDisabled,
                   pressed && canProceedToMeasurements && styles.ctaButtonPressed,
                 ]}
@@ -1258,14 +1253,13 @@ const ProfileScreen = () => {
                 <Pressable
                   style={({ pressed }) => [
                     styles.secondaryButton,
-                    { backgroundColor: theme.colors.surface },
                     pressed && styles.secondaryButtonPressed,
                   ]}
                   onPress={() => setStep('sex')}
                   accessibilityRole="button"
                   accessibilityLabel="Go back to sex selection"
                 >
-                  <Text variant="body" weight="semibold" style={[styles.secondaryButtonText, { color: theme.colors.primary }]}>
+                  <Text variant="body" weight="semibold" style={styles.secondaryButtonText}>
                     Back
                   </Text>
                 </Pressable>
@@ -1273,7 +1267,6 @@ const ProfileScreen = () => {
                   style={({ pressed }) => [
                     styles.ctaButton,
                     styles.ctaButtonFlex,
-                    { backgroundColor: theme.colors.primary },
                     !canProceedToGoal && styles.ctaButtonDisabled,
                     pressed && canProceedToGoal && styles.ctaButtonPressed,
                   ]}
@@ -1295,14 +1288,13 @@ const ProfileScreen = () => {
                 <Pressable
                   style={({ pressed }) => [
                     styles.secondaryButton,
-                    { backgroundColor: theme.colors.surface },
                     pressed && styles.secondaryButtonPressed,
                   ]}
                   onPress={() => setStep('measurements')}
                   accessibilityRole="button"
                   accessibilityLabel="Go back to measurements"
                 >
-                  <Text variant="body" weight="semibold" style={[styles.secondaryButtonText, { color: theme.colors.primary }]}>
+                  <Text variant="body" weight="semibold" style={styles.secondaryButtonText}>
                     Back
                   </Text>
                 </Pressable>
@@ -1317,17 +1309,17 @@ const ProfileScreen = () => {
                   accessibilityLabel="Build your fitness plan"
                   accessibilityState={{ disabled: !canGenerate }}
                 >
-                  <LinearGradient
-                    colors={canGenerate ? [theme.colors.primary, theme.colors.secondary] : ['#6B7280', '#6B7280']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.generateButtonGradient}
+                  <View
+                    style={[
+                      styles.generateButtonGradient,
+                      !canGenerate && styles.generateButtonGradientDisabled,
+                    ]}
                   >
                     <MagicWand size={20} color="#FFF" />
                     <Text variant="body" weight="bold" style={styles.generateButtonText}>
                       Build Plan
                     </Text>
-                  </LinearGradient>
+                  </View>
                 </Pressable>
               </View>
             )}
@@ -1867,7 +1859,7 @@ const styles = StyleSheet.create({
     backgroundColor: BRAND_COLORS.background,
   },
   ctaButton: {
-    backgroundColor: BRAND_COLORS.primary,
+    backgroundColor: '#111111',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -1888,7 +1880,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   ctaButtonText: {
-    color: '#1A1F2E',
+    color: '#FFFFFF',
   },
   secondaryButton: {
     paddingVertical: 16,
@@ -1896,14 +1888,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(167, 139, 250, 0.15)',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.08)',
     minHeight: 52,
   },
   secondaryButtonPressed: {
     opacity: 0.7,
   },
   secondaryButtonText: {
-    color: BRAND_COLORS.primary,
+    color: '#111111',
   },
   stepContent: {
     flex: 1,
@@ -1986,6 +1980,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     gap: spacing.sm,
+    backgroundColor: '#111111',
+  },
+  generateButtonGradientDisabled: {
+    backgroundColor: '#6B7280',
   },
   generateButtonText: {
     color: '#FFF',
@@ -1999,6 +1997,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
   },
   generatingInner: {
     alignItems: 'center',

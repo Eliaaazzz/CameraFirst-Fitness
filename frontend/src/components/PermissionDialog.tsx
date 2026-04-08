@@ -16,46 +16,36 @@ type Props = {
 export const PermissionDialog = ({
   visible,
   permissionDenied = false,
-  onRequestPermission,
+  onRequestPermission: _onRequestPermission,
   onOpenSettings,
 }: Props) => {
   return (
     <Portal>
       <Dialog visible={visible} dismissable={false}>
         <Dialog.Icon icon={() => <CameraSlash size={28} />} />
-        <Dialog.Title>Camera Access Needed</Dialog.Title>
+        <Dialog.Title>{permissionDenied ? 'Camera Access Is Off' : 'Waiting for System Permission'}</Dialog.Title>
         <Dialog.Content>
           <Text variant="body">
-            We need camera access to help you find relevant workouts and recipes based on what you have at home.
+            {permissionDenied
+              ? 'Enable camera access in Settings if you want to capture a new photo in the app.'
+              : 'Use the system permission prompt to continue. This screen should not be used as a custom pre-permission gate.'}
           </Text>
-          <View style={styles.bullets}>
-            <Text>📸 Take photos of your equipment</Text>
-            <Text>🍽️ Snap pictures of ingredients</Text>
-            <Text>🔒 Photos are never stored without your permission</Text>
-          </View>
         </Dialog.Content>
-        <Dialog.Actions>
-          <View style={styles.actions}>
-            {permissionDenied ? (
+        {permissionDenied && (
+          <Dialog.Actions>
+            <View style={styles.actions}>
               <Button title="Open Settings" onPress={onOpenSettings} />
-            ) : (
-              <Button title="Continue" onPress={onRequestPermission} />
-            )}
-          </View>
-        </Dialog.Actions>
+            </View>
+          </Dialog.Actions>
+        )}
       </Dialog>
     </Portal>
   );
 };
 
 const styles = StyleSheet.create({
-  bullets: {
-    marginTop: spacing.md,
-    gap: spacing.xs,
-  },
   actions: {
     width: '100%',
     gap: spacing.sm,
   },
 });
-

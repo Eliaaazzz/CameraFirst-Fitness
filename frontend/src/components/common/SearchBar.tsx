@@ -53,7 +53,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     <View style={[styles.container, isFocused && styles.containerFocused]}>
       <MagnifyingGlass
         size={18}
-        color={isFocused ? BRAND_COLORS.primary : BRAND_COLORS.textMuted}
+        color={isFocused ? BRAND_COLORS.textPrimary : BRAND_COLORS.textMuted}
         style={styles.searchIcon}
       />
       <TextInput
@@ -73,7 +73,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       {isLoading ? (
         <ActivityIndicator
           size="small"
-          color={BRAND_COLORS.primary}
+          color={BRAND_COLORS.textPrimary}
           style={styles.clearIcon}
         />
       ) : null}
@@ -90,27 +90,28 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BRAND_COLORS.surfaceElevated,
-    borderRadius: radii.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: radii['2xl'],
     borderWidth: 1,
     borderColor: BRAND_COLORS.border,
     paddingHorizontal: spacing.md,
-    minHeight: 48,
+    minHeight: 54,
+    shadowColor: '#171511',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 2,
   },
   containerFocused: {
-    borderColor: BRAND_COLORS.primary,
-    shadowColor: '#C96A34',
-    shadowOffset: { width: 0, height: 0 },
+    borderColor: 'rgba(17,17,17,0.14)',
     shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 1,
   },
   searchIcon: {
     marginRight: spacing.sm,
   },
   input: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     color: BRAND_COLORS.textPrimary,
     paddingVertical: spacing.sm,
     ...(Platform.OS === 'web' && {
@@ -125,4 +126,3 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
 });
-

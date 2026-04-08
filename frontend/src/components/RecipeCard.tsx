@@ -4,7 +4,6 @@ import { cardStyles, getTheme, radii, spacing, useResponsiveValue } from '@/util
 import { getFriendlyErrorMessage } from '@/utils/errors';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -222,22 +221,15 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
           accessibilityLabel={`${item.title} recipe image`}
         />
 
-        {/* Gradient */}
-        <LinearGradient
-          colors={['transparent', 'transparent', 'rgba(0,0,0,0.7)']}
-          locations={[0, 0.4, 1]}
-          style={styles.gradient}
-        />
-
         {/* Chips */}
         <View style={styles.chipRow}>
           {item.isAiGenerated && (
-            <View style={[styles.chip, { backgroundColor: theme.colors.secondary }]}>
-              <Text variant="label" style={{ color: '#FFF', fontSize: 10 }}>AI</Text>
+            <View style={styles.chip}>
+              <Text variant="label" style={styles.chipText}>AI</Text>
             </View>
           )}
-          <View style={[styles.chip, { backgroundColor: theme.colors.primary }]}>
-            <Text variant="label" style={{ color: '#FFF', fontSize: 11 }}>{difficulty}</Text>
+          <View style={styles.chip}>
+            <Text variant="label" style={styles.chipText}>{difficulty}</Text>
           </View>
         </View>
       </Pressable>
@@ -261,13 +253,12 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
             variant="primary"
             size="small"
             onPress={handleStartPress}
-            style={{ backgroundColor: theme.colors.primary }}
           />
           <BookmarkButton
             isSaved={!!isSaved}
             isLoading={saving}
             onPress={handleBookmark}
-            color={theme.colors.primary}
+            color={theme.colors.textPrimary}
           />
         </View>
       </View>
@@ -277,16 +268,16 @@ export const RecipeCard = ({ item, onSave, onRemove, onStart, isSaved, imageVari
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(255,255,255,0.78)',
+    backgroundColor: '#FFFFFF',
     borderRadius: radii['2xl'],
     overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.48)',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#171511',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 4,
   },
   imageContainer: {
     position: 'relative',
@@ -294,9 +285,6 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-  },
-  gradient: {
-    ...StyleSheet.absoluteFillObject,
   },
   chipRow: {
     position: 'absolute',
@@ -308,7 +296,14 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
-    borderRadius: radii.sm,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+  },
+  chipText: {
+    color: '#111111',
+    fontSize: 11,
   },
   content: {
     padding: spacing.lg,

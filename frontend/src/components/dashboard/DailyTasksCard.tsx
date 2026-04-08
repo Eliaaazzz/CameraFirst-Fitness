@@ -137,7 +137,7 @@ function TaskItem({ task, index }: { task: DailyTask; index: number }) {
           <Check size={14} color="#FFFFFF" weight="bold" />
         )}
       </Animated.View>
-      <View style={styles.taskIcon}>
+      <View style={[styles.taskIcon, { backgroundColor: `${task.color}18` }]}>
         {TaskIcons[task.icon] && React.createElement(TaskIcons[task.icon], { size: 16, color: task.color, weight: 'regular' })}
       </View>
       <Animated.View style={[{ flex: 1 }, textStyle]}>
@@ -222,6 +222,12 @@ const styles = StyleSheet.create({
   card: {
     ...(Platform.OS === 'web' ? BENTO_CARD_STYLES : MOBILE_CARD_STYLES),
     padding: spacing.lg,
+    ...(Platform.OS !== 'web' ? {
+      backgroundColor: '#FFFEFB',
+      borderColor: '#E9DED0',
+      borderRadius: 28,
+      shadowOpacity: 0.05,
+    } : {}),
   },
   header: {
     flexDirection: 'row',
@@ -250,9 +256,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   progressTrack: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(16,185,129,0.12)',
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(16,185,129,0.10)',
     overflow: 'hidden',
     marginBottom: spacing.md,
   },
@@ -262,13 +268,18 @@ const styles = StyleSheet.create({
     backgroundColor: BRAND_COLORS.semantic.success,
   },
   taskList: {
-    gap: spacing.sm,
+    gap: 10,
   },
   taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    backgroundColor: '#FBF8F1',
+    borderWidth: 1,
+    borderColor: '#EDE3D8',
   },
   taskCheck: {
     width: 22,
@@ -278,7 +289,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   taskIcon: {
-    width: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   taskLabel: {
     color: '#111111',

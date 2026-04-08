@@ -1,0 +1,99 @@
+<svg width="640" height="640" viewBox="0 0 640 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="84" y1="34" x2="532" y2="592" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F9FDFF"/>
+      <stop offset="0.52" stop-color="#E5F5FF"/>
+      <stop offset="1" stop-color="#FFF1E3"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="203" y1="126" x2="448" y2="516" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.98"/>
+      <stop offset="1" stop-color="#F2F9FF"/>
+    </linearGradient>
+    <linearGradient id="ringA" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FF7D4E"/>
+      <stop offset="1" stop-color="#FF5E8A"/>
+    </linearGradient>
+    <linearGradient id="ringB" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#64E36E"/>
+      <stop offset="1" stop-color="#C8FF6A"/>
+    </linearGradient>
+    <linearGradient id="ringC" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#58C8FF"/>
+      <stop offset="1" stop-color="#7A7CFF"/>
+    </linearGradient>
+    <filter id="shadow" x="130" y="78" width="392" height="476" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="20"/>
+      <feGaussianBlur stdDeviation="22"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.126 0 0 0 0 0.255 0 0 0 0 0.435 0 0 0 0.18 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
+    <filter id="soft" x="0" y="0" width="640" height="640" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+      <feGaussianBlur stdDeviation="24" result="effect1_foregroundBlur_1_1"/>
+    </filter>
+  </defs>
+
+  <rect width="640" height="640" rx="72" fill="url(#bg)"/>
+  <circle cx="108" cy="126" r="72" fill="#D9F6D2"/>
+  <circle cx="548" cy="128" r="64" fill="#FFDAB6"/>
+  <circle cx="514" cy="538" r="88" fill="#DBEEFF"/>
+  <g filter="url(#soft)">
+    <path d="M78 456C137 416 182 426 226 472C279 528 330 525 386 462C435 406 480 390 556 422" stroke="#7A7CFF" stroke-width="18" stroke-linecap="round"/>
+  </g>
+  <path d="M78 456C137 416 182 426 226 472C279 528 330 525 386 462C435 406 480 390 556 422" stroke="white" stroke-width="8" stroke-linecap="round"/>
+
+  <g filter="url(#shadow)">
+    <rect x="174" y="122" width="292" height="376" rx="44" fill="url(#panel)"/>
+    <rect x="188" y="136" width="264" height="348" rx="34" fill="white"/>
+    <rect x="254" y="150" width="130" height="10" rx="5" fill="#E6EEF7"/>
+    <rect x="212" y="184" width="216" height="122" rx="30" fill="#F4FBFF"/>
+    <rect x="228" y="200" width="94" height="16" rx="8" fill="#0F1C36" fill-opacity="0.08"/>
+    <rect x="228" y="224" width="140" height="10" rx="5" fill="#0F1C36" fill-opacity="0.06"/>
+    <rect x="228" y="244" width="120" height="10" rx="5" fill="#0F1C36" fill-opacity="0.05"/>
+
+    <circle cx="320" cy="374" r="78" stroke="#F4F7FB" stroke-width="18"/>
+    <circle cx="320" cy="374" r="78" stroke="url(#ringA)" stroke-width="18" stroke-linecap="round" stroke-dasharray="270 220" transform="rotate(-84 320 374)"/>
+    <circle cx="320" cy="374" r="54" stroke="#F4F7FB" stroke-width="18"/>
+    <circle cx="320" cy="374" r="54" stroke="url(#ringB)" stroke-width="18" stroke-linecap="round" stroke-dasharray="210 160" transform="rotate(-70 320 374)"/>
+    <circle cx="320" cy="374" r="30" stroke="#F4F7FB" stroke-width="18"/>
+    <circle cx="320" cy="374" r="30" stroke="url(#ringC)" stroke-width="18" stroke-linecap="round" stroke-dasharray="118 90" transform="rotate(-62 320 374)"/>
+
+    <rect x="212" y="430" width="78" height="16" rx="8" fill="#0F1C36" fill-opacity="0.08"/>
+    <rect x="212" y="454" width="126" height="12" rx="6" fill="#0F1C36" fill-opacity="0.05"/>
+    <rect x="350" y="430" width="70" height="36" rx="18" fill="#0F1C36"/>
+    <rect x="356" y="436" width="58" height="24" rx="12" fill="#D4FF72"/>
+  </g>
+
+  <g>
+    <rect x="74" y="282" width="144" height="88" rx="28" fill="rgba(255,255,255,0.82)"/>
+    <rect x="74.75" y="282.75" width="142.5" height="86.5" rx="27.25" stroke="#0F1C36" stroke-opacity="0.08" stroke-width="1.5"/>
+    <circle cx="110" cy="326" r="18" fill="#FF844B"/>
+    <path d="M102 326H118" stroke="white" stroke-width="4" stroke-linecap="round"/>
+    <path d="M110 318V334" stroke="white" stroke-width="4" stroke-linecap="round"/>
+    <rect x="136" y="308" width="54" height="12" rx="6" fill="#0F1C36" fill-opacity="0.1"/>
+    <rect x="136" y="330" width="42" height="10" rx="5" fill="#0F1C36" fill-opacity="0.06"/>
+  </g>
+
+  <g>
+    <rect x="432" y="234" width="144" height="102" rx="28" fill="rgba(255,255,255,0.88)"/>
+    <rect x="432.75" y="234.75" width="142.5" height="100.5" rx="27.25" stroke="#0F1C36" stroke-opacity="0.08" stroke-width="1.5"/>
+    <circle cx="470" cy="268" r="18" fill="#D4FF72"/>
+    <path d="M461 269L467 275L479 262" stroke="#0F1C36" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="496" y="250" width="48" height="12" rx="6" fill="#0F1C36" fill-opacity="0.1"/>
+    <rect x="496" y="272" width="56" height="10" rx="5" fill="#0F1C36" fill-opacity="0.06"/>
+    <rect x="454" y="298" width="100" height="12" rx="6" fill="#7A7CFF" fill-opacity="0.18"/>
+    <rect x="454" y="298" width="62" height="12" rx="6" fill="#7A7CFF"/>
+  </g>
+
+  <g>
+    <circle cx="78" cy="456" r="16" fill="#FF844B"/>
+    <circle cx="226" cy="472" r="16" fill="#7A7CFF"/>
+    <circle cx="386" cy="462" r="16" fill="#D4FF72"/>
+    <circle cx="556" cy="422" r="16" fill="#0F1C36"/>
+    <circle cx="556" cy="422" r="7" fill="white"/>
+  </g>
+</svg>

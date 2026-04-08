@@ -1,4 +1,5 @@
 import { AIDisclaimer } from '@/components/common/AIDisclaimer';
+import { RecognitionProcessingHero } from '@/components/common/RecognitionProcessingHero';
 import { DetectedItemRow } from '@/components/nutrition/DetectedItemRow';
 import { NutritionSummaryCard } from '@/components/nutrition/NutritionSummaryCard';
 import { CameraView } from '@/components/CameraView';
@@ -8,7 +9,7 @@ import nutritionApi, {
   DetectedFood,
   TotalNutrition,
 } from '@/services/nutritionApi';
-import { BRAND_COLORS, DEFAULT_MEAL_IMAGE_WIDTH_CM } from '@/utils';
+import { BRAND_COLORS, DEFAULT_MEAL_IMAGE_WIDTH_CM, NUTRITION_REFERENCES, openExternalUrl } from '@/utils';
 import { ArrowLeft, Camera, Check, ImageSquare, MagnifyingGlass, SealCheck } from 'phosphor-react-native';
 import { Image as ExpoImage } from 'expo-image';
 
@@ -49,7 +50,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -104,6 +105,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const queryClient = useQueryClient();
+  const hasRequestedCameraPermissionRef = useRef(false);
   const [loading, setLoading] = useState(!isViewingExisting); // Don't show loading for existing meals
   const [phase, setPhase] = useState<1 | 2 | 3>(1);
   const [items, setItems] = useState<DetectedFood[]>(() => {
@@ -201,6 +203,23 @@ export function ReviewMealScreen({ route, navigation }: any) {
       targetSize: Platform.OS === 'web' ? 900_000 : 650_000,
     },
   });
+
+  useEffect(() => {
+    if (!shouldShowCamera) {
+      hasRequestedCameraPermissionRef.current = false;
+      return;
+    }
+
+    if (cameraPerm.state !== 'undetermined' || hasRequestedCameraPermissionRef.current) {
+      return;
+    }
+
+    hasRequestedCameraPermissionRef.current = true;
+    cameraPerm.request().catch((error) => {
+      console.warn('Camera permission request failed', error);
+      hasRequestedCameraPermissionRef.current = false;
+    });
+  }, [cameraPerm, shouldShowCamera]);
 
   useEffect(() => {
     if (shouldShowCamera) {
@@ -483,26 +502,40 @@ export function ReviewMealScreen({ route, navigation }: any) {
   };
 
   if (shouldShowCamera) {
-    const permissionDenied = cameraPerm.state === 'denied';
     const permissionGranted = cameraPerm.state === 'granted';
 
     if (!permissionGranted) {
+      const isAwaitingSystemPrompt = cameraPerm.state === 'undetermined';
+
       return (
         <SafeAreaView style={styles.container}>
           <View style={styles.permissionContainer}>
-            <Text style={styles.permissionTitle}>Camera access needed</Text>
-            <Text style={styles.permissionSubtitle}>
-              Enable camera to scan your meal with the Magic Ring.
-            </Text>
+            {isAwaitingSystemPrompt ? (
+              <>
+                <ActivityIndicator size="large" color={BRAND_COLORS.secondary} />
+                <Text style={styles.permissionTitle}>Opening camera permission</Text>
+                <Text style={styles.permissionSubtitle}>
+                  Use the system prompt to allow camera access for meal scanning, or choose a photo from your library instead.
+                </Text>
+                <Pressable style={styles.permissionSecondaryBtn} onPress={openGallery}>
+                  <Text style={styles.permissionSecondaryBtnText}>Choose from Library</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.permissionTitle}>Camera access is off</Text>
+                <Text style={styles.permissionSubtitle}>
+                  To scan a meal with the camera, enable camera access in Settings. You can still review a meal photo from your library right now.
+                </Text>
 
-            <Pressable
-              onPress={permissionDenied ? cameraPerm.openSettings : () => cameraPerm.request()}
-              style={styles.permissionPrimaryBtn}
-            >
-              <Text style={styles.permissionPrimaryBtnText}>
-                {permissionDenied ? 'Open Settings' : 'Continue'}
-              </Text>
-            </Pressable>
+                <Pressable onPress={cameraPerm.openSettings} style={styles.permissionPrimaryBtn}>
+                  <Text style={styles.permissionPrimaryBtnText}>Open Settings</Text>
+                </Pressable>
+                <Pressable style={styles.permissionSecondaryBtn} onPress={openGallery}>
+                  <Text style={styles.permissionSecondaryBtnText}>Choose from Library</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         </SafeAreaView>
       );
@@ -738,42 +771,47 @@ export function ReviewMealScreen({ route, navigation }: any) {
         showsVerticalScrollIndicator
       >
         <View style={[styles.reviewBody, { maxWidth: contentMaxWidth }]}>
-          <View style={[styles.imageFrame, { height: imagePreviewHeight }]}>
-            <Animated.View style={[styles.imageContainer, heroAnimatedStyle]}>
-              {processedImageUri ? (
-                Platform.OS === 'web' ? (
-                  <ExpoImage
-                    source={{ uri: processedImageUri }}
-                    style={styles.image}
-                    contentFit="cover"
-                    transition={120}
-                    cachePolicy="memory-disk"
-                  />
+          {loading ? (
+            <Animated.View style={[styles.processingHeroWrap, heroAnimatedStyle]}>
+              <RecognitionProcessingHero
+                imageUri={processedImageUri}
+                modeLabel="AURA MEAL SCAN"
+                title={loadingText}
+                subtitle={loadingSubtitle}
+                activePhase={phase}
+                phaseLabels={phaseLabels}
+                callouts={['Food contours', 'Volume pass', 'Macro estimate']}
+              />
+            </Animated.View>
+          ) : (
+            <View style={[styles.imageFrame, { height: imagePreviewHeight }]}>
+              <Animated.View style={[styles.imageContainer, heroAnimatedStyle]}>
+                {processedImageUri ? (
+                  Platform.OS === 'web' ? (
+                    <ExpoImage
+                      source={{ uri: processedImageUri }}
+                      style={styles.image}
+                      contentFit="cover"
+                      transition={120}
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <Image source={{ uri: processedImageUri }} style={styles.image} resizeMode="cover" />
+                  )
                 ) : (
-                  <Image source={{ uri: processedImageUri }} style={styles.image} resizeMode="cover" />
-                )
-              ) : (
-                <View style={styles.image} />
-              )}
-              {loading && (
-                <View style={styles.imageLoadingOverlay} pointerEvents="none">
-                  <ActivityIndicator size="large" color="#FFFFFF" />
-                  <Text style={styles.imageLoadingTitle}>{loadingText}</Text>
-                  <Text style={styles.imageLoadingSubtitle}>{loadingSubtitle}</Text>
-                </View>
-              )}
-              <View style={styles.photoBadgeRow} pointerEvents="none">
-                <View style={styles.photoTag}>
-                  <Text style={styles.photoTagText}>{loading ? 'Analyzing' : 'Photo ready'}</Text>
-                </View>
-                {!loading && (
+                  <View style={styles.image} />
+                )}
+                <View style={styles.photoBadgeRow} pointerEvents="none">
+                  <View style={styles.photoTag}>
+                    <Text style={styles.photoTagText}>Photo ready</Text>
+                  </View>
                   <View style={styles.previewBadge}>
                     <Text style={styles.previewBadgeText}>Instant preview</Text>
                   </View>
-                )}
-              </View>
-            </Animated.View>
-          </View>
+                </View>
+              </Animated.View>
+            </View>
+          )}
 
           {!isViewingExisting && (
             <Animated.View style={[styles.imageActionRow, statusAnimatedStyle]}>
@@ -797,36 +835,30 @@ export function ReviewMealScreen({ route, navigation }: any) {
             </Animated.View>
           )}
 
-          {(loading || canSaveMeal) && (
+          {canSaveMeal && (
             <Animated.View style={[styles.statusCard, statusAnimatedStyle]}>
               <View style={styles.statusHeader}>
                 <View
                   style={[
                     styles.statusIconWrap,
-                    loading ? styles.statusIconWrapLoading : styles.statusIconWrapSuccess,
+                    styles.statusIconWrapSuccess,
                   ]}
                 >
-                  {loading ? (
-                    <MagnifyingGlass size={22} color="#0E7490" />
-                  ) : (
-                    <SealCheck size={22} color="#047857" weight="fill" />
-                  )}
+                  <SealCheck size={22} color="#047857" weight="fill" />
                 </View>
                 <View style={styles.statusCopy}>
                   <Text style={styles.loadingTitle}>
-                    {loading ? loadingText : 'Analysis complete'}
+                    Analysis complete
                   </Text>
                   <Text style={styles.loadingSubtitle}>
-                    {loading
-                      ? loadingSubtitle
-                      : `${items.length} detected ${items.length === 1 ? 'item' : 'items'} ready to review and save.`}
+                    {`${items.length} detected ${items.length === 1 ? 'item' : 'items'} ready to review and save.`}
                   </Text>
                 </View>
               </View>
 
               <View style={styles.phaseRow}>
                 {phaseLabels.map((label, index) => {
-                  const isActive = loading ? phase >= index + 1 : canSaveMeal;
+                  const isActive = canSaveMeal;
                   return (
                     <View key={label} style={[styles.phasePill, isActive && styles.phasePillActive]}>
                       <Text style={[styles.phasePillText, isActive && styles.phasePillTextActive]}>{label}</Text>
@@ -837,17 +869,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
             </Animated.View>
           )}
 
-          {loading ? (
-            <Animated.View style={[styles.loadingContainer, detailsAnimatedStyle]}>
-              <ActivityIndicator size="small" color={BRAND_COLORS.secondary} />
-              <View style={styles.loadingCopy}>
-                <Text style={styles.loadingTitle}>Preparing your meal breakdown</Text>
-                <Text style={styles.loadingSubtitle}>
-                  Preview is already visible while the nutrition analysis finishes in the background.
-                </Text>
-              </View>
-            </Animated.View>
-          ) : canSaveMeal ? (
+          {!loading && canSaveMeal ? (
             <Animated.View style={detailsAnimatedStyle}>
               {total && <NutritionSummaryCard total={total} />}
               <AIDisclaimer />
@@ -908,6 +930,17 @@ export function ReviewMealScreen({ route, navigation }: any) {
                       ? 'Medium — moderate blood sugar rise'
                       : 'High — significant blood sugar spike'}
                   </Text>
+                  <Pressable
+                    onPress={() => openExternalUrl(
+                      NUTRITION_REFERENCES.glycemicLoad.url,
+                      'Unable to open source',
+                      'Please visit the Harvard Health glycemic load guide in your browser.'
+                    )}
+                    style={styles.glSourceRow}
+                  >
+                    <Text style={styles.glSourceLabel}>Direct reference:</Text>
+                    <Text style={styles.glSourceLink}>{NUTRITION_REFERENCES.glycemicLoad.shortLabel}</Text>
+                  </Pressable>
                 </View>
               )}
 
@@ -917,7 +950,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
                   style={styles.aiDisclaimerLink}
                   onPress={() => navigation.navigate('AboutNutritionData' as any)}
                 >
-                  Learn more
+                  View direct sources
                 </Text>
               </Text>
             </Animated.View>
@@ -1082,6 +1115,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  permissionSecondaryBtn: {
+    width: '100%',
+    maxWidth: 360,
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  permissionSecondaryBtnText: {
+    color: '#0F172A',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1133,6 +1183,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
     ...CARD_SHADOW,
   },
+  processingHeroWrap: {
+    margin: 16,
+    ...CARD_SHADOW,
+  },
   imageContainer: {
     flex: 1,
     minHeight: 0,
@@ -1141,27 +1195,6 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
-  },
-  imageLoadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    backgroundColor: 'rgba(17,24,39,0.42)',
-  },
-  imageLoadingTitle: {
-    marginTop: 18,
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
-  imageLoadingSubtitle: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 19,
-    color: 'rgba(255,255,255,0.88)',
-    textAlign: 'center',
   },
   photoBadgeRow: {
     position: 'absolute',
@@ -1345,6 +1378,23 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 13,
     color: '#6B7280',
+  },
+  glSourceRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 4,
+  },
+  glSourceLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  glSourceLink: {
+    fontSize: 12,
+    color: '#0891B2',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   aiDisclaimer: {
     marginHorizontal: 16,

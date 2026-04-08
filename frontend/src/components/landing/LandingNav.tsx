@@ -4,30 +4,42 @@ import React from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components';
-import { APP_NAME, LANDING_COLORS, motion, radii, spacing } from '@/utils';
+import { APP_NAME, EXPERIENCE_COLORS, LANDING_COLORS, motion, radii, spacing } from '@/utils';
 
 interface LandingNavProps {
   onLogin: () => void;
   onSignup: () => void;
   onNavPress?: (item: string) => void;
+  onHelp?: () => void;
+  onLanguage?: () => void;
 }
 
 const NAV_ITEMS = ['Track', 'Programs', 'Reports', 'About'];
 const brandIcon = require('@/../assets/app-icon-1024-transparent.png');
 
-export function LandingNav({ onLogin, onSignup, onNavPress }: LandingNavProps) {
+export function LandingNav({ onLogin, onSignup, onNavPress, onHelp, onLanguage }: LandingNavProps) {
   const { width } = useWindowDimensions();
-  const maxWidth = Math.min(width - 32, 1360);
+  const isCompact = width < 680;
+  const maxWidth = Math.min(width - (isCompact ? 20 : 32), 1360);
   const showCenterNav = width >= 1080;
+  const showLocaleAction = width >= 760;
+  const showHelpAction = width >= 420;
 
   return (
     <View style={styles.wrapper}>
-      <View style={[styles.bar, { maxWidth }]}>
+      <View style={[styles.bar, { maxWidth, minHeight: width >= 720 ? 88 : 76 }]}>
         <View style={styles.brandSide}>
           <Image source={brandIcon} style={styles.brandIcon} contentFit="contain" />
-          <Text variant="heading3" weight="bold" style={styles.brand}>
-            {APP_NAME}
-          </Text>
+          <View>
+            <Text variant="heading3" weight="bold" style={styles.brand}>
+              {APP_NAME}
+            </Text>
+            {!isCompact && (
+              <Text variant="caption" weight="medium" style={styles.brandMeta}>
+                Meals, rings, recovery
+              </Text>
+            )}
+          </View>
         </View>
 
         {showCenterNav && (
@@ -49,27 +61,33 @@ export function LandingNav({ onLogin, onSignup, onNavPress }: LandingNavProps) {
         )}
 
         <View style={styles.actions}>
-          <Pressable
-            style={({ pressed }) => [styles.utilityAction, pressed && styles.faded]}
-            accessibilityRole="button"
-            accessibilityLabel="Change language"
-          >
-            <GlobeHemisphereWest size={18} weight="regular" color={LANDING_COLORS.textOnDark} />
-            <Text variant="body" weight="semibold" style={styles.utilityText}>
-              EN
-            </Text>
-          </Pressable>
-
-          {width >= 960 && (
+          {showLocaleAction && (
             <Pressable
+              onPress={onLanguage}
+              style={({ pressed }) => [styles.utilityAction, pressed && styles.faded]}
+              accessibilityRole="button"
+              accessibilityLabel="Language and region details"
+            >
+              <GlobeHemisphereWest size={18} weight="regular" color={EXPERIENCE_COLORS.ink} />
+              <Text variant="body" weight="semibold" style={styles.utilityText}>
+                EN
+              </Text>
+            </Pressable>
+          )}
+
+          {showHelpAction && (
+            <Pressable
+              onPress={onHelp}
               style={({ pressed }) => [styles.utilityAction, pressed && styles.faded]}
               accessibilityRole="button"
               accessibilityLabel="Open help"
             >
-              <Question size={18} weight="regular" color={LANDING_COLORS.textOnDark} />
-              <Text variant="body" weight="semibold" style={styles.utilityText}>
-                Help
-              </Text>
+              <Question size={18} weight="regular" color={EXPERIENCE_COLORS.ink} />
+              {!isCompact && (
+                <Text variant="body" weight="semibold" style={styles.utilityText}>
+                  Help
+                </Text>
+              )}
             </Pressable>
           )}
 
@@ -91,9 +109,9 @@ export function LandingNav({ onLogin, onSignup, onNavPress }: LandingNavProps) {
             accessibilityLabel="Create a new account"
           >
             <Text variant="body" weight="bold" style={styles.signupText}>
-              Sign up
+              Start now
             </Text>
-            {width >= 960 && <CaretDown size={16} weight="bold" color={LANDING_COLORS.text} />}
+            {width >= 960 && <CaretDown size={16} weight="bold" color={LANDING_COLORS.textOnDark} />}
           </Pressable>
         </View>
       </View>
@@ -105,18 +123,33 @@ const styles = StyleSheet.create({
   wrapper: {
     width: '100%',
     alignItems: 'center',
-    backgroundColor: LANDING_COLORS.navBg,
+    backgroundColor: 'transparent',
     zIndex: 100,
     ...({ position: 'sticky', top: 0 } as any),
   },
   bar: {
     width: '100%',
-    minHeight: 88,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     gap: spacing.sm,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+    borderRadius: 28,
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
+    ...(typeof document !== 'undefined'
+      ? ({ backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', boxShadow: '0 18px 40px rgba(26,60,109,0.12)' } as any)
+      : {
+          shadowColor: EXPERIENCE_COLORS.shadow,
+          shadowOffset: { width: 0, height: 16 },
+          shadowRadius: 30,
+          shadowOpacity: 0.12,
+          elevation: 8,
+        }),
   },
   brandSide: {
     flexDirection: 'row',
@@ -125,8 +158,11 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   brand: {
-    color: LANDING_COLORS.textOnDark,
+    color: EXPERIENCE_COLORS.ink,
     letterSpacing: -0.5,
+  },
+  brandMeta: {
+    color: EXPERIENCE_COLORS.inkSoft,
   },
   brandIcon: {
     width: 34,
@@ -143,7 +179,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   navText: {
-    color: LANDING_COLORS.textOnDark,
+    color: EXPERIENCE_COLORS.inkSoft,
   },
   actions: {
     flexDirection: 'row',
@@ -155,29 +191,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    paddingVertical: spacing.sm,
+    minHeight: 42,
+    paddingHorizontal: 14,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255,255,255,0.56)',
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
   },
   utilityText: {
-    color: LANDING_COLORS.textOnDark,
+    color: EXPERIENCE_COLORS.ink,
   },
   loginBtn: {
-    paddingVertical: spacing.sm,
+    minHeight: 44,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255,255,255,0.58)',
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
   },
   signupBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    minHeight: 46,
     borderRadius: radii.pill,
-    backgroundColor: LANDING_COLORS.pillBg,
+    justifyContent: 'center',
+    backgroundColor: EXPERIENCE_COLORS.ink,
     transitionDuration: `${motion.fast}ms`,
+    ...(typeof document !== 'undefined'
+      ? ({ boxShadow: '0 14px 26px rgba(17,17,17,0.12)' } as any)
+      : {
+          shadowColor: '#111111',
+          shadowOffset: { width: 0, height: 10 },
+          shadowRadius: 18,
+          shadowOpacity: 0.12,
+          elevation: 6,
+        }),
   } as any,
   signupBtnPressed: {
     opacity: 0.88,
   },
   signupText: {
-    color: LANDING_COLORS.pillText,
+    color: LANDING_COLORS.textOnDark,
   },
   faded: {
     opacity: 0.7,

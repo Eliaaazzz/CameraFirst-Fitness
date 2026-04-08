@@ -19,7 +19,7 @@ export const SNAP_MEAL_STEP: TourStep = {
   zone: 1,
   screen: 'Dashboard',
   title: 'Snap Your Meal',
-  text: 'Tap here to take a photo of your meal. Our AI will analyze the nutrition instantly!',
+  text: 'Start here to log a meal with the camera or photo library.',
 };
 
 // Step 2: Today's Nutrition (Dashboard)
@@ -27,7 +27,7 @@ export const TODAYS_NUTRITION_STEP: TourStep = {
   zone: 2,
   screen: 'Dashboard',
   title: "Today's Nutrition",
-  text: 'Track your daily calories and macros here. See your progress toward your goals.',
+  text: "See today's calories, macros, and blood sugar estimate in one place.",
 };
 
 // Step 3: Quick Actions (Dashboard)
@@ -35,7 +35,7 @@ export const QUICK_ACTIONS_STEP: TourStep = {
   zone: 3,
   screen: 'Dashboard',
   title: 'Quick Actions',
-  text: 'Jump to your logs and insights without digging through menus.',
+  text: 'Open history, weekly insights, and tools from one place.',
 };
 
 // Step 4: Workouts (Workouts screen)
@@ -43,7 +43,7 @@ export const WORKOUTS_TOUR_STEP: TourStep = {
   zone: 4,
   screen: 'Workouts',
   title: 'Find Workouts',
-  text: 'Search for workout videos by type, muscle group, or equipment. Save your favorites!',
+  text: 'Search workouts by goal, muscle group, or equipment.',
 };
 
 // Step 5: Recipes (Recipes screen)
@@ -51,7 +51,7 @@ export const RECIPES_TOUR_STEP: TourStep = {
   zone: 5,
   screen: 'Recipes',
   title: 'Discover Recipes',
-  text: 'Explore healthy recipes. Search by ingredients, diet, or prep time.',
+  text: 'Browse recipes by ingredient, diet, or prep time.',
 };
 
 const DASHBOARD_TOUR_STEPS: TourStep[] = Platform.OS === 'web'

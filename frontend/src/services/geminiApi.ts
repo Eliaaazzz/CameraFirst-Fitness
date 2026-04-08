@@ -163,6 +163,13 @@ export const generateGoals = async (request: GenerateGoalsRequest): Promise<Gene
       ...normalized,
       generatedAt: new Date().toISOString(),
       goalType: request.goalType,
+      inputParameters: {
+        sex: request.sex,
+        heightCm: request.heightCm,
+        weightKg: request.weightKg,
+        age: request.age || 30,
+        activityLevel: request.activityLevel || 'medium',
+      },
     };
   } catch (error) {
     console.error('Failed to generate goals via API:', error);
@@ -308,6 +315,13 @@ export const generateFallbackGoals = (request: GenerateGoalsRequest): GeneratedG
     safetyNote,
     generatedAt: new Date().toISOString(),
     goalType,
+    inputParameters: {
+      sex,
+      heightCm,
+      weightKg,
+      age,
+      activityLevel,
+    },
   };
 };
 

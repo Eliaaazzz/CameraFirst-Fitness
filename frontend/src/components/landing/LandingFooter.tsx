@@ -1,10 +1,10 @@
 import { AppleLogo, GlobeHemisphereWest, GooglePlayLogo, MapPin } from 'phosphor-react-native';
 import { Image } from 'expo-image';
 import React from 'react';
-import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components';
-import { APP_NAME, BRAND_COLORS, LANDING_COLORS, radii, spacing } from '@/utils';
+import { APP_NAME, BRAND_COLORS, EXPERIENCE_COLORS, LANDING_COLORS, radii, spacing } from '@/utils';
 
 const finalIllustration = require('@/../assets/illustrations/chef.svg');
 
@@ -12,24 +12,42 @@ interface LandingFooterProps {
   onGetStarted: () => void;
   onLogin: () => void;
   showFinalCTA?: boolean;
+  onLinkPress: (linkId: string) => void;
 }
 
 const FOOTER_COLUMNS = [
   {
     title: 'Product',
-    links: ['Meal Logging', 'Workout Planning', 'Targets', 'Weekly Reports'],
+    links: [
+      { label: 'Meal Logging', id: 'meal-logging' },
+      { label: 'Workout Planning', id: 'workout-planning' },
+      { label: 'Targets', id: 'targets' },
+      { label: 'Weekly Reports', id: 'weekly-reports' },
+    ],
   },
   {
     title: 'Resources',
-    links: ['Help Centre', 'Export Data', 'Data Sources', 'Release Notes'],
+    links: [
+      { label: 'Help Centre', id: 'help-centre' },
+      { label: 'Export Data', id: 'export-data' },
+      { label: 'Data Sources', id: 'data-sources' },
+      { label: 'Release Notes', id: 'release-notes' },
+    ],
   },
   {
     title: 'Company',
-    links: ['About', 'Contact'],
+    links: [
+      { label: 'About', id: 'about' },
+      { label: 'Contact', id: 'contact' },
+    ],
   },
   {
     title: 'Legal',
-    links: ['Privacy Policy', 'Terms of Service', 'Accessibility'],
+    links: [
+      { label: 'Privacy Policy', id: 'privacy-policy' },
+      { label: 'Terms of Service', id: 'terms-of-service' },
+      { label: 'Accessibility', id: 'accessibility' },
+    ],
   },
 ];
 
@@ -43,11 +61,7 @@ function StoreBadge({
   icon: React.ReactNode;
 }) {
   return (
-    <Pressable
-      style={({ pressed }) => [styles.storeBadge, pressed && styles.storeBadgePressed]}
-      accessibilityRole="link"
-      accessibilityLabel={`Download on ${label}`}
-    >
+    <View style={styles.storeBadge} accessibilityRole="text">
       {icon}
       <View>
         <Text variant="caption" style={styles.storeBadgeSub}>
@@ -57,13 +71,14 @@ function StoreBadge({
           {label}
         </Text>
       </View>
-    </Pressable>
+    </View>
   );
 }
 
-export function LandingFooter({ onGetStarted, onLogin, showFinalCTA = true }: LandingFooterProps) {
+export function LandingFooter({ onGetStarted, onLogin, showFinalCTA = true, onLinkPress }: LandingFooterProps) {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  const isTablet = width >= 720;
 
   return (
     <View style={styles.wrapper}>
@@ -117,16 +132,20 @@ export function LandingFooter({ onGetStarted, onLogin, showFinalCTA = true }: La
             </Text>
           </View>
 
-          <View style={styles.columns}>
+          <View style={[styles.columns, !isTablet && styles.columnsMobile]}>
             {FOOTER_COLUMNS.map((column) => (
               <View key={column.title} style={styles.column}>
                 <Text variant="heading4" weight="bold" style={styles.columnTitle}>
                   {column.title}
                 </Text>
                 {column.links.map((link) => (
-                  <Pressable key={link} style={({ pressed }) => [styles.footerLink, pressed && styles.linkPressed]}>
+                  <Pressable
+                    key={link.id}
+                    onPress={() => onLinkPress(link.id)}
+                    style={({ pressed }) => [styles.footerLink, pressed && styles.linkPressed]}
+                  >
                     <Text variant="body" style={styles.footerLinkText}>
-                      {link}
+                      {link.label}
                     </Text>
                   </Pressable>
                 ))}
@@ -188,10 +207,10 @@ const styles = StyleSheet.create({
   },
   finalVisual: {
     flex: 1,
-    backgroundColor: LANDING_COLORS.surface,
-    borderRadius: radii['2xl'],
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
+    borderRadius: 30,
     borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
+    borderColor: EXPERIENCE_COLORS.stroke,
     minHeight: 420,
     alignItems: 'center',
     justifyContent: 'center',
@@ -206,7 +225,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   finalTitle: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
     fontSize: 60,
     lineHeight: 62,
     letterSpacing: -2.3,
@@ -217,7 +236,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1.4,
   },
   finalSubtitle: {
-    color: BRAND_COLORS.textSecondary,
+    color: EXPERIENCE_COLORS.inkSoft,
     fontSize: 20,
     lineHeight: 32,
     maxWidth: 520,
@@ -234,10 +253,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   primaryCta: {
-    backgroundColor: LANDING_COLORS.ctaBg,
+    backgroundColor: EXPERIENCE_COLORS.ink,
     paddingHorizontal: 28,
     paddingVertical: 18,
-    borderRadius: radii.md,
+    borderRadius: 22,
   },
   primaryCtaText: {
     color: LANDING_COLORS.ctaText,
@@ -249,11 +268,11 @@ const styles = StyleSheet.create({
     borderBottomColor: LANDING_COLORS.borderLink,
   },
   secondaryLinkText: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
   },
   footer: {
-    backgroundColor: LANDING_COLORS.footerBg,
-    borderRadius: 0,
+    backgroundColor: EXPERIENCE_COLORS.navy,
+    borderRadius: 32,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing['2xl'],
   },
@@ -280,6 +299,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing['2xl'],
+  },
+  columnsMobile: {
+    flexDirection: 'column',
+    gap: spacing.xl,
   },
   column: {
     minWidth: 140,
@@ -320,10 +343,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: LANDING_COLORS.borderStoreBadge,
-    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
-  },
-  storeBadgePressed: {
-    opacity: 0.8,
   },
   storeBadgeSub: {
     color: LANDING_COLORS.textOnDarkFaint,

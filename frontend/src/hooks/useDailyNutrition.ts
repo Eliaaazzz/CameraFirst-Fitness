@@ -72,14 +72,14 @@ export function useDailyNutrition() {
       });
 
       // Use generated goals if available, otherwise use backend targets or defaults
-      const calorieGoal = generatedGoals?.dailyCalories.target || todaySummary?.target?.calories || summary?.calories?.target || 2100;
-      const proteinGoal = generatedGoals?.macros_grams.protein_g || todaySummary?.target?.protein || summary?.protein?.target || 150;
-      const carbsGoal = generatedGoals?.macros_grams.carbs_g || todaySummary?.target?.carbs || summary?.carbs?.target || 200;
-      const fatGoal = generatedGoals?.macros_grams.fat_g || todaySummary?.target?.fat || summary?.fat?.target || 65;
+      const calorieGoal = generatedGoals?.dailyCalories.target || todaySummary?.target?.calories || summary?.calories?.target || 2000;
+      const proteinGoal = generatedGoals?.macros_grams.protein_g || todaySummary?.target?.protein || summary?.protein?.target || 50;
+      const carbsGoal = generatedGoals?.macros_grams.carbs_g || todaySummary?.target?.carbs || summary?.carbs?.target || 275;
+      const fatGoal = generatedGoals?.macros_grams.fat_g || todaySummary?.target?.fat || summary?.fat?.target || 78;
       // Net carbs = total carbs - fiber (for diabetes/low-carb tracking)
-      const fiberGoal = generatedGoals?.fiberTarget_g_per_day || 25;
-      // Sugar limit from generated goals (default: 25g for general health)
-      const sugarGoal = generatedGoals?.sugarLimit_g_per_day || 25;
+      const fiberGoal = generatedGoals?.fiberTarget_g_per_day || 28;
+      // Sugar limit from generated goals (FDA daily value fallback: 50g added sugar)
+      const sugarGoal = generatedGoals?.sugarLimit_g_per_day || 50;
 
       // Transform backend response to our format
       // Backend returns NutritionMetricResponse with {actual, target, percent}
@@ -137,12 +137,12 @@ export function useDailyNutrition() {
   return {
     data: data || {
       calories: 0,
-      goal: 2100,
-      protein: { current: 0, goal: 150 },
-      carbs: { current: 0, goal: 200 },
-      fat: { current: 0, goal: 65 },
-      netCarbs: { current: 0, goal: 175 },
-      sugar: { current: 0, goal: 25 },
+      goal: 2000,
+      protein: { current: 0, goal: 50 },
+      carbs: { current: 0, goal: 275 },
+      fat: { current: 0, goal: 78 },
+      netCarbs: { current: 0, goal: 247 },
+      sugar: { current: 0, goal: 50 },
       bloodSugarRise: 0,
       meals: [],
     },

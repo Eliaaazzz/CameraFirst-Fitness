@@ -33,22 +33,22 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const SIZE_CONFIG = {
   small: {
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
     fontSize: 13,
-    borderRadius: radii.md,
-  },
-  medium: {
-    paddingVertical: 12,
-    paddingHorizontal: spacing.lg,
-    fontSize: 15,
     borderRadius: radii.lg,
   },
-  large: {
+  medium: {
     paddingVertical: 14,
+    paddingHorizontal: spacing.lg,
+    fontSize: 15,
+    borderRadius: radii.xl,
+  },
+  large: {
+    paddingVertical: 16,
     paddingHorizontal: spacing.xl,
     fontSize: 16,
-    borderRadius: radii.xl,
+    borderRadius: radii['2xl'],
   },
 };
 
@@ -63,23 +63,23 @@ const getVariantStyle = (variant: ButtonVariant, disabled?: boolean) => {
 
   const variants = {
     primary: {
-      backgroundColor: light.primary,
+      backgroundColor: light.textPrimary,
       borderWidth: 0,
       borderColor: 'transparent',
       textColor: '#FFFFFF',
-      shadowStyle: disabled ? undefined : saasShadows.subtle,
+      shadowStyle: disabled ? undefined : saasShadows.card,
     },
     secondary: {
-      backgroundColor: light.surfaceVariant,
+      backgroundColor: 'rgba(255,255,255,0.88)',
       borderWidth: 1,
       borderColor: light.border,
       textColor: light.textPrimary,
-      shadowStyle: undefined,
+      shadowStyle: disabled ? undefined : saasShadows.subtle,
     },
     outline: {
-      backgroundColor: 'transparent',
+      backgroundColor: 'rgba(255,255,255,0.58)',
       borderWidth: 1,
-      borderColor: light.borderStrong,
+      borderColor: light.border,
       textColor: light.textPrimary,
       shadowStyle: undefined,
     },
@@ -91,10 +91,10 @@ const getVariantStyle = (variant: ButtonVariant, disabled?: boolean) => {
       shadowStyle: undefined,
     },
     ghost: {
-      backgroundColor: 'transparent',
+      backgroundColor: 'rgba(17,17,17,0.03)',
       borderWidth: 0,
       borderColor: 'transparent',
-      textColor: light.textSecondary,
+      textColor: light.textPrimary,
       shadowStyle: undefined,
     },
   } satisfies Record<ButtonVariant, any>;
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   base: {
     alignSelf: 'flex-start',
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 48,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer',
       transition: `transform ${motion.fast}ms ease, opacity ${motion.fast}ms ease`,
@@ -207,10 +207,9 @@ const styles = StyleSheet.create({
   },
   label: {
     textAlign: 'center',
-    letterSpacing: 0.1,
+    letterSpacing: -0.1,
   },
   icon: {
     marginRight: spacing.xs,
   },
 });
-

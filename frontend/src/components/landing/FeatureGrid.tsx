@@ -3,60 +3,69 @@ import React, { useState } from 'react';
 import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components';
-import { APP_NAME, BRAND_COLORS, LANDING_COLORS, radii, spacing } from '@/utils';
+import { APP_NAME, EXPERIENCE_COLORS, radii, spacing } from '@/utils';
 
 const FEATURES = [
   {
     title: 'Meal Logging',
-    description: 'Snap a photo and let AI log your calories, protein, carbs, and fat.',
+    description: 'Open the camera fast, review the result, and save a meal without breaking your flow.',
     illustration: require('@/../assets/illustrations/cooking.svg'),
+    tint: '#FFF1E6',
   },
   {
     title: 'Workout Planning',
-    description: 'Plan your week with structured sessions and rest days.',
+    description: 'Build a week that balances strength, cardio, and recovery instead of isolated checklists.',
     illustration: require('@/../assets/illustrations/fitness-tracker.svg'),
+    tint: '#E8F4FF',
   },
   {
     title: 'Progress Tracking',
-    description: 'See your weight trend, streaks, and weekly progress at a glance.',
+    description: 'Use clearer rings, streaks, and weekly snapshots to understand momentum at a glance.',
     illustration: require('@/../assets/illustrations/fitness-stats.svg'),
+    tint: '#EDFDE5',
   },
   {
     title: 'Targets',
-    description: 'Set personalized calorie, macro, and hydration goals powered by AI.',
+    description: 'Generate calorie, macro, and hydration targets that feel tailored instead of generic.',
     illustration: require('@/../assets/illustrations/healthy-habit.svg'),
+    tint: '#FFF6CF',
   },
   {
     title: 'Recipes',
-    description: 'Get recipes matched to your calorie and macro targets.',
+    description: 'Browse meals that actually fit your goal instead of forcing workarounds later in the day.',
     illustration: require('@/../assets/illustrations/chef.svg'),
+    tint: '#FFE5EF',
   },
   {
     title: 'Weekly Reports',
-    description: 'Review weekly performance and export the numbers you need.',
+    description: 'Pull together adherence, nutrition balance, and trend data in one reviewable page.',
     illustration: require('@/../assets/illustrations/data-trends.svg'),
+    tint: '#E6F9FF',
   },
-];
+] as const;
 
 function FeatureCard({
   title,
   description,
   illustration,
+  tint,
   isDesktop,
   onExplore,
 }: {
   title: string;
   description: string;
   illustration: any;
+  tint: string;
   isDesktop: boolean;
   onExplore: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+
   return (
     <View
       style={[
         styles.card,
-        isDesktop ? styles.cardDesktop : styles.cardMobile,
+        { backgroundColor: hovered && Platform.OS === 'web' ? '#FFFFFF' : EXPERIENCE_COLORS.glassStrong },
         hovered && styles.cardHovered,
       ]}
       {...(Platform.OS === 'web' && {
@@ -64,21 +73,26 @@ function FeatureCard({
         onMouseLeave: () => setHovered(false),
       })}
     >
+      <View style={[styles.illustrationWrap, { backgroundColor: tint }]}>
+        <Image source={illustration} style={isDesktop ? styles.illustrationDesktop : styles.illustrationMobile} contentFit="contain" />
+      </View>
+
       <View style={styles.textSide}>
-        <Text variant="heading3" weight="bold" style={styles.cardTitle}>
-          {title}
-        </Text>
-        <Text variant="body" style={styles.cardDescription}>
-          {description}
-        </Text>
+        <View style={styles.copyStack}>
+          <Text variant="heading3" weight="bold" style={styles.cardTitle}>
+            {title}
+          </Text>
+          <Text variant="body" style={styles.cardDescription}>
+            {description}
+          </Text>
+        </View>
+
         <Pressable onPress={onExplore} style={({ pressed }) => [styles.detailsBtn, pressed && styles.pressed]}>
           <Text variant="body" weight="semibold" style={styles.detailsText}>
             Explore
           </Text>
         </Pressable>
       </View>
-
-      <Image source={illustration} style={styles.illustration} contentFit="contain" />
     </View>
   );
 }
@@ -101,6 +115,9 @@ export function FeatureGrid({ onExplore }: FeatureGridProps) {
       >
         Discover what you can do with {APP_NAME}
       </Text>
+      <Text variant="heading4" style={styles.subtitle}>
+        A brighter mobile flow for logging, planning, and reviewing progress in one product.
+      </Text>
 
       <View style={styles.grid}>
         {FEATURES.map((feature) => (
@@ -115,6 +132,7 @@ export function FeatureGrid({ onExplore }: FeatureGridProps) {
               title={feature.title}
               description={feature.description}
               illustration={feature.illustration}
+              tint={feature.tint}
               isDesktop={isDesktop}
               onExplore={handleExplore}
             />
@@ -131,16 +149,23 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['2xl'],
   },
   sectionTitle: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
     fontSize: 56,
     lineHeight: 60,
     letterSpacing: -2,
-    marginBottom: spacing['2xl'],
+    marginBottom: spacing.md,
   },
   sectionTitleMobile: {
     fontSize: 40,
     lineHeight: 44,
     letterSpacing: -1.4,
+  },
+  subtitle: {
+    color: EXPERIENCE_COLORS.inkSoft,
+    marginBottom: spacing['2xl'],
+    maxWidth: 720,
+    fontSize: 19,
+    lineHeight: 30,
   },
   grid: {
     flexDirection: 'row',
@@ -150,72 +175,80 @@ const styles = StyleSheet.create({
   cardWrapper: {},
   cardWrapperDesktop: {
     width: 'calc(33.333% - 11px)' as any,
-    minHeight: 236,
   },
   cardWrapperMobile: {
     width: '100%',
   },
   card: {
-    backgroundColor: LANDING_COLORS.surface,
-    borderRadius: radii['2xl'],
-    padding: 24,
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
     height: '100%',
-    ...(Platform.OS === 'web' && ({
-      transition: 'transform 0.2s ease-out, box-shadow 0.2s ease-out',
-    } as any)),
+    gap: spacing.md,
+    padding: 18,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
+    ...(typeof document !== 'undefined'
+      ? ({ boxShadow: '0 20px 42px rgba(26,60,109,0.08)', transition: 'transform 0.2s ease-out, box-shadow 0.2s ease-out' } as any)
+      : {
+          shadowColor: EXPERIENCE_COLORS.shadowSoft,
+          shadowOffset: { width: 0, height: 16 },
+          shadowRadius: 26,
+          shadowOpacity: 0.12,
+          elevation: 6,
+        }),
   },
   cardHovered: {
-    ...(Platform.OS === 'web' && ({
-      transform: [{ translateY: -4 }],
-      boxShadow: '0 12px 28px rgba(17,17,17,0.08)',
-    } as any)),
+    ...(typeof document !== 'undefined'
+      ? ({ transform: [{ translateY: -4 }], boxShadow: '0 28px 48px rgba(26,60,109,0.12)' } as any)
+      : {}),
   },
-  cardDesktop: {
-    minHeight: 236,
+  illustrationWrap: {
+    minHeight: 160,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  cardMobile: {
-    minHeight: 220,
+  illustrationDesktop: {
+    width: '100%',
+    height: 148,
+  },
+  illustrationMobile: {
+    width: '100%',
+    height: 180,
   },
   textSide: {
     flex: 1,
-    gap: spacing.sm,
-    paddingRight: spacing.md,
     justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  copyStack: {
+    gap: spacing.sm,
   },
   cardTitle: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
     fontSize: 24,
     lineHeight: 28,
   },
   cardDescription: {
-    color: BRAND_COLORS.textSecondary,
+    color: EXPERIENCE_COLORS.inkSoft,
     fontSize: 16,
     lineHeight: 26,
   },
   detailsBtn: {
     alignSelf: 'flex-start',
-    backgroundColor: LANDING_COLORS.pillBg,
-    borderRadius: radii.pill,
+    minHeight: 46,
     paddingHorizontal: 18,
-    paddingVertical: 12,
-    marginTop: spacing.md,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255,255,255,0.82)',
     borderWidth: 1,
-    borderColor: LANDING_COLORS.border,
+    borderColor: EXPERIENCE_COLORS.stroke,
+    justifyContent: 'center',
   },
   detailsText: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
   },
   pressed: {
     opacity: 0.82,
-  },
-  illustration: {
-    width: 132,
-    height: 132,
-    alignSelf: 'flex-end',
   },
 });
 

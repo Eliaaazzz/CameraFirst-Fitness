@@ -62,7 +62,7 @@ export const Card = ({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radii.xl,
+    borderRadius: radii['2xl'],
     backgroundColor: colors.light.surfaceElevated,
     borderWidth: 1,
     borderColor: colors.light.borderSubtle,
@@ -72,4 +72,3 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
 });
-

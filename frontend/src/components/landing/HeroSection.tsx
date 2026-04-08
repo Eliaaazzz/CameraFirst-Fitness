@@ -1,15 +1,14 @@
-import { ArrowRight, Quotes } from 'phosphor-react-native';
+import { ArrowRight, Drop, Fire, Target } from 'phosphor-react-native';
 import { Image } from 'expo-image';
 import React from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components';
-import { APP_NAME, BRAND_COLORS, LANDING_COLORS, radii, spacing } from '@/utils';
+import { APP_NAME, EXPERIENCE_COLORS, radii, spacing } from '@/utils';
 
-const heroIllustration = require('@/../assets/illustrations/hero-healthy-eating.svg');
-const panelIllustration = require('@/../assets/illustrations/fitness-stats.svg');
+const heroIllustration = require('@/../assets/illustrations/brand-motion-coach.svg');
 const mascotIcon = require('@/../assets/app-icon-1024-transparent.png');
-const NAV_HEIGHT = 88;
+const NAV_HEIGHT = 96;
 
 interface HeroSectionProps {
   eyebrow?: string;
@@ -21,34 +20,39 @@ interface HeroSectionProps {
   onLogin: () => void;
 }
 
+const HERO_METRICS = [
+  { label: 'Move Rings', value: '87%', Icon: Fire, tone: '#FFE2D5' },
+  { label: 'Protein', value: '128g', Icon: Target, tone: '#DDF9D3' },
+  { label: 'Hydration', value: '6 cups', Icon: Drop, tone: '#DDF1FF' },
+] as const;
+
 export function HeroSection({
-  eyebrow = 'FITNESS PLATFORM',
-  title = `Train, eat, and progress with ${APP_NAME}`,
-  body = 'Plan workouts, log meals, and review your numbers in one place. Free to start — no credit card required.',
+  eyebrow = 'AURA COACH',
+  title = `Bright daily coaching for food, rings, and recovery`,
+  body = `Built for mobile first. ${APP_NAME} turns meal photos, training targets, and weekly progress into one vivid daily flow.`,
   primaryCtaLabel = 'Start tracking',
-  secondaryCtaLabel = 'Log in to your account',
+  secondaryCtaLabel = 'See your account',
   onGetStarted,
   onLogin,
 }: HeroSectionProps) {
   const { width, height } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  const isTablet = width >= 720;
 
   return (
     <View
       style={[
         styles.container,
         isDesktop ? styles.containerDesktop : styles.containerMobile,
-        { minHeight: height - NAV_HEIGHT },
+        isDesktop ? { minHeight: Math.max(720, height - NAV_HEIGHT) } : null,
       ]}
     >
       <View style={[styles.copyColumn, isDesktop && styles.copyColumnDesktop]}>
-        <View style={styles.eyebrowRow}>
-          <View style={styles.eyebrowBadge}>
-            <Image source={mascotIcon} style={styles.eyebrowIcon} contentFit="contain" />
-            <Text variant="label" weight="bold" style={styles.eyebrow}>
-              {eyebrow}
-            </Text>
-          </View>
+        <View style={styles.eyebrowBadge}>
+          <Image source={mascotIcon} style={styles.eyebrowIcon} contentFit="contain" />
+          <Text variant="label" weight="bold" style={styles.eyebrow}>
+            {eyebrow}
+          </Text>
         </View>
 
         <Text
@@ -59,57 +63,92 @@ export function HeroSection({
           {title}
         </Text>
 
-        <Text variant="heading4" style={styles.body}>
+        <Text variant="heading4" style={isDesktop ? styles.body : [styles.body, styles.bodyMobile]}>
           {body}
         </Text>
 
-        <View style={styles.ctaRow}>
+        <View style={styles.metricRail}>
+          {HERO_METRICS.map((metric) => (
+            <View key={metric.label} style={styles.metricChip}>
+              <View style={[styles.metricIcon, { backgroundColor: metric.tone }]}>
+                <metric.Icon size={16} weight="bold" color={EXPERIENCE_COLORS.ink} />
+              </View>
+              <View>
+                <Text variant="caption" weight="medium" style={styles.metricLabel}>
+                  {metric.label}
+                </Text>
+                <Text variant="body" weight="bold" style={styles.metricValue}>
+                  {metric.value}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        <View style={[styles.ctaRow, !isTablet && styles.ctaRowMobile]}>
           <Pressable onPress={onGetStarted} style={({ pressed }) => [styles.primaryCta, pressed && styles.ctaPressed]}>
-            <Text variant="body" weight="bold" style={styles.primaryCtaText}>
-              {primaryCtaLabel}
-            </Text>
+            <View style={styles.primaryCtaFill}>
+              <Text variant="body" weight="bold" style={styles.primaryCtaText}>
+                {primaryCtaLabel}
+              </Text>
+              <ArrowRight size={16} weight="bold" color="#FFFFFF" />
+            </View>
           </Pressable>
 
           <Pressable onPress={onLogin} style={({ pressed }) => [styles.secondaryCta, pressed && styles.linkPressed]}>
-            <Text variant="body" weight="medium" style={styles.secondaryCtaText}>
+            <Text variant="body" weight="semibold" style={styles.secondaryCtaText}>
               {secondaryCtaLabel}
             </Text>
           </Pressable>
         </View>
 
-        <View style={styles.testimonialCard}>
-          <Quotes size={18} weight="fill" color={LANDING_COLORS.text} />
-          <Text variant="body" style={styles.testimonialText}>
-            "Finally a fitness app that makes weekly planning and daily logging feel connected."
+        <View style={styles.storyCard}>
+          <Text variant="caption" weight="bold" style={styles.storyLabel}>
+            MOBILE-FIRST FLOW
           </Text>
-          <Text variant="caption" weight="semibold" style={styles.testimonialMeta}>
-            Elia
+          <Text variant="body" style={styles.storyText}>
+            Snap a plate, hit your rings, and review the week without jumping between separate tools.
           </Text>
         </View>
       </View>
 
       <View style={[styles.visualColumn, isDesktop && styles.visualColumnDesktop]}>
-        <View style={[styles.visualPanel, !isDesktop && styles.visualPanelMobile]}>
-          <Image source={heroIllustration} style={[styles.heroArt, !isDesktop && styles.heroArtMobile]} contentFit="contain" />
+        <View style={styles.visualShell}>
+          <View style={styles.routeChip}>
+            <Text variant="caption" weight="bold" style={styles.routeChipText}>
+              Today&apos;s momentum
+            </Text>
+          </View>
 
-          <View style={styles.overlayCard}>
-            <View style={styles.overlayCopy}>
-              <Text variant="heading4" weight="bold" style={styles.overlayTitle}>
-                Ready to build today?
+          <View style={styles.phoneStage}>
+            <View style={styles.phoneShell}>
+              <Image source={heroIllustration} style={styles.heroArt} contentFit="contain" />
+            </View>
+          </View>
+
+          <View style={[styles.insightRail, !isDesktop && styles.insightRailMobile]}>
+            <View style={styles.insightCard}>
+              <Text variant="caption" weight="bold" style={styles.insightLabel}>
+                FAST START
               </Text>
-              <Text variant="caption" style={styles.overlayBody}>
-                Turn meals, workouts, and targets into one daily plan.
+              <Text variant="heading4" weight="bold" style={styles.insightTitle}>
+                Camera to log in one tap
+              </Text>
+              <Text variant="caption" style={styles.insightBody}>
+                Built to feel immediate on mobile, not like a shrunken web dashboard.
               </Text>
             </View>
 
-            <View style={styles.overlayAction}>
-              <Image source={panelIllustration} style={styles.overlayThumb} contentFit="contain" />
-              <Pressable onPress={onGetStarted} style={({ pressed }) => [styles.overlayPill, pressed && styles.linkPressed]}>
-                <Text variant="body" weight="bold" style={styles.overlayPillText}>
-                  Build plan
-                </Text>
-                <ArrowRight size={16} weight="bold" color={LANDING_COLORS.text} />
-              </Pressable>
+            <View style={[styles.insightCard, styles.insightCardDark]}>
+              <Text variant="caption" weight="bold" style={styles.insightLabelDark}>
+                APPLE FITNESS ENERGY
+              </Text>
+              <Text variant="heading4" weight="bold" style={styles.insightTitleDark}>
+                Bright rings, crisp goals
+              </Text>
+              <Text variant="caption" style={styles.insightBodyDark}>
+                Progress gets surfaced with color, contrast, and stronger hierarchy.
+              </Text>
             </View>
           </View>
         </View>
@@ -122,8 +161,14 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     gap: spacing['2xl'],
-    paddingTop: spacing['3xl'],
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing['2xl'],
     paddingBottom: spacing['4xl'],
+    borderRadius: 36,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    backgroundColor: '#FFFFFF',
   },
   containerDesktop: {
     flexDirection: 'row',
@@ -136,72 +181,136 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.lg,
     justifyContent: 'center',
+    zIndex: 1,
   },
   copyColumnDesktop: {
-    paddingRight: spacing['3xl'],
-  },
-  eyebrowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingRight: spacing['2xl'],
   },
   eyebrowBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
     gap: spacing.sm,
-  },
-  eyebrow: {
-    color: BRAND_COLORS.textMuted,
-    letterSpacing: 1.4,
+    minHeight: 42,
+    paddingHorizontal: 12,
+    borderRadius: radii.pill,
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
   },
   eyebrowIcon: {
     width: 28,
     height: 28,
     borderRadius: 8,
   },
+  eyebrow: {
+    color: EXPERIENCE_COLORS.ink,
+    letterSpacing: 1.3,
+  },
   headline: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
     maxWidth: 620,
   },
   headlineDesktop: {
-    fontSize: 74,
-    lineHeight: 78,
-    letterSpacing: -2.8,
+    fontSize: 76,
+    lineHeight: 80,
+    letterSpacing: -3,
   },
   headlineMobile: {
-    fontSize: 46,
-    lineHeight: 50,
-    letterSpacing: -1.5,
+    fontSize: 48,
+    lineHeight: 52,
+    letterSpacing: -1.8,
   },
   body: {
-    maxWidth: 520,
-    color: BRAND_COLORS.textSecondary,
+    maxWidth: 560,
+    color: EXPERIENCE_COLORS.inkSoft,
     fontSize: 22,
     lineHeight: 34,
+  },
+  bodyMobile: {
+    fontSize: 18,
+    lineHeight: 30,
+  },
+  metricRail: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  metricChip: {
+    minWidth: 140,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 22,
+    backgroundColor: EXPERIENCE_COLORS.glass,
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
+  },
+  metricIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  metricLabel: {
+    color: EXPERIENCE_COLORS.inkSoft,
+  },
+  metricValue: {
+    color: EXPERIENCE_COLORS.ink,
   },
   ctaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: spacing.lg,
-    marginTop: spacing.md,
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  ctaRowMobile: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
   },
   primaryCta: {
-    backgroundColor: LANDING_COLORS.ctaBg,
-    paddingHorizontal: 28,
-    paddingVertical: 18,
-    borderRadius: radii.md,
+    borderRadius: 24,
+    overflow: 'hidden',
+    ...(typeof document !== 'undefined'
+      ? ({ boxShadow: '0 14px 28px rgba(17,17,17,0.10)' } as any)
+      : {
+          shadowColor: '#111111',
+          shadowOffset: { width: 0, height: 12 },
+          shadowRadius: 20,
+          shadowOpacity: 0.1,
+          elevation: 8,
+        }),
+  },
+  primaryCtaFill: {
+    minHeight: 58,
+    paddingHorizontal: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: '#111111',
   },
   primaryCtaText: {
-    color: LANDING_COLORS.ctaText,
+    color: '#FFFFFF',
     fontSize: 16,
   },
   secondaryCta: {
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: LANDING_COLORS.borderLink,
+    minHeight: 58,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: EXPERIENCE_COLORS.glass,
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
   },
   secondaryCtaText: {
-    color: LANDING_COLORS.text,
+    color: EXPERIENCE_COLORS.ink,
     fontSize: 16,
   },
   ctaPressed: {
@@ -210,92 +319,110 @@ const styles = StyleSheet.create({
   linkPressed: {
     opacity: 0.72,
   },
-  testimonialCard: {
-    marginTop: spacing.lg,
-    maxWidth: 480,
-    backgroundColor: LANDING_COLORS.bg,
-    borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
-    borderRadius: radii.xl,
-    padding: 18,
+  storyCard: {
+    marginTop: spacing.sm,
+    maxWidth: 510,
     gap: spacing.xs,
+    padding: spacing.lg,
+    borderRadius: 28,
+    backgroundColor: '#111111',
+    ...(typeof document !== 'undefined' ? ({ boxShadow: '0 18px 40px rgba(17,17,17,0.12)' } as any) : {}),
   },
-  testimonialText: {
-    color: LANDING_COLORS.text,
+  storyLabel: {
+    color: '#D8E5FF',
+  },
+  storyText: {
+    color: '#F5F9FF',
     lineHeight: 26,
-  },
-  testimonialMeta: {
-    color: BRAND_COLORS.textMuted,
   },
   visualColumn: {
     flex: 1,
+    zIndex: 1,
   },
   visualColumnDesktop: {
     minWidth: 500,
   },
-  visualPanel: {
-    backgroundColor: LANDING_COLORS.surface,
-    borderRadius: radii['2xl'],
-    borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
-    padding: spacing.xl,
-    minHeight: 580,
-    justifyContent: 'space-between',
-    overflow: 'hidden',
+  visualShell: {
+    gap: spacing.lg,
   },
-  visualPanelMobile: {
-    minHeight: 460,
+  routeChip: {
+    alignSelf: 'flex-start',
+    minHeight: 40,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255,255,255,0.74)',
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
+  },
+  routeChipText: {
+    color: EXPERIENCE_COLORS.ink,
+  },
+  phoneStage: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+  },
+  phoneShell: {
+    width: '100%',
+    maxWidth: 430,
+    padding: 18,
+    borderRadius: 34,
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.strokeStrong,
+    ...(typeof document !== 'undefined'
+      ? ({ boxShadow: '0 28px 54px rgba(26,60,109,0.16)' } as any)
+      : {
+          shadowColor: EXPERIENCE_COLORS.shadow,
+          shadowOffset: { width: 0, height: 24 },
+          shadowRadius: 32,
+          shadowOpacity: 0.16,
+          elevation: 12,
+        }),
   },
   heroArt: {
     width: '100%',
     height: 420,
   },
-  heroArtMobile: {
-    height: 280,
-  },
-  overlayCard: {
+  insightRail: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    backgroundColor: LANDING_COLORS.accent.warm,
-    borderRadius: 22,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-  },
-  overlayCopy: {
-    flex: 1,
-    minWidth: 220,
-  },
-  overlayTitle: {
-    color: LANDING_COLORS.textOnDark,
-    marginBottom: 4,
-  },
-  overlayBody: {
-    color: LANDING_COLORS.textOnDarkMuted,
-    maxWidth: 340,
-  },
-  overlayAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     gap: spacing.md,
   },
-  overlayThumb: {
-    width: 72,
-    height: 72,
+  insightRailMobile: {
+    flexDirection: 'column',
   },
-  overlayPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  insightCard: {
+    flex: 1,
     gap: spacing.xs,
-    backgroundColor: LANDING_COLORS.pillBg,
-    borderRadius: radii.pill,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    padding: spacing.lg,
+    borderRadius: 26,
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
+    borderWidth: 1,
+    borderColor: EXPERIENCE_COLORS.stroke,
   },
-  overlayPillText: {
-    color: LANDING_COLORS.pillText,
+  insightCardDark: {
+    backgroundColor: '#F6F4EF',
+    borderColor: 'rgba(17,17,17,0.06)',
+  },
+  insightLabel: {
+    color: EXPERIENCE_COLORS.inkSoft,
+  },
+  insightTitle: {
+    color: EXPERIENCE_COLORS.ink,
+  },
+  insightBody: {
+    color: EXPERIENCE_COLORS.inkSoft,
+  },
+  insightLabelDark: {
+    color: EXPERIENCE_COLORS.inkSoft,
+  },
+  insightTitleDark: {
+    color: EXPERIENCE_COLORS.ink,
+  },
+  insightBodyDark: {
+    color: EXPERIENCE_COLORS.inkSoft,
   },
 });
 

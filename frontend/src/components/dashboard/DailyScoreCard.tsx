@@ -1,5 +1,7 @@
 /**
- * DailyScoreCard - Whoop/Oura-inspired daily score dial
+ * DailyScoreCard — Vivid 270° gauge with bright metric readouts
+ *
+ * Redesigned: Whoop Recovery · Tesla Instrument Cluster
  *
  * Computes a 0-100 composite score from:
  *   - Calorie adherence (40%)
@@ -7,7 +9,9 @@
  *   - Hydration progress (15%)
  *   - Streak bonus (15%)
  *
- * Renders as an animated SVG arc with color gradient.
+ * Renders as a 270° animated SVG arc gauge with vivid per-metric
+ * breakdown bars. The gauge gap sits at the bottom, creating a
+ * classic instrument-panel silhouette.
  */
 import React, { useEffect, useMemo } from 'react';
 import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
@@ -18,7 +22,7 @@ import Animated, {
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Defs, G, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, G } from 'react-native-svg';
 
 import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/components/common/BentoCard';
 import { Text } from '@/components/Text';
@@ -81,6 +85,10 @@ function computeDailyScore(data: DailyScoreData): number {
   return Math.round(raw * 100);
 }
 
+// ============================================================================
+// VIVID SCORE LABELS & COLORS
+// ============================================================================
+
 function getScoreLabel(score: number): string {
   if (score >= 80) return 'Excellent';
   if (score >= 60) return 'Good';
@@ -89,21 +97,39 @@ function getScoreLabel(score: number): string {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 80) return BRAND_COLORS.semantic.info;
-  if (score >= 60) return BRAND_COLORS.semantic.success;
-  if (score >= 40) return BRAND_COLORS.primary;
-  return BRAND_COLORS.semantic.error;
+  if (score >= 80) return '#10B981'; // Vivid emerald
+  if (score >= 60) return '#0EA5E9'; // Vivid sky blue
+  if (score >= 40) return '#F97316'; // Vivid orange
+  return '#EF4444';                  // Vivid red
 }
+
+// ============================================================================
+// VIVID METRIC PALETTE — Distinct color per readout
+// ============================================================================
+
+const METRIC = {
+  calories:  { color: '#F97316', tint: 'rgba(249,115,22,0.12)', track: 'rgba(249,115,22,0.08)' },
+  macros:    { color: '#06B6D4', tint: 'rgba(6,182,212,0.12)',   track: 'rgba(6,182,212,0.08)' },
+  hydration: { color: '#3B82F6', tint: 'rgba(59,130,246,0.12)',  track: 'rgba(59,130,246,0.08)' },
+  streak:    { color: '#F59E0B', tint: 'rgba(245,158,11,0.12)',  track: 'rgba(245,158,11,0.08)' },
+};
+
+// ============================================================================
+// 270° GAUGE ARC CONFIG — Gap centered at bottom
+// ============================================================================
+
+const DIAL_SIZE = 140;
+const STROKE_WIDTH = 14;
+const RADIUS = (DIAL_SIZE - STROKE_WIDTH) / 2;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+const ARC_SWEEP = 0.75;                           // 270° of 360°
+const ARC_LENGTH = CIRCUMFERENCE * ARC_SWEEP;
+const GAUGE_ROTATION = 135;                        // Start at 7:30, gap at bottom
+const TRACK_COLOR = 'rgba(0, 0, 0, 0.06)';
 
 // ============================================================================
 // COMPONENT
 // ============================================================================
-
-const DIAL_SIZE = 140;
-const STROKE_WIDTH = 10;
-const RADIUS = (DIAL_SIZE - STROKE_WIDTH) / 2;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const TRACK_COLOR = 'rgba(249,115,22,0.12)';
 
 export function DailyScoreCard({ data, animated = true }: DailyScoreCardProps) {
   const score = useMemo(() => computeDailyScore(data), [data]);
@@ -126,8 +152,11 @@ export function DailyScoreCard({ data, animated = true }: DailyScoreCardProps) {
   }, [score, animated]);
 
   const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: CIRCUMFERENCE * (1 - progress.value),
+    strokeDashoffset: ARC_LENGTH * (1 - progress.value),
   }));
+
+  const cx = DIAL_SIZE / 2;
+  const cy = DIAL_SIZE / 2;
 
   return (
     <View
@@ -137,76 +166,77 @@ export function DailyScoreCard({ data, animated = true }: DailyScoreCardProps) {
       accessibilityLabel={`Daily score: ${score} out of 100, ${label}`}
     >
       <View style={[styles.row, isNarrow && styles.rowVertical]}>
-        {/* Score Dial */}
-        <View style={styles.dialContainer}>
-          <Svg width={DIAL_SIZE} height={DIAL_SIZE} viewBox={`0 0 ${DIAL_SIZE} ${DIAL_SIZE}`}>
-            <Defs>
-              <SvgGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0%" stopColor={color} stopOpacity={1} />
-                <Stop offset="100%" stopColor={color} stopOpacity={0.6} />
-              </SvgGradient>
-            </Defs>
-            {/* Track */}
-            <Circle
-              cx={DIAL_SIZE / 2}
-              cy={DIAL_SIZE / 2}
-              r={RADIUS}
-              stroke={TRACK_COLOR}
-              strokeWidth={STROKE_WIDTH}
-              fill="none"
-            />
-            {/* Progress arc */}
-            <G transform={`rotate(-90, ${DIAL_SIZE / 2}, ${DIAL_SIZE / 2})`}>
-              <AnimatedCircle
-                cx={DIAL_SIZE / 2}
-                cy={DIAL_SIZE / 2}
-                r={RADIUS}
-                stroke="url(#scoreGrad)"
-                strokeWidth={STROKE_WIDTH}
-                fill="none"
-                strokeLinecap="round"
-                strokeDasharray={[CIRCUMFERENCE, CIRCUMFERENCE]}
-                animatedProps={animatedProps}
-              />
-            </G>
-          </Svg>
-          {/* Center text */}
-          <View style={styles.dialCenter}>
-            <Text variant="heading1" weight="bold" style={[styles.scoreNumber, { color }]}>
-              {score}
-            </Text>
-            <Text variant="caption" style={styles.scoreLabel}>{label}</Text>
+        {/* 270° Gauge Arc */}
+        <View style={styles.dialPanel}>
+          <View style={styles.dialContainer}>
+            <Svg width={DIAL_SIZE} height={DIAL_SIZE} viewBox={`0 0 ${DIAL_SIZE} ${DIAL_SIZE}`}>
+              <G transform={`rotate(${GAUGE_ROTATION}, ${cx}, ${cy})`}>
+                {/* Track — full 270° visible arc */}
+                <Circle
+                  cx={cx}
+                  cy={cy}
+                  r={RADIUS}
+                  stroke={TRACK_COLOR}
+                  strokeWidth={STROKE_WIDTH}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={[ARC_LENGTH, CIRCUMFERENCE]}
+                />
+                {/* Progress — fills from start (7:30) clockwise */}
+                <AnimatedCircle
+                  cx={cx}
+                  cy={cy}
+                  r={RADIUS}
+                  stroke={color}
+                  strokeWidth={STROKE_WIDTH}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={[ARC_LENGTH, CIRCUMFERENCE]}
+                  animatedProps={animatedProps}
+                />
+              </G>
+            </Svg>
+            {/* Center: score number + label pill */}
+            <View style={styles.dialCenter}>
+              <Text variant="heading1" weight="bold" style={[styles.scoreNumber, { color }]}>
+                {score}
+              </Text>
+              <View style={[styles.labelBadge, { backgroundColor: `${color}1A` }]}>
+                <Text style={[styles.labelText, { color }]}>{label}</Text>
+              </View>
+            </View>
           </View>
+          <Text style={styles.dialCaption}>Overall pace today</Text>
         </View>
 
-        {/* Breakdown */}
+        {/* Metric Breakdown */}
         <View style={styles.breakdown}>
           <Text variant="label" weight="bold" style={styles.breakdownTitle}>DAILY SCORE</Text>
-          <BreakdownRow
+          <MetricBar
             label="Calories"
             value={data.calorieGoal > 0 ? `${data.calories}/${data.calorieGoal}` : '--'}
             percent={data.calorieGoal > 0 ? Math.round((data.calories / data.calorieGoal) * 100) : 0}
-            color={BRAND_COLORS.macros.calories}
+            metric={METRIC.calories}
           />
-          <BreakdownRow
+          <MetricBar
             label="Macros"
             value="P/C/F"
             percent={Math.round(
               ((macroPercent(data.protein) + macroPercent(data.carbs) + macroPercent(data.fat)) / 3) * 100
             )}
-            color={BRAND_COLORS.secondary}
+            metric={METRIC.macros}
           />
-          <BreakdownRow
+          <MetricBar
             label="Hydration"
             value={`${data.hydrationCups}/${data.hydrationGoal}`}
             percent={data.hydrationGoal > 0 ? Math.round((data.hydrationCups / data.hydrationGoal) * 100) : 0}
-            color={BRAND_COLORS.semantic.info}
+            metric={METRIC.hydration}
           />
-          <BreakdownRow
+          <MetricBar
             label="Streak"
             value={`${data.streak}d`}
             percent={Math.min(100, Math.round((data.streak / 30) * 100))}
-            color={BRAND_COLORS.semantic.warning}
+            metric={METRIC.streak}
           />
         </View>
       </View>
@@ -220,28 +250,36 @@ function macroPercent(m: { current: number; goal: number }): number {
 }
 
 // ============================================================================
-// BREAKDOWN ROW
+// METRIC BAR — Vivid colored readout with thick progress bar
 // ============================================================================
 
-function BreakdownRow({ label, value, percent, color }: {
+function MetricBar({ label, value, percent, metric }: {
   label: string;
   value: string;
   percent: number;
-  color: string;
+  metric: { color: string; tint: string; track: string };
 }) {
-  const clampedPercent = Math.min(100, Math.max(0, percent));
+  const clamped = Math.min(100, Math.max(0, percent));
   return (
     <View
-      style={styles.breakdownRow}
+      style={styles.metricRow}
       accessibilityRole="text"
-      accessibilityLabel={`${label}: ${value}, ${clampedPercent} percent`}
+      accessibilityLabel={`${label}: ${value}, ${clamped} percent`}
     >
-      <View style={styles.breakdownMeta}>
-        <Text variant="caption" weight="medium" style={styles.breakdownLabel}>{label}</Text>
-        <Text variant="caption" style={styles.breakdownValue}>{value}</Text>
+      <View style={styles.metricHeader}>
+        <View style={styles.metricLabelRow}>
+          <View style={[styles.metricDot, { backgroundColor: metric.color }]} />
+          <Text style={styles.metricLabel}>{label}</Text>
+        </View>
+        <View style={styles.metricValueRow}>
+          <Text style={styles.metricValue}>{value}</Text>
+          <View style={[styles.metricBadge, { backgroundColor: metric.tint }]}>
+            <Text style={[styles.metricBadgeText, { color: metric.color }]}>{clamped}%</Text>
+          </View>
+        </View>
       </View>
-      <View style={styles.breakdownTrack}>
-        <View style={[styles.breakdownFill, { width: `${clampedPercent}%`, backgroundColor: color }]} />
+      <View style={[styles.metricTrack, { backgroundColor: metric.track }]}>
+        <View style={[styles.metricFill, { width: `${clamped}%`, backgroundColor: metric.color }]} />
       </View>
     </View>
   );
@@ -255,6 +293,12 @@ const styles = StyleSheet.create({
   card: {
     ...(Platform.OS === 'web' ? BENTO_CARD_STYLES : MOBILE_CARD_STYLES),
     padding: spacing.lg,
+    ...(Platform.OS !== 'web' ? {
+      backgroundColor: '#FFFEFB',
+      borderColor: '#E9DED0',
+      borderRadius: 28,
+      shadowOpacity: 0.05,
+    } : {}),
   },
   row: {
     flexDirection: 'row',
@@ -263,8 +307,20 @@ const styles = StyleSheet.create({
   },
   rowVertical: {
     flexDirection: 'column',
-    alignItems: 'center',
+    alignItems: 'stretch',
     gap: spacing.lg,
+  },
+
+  // ========== GAUGE ==========
+  dialPanel: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FBF8F1',
+    borderWidth: 1,
+    borderColor: '#E9E0D4',
+    borderRadius: 26,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
   },
   dialContainer: {
     width: DIAL_SIZE,
@@ -276,53 +332,98 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 8, // Nudge up slightly since gauge gap is at bottom
   },
   scoreNumber: {
-    fontSize: 36,
-    lineHeight: 40,
+    fontSize: 42,
+    lineHeight: 46,
   },
-  scoreLabel: {
-    color: '#111111',
-    marginTop: 2,
-    fontWeight: '600',
+  labelBadge: {
+    marginTop: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
   },
+  labelText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  dialCaption: {
+    color: '#6B665F',
+    fontSize: 12,
+    marginTop: 6,
+  },
+
+  // ========== BREAKDOWN ==========
   breakdown: {
     flex: 1,
-    gap: spacing.sm,
+    gap: 14,
   },
   breakdownTitle: {
     color: BRAND_COLORS.textPrimary,
     letterSpacing: 1.5,
     fontSize: 10,
     fontWeight: '700',
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
-  breakdownRow: {
-    gap: 3,
+
+  // ========== METRIC BAR ==========
+  metricRow: {
+    gap: 5,
+    padding: 10,
+    borderRadius: 18,
+    backgroundColor: '#FBF8F1',
+    borderWidth: 1,
+    borderColor: '#E9E0D4',
   },
-  breakdownMeta: {
+  metricHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  breakdownLabel: {
+  metricLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  metricDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  metricLabel: {
     color: '#111111',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  metricValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  metricValue: {
+    color: '#374151',
     fontSize: 12,
     fontWeight: '600',
   },
-  breakdownValue: {
-    color: '#374151',
-    fontSize: 11,
-    fontWeight: '500',
+  metricBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
-  breakdownTrack: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(249,115,22,0.10)',
+  metricBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  metricTrack: {
+    height: 7,
+    borderRadius: 999,
     overflow: 'hidden',
   },
-  breakdownFill: {
+  metricFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: 999,
   },
 });
 

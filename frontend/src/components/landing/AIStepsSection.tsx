@@ -3,7 +3,7 @@ import React from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components';
-import { BRAND_COLORS, radii, spacing } from '@/utils';
+import { BRAND_COLORS, EXPERIENCE_COLORS, radii, spacing } from '@/utils';
 
 const STEPS = [
   {
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['2xl'],
   },
   title: {
-    color: '#111111',
+    color: EXPERIENCE_COLORS.ink,
     fontSize: 52,
     lineHeight: 56,
     letterSpacing: -2,
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1.4,
   },
   subtitle: {
-    color: BRAND_COLORS.textSecondary,
+    color: EXPERIENCE_COLORS.inkSoft,
     maxWidth: 720,
     marginBottom: spacing['2xl'],
     fontSize: 20,
@@ -101,12 +101,21 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: radii['2xl'],
+    backgroundColor: EXPERIENCE_COLORS.glassStrong,
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
+    borderColor: EXPERIENCE_COLORS.stroke,
     padding: 24,
     minHeight: 248,
+    ...(typeof document !== 'undefined'
+      ? ({ boxShadow: '0 20px 40px rgba(26,60,109,0.08)' } as any)
+      : {
+          shadowColor: EXPERIENCE_COLORS.shadowSoft,
+          shadowOffset: { width: 0, height: 16 },
+          shadowRadius: 26,
+          shadowOpacity: 0.12,
+          elevation: 6,
+        }),
   },
   cardDesktop: {
     minWidth: 0,
@@ -120,15 +129,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   stepLabel: {
-    color: BRAND_COLORS.textMuted,
+    color: EXPERIENCE_COLORS.inkSoft,
     marginBottom: spacing.sm,
   },
   cardTitle: {
-    color: '#111111',
+    color: EXPERIENCE_COLORS.ink,
     marginBottom: spacing.sm,
   },
   cardBody: {
-    color: BRAND_COLORS.textSecondary,
+    color: EXPERIENCE_COLORS.inkSoft,
     lineHeight: 26,
   },
 });
