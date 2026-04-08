@@ -823,31 +823,7 @@ export default function LoginScreen() {
           onScrollBeginDrag={handleOutsideTap}
         >
           <View style={styles.authStack}>
-            <Animated.View entering={FadeInDown.duration(420)} style={styles.brandShowcase}>
-              <View style={styles.brandHaloSoft} />
-              <View style={styles.brandHaloWarm} />
-              <Animated.View entering={ZoomIn.duration(520).delay(100)} style={styles.brandOrb}>
-                <Image
-                  source={require('@/../assets/app-icon-1024.png')}
-                  style={styles.brandOrbLogo}
-                  contentFit="contain"
-                />
-              </Animated.View>
-              <View style={styles.brandBadgeRow}>
-                <View style={styles.brandBadge}>
-                  <Text variant="caption" weight="bold" style={styles.brandBadgeText}>
-                    1 tap logging
-                  </Text>
-                </View>
-                <View style={styles.brandBadge}>
-                  <Text variant="caption" weight="bold" style={styles.brandBadgeText}>
-                    Bright daily rings
-                  </Text>
-                </View>
-              </View>
-            </Animated.View>
-
-            <Animated.View entering={FadeInUp.duration(500).delay(180)} style={styles.card}>
+            <Animated.View entering={FadeInUp.duration(500).delay(100)} style={styles.card}>
               {/* Logo Section */}
               <View style={styles.logoSection}>
                 <Animated.View entering={ZoomIn.duration(420).delay(220)} style={styles.logoOrb}>

@@ -520,14 +520,6 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.authStack}>
-            <View style={styles.brandShowcase}>
-              <View style={styles.brandHaloSoft} />
-              <View style={styles.brandHaloWarm} />
-              <View style={styles.brandOrb}>
-                <Image source={require('@/../assets/app-icon-1024.png')} style={styles.brandOrbLogo} contentFit="contain" />
-              </View>
-            </View>
-
             <View style={styles.card}>
             {/* Logo */}
             <View style={styles.logoSection}>
