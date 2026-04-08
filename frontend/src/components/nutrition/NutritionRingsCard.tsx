@@ -1,14 +1,14 @@
 /**
- * NutritionRingsCard — Apple Fitness Activity Rings.
+ * NutritionRingsCard — Replicated from reference screenshot.
  *
- * EXACT replica of the reference image:
- * - Outer (Protein): #FA114F hot pink — track 25% opacity
- * - Middle (Fat): #92E82A electric lime — track 25% opacity
- * - Inner (Carbs): #00D4FD cyan — track 25% opacity
- * - Stroke: 22px CHUNKY
- * - Rings tightly packed (85, 62, 39)
- * - No center content — rings ARE the visual
- * - Stats below: 3 columns with colored dots + big numbers
+ * Layout:
+ * - Dark card (#1C1C1E) background
+ * - 270° arc rings (open at bottom) with neon colors
+ * - Calories centered inside rings (large bold white number)
+ * - P/F/C labels at ring endpoints
+ * - 3-column macro stats below with colored dots
+ * - 3 progress bars with matching neon colors + percentage
+ * - FDA citation footnote
  */
 import { BookOpen, ArrowSquareOut } from 'phosphor-react-native';
 import React, { useEffect } from 'react';
@@ -22,7 +22,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, G } from 'react-native-svg';
 
-import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/components/common/BentoCard';
 import { Text } from '@/components/Text';
 import { NUTRITION_REFERENCES, openExternalUrl } from '@/utils';
 
@@ -51,20 +50,24 @@ interface NutritionRingsCardProps {
 }
 
 // ============================================================================
-// APPLE FITNESS NEON COLORS — exact from reference image
+// NEON COLORS — from reference screenshot
 // ============================================================================
 
 const NEON = {
-  pink:  { fill: '#FA114F', track: 'rgba(250, 17, 79, 0.25)' },
-  lime:  { fill: '#92E82A', track: 'rgba(146, 232, 42, 0.25)' },
-  cyan:  { fill: '#00D4FD', track: 'rgba(0, 212, 253, 0.25)' },
+  pink:   '#FA114F',  // Protein (outer)
+  green:  '#34C759',  // Fat (middle)
+  orange: '#FF9F0A',  // Carbs (inner)
 };
 
-// Ring mapping: Protein (outer/pink), Fat (middle/lime), Carbs (inner/cyan)
-const STROKE = 22; // Chunky like Apple Fitness
+const TRACK_OPACITY = 0.3;
+
+// Ring config: 270° arcs, thick stroke, tight packing
+const STROKE = 20;
+const ARC_SWEEP = 0.75; // 270° of 360°
 
 interface RingDef {
   key: 'protein' | 'fat' | 'carbs';
+  letter: string;
   label: string;
   unit: string;
   color: string;
@@ -73,20 +76,21 @@ interface RingDef {
 }
 
 const RINGS: RingDef[] = [
-  { key: 'protein', label: 'Protein', unit: 'g', color: NEON.pink.fill, trackColor: NEON.pink.track, radius: 85 },
-  { key: 'fat',     label: 'Fat',     unit: 'g', color: NEON.lime.fill, trackColor: NEON.lime.track, radius: 62 },
-  { key: 'carbs',   label: 'Carbs',   unit: 'g', color: NEON.cyan.fill, trackColor: NEON.cyan.track, radius: 39 },
+  { key: 'protein', letter: 'P', label: 'Protein', unit: 'g', color: NEON.pink, trackColor: `rgba(250,17,79,${TRACK_OPACITY})`, radius: 82 },
+  { key: 'fat',     letter: 'F', label: 'Fat',     unit: 'g', color: NEON.green, trackColor: `rgba(52,199,89,${TRACK_OPACITY})`, radius: 60 },
+  { key: 'carbs',   letter: 'C', label: 'Carbs',   unit: 'g', color: NEON.orange, trackColor: `rgba(255,159,10,${TRACK_OPACITY})`, radius: 38 },
 ];
 
 // ============================================================================
-// ANIMATED RING — chunky, round-capped
+// ANIMATED 270° ARC RING
 // ============================================================================
 
-function Ring({ color, trackColor, radius, percentage, cx, cy, animated, delay }: {
+function ArcRing({ color, trackColor, radius, percentage, cx, cy, animated, delay }: {
   color: string; trackColor: string; radius: number; percentage: number;
   cx: number; cy: number; animated: boolean; delay: number;
 }) {
   const circ = 2 * Math.PI * radius;
+  const arcLen = circ * ARC_SWEEP;
   const target = Math.min(percentage, 100) / 100;
   const progress = useSharedValue(0);
 
@@ -97,41 +101,36 @@ function Ring({ color, trackColor, radius, percentage, cx, cy, animated, delay }
   }, [target, animated, delay]);
 
   const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: circ * (1 - progress.value),
+    strokeDashoffset: arcLen * (1 - progress.value),
   }));
 
   return (
-    <>
-      <Circle cx={cx} cy={cy} r={radius} stroke={trackColor} strokeWidth={STROKE} fill="none" strokeLinecap="round" />
-      <G transform={`rotate(-90, ${cx}, ${cy})`}>
-        <AnimatedCircle cx={cx} cy={cy} r={radius} stroke={color} strokeWidth={STROKE} fill="none" strokeLinecap="round" strokeDasharray={[circ, circ]} animatedProps={animatedProps} />
-      </G>
-    </>
+    <G transform={`rotate(135, ${cx}, ${cy})`}>
+      {/* Track — 270° arc */}
+      <Circle cx={cx} cy={cy} r={radius} stroke={trackColor} strokeWidth={STROKE}
+        fill="none" strokeLinecap="round" strokeDasharray={[arcLen, circ]} />
+      {/* Progress — fills from start */}
+      <AnimatedCircle cx={cx} cy={cy} r={radius} stroke={color} strokeWidth={STROKE}
+        fill="none" strokeLinecap="round" strokeDasharray={[arcLen, circ]} animatedProps={animatedProps} />
+    </G>
   );
 }
 
 // ============================================================================
-// STAT COLUMN — Apple Fitness style: colored dot, big number, label
+// PROGRESS BAR — matching neon color
 // ============================================================================
 
-function StatColumn({ color, label, current, target, unit, onPress }: {
-  color: string; label: string; current: number; target: number; unit: string; onPress?: () => void;
-}) {
-  const pct = target > 0 ? Math.round((current / target) * 100) : 0;
+function MacroBar({ color, label, percentage }: { color: string; label: string; percentage: number }) {
+  const pct = Math.min(100, Math.max(0, percentage));
   return (
-    <Pressable
-      style={({ pressed }) => [styles.statCol, pressed && { opacity: 0.7 }]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${label}: ${Math.round(current)} of ${target}${unit}`}
-    >
-      <View style={styles.statHeader}>
-        <View style={[styles.statDot, { backgroundColor: color }]} />
-        <Text style={[styles.statLabel, { color }]}>{label}</Text>
+    <View style={styles.barRow}>
+      <Text style={styles.barLabel}>{label}</Text>
+      <View style={styles.barTrack}>
+        <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: color }]} />
+        <View style={[styles.barThumb, { left: `${pct}%` }]} />
       </View>
-      <Text style={styles.statValue}>{Math.round(current)}<Text style={styles.statUnit}>/{target}{unit}</Text></Text>
-      <Text style={[styles.statPct, { color }]}>{pct}%</Text>
-    </Pressable>
+      <Text style={[styles.barPct, { color }]}>{Math.round(pct)}%</Text>
+    </View>
   );
 }
 
@@ -144,7 +143,6 @@ export function NutritionRingsCard({
   showFat = true,
   animated = true,
   onMacroPress,
-  onSourcesPress,
 }: NutritionRingsCardProps) {
   const rings = showFat ? RINGS : RINGS.filter(r => r.key !== 'fat');
 
@@ -156,43 +154,69 @@ export function NutritionRingsCard({
 
   return (
     <View style={styles.card}>
-      {/* Rings — THE hero visual, no text overlay */}
-      <View style={styles.ringsContainer} accessible accessibilityRole="summary"
-        accessibilityLabel={`Nutrition rings. Protein ${Math.round(pcts.protein)}%, Fat ${Math.round(pcts.fat)}%, Carbs ${Math.round(pcts.carbs)}%`}>
-        <Svg width="100%" height="100%" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
-          {rings.map((r, i) => (
-            <Ring key={r.key} color={r.color} trackColor={r.trackColor} radius={r.radius}
-              percentage={pcts[r.key]} cx={100} cy={100} animated={animated} delay={i * 120} />
+      {/* Rings with calories center */}
+      <View style={styles.ringsSection}>
+        <View style={styles.ringsContainer} accessible accessibilityRole="summary">
+          <Svg width="100%" height="100%" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
+            {rings.map((r, i) => (
+              <ArcRing key={r.key} color={r.color} trackColor={r.trackColor} radius={r.radius}
+                percentage={pcts[r.key]} cx={100} cy={100} animated={animated} delay={i * 120} />
+            ))}
+          </Svg>
+
+          {/* Calories center overlay */}
+          <View style={styles.centerOverlay}>
+            <Text style={styles.centerCalories}>
+              {Math.round(data.calories.current).toLocaleString()}
+            </Text>
+            <Text style={styles.centerTarget}>
+              / {data.calories.target.toLocaleString()} kcal
+            </Text>
+          </View>
+        </View>
+
+        {/* P / F / C ring labels */}
+        <View style={styles.ringLabels}>
+          {rings.map(r => (
+            <Text key={r.key} style={[styles.ringLetter, { color: r.color }]}>{r.letter}</Text>
           ))}
-        </Svg>
+        </View>
       </View>
 
-      {/* Calories — centered below rings */}
-      <Pressable
-        style={({ pressed }) => [styles.caloriesRow, pressed && { opacity: 0.7 }]}
-        onPress={() => onMacroPress?.('calories')}
-        accessibilityLabel={`Calories: ${Math.round(data.calories.current)} of ${data.calories.target}`}
-      >
-        <Text style={styles.caloriesValue}>{Math.round(data.calories.current)}</Text>
-        <Text style={styles.caloriesLabel}> / {data.calories.target} kcal</Text>
-      </Pressable>
-
-      {/* Stats row — 3 columns */}
+      {/* Macro stat columns */}
       <View style={styles.statsRow}>
-        <StatColumn color={NEON.pink.fill} label="Protein" current={data.protein.current} target={data.protein.target} unit="g" onPress={() => onMacroPress?.('protein')} />
-        {showFat && (
-          <StatColumn color={NEON.lime.fill} label="Fat" current={data.fat?.current || 0} target={data.fat?.target || 0} unit="g" onPress={() => onMacroPress?.('fat')} />
-        )}
-        <StatColumn color={NEON.cyan.fill} label="Carbs" current={data.carbs.current} target={data.carbs.target} unit="g" onPress={() => onMacroPress?.('carbs')} />
+        {rings.map(r => {
+          const d = r.key === 'fat' ? data.fat : data[r.key];
+          return (
+            <Pressable key={r.key} style={({ pressed }) => [styles.statCol, pressed && { opacity: 0.7 }]}
+              onPress={() => onMacroPress?.(r.key)}>
+              <View style={styles.statHeader}>
+                <View style={[styles.statDot, { backgroundColor: r.color }]} />
+                <Text style={styles.statName}>{r.label}</Text>
+              </View>
+              <Text style={styles.statValue}>
+                {Math.round(d?.current || 0)}{r.unit}
+              </Text>
+              <Text style={styles.statTarget}>/{d?.target || 0}{r.unit}</Text>
+            </Pressable>
+          );
+        })}
       </View>
 
-      {/* Citation — compact footnote */}
+      {/* Progress bars */}
+      <View style={styles.barsSection}>
+        {rings.map(r => (
+          <MacroBar key={r.key} color={r.color} label={r.label} percentage={pcts[r.key]} />
+        ))}
+      </View>
+
+      {/* Citation */}
       <Pressable style={styles.citation}
-        onPress={() => openExternalUrl(NUTRITION_REFERENCES.fdaDailyValues.url, 'Unable to open source', 'Open FDA reference.')}
+        onPress={() => openExternalUrl(NUTRITION_REFERENCES.fdaDailyValues.url, 'Unable to open', 'Open FDA reference.')}
         accessibilityRole="link" accessibilityLabel={NUTRITION_REFERENCES.fdaDailyValues.title}>
-        <BookOpen size={11} color="#9CA3AF" />
+        <BookOpen size={11} color="rgba(255,255,255,0.35)" />
         <Text style={styles.citationText}>Source: FDA Daily Values (2,000 kcal · 50g P · 275g C · 78g F)</Text>
-        <ArrowSquareOut size={10} color="#9CA3AF" />
+        <ArrowSquareOut size={10} color="rgba(255,255,255,0.35)" />
       </Pressable>
     </View>
   );
@@ -203,86 +227,145 @@ export function getCalorieSubtitle(current: number, target: number): string {
 }
 
 // ============================================================================
-// STYLES
+// STYLES — dark card, neon data
 // ============================================================================
 
 const styles = StyleSheet.create({
   card: {
-    ...(Platform.OS === 'web' ? { ...BENTO_CARD_STYLES, ...(BENTO_CARD_WEB_STYLES as object) } : MOBILE_CARD_STYLES),
+    backgroundColor: '#1C1C1E',
+    borderRadius: 16,
+    padding: 24,
     alignItems: 'center',
-    overflow: 'hidden' as const,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 2px 16px rgba(0,0,0,0.12)' } as any)
+      : { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowRadius: 16, shadowOpacity: 0.15, elevation: 6 }),
   },
 
-  // Rings — centered, square aspect ratio
+  // Rings
+  ringsSection: {
+    alignItems: 'center',
+    width: '100%',
+  },
   ringsContainer: {
     width: '100%',
-    maxWidth: 240,
+    maxWidth: 260,
     aspectRatio: 1,
+    position: 'relative',
   },
-
-  // Calories — below rings
-  caloriesRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+  centerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
-    marginBottom: 20,
+    paddingBottom: 16,
   },
-  caloriesValue: {
-    color: '#111111',
-    fontSize: 32,
+  centerCalories: {
+    color: '#FFFFFF',
+    fontSize: 40,
     fontWeight: '800',
-    letterSpacing: -1,
+    letterSpacing: -1.5,
   },
-  caloriesLabel: {
-    color: '#9CA3AF',
-    fontSize: 16,
-    fontWeight: '400',
+  centerTarget: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  ringLabels: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 24,
+    marginTop: -8,
+  },
+  ringLetter: {
+    fontSize: 13,
+    fontWeight: '700',
   },
 
-  // Stats — 3 equal columns
+  // Stats
   statsRow: {
     flexDirection: 'row',
     width: '100%',
-    gap: 12,
+    gap: 8,
+    marginTop: 20,
+    marginBottom: 20,
   },
   statCol: {
     flex: 1,
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.02)',
+    gap: 2,
   },
   statHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    marginBottom: 4,
   },
   statDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
   },
-  statLabel: {
+  statName: {
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   statValue: {
-    color: '#111111',
-    fontSize: 22,
+    color: '#FFFFFF',
+    fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
-  statUnit: {
-    color: '#9CA3AF',
+  statTarget: {
+    color: 'rgba(255,255,255,0.4)',
     fontSize: 13,
     fontWeight: '400',
   },
-  statPct: {
+
+  // Progress bars
+  barsSection: {
+    width: '100%',
+    gap: 14,
+  },
+  barRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  barLabel: {
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 13,
+    fontWeight: '500',
+    width: 60,
+  },
+  barTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    position: 'relative',
+    overflow: 'visible',
+  },
+  barFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  barThumb: {
+    position: 'absolute',
+    top: -5,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.5)',
+    marginLeft: -8,
+  },
+  barPct: {
+    fontSize: 14,
     fontWeight: '700',
+    width: 42,
+    textAlign: 'right',
   },
 
   // Citation
@@ -292,13 +375,15 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 16,
     paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.08)',
     ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
   },
   citationText: {
     flex: 1,
     fontSize: 11,
     fontWeight: '400',
-    color: '#9CA3AF',
+    color: 'rgba(255,255,255,0.35)',
   },
 });
 
