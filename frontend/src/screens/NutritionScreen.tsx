@@ -37,7 +37,14 @@ export function NutritionScreen({ navigation }: any) {
       if (Platform.OS !== 'web') {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Permission needed', 'Gallery permission is required');
+          Alert.alert(
+            'Photo access needed',
+            'Allow photo library access in Settings to select meal photos.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            ]
+          );
           return;
         }
       }
