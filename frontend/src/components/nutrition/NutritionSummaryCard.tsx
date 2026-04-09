@@ -79,6 +79,13 @@ export function NutritionSummaryCard({ total }: NutritionSummaryCardProps) {
           />
         </View>
       )}
+
+      {/* AI estimation disclaimer */}
+      <View style={styles.disclaimerRow}>
+        <Text style={styles.disclaimerText}>
+          Estimated by AI (Gemini Vision) — values are approximate. Verify with packaging or a healthcare professional.
+        </Text>
+      </View>
     </Animated.View>
   );
 }
@@ -165,5 +172,17 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#F0F0F0',
     marginBottom: 16,
+  },
+  disclaimerRow: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  disclaimerText: {
+    fontSize: 11,
+    fontWeight: '400',
+    color: '#9CA3AF',
+    lineHeight: 16,
   },
 });

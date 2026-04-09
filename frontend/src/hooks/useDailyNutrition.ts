@@ -71,7 +71,9 @@ export function useDailyNutrition() {
         };
       });
 
-      // Use generated goals if available, otherwise use backend targets or defaults
+      // Use generated goals if available, otherwise use backend targets or FDA Daily Values defaults.
+      // Default fallbacks: FDA Daily Values for a 2,000-calorie diet (fda.gov/media/135301/download).
+      // Custom goals use Mifflin-St Jeor equation (PubMed: 2305711) for BMR/TDEE estimation.
       const calorieGoal = generatedGoals?.dailyCalories.target || todaySummary?.target?.calories || summary?.calories?.target || 2000;
       const proteinGoal = generatedGoals?.macros_grams.protein_g || todaySummary?.target?.protein || summary?.protein?.target || 50;
       const carbsGoal = generatedGoals?.macros_grams.carbs_g || todaySummary?.target?.carbs || summary?.carbs?.target || 275;

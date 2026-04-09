@@ -204,22 +204,13 @@ export function ReviewMealScreen({ route, navigation }: any) {
     },
   });
 
+  // Camera permission is now requested via the "Continue" button in the pre-prompt UI,
+  // not auto-triggered. We only track the ref for refresh logic.
   useEffect(() => {
     if (!shouldShowCamera) {
       hasRequestedCameraPermissionRef.current = false;
-      return;
     }
-
-    if (cameraPerm.state !== 'undetermined' || hasRequestedCameraPermissionRef.current) {
-      return;
-    }
-
-    hasRequestedCameraPermissionRef.current = true;
-    cameraPerm.request().catch((error) => {
-      console.warn('Camera permission request failed', error);
-      hasRequestedCameraPermissionRef.current = false;
-    });
-  }, [cameraPerm, shouldShowCamera]);
+  }, [shouldShowCamera]);
 
   useEffect(() => {
     if (shouldShowCamera) {
@@ -512,11 +503,13 @@ export function ReviewMealScreen({ route, navigation }: any) {
           <View style={styles.permissionContainer}>
             {isAwaitingSystemPrompt ? (
               <>
-                <ActivityIndicator size="large" color={BRAND_COLORS.secondary} />
-                <Text style={styles.permissionTitle}>Camera permission</Text>
+                <Text style={styles.permissionTitle}>Camera access</Text>
                 <Text style={styles.permissionSubtitle}>
-                  Allow camera access to scan meals and log nutrition instantly.
+                  We need camera access to scan meals and log nutrition instantly. Tap continue to grant permission.
                 </Text>
+                <Pressable onPress={() => cameraPerm.request()} style={styles.permissionPrimaryBtn}>
+                  <Text style={styles.permissionPrimaryBtnText}>Continue</Text>
+                </Pressable>
               </>
             ) : (
               <>

@@ -186,6 +186,9 @@ export const generateFallbackGoals = (request: GenerateGoalsRequest): GeneratedG
   const { sex, heightCm, weightKg, goalType, age = 30, activityLevel = 'medium' } = request;
 
   // Mifflin-St Jeor BMR calculation
+  // Reference: Mifflin MD et al. "A new predictive equation for resting energy expenditure
+  // in healthy individuals." Am J Clin Nutr. 1990;51(2):241-247. (PubMed: 2305711)
+  // TDEE = BMR × activity multiplier (Sedentary 1.2 / Moderate 1.55 / Active 1.725)
   let bmr: number;
   if (sex === 'male') {
     bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;

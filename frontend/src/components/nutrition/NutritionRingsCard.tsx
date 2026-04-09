@@ -150,14 +150,24 @@ export function NutritionRingsCard({ data, showFat = true, animated = true, onMa
         })}
       </View>
 
-      {/* Citation */}
-      <Pressable style={styles.citation}
-        onPress={() => openExternalUrl(NUTRITION_REFERENCES.fdaDailyValues.url, 'Unable to open', 'Open FDA reference.')}
-        accessibilityRole="link" accessibilityLabel={NUTRITION_REFERENCES.fdaDailyValues.title}>
-        <BookOpen size={11} color="#9CA3AF" />
-        <Text style={styles.citationText}>Source: FDA Daily Values (2,000 kcal · 50g P · 275g C · 78g F)</Text>
-        <ArrowSquareOut size={10} color="#9CA3AF" />
-      </Pressable>
+      {/* Unified citation area */}
+      <View style={styles.citationArea}>
+        <Pressable style={styles.citationRow}
+          onPress={() => openExternalUrl(NUTRITION_REFERENCES.fdaDailyValues.url, 'Unable to open', 'Open FDA reference.')}
+          accessibilityRole="link" accessibilityLabel={NUTRITION_REFERENCES.fdaDailyValues.title}>
+          <BookOpen size={11} color="#9CA3AF" />
+          <Text style={styles.citationText}>Defaults: FDA Daily Values (2,000 kcal · 50g P · 275g C · 78g F)</Text>
+          <ArrowSquareOut size={10} color="#9CA3AF" />
+        </Pressable>
+        <Pressable style={styles.citationRow}
+          onPress={() => openExternalUrl(NUTRITION_REFERENCES.mifflinStJeor.url, 'Unable to open', 'Open Mifflin-St Jeor reference.')}
+          accessibilityRole="link" accessibilityLabel={NUTRITION_REFERENCES.mifflinStJeor.title}>
+          <BookOpen size={11} color="#9CA3AF" />
+          <Text style={styles.citationText}>Custom goals: Mifflin-St Jeor equation · USDA DRI</Text>
+          <ArrowSquareOut size={10} color="#9CA3AF" />
+        </Pressable>
+        <Text style={styles.citationNote}>AI-generated data is approximate — verify with a healthcare professional.</Text>
+      </View>
     </View>
   );
 }
@@ -189,9 +199,11 @@ const styles = StyleSheet.create({
   macroValue: { color: '#374151', fontSize: 12, fontWeight: '600', textAlign: 'center' },
   macroPct: { fontSize: 14, fontWeight: '800' },
 
-  citation: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20, paddingTop: 14,
+  citationArea: { width: '100%', marginTop: 20, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.04)', gap: 8 },
+  citationRow: { flexDirection: 'row', alignItems: 'center', gap: 6,
     ...(Platform.OS === 'web' && { cursor: 'pointer' as any }) },
   citationText: { flex: 1, fontSize: 11, fontWeight: '400', color: '#9CA3AF' },
+  citationNote: { fontSize: 11, fontWeight: '400', color: '#9CA3AF', fontStyle: 'italic', marginTop: 2 },
 });
 
 export default NutritionRingsCard;
