@@ -1,6 +1,6 @@
 import { launchImageLibraryAsync, MediaTypeOptions } from 'expo-image-picker';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Image, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import {
     Button,
@@ -70,6 +70,8 @@ export const CaptureScreen = () => {
   }, [currentUser.isError, currentUser.error, showTopSnackbar]);
 
   useEffect(() => {
+    // Skip camera permission on web — camera is not available
+    if (Platform.OS === 'web') return;
     if (cameraPerm.state !== 'undetermined' || hasRequestedCameraPermissionRef.current) {
       return;
     }
@@ -226,7 +228,8 @@ export const CaptureScreen = () => {
     [saveRecipeMutation, showSnackbar, userId],
   );
 
-  const shouldShowCamera = cameraPerm.state === 'granted';
+  // On web, camera is not available — always show gallery-based flow
+  const shouldShowCamera = Platform.OS !== 'web' && cameraPerm.state === 'granted';
 
   const renderResults = useMemo(() => {
     if (!capturedImage) {
@@ -289,7 +292,7 @@ export const CaptureScreen = () => {
     );
   }, [activeTab, capturedImage, errorMessage, handleSaveRecipe, handleSaveWorkout, isProcessing, recipeResults, workoutResults]);
 
-  if (!cameraPerm.permission) {
+  if (!cameraPerm.permission && Platform.OS !== 'web') {
     return (
       <SafeAreaWrapper>
         <LoadingState label="Requesting camera permission…" />
@@ -298,10 +301,31 @@ export const CaptureScreen = () => {
   }
 
   if (!shouldShowCamera) {
-    if (cameraPerm.state === 'undetermined') {
+    if (cameraPerm.state === 'undetermined' && Platform.OS !== 'web') {
       return (
         <SafeAreaWrapper>
           <LoadingState label="Opening camera permission…" />
+        </SafeAreaWrapper>
+      );
+    }
+
+    // On web, show a clean gallery-only prompt (no camera settings)
+    if (Platform.OS === 'web') {
+      return (
+        <SafeAreaWrapper>
+          <Container style={styles.permissionFallback}>
+            <Card style={styles.permissionFallbackCard}>
+              <Text variant="heading2" weight="bold">
+                Choose a photo
+              </Text>
+              <Text variant="body" color="rgba(71,85,105,0.94)">
+                Select a photo of equipment or ingredients from your device to get started.
+              </Text>
+              <View style={styles.permissionFallbackActions}>
+                <Button title="Choose from Library" onPress={pickImageFromGallery} />
+              </View>
+            </Card>
+          </Container>
         </SafeAreaWrapper>
       );
     }

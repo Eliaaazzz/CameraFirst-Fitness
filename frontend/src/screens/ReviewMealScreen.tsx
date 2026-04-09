@@ -97,7 +97,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
   // Support both new image analysis and viewing/editing saved meals
   const { imageUri, imageMimeType, imageFileName, meal, openCamera, imgWcm } = route.params ?? {};
   const isViewingExisting = !!meal;
-  const shouldShowCamera = !!openCamera && !imageUri && !isViewingExisting;
+  // On web, camera is not available — skip camera UI and auto-open gallery
+  const shouldShowCamera = !!openCamera && !imageUri && !isViewingExisting && Platform.OS !== 'web';
 
   const cameraPerm = useCameraPermission();
   const scaleHintCm = typeof imgWcm === 'number' ? imgWcm : DEFAULT_MEAL_IMAGE_WIDTH_CM;
@@ -211,6 +212,53 @@ export function ReviewMealScreen({ route, navigation }: any) {
       hasRequestedCameraPermissionRef.current = false;
     }
   }, [shouldShowCamera]);
+
+  // On web, auto-open gallery when camera was requested (camera not available on web).
+  // If the user cancels the picker, clear loading and navigate back.
+  // Reset the guard when imageUri arrives (so retake can re-trigger).
+  const webGalleryOpenedForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !openCamera || imageUri || isViewingExisting) return;
+
+    // Prevent double-open for the same openCamera request
+    const requestKey = `${openCamera}`;
+    if (webGalleryOpenedForRef.current === requestKey) return;
+    webGalleryOpenedForRef.current = requestKey;
+
+    (async () => {
+      try {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 0.82,
+        });
+
+        if (result.canceled || !result.assets?.[0]?.uri) {
+          setLoading(false);
+          if (navigation.canGoBack()) navigation.goBack();
+          return;
+        }
+
+        navigation.setParams({
+          imageUri: result.assets[0].uri,
+          imageMimeType: result.assets[0].mimeType,
+          imageFileName: result.assets[0].fileName,
+          openCamera: false,
+        });
+      } catch {
+        setLoading(false);
+        if (navigation.canGoBack()) navigation.goBack();
+      }
+    })();
+  }, [openCamera, imageUri, isViewingExisting, navigation]);
+
+  // Reset gallery guard when an image is cleared (retake flow)
+  useEffect(() => {
+    if (!imageUri && !openCamera) {
+      webGalleryOpenedForRef.current = null;
+    }
+  }, [imageUri, openCamera]);
 
   useEffect(() => {
     if (shouldShowCamera) {
