@@ -143,6 +143,61 @@ function withDerivedBloodSugarRise(goals: GeneratedGoals): GeneratedGoals {
 // ============ API Functions ============
 
 /**
+ * Calculate Mifflin-St Jeor TDEE and goal-adjusted calorie target.
+ * This is the single source of truth for calorie targets across the app.
+ * Reference: Mifflin MD et al. Am J Clin Nutr. 1990;51(2):241-247. (PubMed: 2305711)
+ */
+const computeMifflinStJeorTarget = (request: GenerateGoalsRequest): number => {
+  const { sex, heightCm, weightKg, goalType, age = 30, activityLevel = 'medium' } = request;
+
+  let bmr: number;
+  if (sex === 'male') {
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+  } else if (sex === 'female') {
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+  } else {
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 78;
+  }
+
+  const activityMultipliers: Record<ActivityLevel, number> = { low: 1.2, medium: 1.55, high: 1.725 };
+  const tdee = Math.round(bmr * activityMultipliers[activityLevel]);
+
+  switch (goalType) {
+    case 'fat_loss': return Math.round(tdee * 0.82);
+    case 'muscle_gain': return Math.round(tdee * 1.12);
+    case 'diabetes_control': return tdee;
+    default: return tdee;
+  }
+};
+
+/**
+ * Enforce Mifflin-St Jeor calorie target on any generated goals,
+ * then re-derive macros proportionally to preserve the AI's ratios.
+ */
+const enforceMifflinStJeor = (goals: GeneratedGoals, request: GenerateGoalsRequest): GeneratedGoals => {
+  const correctTarget = computeMifflinStJeorTarget(request);
+  const macros = goals.macros_grams || { protein_g: 0, carbs_g: 0, fat_g: 0, notes: '' };
+  const oldTotal = macros.protein_g * 4 + macros.carbs_g * 4 + macros.fat_g * 9;
+  const ratio = oldTotal > 0 ? correctTarget / oldTotal : 1;
+
+  return {
+    ...goals,
+    dailyCalories: {
+      ...goals.dailyCalories,
+      target: correctTarget,
+      min: Math.round(correctTarget * 0.9),
+      max: Math.round(correctTarget * 1.1),
+    },
+    macros_grams: {
+      ...macros,
+      protein_g: Math.round(macros.protein_g * ratio),
+      carbs_g: Math.round(macros.carbs_g * ratio),
+      fat_g: Math.round(macros.fat_g * ratio),
+    },
+  };
+};
+
+/**
  * Generate personalized fitness goals using Gemini AI via backend
  */
 export const generateGoals = async (request: GenerateGoalsRequest): Promise<GeneratedGoals> => {
@@ -158,9 +213,12 @@ export const generateGoals = async (request: GenerateGoalsRequest): Promise<Gene
 
     const normalized = withDerivedBloodSugarRise(response);
 
+    // Enforce Mifflin-St Jeor calorie target on API response
+    const enforced = enforceMifflinStJeor(normalized, request);
+
     // Add metadata
     return {
-      ...normalized,
+      ...enforced,
       generatedAt: new Date().toISOString(),
       goalType: request.goalType,
       inputParameters: {

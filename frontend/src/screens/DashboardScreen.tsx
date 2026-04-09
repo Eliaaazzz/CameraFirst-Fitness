@@ -587,6 +587,13 @@ const DashboardScreen = () => {
         onPress: () => navigation.navigate('Main', { screen: 'Recipes' } as any),
         backgroundColor: '#FFF7DD',   // Yellow
       },
+      {
+        title: 'Custom Goals',
+        body: 'Set calorie and macro targets using the Mifflin-St Jeor equation.',
+        illustration: illustrationTargets,
+        onPress: () => navigation.navigate('BuildPlan', { initialGoal: planPreviewGoal }),
+        backgroundColor: '#F2E9FF',   // Violet
+      },
     ];
     const recentMeals = nutritionData.meals.slice(0, 4);
     const currentProgramTitle = goalTypeConfig?.label || 'Build your plan';
@@ -946,7 +953,7 @@ const DashboardScreen = () => {
                   Plan for later
                 </Text>
                 <Text variant="body" style={webStyles.sectionSubheading}>
-                  Pick a direction now. Build my plan only needs sex, height, and weight after this selection.
+                  Pick a direction now. Targets are calculated using the Mifflin-St Jeor equation — just confirm sex, height, and weight.
                 </Text>
               </View>
               <View style={[webStyles.planRow, !isDashboardDesktop && webStyles.planRowMobile]}>
@@ -1072,14 +1079,16 @@ const DashboardScreen = () => {
               </View>
             </View>
 
-            <View style={[webStyles.footerWrap, isDashboardCompact && webStyles.footerWrapCompact]}>
-              <LandingFooter
-                onGetStarted={() => navigation.navigate('Profile')}
-                onLogin={() => navigation.navigate('Profile')}
-                showFinalCTA={false}
-                onLinkPress={handleLandingFooterLink}
-              />
-            </View>
+            {isDashboardDesktop && (
+              <View style={webStyles.footerWrap}>
+                <LandingFooter
+                  onGetStarted={() => navigation.navigate('Profile')}
+                  onLogin={() => navigation.navigate('Profile')}
+                  showFinalCTA={false}
+                  onLinkPress={handleLandingFooterLink}
+                />
+              </View>
+            )}
           </RNScrollView>
         </View>
       </SafeAreaWrapper>
@@ -2269,6 +2278,7 @@ const webStyles = StyleSheet.create({
     borderRightWidth: 0,
     borderBottomWidth: 1,
     borderBottomColor: '#ECECEC',
+    paddingBottom: 32,
   },
   activityColMobileLast: {
     padding: 24,
@@ -2624,6 +2634,8 @@ const webStyles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: 12,
     marginTop: 6,
+    marginBottom: 12,
+    zIndex: 2,
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
     }),
@@ -2640,10 +2652,10 @@ const webStyles = StyleSheet.create({
     opacity: 0.25,
   },
   planIllustrationMobile: {
-    width: 170,
-    height: 170,
-    right: -20,
-    bottom: -18,
+    width: 140,
+    height: 140,
+    right: -10,
+    bottom: -10,
   },
   planBenefitsPanel: {
     flex: 1,
