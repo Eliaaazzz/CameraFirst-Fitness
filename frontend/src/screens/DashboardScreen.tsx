@@ -1025,6 +1025,10 @@ const DashboardScreen = () => {
                     </View>
                   </View>
 
+                  <Text variant="caption" style={webStyles.planCitation}>
+                    Calorie targets use the Mifflin-St Jeor resting energy equation (PubMed 2305711)
+                  </Text>
+
                   <Pressable
                     onPress={() => navigation.navigate('BuildPlan', { initialGoal: planPreviewGoal })}
                     style={({ pressed }) => [webStyles.planCta, pressed && webStyles.heroCtaPressed]}
@@ -1034,11 +1038,13 @@ const DashboardScreen = () => {
                     </Text>
                   </Pressable>
 
-                  <Image
-                    source={illustrationWorkouts}
-                    style={[webStyles.planIllustration, !isDashboardDesktop && webStyles.planIllustrationMobile] as any}
-                    contentFit="contain"
-                  />
+                  {isDashboardDesktop && (
+                    <Image
+                      source={illustrationWorkouts}
+                      style={webStyles.planIllustration as any}
+                      contentFit="contain"
+                    />
+                  )}
                 </View>
 
                 <View style={webStyles.planBenefitsPanel}>
@@ -2566,6 +2572,9 @@ const webStyles = StyleSheet.create({
   },
   planTabsRowMobile: {
     flexDirection: 'column',
+    gap: 8,
+    marginTop: 18,
+    marginBottom: 12,
   },
   planTab: {
     flex: 1,
@@ -2588,6 +2597,10 @@ const webStyles = StyleSheet.create({
   },
   planTabMobile: {
     width: '100%',
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   planTabIcon: {
     width: 34,
@@ -2605,11 +2618,13 @@ const webStyles = StyleSheet.create({
     marginBottom: 18,
   },
   planPreviewStatsMobile: {
-    flexDirection: 'column',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   planField: {
     flex: 1,
-    minHeight: 96,
+    minHeight: 72,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingHorizontal: 18,
@@ -2626,6 +2641,13 @@ const webStyles = StyleSheet.create({
   },
   planFieldValue: {
     color: '#111111',
+  },
+  planCitation: {
+    color: 'rgba(17,17,17,0.45)',
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 6,
+    marginBottom: 4,
   },
   planCta: {
     alignSelf: 'flex-start',
