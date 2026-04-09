@@ -1294,12 +1294,11 @@ const styles = StyleSheet.create({
     }),
     // paddingBottom is set dynamically via useContentBottomPadding
   },
-  // Desktop layout wrapper - fills viewport height
+  // Desktop layout wrapper - grows with content; no fixed viewport height
   desktopContentWrapper: {
     flex: 1,
     flexDirection: 'column',
     gap: spacing.lg,
-    minHeight: 'calc(100vh - 200px)' as any, // Account for header and padding
   },
   sidebarContentWrapper: {
     flex: 1,
@@ -1313,9 +1312,10 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   inlineColumn: {
-    flexBasis: '48%',
-    minWidth: 320,
+    flexBasis: 320,
+    minWidth: 0,
     flexGrow: 1,
+    flexShrink: 1,
   },
   inlineCard: {
     marginBottom: 0,

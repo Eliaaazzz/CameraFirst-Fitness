@@ -310,6 +310,22 @@ export const saasShadows = {
   }),
 };
 
+/**
+ * Mobile-safe layout helpers — apply to any element containing text or flexible content.
+ * Prevents overflow on narrow containers.
+ */
+export const MOBILE_SAFE_TEXT = {
+  minWidth: 0,
+  flexShrink: 1,
+} as const;
+
+/** Apply to any horizontal row that must wrap gracefully on mobile */
+export const MOBILE_SAFE_ROW = {
+  minWidth: 0,
+  flexShrink: 1,
+  flexWrap: 'wrap' as const,
+} as const;
+
 export const cardStyles = {
   rest: {
     boxShadow: '0 12px 24px rgba(23, 21, 17, 0.05)',

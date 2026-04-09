@@ -1,12 +1,13 @@
-import React, { PropsWithChildren } from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
+import React, { PropsWithChildren, useCallback, useState } from 'react';
+import { LayoutChangeEvent, StyleSheet, View, ViewStyle } from 'react-native';
 
 import { spacing } from '@/utils';
-import { useResponsiveColumns, useResponsive } from '@/utils/responsive';
+import { useResponsiveColumns } from '@/utils/responsive';
 
 interface ResponsiveGridProps {
   /**
-   * Custom number of columns per breakpoint
+   * Upper-bound number of columns per breakpoint.
+   * The grid will use fewer columns if the container is too narrow.
    */
   columns?: {
     mobile?: number;
@@ -15,61 +16,69 @@ interface ResponsiveGridProps {
     wide?: number;
   };
   /**
+   * Minimum width for each grid item before the grid drops a column.
+   * @default 280
+   */
+  minItemWidth?: number;
+  /**
    * Gap between grid items
    * @default spacing.md
    */
   gap?: number;
-  /**
-   * Additional styles for the container
-   */
+  /** Additional styles for the container */
   style?: ViewStyle;
-  /**
-   * Additional styles for each grid item wrapper
-   */
+  /** Additional styles for each grid item wrapper */
   itemStyle?: ViewStyle;
 }
 
 /**
- * Responsive grid component that adapts number of columns based on screen size
+ * Responsive grid that measures its own container width (not the viewport)
+ * and computes column count from available space.
  *
- * @example
- * <ResponsiveGrid columns={{ mobile: 1, tablet: 2, desktop: 3 }}>
- *   <RecipeCard />
- *   <RecipeCard />
- *   <RecipeCard />
- * </ResponsiveGrid>
+ * `columns` acts as an upper bound; actual columns = min(requestedColumns,
+ * floor((containerWidth + gap) / (minItemWidth + gap))), clamped >= 1.
  */
 export const ResponsiveGrid = ({
   children,
   columns,
+  minItemWidth = 280,
   gap = spacing.md,
   style,
   itemStyle,
 }: PropsWithChildren<ResponsiveGridProps>) => {
-  const numColumns = useResponsiveColumns(columns);
-  const { width } = useResponsive();
+  const requestedColumns = useResponsiveColumns(columns);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
 
-  // Convert children to array
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    const nextWidth = event.nativeEvent.layout.width;
+    setContainerWidth((prev) => (prev === nextWidth ? prev : nextWidth));
+  }, []);
+
+  // Compute actual columns from measured container width
+  const fittableColumns = containerWidth > 0
+    ? Math.max(1, Math.floor((containerWidth + gap) / (minItemWidth + gap)))
+    : requestedColumns;
+  const numColumns = Math.max(1, Math.min(requestedColumns, fittableColumns));
+
+  // Calculate item width from measured container, not viewport
+  const totalGap = gap * (numColumns - 1);
+  const itemWidth = containerWidth > 0
+    ? (containerWidth - totalGap) / numColumns
+    : undefined; // undefined until measured — fallback to flex
+
   const childArray = React.Children.toArray(children);
 
-  // Calculate item width based on number of columns and gap
-  const totalGap = gap * (numColumns - 1);
-  const availableWidth = width - totalGap;
-  const itemWidth = availableWidth / numColumns;
-
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, style]} onLayout={handleLayout}>
       <View style={[styles.grid, { gap }]}>
         {childArray.map((child, index) => (
           <View
             key={index}
             style={[
               styles.gridItem,
-              {
-                width: `${100 / numColumns}%`,
-                // Remove gap from item width
-                maxWidth: itemWidth,
-              },
+              itemWidth != null
+                ? { width: itemWidth, maxWidth: itemWidth }
+                : { width: '100%' }, // full-width until measured
               itemStyle,
             ]}
           >
@@ -83,7 +92,7 @@ export const ResponsiveGrid = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    width: '100%',
   },
   grid: {
     flexDirection: 'row',
@@ -91,6 +100,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   gridItem: {
-    // Items will size based on percentage width
+    minWidth: 0,
   },
 });

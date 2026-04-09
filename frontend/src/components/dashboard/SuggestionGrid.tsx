@@ -7,8 +7,8 @@
  */
 
 import { Image } from 'expo-image';
-import React from 'react';
-import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { LayoutChangeEvent, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components/Text';
 import { spacing } from '@/utils';
@@ -25,28 +25,59 @@ interface SuggestionGridProps {
   cards: SuggestionCard[];
 }
 
+const GRID_GAP = 16;
+const MOBILE_HORIZONTAL_GUTTER = spacing.lg * 2;
+const DESKTOP_HORIZONTAL_GUTTER = spacing.xl * 2;
+
 export function SuggestionGrid({ cards }: SuggestionGridProps) {
   const { width } = useWindowDimensions();
-  const isTablet = width >= 720;
-  const isDesktop = width >= 1024;
+  const isCompact = width < 420;
+  const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
+
+  const fallbackWidth = useMemo(() => {
+    const gutter = isCompact ? MOBILE_HORIZONTAL_GUTTER : DESKTOP_HORIZONTAL_GUTTER;
+    return Math.max(0, width - gutter);
+  }, [isCompact, width]);
+
+  const gridWidth = measuredWidth && measuredWidth > 0 ? measuredWidth : fallbackWidth;
+  const cardWidth = Math.max(0, (gridWidth - GRID_GAP) / 2);
+  const illustrationStyle = isCompact
+    ? [styles.illustration, styles.illustrationCompact]
+    : styles.illustration;
+  const cardTitleStyle = isCompact
+    ? [styles.cardTitle, styles.cardTitleCompact]
+    : styles.cardTitle;
+
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    const nextWidth = event.nativeEvent.layout.width;
+    setMeasuredWidth((currentWidth) => (currentWidth === nextWidth ? currentWidth : nextWidth));
+  }, []);
 
   return (
-    <View style={styles.grid}>
+    <View onLayout={handleLayout} style={styles.grid}>
       {cards.map((card) => (
         <Pressable
           key={card.title}
           onPress={card.onPress}
           style={({ pressed }) => [
             styles.card,
-            !isTablet && styles.cardMobile,
-            isTablet && !isDesktop && styles.cardTablet,
-            isDesktop && styles.cardDesktop,
+            isCompact && styles.cardCompact,
+            { width: cardWidth },
             card.backgroundColor ? { backgroundColor: card.backgroundColor } : null,
             pressed && styles.cardPressed,
           ]}
         >
-          <Image source={card.illustration} style={styles.illustration} contentFit="contain" />
-          <Text variant="body" weight="medium" style={styles.cardTitle}>
+          <Image
+            source={card.illustration}
+            style={illustrationStyle}
+            contentFit="contain"
+          />
+          <Text
+            variant="body"
+            weight="medium"
+            numberOfLines={2}
+            style={cardTitleStyle}
+          >
             {card.title}
           </Text>
           {card.description ? (
@@ -64,46 +95,53 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: GRID_GAP,
   },
   card: {
-    width: '100%',
     minWidth: 0,
-    minHeight: 146,
+    minHeight: 164,
     backgroundColor: '#F3F3F3',
     borderRadius: 16,
-    paddingTop: 24,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 18,
+    paddingHorizontal: 14,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
       transition: 'background-color 0.15s ease-out',
     }),
   },
-  cardMobile: {
-    width: '48%',
-    minHeight: 136,
-  },
-  cardTablet: {
-    width: '48%',
-  },
-  cardDesktop: {
-    width: '48%',
+  cardCompact: {
+    minHeight: 152,
+    paddingTop: 18,
+    paddingBottom: 16,
+    paddingHorizontal: 12,
   },
   cardPressed: {
     opacity: 0.92,
   },
   illustration: {
-    width: 72,
-    height: 72,
-    marginBottom: spacing.sm,
+    width: 76,
+    height: 76,
+    marginBottom: 12,
+  },
+  illustrationCompact: {
+    width: 68,
+    height: 68,
+    marginBottom: 10,
   },
   cardTitle: {
     color: '#111111',
     fontSize: 14,
+    lineHeight: 18,
     textAlign: 'center',
+    maxWidth: '100%',
+    flexShrink: 1,
+  },
+  cardTitleCompact: {
+    fontSize: 13,
+    lineHeight: 17,
   },
   cardDescription: {
     color: 'rgba(17,17,17,0.64)',

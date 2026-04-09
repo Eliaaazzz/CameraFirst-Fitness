@@ -89,8 +89,10 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   mainWrapperWithRightPanel: {
-    // When right panel is visible, constrain main content
-    maxWidth: `calc(100% - ${LAYOUT_DIMENSIONS.rightPanelWidth}px)` as any,
+    // Desktop only — constrain main content when right panel is visible
+    ...(Platform.OS === 'web' && {
+      maxWidth: `calc(100% - ${LAYOUT_DIMENSIONS.rightPanelWidth}px)`,
+    } as any),
   },
   mainScrollView: {
     flex: 1,
@@ -111,11 +113,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.lg,
     backgroundColor: colors.light.background,
-    ...(Platform.OS === 'web' && {
-      display: 'flex' as any,
-      flexDirection: 'column' as any,
-      height: '100%',
-    }),
+    // height: '100%' is desktop-only; mobile web must grow with content
   },
   rightPanel: {
     width: LAYOUT_DIMENSIONS.rightPanelWidth,

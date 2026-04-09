@@ -1,7 +1,7 @@
 import { TourGuideZone } from '@/components/tour/TourProvider';
 import { Barbell, WarningCircle } from 'phosphor-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Platform, RefreshControl, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { FAB } from 'react-native-paper';
 
@@ -74,128 +74,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
+    paddingTop: spacing.md,
+    paddingBottom: 0,
   },
   card: {
     gap: spacing.sm,
   },
   listContent: {
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   header: {
-    gap: spacing.lg,
-    marginBottom: spacing.sm,
+    gap: spacing.md,
+    marginBottom: 0,
   },
   subtitle: {
     color: '#6B665F',
     marginTop: 2,
   },
-  introCard: {
-    backgroundColor: '#FFFEFB',
-    borderRadius: 32,
-    padding: spacing.xl,
-    borderWidth: 1,
-    borderColor: '#E9DED0',
-    gap: spacing.md,
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 24,
-    shadowOpacity: 0.06,
-    elevation: 7,
-  },
-  introTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  introKicker: {
-    color: '#8A7560',
-    letterSpacing: 1.2,
-  },
-  introBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#FFF1E5',
-    borderWidth: 1,
-    borderColor: '#F3D8BF',
-  },
-  introBadgeText: {
-    color: '#8C4A1D',
-    fontSize: 11,
-    letterSpacing: 0.3,
-  },
-  introTitle: {
-    color: BRAND_COLORS.textPrimary,
-    fontSize: 38,
-    lineHeight: 42,
-    letterSpacing: -1.2,
-  },
-  introBody: {
-    color: '#374151',
-    maxWidth: 560,
-    lineHeight: 24,
-  },
-  introFocusCard: {
-    backgroundColor: '#121212',
-    borderRadius: 24,
-    padding: spacing.lg,
-    gap: spacing.xs,
-  },
-  introFocusKicker: {
-    color: 'rgba(255,255,255,0.68)',
-    letterSpacing: 1,
-  },
-  introFocusTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    lineHeight: 28,
-    letterSpacing: -0.5,
-  },
-  introFocusMeta: {
-    color: 'rgba(255,255,255,0.66)',
-  },
-  introStatsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
-  },
-  introStat: {
-    minWidth: 104,
-    flex: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 18,
-    backgroundColor: '#FBF8F1',
-    borderWidth: 1,
-    borderColor: '#EDE3D8',
-    gap: 2,
-  },
-  introStatWarm: {
-    backgroundColor: '#FFF4EA',
-    borderColor: '#F3D7BE',
-  },
-  introStatMint: {
-    backgroundColor: '#ECF9F3',
-    borderColor: '#CBEBDD',
-  },
-  introStatSky: {
-    backgroundColor: '#EEF6FF',
-    borderColor: '#D7E8FB',
-  },
-  introStatLabel: {
-    color: '#6B665F',
-  },
-  introStatValue: {
-    color: BRAND_COLORS.textPrimary,
-  },
   searchContainer: {
     marginTop: 0,
   },
   suggestionsSection: {
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
   section: {
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
     gap: spacing.sm,
   },
   sectionTitle: {
