@@ -1,4 +1,5 @@
 import { AIDisclaimer } from '@/components/common/AIDisclaimer';
+import { PermissionRequestModal } from '@/components/common/PermissionRequestModal';
 import { RecognitionProcessingHero } from '@/components/common/RecognitionProcessingHero';
 import { DetectedItemRow } from '@/components/nutrition/DetectedItemRow';
 import { NutritionSummaryCard } from '@/components/nutrition/NutritionSummaryCard';
@@ -213,52 +214,44 @@ export function ReviewMealScreen({ route, navigation }: any) {
     }
   }, [shouldShowCamera]);
 
-  // On web, auto-open gallery when camera was requested (camera not available on web).
-  // If the user cancels the picker, clear loading and navigate back.
-  // Reset the guard when imageUri arrives (so retake can re-trigger).
-  const webGalleryOpenedForRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (Platform.OS !== 'web' || !openCamera || imageUri || isViewingExisting) return;
+  // On web, show permission modal when camera was requested (camera not available on web).
+  const [showWebPermissionModal, setShowWebPermissionModal] = useState(
+    Platform.OS === 'web' && !!openCamera && !imageUri && !isViewingExisting
+  );
 
-    // Prevent double-open for the same openCamera request
-    const requestKey = `${openCamera}`;
-    if (webGalleryOpenedForRef.current === requestKey) return;
-    webGalleryOpenedForRef.current = requestKey;
+  const handleWebPermissionAllow = async () => {
+    setShowWebPermissionModal(false);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.82,
+      });
 
-    (async () => {
-      try {
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          aspect: [4, 3],
-          quality: 0.82,
-        });
-
-        if (result.canceled || !result.assets?.[0]?.uri) {
-          setLoading(false);
-          if (navigation.canGoBack()) navigation.goBack();
-          return;
-        }
-
-        navigation.setParams({
-          imageUri: result.assets[0].uri,
-          imageMimeType: result.assets[0].mimeType,
-          imageFileName: result.assets[0].fileName,
-          openCamera: false,
-        });
-      } catch {
+      if (result.canceled || !result.assets?.[0]?.uri) {
         setLoading(false);
         if (navigation.canGoBack()) navigation.goBack();
+        return;
       }
-    })();
-  }, [openCamera, imageUri, isViewingExisting, navigation]);
 
-  // Reset gallery guard when an image is cleared (retake flow)
-  useEffect(() => {
-    if (!imageUri && !openCamera) {
-      webGalleryOpenedForRef.current = null;
+      navigation.setParams({
+        imageUri: result.assets[0].uri,
+        imageMimeType: result.assets[0].mimeType,
+        imageFileName: result.assets[0].fileName,
+        openCamera: false,
+      });
+    } catch {
+      setLoading(false);
+      if (navigation.canGoBack()) navigation.goBack();
     }
-  }, [imageUri, openCamera]);
+  };
+
+  const handleWebPermissionCancel = () => {
+    setShowWebPermissionModal(false);
+    setLoading(false);
+    if (navigation.canGoBack()) navigation.goBack();
+  };
 
   useEffect(() => {
     if (shouldShowCamera) {
@@ -539,6 +532,20 @@ export function ReviewMealScreen({ route, navigation }: any) {
       Alert.alert('Error', 'Could not open gallery: ' + (err as Error)?.message);
     }
   };
+
+  // On web, show permission modal before opening gallery
+  if (showWebPermissionModal) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <PermissionRequestModal
+          visible={true}
+          permissionType="photoLibrary"
+          onAllow={handleWebPermissionAllow}
+          onCancel={handleWebPermissionCancel}
+        />
+      </SafeAreaView>
+    );
+  }
 
   if (shouldShowCamera) {
     const permissionGranted = cameraPerm.state === 'granted';

@@ -412,40 +412,9 @@ const DashboardScreen = () => {
   const handleAddFood = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
 
-    if (Platform.OS === 'web') {
-      await handleChooseFromGallery();
-      return;
-    }
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Cancel', 'Take Photo', 'Choose from Library'],
-          cancelButtonIndex: 0,
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 1) {
-            // Show pre-permission modal before camera access (Apple HIG)
-            setPermissionModal({ visible: true, type: 'camera', action: 'camera' });
-          } else if (buttonIndex === 2) {
-            // Show pre-permission modal before photo library access (Apple HIG)
-            setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' });
-          }
-        }
-      );
-    } else {
-      Alert.alert('Add Food', 'Choose an option', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Take Photo',
-          onPress: () => setPermissionModal({ visible: true, type: 'camera', action: 'camera' }),
-        },
-        {
-          text: 'Choose from Library',
-          onPress: () => setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' }),
-        },
-      ]);
-    }
+    // Show pre-permission modal on ALL platforms (including web)
+    // This follows Apple HIG: explain why you need access before proceeding
+    setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' });
   };
 
   // Called after user taps "Allow" in the pre-permission modal.
