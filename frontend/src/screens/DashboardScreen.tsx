@@ -2270,6 +2270,10 @@ const webStyles = StyleSheet.create({
   },
   activityCardMobile: {
     flexDirection: 'column',
+    borderWidth: 0,
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+    overflow: 'visible',
   },
   activityCol1: {
     flex: 2.1,
@@ -2290,8 +2294,8 @@ const webStyles = StyleSheet.create({
   activityColMobile: {
     borderRightWidth: 0,
     borderBottomWidth: 0,
-    marginBottom: 12,
-    paddingBottom: 24,
+    marginBottom: 20,
+    paddingBottom: 8,
   },
   activityColMobileLast: {
     padding: 24,
@@ -2393,15 +2397,13 @@ const webStyles = StyleSheet.create({
     borderRadius: 999,
   },
   mealsList: {
-    gap: 12,
+    gap: 16,
   },
   mealRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F1F1',
   },
   mealRowCopy: {
     flex: 1,
