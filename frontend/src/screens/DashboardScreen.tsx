@@ -30,6 +30,7 @@ import { Image } from 'expo-image';
 import { ScrollView as RNScrollView } from 'react-native';
 import { BentoCard, SafeAreaWrapper, Text } from '@/components';
 import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/components/common/BentoCard';
+import { PermissionRequestModal, PermissionType } from '@/components/common/PermissionRequestModal';
 import { StateView } from '@/components/common/StateView';
 import { DailyScoreCard, DailyTasksCard, DashboardWidgets, NutritionInsightsCard, QuickActionsCard, StreakBadge, SuggestionGrid, WelcomeBar } from '@/components/dashboard';
 import { LandingFooter } from '@/components/landing/LandingFooter';
@@ -285,6 +286,11 @@ const DashboardScreen = () => {
   const [planPreviewGoal, setPlanPreviewGoal] = useState<GoalType>('muscle_gain');
   const [hasTouchedPlanPreview, setHasTouchedPlanPreview] = useState(false);
 
+  // Apple HIG pre-permission modal state
+  const [permissionModal, setPermissionModal] = useState<{ visible: boolean; type: PermissionType; action: 'camera' | 'gallery' }>({
+    visible: false, type: 'camera', action: 'camera',
+  });
+
   // Show welcome card for new users
   useEffect(() => {
     if (!tourStatusLoading && !hasSeenTour) {
@@ -414,37 +420,57 @@ const DashboardScreen = () => {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Take Photo', 'Choose from Gallery'],
+          options: ['Cancel', 'Take Photo', 'Choose from Library'],
           cancelButtonIndex: 0,
         },
-        async (buttonIndex) => {
+        (buttonIndex) => {
           if (buttonIndex === 1) {
-            await handleTakePhoto();
+            // Show pre-permission modal before camera access (Apple HIG)
+            setPermissionModal({ visible: true, type: 'camera', action: 'camera' });
           } else if (buttonIndex === 2) {
-            await handleChooseFromGallery();
+            // Show pre-permission modal before photo library access (Apple HIG)
+            setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' });
           }
         }
       );
     } else {
       Alert.alert('Add Food', 'Choose an option', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Take Photo', onPress: handleTakePhoto },
-        { text: 'Choose from Gallery', onPress: handleChooseFromGallery },
+        {
+          text: 'Take Photo',
+          onPress: () => setPermissionModal({ visible: true, type: 'camera', action: 'camera' }),
+        },
+        {
+          text: 'Choose from Library',
+          onPress: () => setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' }),
+        },
       ]);
     }
   };
 
-  const handleTakePhoto = async () => {
-    try {
-      if (Platform.OS === 'web') {
-        Alert.alert('Camera not supported', 'Please choose a photo from your device on web.');
-        return;
-      }
+  // Called after user taps "Allow" in the pre-permission modal.
+  // Triggers the system permission dialog, then proceeds if granted.
+  const handlePermissionAllowed = async () => {
+    const action = permissionModal.action;
+    setPermissionModal((p) => ({ ...p, visible: false }));
 
-      navigation.navigate('ReviewMeal', { openCamera: true });
-    } catch (err) {
-      console.error('Camera capture failed', err);
-      Alert.alert('Error', 'Could not take photo');
+    if (action === 'camera') {
+      // Request camera permission via system dialog
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status === 'granted') {
+        navigation.navigate('ReviewMeal', { openCamera: true });
+      } else {
+        Alert.alert(
+          'Camera access needed',
+          'Allow camera access in Settings to scan meals.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ]
+        );
+      }
+    } else {
+      await handleChooseFromGallery();
     }
   };
 
@@ -453,7 +479,14 @@ const DashboardScreen = () => {
       if (Platform.OS !== 'web') {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Permission needed', 'Gallery permission is required');
+          Alert.alert(
+            'Photo access needed',
+            'Allow photo library access in Settings to select meal photos.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            ]
+          );
           return;
         }
       }
@@ -1104,6 +1137,14 @@ const DashboardScreen = () => {
             )}
           </RNScrollView>
         </View>
+
+        {/* Apple HIG pre-permission modal — shown before system dialog */}
+        <PermissionRequestModal
+          visible={permissionModal.visible}
+          permissionType={permissionModal.type}
+          onAllow={handlePermissionAllowed}
+          onCancel={() => setPermissionModal((p) => ({ ...p, visible: false }))}
+        />
       </SafeAreaWrapper>
     );
   };
@@ -2299,6 +2340,8 @@ const webStyles = StyleSheet.create({
   },
   activityColMobileLast: {
     padding: 24,
+    paddingBottom: 8,
+    marginBottom: 8,
   },
   colTitle: {
     color: '#111111',

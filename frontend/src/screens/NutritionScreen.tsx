@@ -1,8 +1,9 @@
 import * as ImagePicker from 'expo-image-picker';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActionSheetIOS,
   Alert,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -12,6 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Camera, CheckCircle, Target } from 'phosphor-react-native';
 
 import { EmptyStateCard, MetricCard, SafeAreaWrapper, Text } from '@/components';
+import { PermissionRequestModal, PermissionType } from '@/components/common/PermissionRequestModal';
 import { AddFoodButton } from '@/components/nutrition/AddFoodButton';
 import { MealListItem } from '@/components/nutrition/MealListItem';
 import { SummaryCard } from '@/components/nutrition/SummaryCard';
@@ -20,25 +22,15 @@ import { BRAND_COLORS, spacing } from '@/utils';
 
 export function NutritionScreen({ navigation }: any) {
   const { data, refresh } = useDailyNutrition();
+  const [permissionModal, setPermissionModal] = useState<{ visible: boolean; type: PermissionType; action: 'camera' | 'gallery' }>({
+    visible: false, type: 'camera', action: 'camera',
+  });
 
   useFocusEffect(
     useCallback(() => {
       refresh();
     }, [refresh])
   );
-
-  const handleTakePhoto = async () => {
-    try {
-      if (Platform.OS === 'web') {
-        Alert.alert('Camera not supported', 'Please choose a photo from your device on web.');
-        return;
-      }
-
-      navigation.navigate('ReviewMeal', { openCamera: true });
-    } catch (err) {
-      Alert.alert('Error', 'Could not take photo: ' + (err as Error)?.message);
-    }
-  };
 
   const handleChooseFromGallery = async () => {
     try {
@@ -63,11 +55,31 @@ export function NutritionScreen({ navigation }: any) {
           imageMimeType: result.assets[0].mimeType,
           imageFileName: result.assets[0].fileName,
         });
-      } else {
-        Alert.alert('No image selected', 'Please pick a photo to continue.');
       }
     } catch (err) {
       Alert.alert('Error', 'Could not open gallery: ' + (err as Error)?.message);
+    }
+  };
+
+  const handlePermissionAllowed = async () => {
+    const action = permissionModal.action;
+    setPermissionModal((p) => ({ ...p, visible: false }));
+    if (action === 'camera') {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status === 'granted') {
+        navigation.navigate('ReviewMeal', { openCamera: true });
+      } else {
+        Alert.alert(
+          'Camera access needed',
+          'Allow camera access in Settings to scan meals.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ]
+        );
+      }
+    } else {
+      await handleChooseFromGallery();
     }
   };
 
@@ -80,14 +92,14 @@ export function NutritionScreen({ navigation }: any) {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Take Photo', 'Choose from Gallery'],
+          options: ['Cancel', 'Take Photo', 'Choose from Library'],
           cancelButtonIndex: 0,
         },
-        async (buttonIndex) => {
+        (buttonIndex) => {
           if (buttonIndex === 1) {
-            await handleTakePhoto();
+            setPermissionModal({ visible: true, type: 'camera', action: 'camera' });
           } else if (buttonIndex === 2) {
-            await handleChooseFromGallery();
+            setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' });
           }
         }
       );
@@ -96,8 +108,8 @@ export function NutritionScreen({ navigation }: any) {
 
     Alert.alert('Log meal', 'Choose an option', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Take Photo', onPress: handleTakePhoto },
-      { text: 'Choose from Gallery', onPress: handleChooseFromGallery },
+      { text: 'Take Photo', onPress: () => setPermissionModal({ visible: true, type: 'camera', action: 'camera' }) },
+      { text: 'Choose from Library', onPress: () => setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' }) },
     ]);
   };
 
@@ -105,6 +117,12 @@ export function NutritionScreen({ navigation }: any) {
 
   return (
     <SafeAreaWrapper style={styles.container}>
+      <PermissionRequestModal
+        visible={permissionModal.visible}
+        permissionType={permissionModal.type}
+        onAllow={handlePermissionAllowed}
+        onCancel={() => setPermissionModal((p) => ({ ...p, visible: false }))}
+      />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text variant="heading1" weight="bold">
