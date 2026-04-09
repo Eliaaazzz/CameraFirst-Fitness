@@ -1026,7 +1026,14 @@ const DashboardScreen = () => {
                   </View>
 
                   <Text variant="caption" style={webStyles.planCitation}>
-                    Calorie targets use the Mifflin-St Jeor resting energy equation (PubMed 2305711)
+                    Plan built uses the{' '}
+                    <Text
+                      variant="caption"
+                      style={webStyles.planCitationLink}
+                      onPress={() => openExternalUrl('https://pubmed.ncbi.nlm.nih.gov/2305711/')}
+                    >
+                      Mifflin-St Jeor formula
+                    </Text>
                   </Text>
 
                   <Pressable
@@ -1983,7 +1990,7 @@ const webStyles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 0,
+    paddingBottom: 120,
   },
   heroSection: {
     flexDirection: 'row',
@@ -2282,9 +2289,9 @@ const webStyles = StyleSheet.create({
   },
   activityColMobile: {
     borderRightWidth: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ECECEC',
-    paddingBottom: 32,
+    borderBottomWidth: 0,
+    marginBottom: 12,
+    paddingBottom: 24,
   },
   activityColMobileLast: {
     padding: 24,
@@ -2649,6 +2656,12 @@ const webStyles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 4,
   },
+  planCitationLink: {
+    color: BRAND_COLORS.primary,
+    fontSize: 12,
+    lineHeight: 16,
+    textDecorationLine: 'underline',
+  },
   planCta: {
     alignSelf: 'flex-start',
     backgroundColor: '#111111',
@@ -2696,9 +2709,8 @@ const webStyles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     gap: 14,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    paddingVertical: 16,
+    borderBottomWidth: 0,
     alignItems: 'flex-start',
   },
   benefitRowLast: {
