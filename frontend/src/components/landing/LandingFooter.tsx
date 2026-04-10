@@ -160,19 +160,6 @@ export function LandingFooter({ onGetStarted, onLogin, showFinalCTA = true, onLi
         </View>
 
         <View style={styles.footerBottom}>
-          <View style={styles.badges}>
-            <StoreBadge
-              label="Google Play"
-              sublabel="GET IT ON"
-              icon={<GooglePlayLogo size={24} weight="fill" color={LANDING_COLORS.textOnDark} />}
-            />
-            <StoreBadge
-              label="App Store"
-              sublabel="Download on the"
-              icon={<AppleLogo size={24} weight="fill" color={LANDING_COLORS.textOnDark} />}
-            />
-          </View>
-
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
               <GlobeHemisphereWest size={18} weight="regular" color={LANDING_COLORS.textOnDark} />

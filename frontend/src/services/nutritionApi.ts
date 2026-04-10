@@ -277,12 +277,15 @@ const analyzeFoodImage = async (
 ): Promise<FoodRecognitionResponse> => {
   console.log('[NutritionApi] Analyzing with Gemini 3 Pro Elite Sports Nutritionist...');
 
+  // Compress on client: 1024px JPEG ~150KB instead of raw 3MB.
+  // Saves ~1-2s (faster upload + backend skips redundant compression).
+  // Gemini 2.0 Flash handles 1024px fine for food recognition.
   const backendResponse = await api.uploadImage<BackendFoodRecognitionResponse>(
     '/api/v1/nutrition/analyze',
     imageUri,
     metadata,
     {
-      skipMobileCompression: true,
+      skipMobileCompression: false,
       sourceMimeType: options?.sourceMimeType,
       sourceFileName: options?.sourceFileName,
     }

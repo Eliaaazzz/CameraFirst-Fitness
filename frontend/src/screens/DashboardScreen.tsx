@@ -25,7 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 
-import { Barbell, Camera, CameraPlus, CaretRight, ChartLine, Drop, EnvelopeSimple, Fire, FlagCheckered, Grains, Leaf, PencilSimple, PersonSimpleRun, Scales, Sneaker, Target, User } from 'phosphor-react-native';
+import { Barbell, Camera, CameraPlus, CaretRight, ChartLine, Drop, EnvelopeSimple, Fire, FlagCheckered, Grains, ImageSquare, Leaf, PencilSimple, PersonSimpleRun, Scales, Sneaker, Target, User } from 'phosphor-react-native';
 import { Image } from 'expo-image';
 import { ScrollView as RNScrollView } from 'react-native';
 import { BentoCard, SafeAreaWrapper, Text } from '@/components';
@@ -417,6 +417,17 @@ const DashboardScreen = () => {
     setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' });
   };
 
+  const handleOpenCamera = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
+
+    if (Platform.OS === 'web') {
+      // No camera on web — fallback to gallery flow
+      setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' });
+      return;
+    }
+    setPermissionModal({ visible: true, type: 'camera', action: 'camera' });
+  };
+
   // Called after user taps "Allow" in the pre-permission modal.
   // Triggers the system permission dialog, then proceeds if granted.
   const handlePermissionAllowed = async () => {
@@ -589,13 +600,6 @@ const DashboardScreen = () => {
         onPress: () => navigation.navigate('Main', { screen: 'Recipes' } as any),
         backgroundColor: '#FFF7DD',   // Yellow
       },
-      {
-        title: 'Custom Goals',
-        body: 'Set calorie and macro targets using the Mifflin-St Jeor equation.',
-        illustration: illustrationTargets,
-        onPress: () => navigation.navigate('BuildPlan', { initialGoal: planPreviewGoal }),
-        backgroundColor: '#F2E9FF',   // Violet
-      },
     ];
     const recentMeals = nutritionData.meals.slice(0, 4);
     const currentProgramTitle = goalTypeConfig?.label || 'Build your plan';
@@ -609,7 +613,7 @@ const DashboardScreen = () => {
       ? `${generatedGoals.dailyCalories.target} kcal/day`
       : selectedPlanPreview.targetHint;
     const selectedPlanRhythm = generatedGoals?.goalType === planPreviewGoal
-      ? `${generatedGoals.weeklyActivityPlan.strength_sessions_per_week} strength + ${generatedGoals.weeklyActivityPlan.cardio_minutes_per_week} min cardio`
+      ? `${generatedGoals.weeklyActivityPlan.strength_sessions_per_week}\u00A0strength + ${generatedGoals.weeklyActivityPlan.cardio_minutes_per_week}\u00A0min cardio`
       : selectedPlanPreview.weeklyRhythm;
 
     return (
@@ -669,7 +673,7 @@ const DashboardScreen = () => {
                   icon="📸"
                 >
                   <Pressable
-                    onPress={handleAddFood}
+                    onPress={handleOpenCamera}
                     style={({ pressed }) => [webStyles.heroInputCard, !isDashboardDesktop && webStyles.heroInputCardMobile, pressed && webStyles.heroInputPressed]}
                   >
                     <View style={webStyles.heroInputConnector}>
@@ -681,14 +685,32 @@ const DashboardScreen = () => {
                     </View>
                     <View style={webStyles.heroInputCopy}>
                       <Text variant="heading4" weight="semibold" style={webStyles.heroInputTitle}>
-                        Log your next meal
+                        Take a photo
                       </Text>
                       <Text variant="body" style={webStyles.heroInputBody}>
-                        Scan a plate or upload from your gallery.
+                        Snap your plate with the camera.
                       </Text>
                     </View>
                   </Pressable>
                 </TourGuideZone>
+
+                <Pressable
+                  onPress={handleAddFood}
+                  style={({ pressed }) => [webStyles.heroInputCard, !isDashboardDesktop && webStyles.heroInputCardMobile, pressed && webStyles.heroInputPressed]}
+                >
+                  <View style={[webStyles.heroInputConnector, webStyles.heroInputConnectorHidden]} />
+                  <View style={webStyles.heroInputIcon}>
+                    <ImageSquare size={20} weight="regular" color="#111111" />
+                  </View>
+                  <View style={webStyles.heroInputCopy}>
+                    <Text variant="heading4" weight="semibold" style={webStyles.heroInputTitle}>
+                      Choose from library
+                    </Text>
+                    <Text variant="body" style={webStyles.heroInputBody}>
+                      Select a meal photo from your gallery.
+                    </Text>
+                  </View>
+                </Pressable>
 
                 <Pressable
                   onPress={() => navigation.navigate('Main', { screen: 'Workouts' } as any)}
@@ -710,19 +732,21 @@ const DashboardScreen = () => {
 
                 <View style={[webStyles.heroActions, !isDashboardTablet && webStyles.heroActionsMobile]}>
                   <Pressable
-                    onPress={handleAddFood}
+                    onPress={handleOpenCamera}
                     style={({ pressed }) => [webStyles.heroPrimaryCta, !isDashboardTablet && webStyles.heroPrimaryCtaMobile, pressed && webStyles.heroCtaPressed]}
                   >
+                    <Camera size={18} weight="bold" color="#FFFFFF" />
                     <Text variant="body" weight="bold" style={webStyles.heroPrimaryCtaText}>
-                      Start tracking
+                      Take photo
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => navigation.navigate('Main', { screen: 'Profile', params: { screen: 'WeeklyInsights' } } as any)}
-                    style={({ pressed }) => [webStyles.heroSecondaryLink, pressed && webStyles.heroInlineLinkPressed]}
+                    onPress={handleAddFood}
+                    style={({ pressed }) => [webStyles.heroPrimaryCta, !isDashboardTablet && webStyles.heroPrimaryCtaMobile, pressed && webStyles.heroCtaPressed, webStyles.heroSecondaryCta]}
                   >
-                    <Text variant="body" weight="medium" style={webStyles.heroSecondaryLinkText}>
-                      Review weekly report
+                    <ImageSquare size={18} weight="bold" color="#111111" />
+                    <Text variant="body" weight="bold" style={[webStyles.heroPrimaryCtaText, webStyles.heroSecondaryCtaText]}>
+                      Choose photo
                     </Text>
                   </Pressable>
                 </View>
@@ -741,19 +765,29 @@ const DashboardScreen = () => {
             </View>
 
             <View style={[webStyles.section, isDashboardCompact && webStyles.sectionCompact]}>
-              <Text
-                variant="heading2"
-                weight="bold"
-                style={
-                  isDashboardCompact
-                    ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile, webStyles.sectionHeadingCompact]
-                    : !isDashboardDesktop
-                      ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile]
-                      : webStyles.sectionHeading
-                }
-              >
-                Your account and activity
-              </Text>
+              <View style={webStyles.sectionHeader}>
+                <View style={[webStyles.sectionEyebrow, webStyles.sectionEyebrowWarm]}>
+                  <Text variant="label" weight="bold" style={webStyles.sectionEyebrowText}>
+                    Account
+                  </Text>
+                </View>
+                <Text
+                  variant="heading2"
+                  weight="bold"
+                  style={
+                    isDashboardCompact
+                      ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile, webStyles.sectionHeadingCompact]
+                      : !isDashboardDesktop
+                        ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile]
+                        : webStyles.sectionHeading
+                  }
+                >
+                  Your account and activity
+                </Text>
+                <Text variant="body" style={webStyles.sectionSubheading}>
+                  Recent meals, streak progress, and quick access to services.
+                </Text>
+              </View>
               <View style={[webStyles.activityCard, !isDashboardDesktop && webStyles.activityCardMobile]}>
                 <View style={[webStyles.activityCol1, !isDashboardDesktop && webStyles.activityColMobile]}>
                   <Text variant="heading4" weight="bold" style={webStyles.colTitle}>
@@ -904,19 +938,29 @@ const DashboardScreen = () => {
 
             {/* ── PERFORMANCE TODAY — Rings only ── */}
             <View style={[webStyles.section, isDashboardCompact && webStyles.sectionCompact]}>
-              <Text
-                variant="heading2"
-                weight="bold"
-                style={
-                  isDashboardCompact
-                    ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile, webStyles.sectionHeadingCompact]
-                    : !isDashboardDesktop
-                      ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile]
-                      : webStyles.sectionHeading
-                }
-              >
-                Performance today
-              </Text>
+              <View style={webStyles.sectionHeader}>
+                <View style={[webStyles.sectionEyebrow, webStyles.sectionEyebrowCool]}>
+                  <Text variant="label" weight="bold" style={webStyles.sectionEyebrowText}>
+                    Performance
+                  </Text>
+                </View>
+                <Text
+                  variant="heading2"
+                  weight="bold"
+                  style={
+                    isDashboardCompact
+                      ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile, webStyles.sectionHeadingCompact]
+                      : !isDashboardDesktop
+                        ? [webStyles.sectionHeading, webStyles.sectionHeadingMobile]
+                        : webStyles.sectionHeading
+                  }
+                >
+                  Performance today
+                </Text>
+                <Text variant="body" style={webStyles.sectionSubheading}>
+                  Track calories, protein, fat, and carbs against your daily targets.
+                </Text>
+              </View>
               {showNutritionLoading ? (
                 <NutritionRingsSkeleton />
               ) : (
@@ -1013,17 +1057,17 @@ const DashboardScreen = () => {
                   </View>
 
                   <View style={[webStyles.planPreviewStats, !isDashboardTablet && webStyles.planPreviewStatsMobile]}>
-                    <View style={webStyles.planField}>
+                    <View style={[webStyles.planField, isDashboardCompact ? webStyles.planFieldCompact : undefined]}>
                       <Text variant="caption" style={webStyles.planFieldLabel}>Focus</Text>
-                      <Text variant="body" weight="semibold" style={webStyles.planFieldValue}>{selectedPlanPreview.focus}</Text>
+                      <Text variant="body" weight="semibold" style={isDashboardCompact ? [webStyles.planFieldValue, webStyles.planFieldValueCompact] : webStyles.planFieldValue}>{selectedPlanPreview.focus}</Text>
                     </View>
-                    <View style={webStyles.planField}>
+                    <View style={[webStyles.planField, isDashboardCompact ? webStyles.planFieldCompact : undefined]}>
                       <Text variant="caption" style={webStyles.planFieldLabel}>Weekly rhythm</Text>
-                      <Text variant="body" weight="semibold" style={webStyles.planFieldValue}>{selectedPlanRhythm}</Text>
+                      <Text variant="body" weight="semibold" style={isDashboardCompact ? [webStyles.planFieldValue, webStyles.planFieldValueCompact] : webStyles.planFieldValue}>{selectedPlanRhythm}</Text>
                     </View>
-                    <View style={webStyles.planField}>
+                    <View style={[webStyles.planField, isDashboardCompact ? webStyles.planFieldCompact : undefined]}>
                       <Text variant="caption" style={webStyles.planFieldLabel}>Target</Text>
-                      <Text variant="body" weight="semibold" style={webStyles.planFieldValue}>{selectedPlanTarget}</Text>
+                      <Text variant="body" weight="semibold" style={isDashboardCompact ? [webStyles.planFieldValue, webStyles.planFieldValueCompact] : webStyles.planFieldValue}>{selectedPlanTarget}</Text>
                     </View>
                   </View>
 
@@ -2171,6 +2215,10 @@ const webStyles = StyleSheet.create({
     gap: spacing.lg,
   },
   heroPrimaryCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: '#111111',
     paddingHorizontal: 36,
     paddingVertical: 18,
@@ -2180,11 +2228,17 @@ const webStyles = StyleSheet.create({
     }),
   },
   heroPrimaryCtaMobile: {
-    alignSelf: 'stretch',
+    flex: 1,
     alignItems: 'center',
   },
   heroPrimaryCtaText: {
     color: '#FFFFFF',
+  },
+  heroSecondaryCta: {
+    backgroundColor: '#F3F3F3',
+  },
+  heroSecondaryCtaText: {
+    color: '#111111',
   },
   heroSecondaryLink: {
     borderBottomWidth: 1,
@@ -2310,7 +2364,7 @@ const webStyles = StyleSheet.create({
   activityColMobileLast: {
     padding: 24,
     paddingBottom: 8,
-    marginBottom: 8,
+    marginBottom: 32,
   },
   colTitle: {
     color: '#111111',
@@ -2656,12 +2710,21 @@ const webStyles = StyleSheet.create({
       ? ({ boxShadow: '0 10px 22px rgba(17,17,17,0.04)' } as any)
       : {}),
   },
+  planFieldCompact: {
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    minHeight: 64,
+  },
   planFieldLabel: {
     color: 'rgba(17,17,17,0.62)',
     marginBottom: 6,
   },
   planFieldValue: {
     color: '#111111',
+  },
+  planFieldValueCompact: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   planCitation: {
     color: 'rgba(17,17,17,0.45)',

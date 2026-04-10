@@ -11,7 +11,7 @@ import nutritionApi, {
   TotalNutrition,
 } from '@/services/nutritionApi';
 import { BRAND_COLORS, DEFAULT_MEAL_IMAGE_WIDTH_CM, NUTRITION_REFERENCES, openExternalUrl } from '@/utils';
-import { ArrowLeft, Camera, Check, ImageSquare, MagnifyingGlass, SealCheck } from 'phosphor-react-native';
+import { ArrowLeft, Camera, Check, ImageSquare, MagnifyingGlass, SealCheck, WarningCircle } from 'phosphor-react-native';
 import { Image as ExpoImage } from 'expo-image';
 
 /**
@@ -58,6 +58,7 @@ import {
   Animated,
   Easing,
   Image,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -179,6 +180,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const queryClient = useQueryClient();
   const hasRequestedCameraPermissionRef = useRef(false);
   const webObjectUrlRef = useRef<string | null>(null);
+  const lastAnalyzedImageUriRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(!isViewingExisting); // Don't show loading for existing meals
   const [phase, setPhase] = useState<1 | 2 | 3>(1);
   const [items, setItems] = useState<DetectedFood[]>(() => {
@@ -225,6 +227,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const [statusAnim] = useState(new Animated.Value(isViewingExisting ? 1 : 0));
   const [detailsAnim] = useState(new Animated.Value(isViewingExisting ? 1 : 0));
   const [retryCount, setRetryCount] = useState(0);
+  const [analysisError, setAnalysisError] = useState<{ title: string; message: string } | null>(null);
   const [mealId] = useState<number | undefined>(meal?.id);
   const MAX_RETRIES = 3;
   const contentMaxWidth = Platform.OS === 'web' ? 760 : viewportWidth;
@@ -236,6 +239,10 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const hasDetectedResults = hasBreakdownItems(items);
   const hasVisibleTotals = hasMeaningfulNutrition(total);
   const canSaveMeal = hasDetectedResults && hasVisibleTotals;
+  const isNarrowPhone = viewportWidth < 390;
+
+  // Pre-permission modal for photo library ("Pick another" flow)
+  const [galleryPermModal, setGalleryPermModal] = useState(false);
 
   const rememberWebObjectUrl = (uri?: string | null) => {
     if (Platform.OS !== 'web' || typeof URL === 'undefined' || !uri?.startsWith('blob:')) {
@@ -251,6 +258,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
   const prepareSelectedImageForAnalysis = (assetUri: string) => {
     setLoading(true);
+    setAnalysisError(null);
     setPhase(1);
     setItems([]);
     setTotal(null);
@@ -418,7 +426,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
       easing: ENTRANCE_EASING,
       useNativeDriver: true,
     }).start();
-  }, [detailsAnim, loading, canSaveMeal]);
+  }, [detailsAnim, loading, canSaveMeal, analysisError]);
 
   useEffect(() => {
     // Skip analysis if viewing existing meal
@@ -440,14 +448,23 @@ export function ReviewMealScreen({ route, navigation }: any) {
       return;
     }
 
-    // Wait until we have an image URI (camera capture / gallery pick)
+    // Wait until we have an image URI (camera capture / gallery pick).
+    // Reset loading to false to avoid stuck spinner when imageUri is cleared
+    // (e.g., user pressed "Retake photo" while a previous analysis was in-flight).
     if (!imageUri) {
       setLoading(false);
       return;
     }
 
+    // Reset retry counter when the user supplies a different photo
+    if (imageUri !== lastAnalyzedImageUriRef.current) {
+      lastAnalyzedImageUriRef.current = imageUri;
+      setRetryCount(0);
+    }
+
     // Reset all state when imageUri changes (new photo taken)
     setLoading(true);
+    setAnalysisError(null);
     setPhase(1);
     setItems([]);
     setTotal(null);
@@ -582,7 +599,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
           errorMessage = 'The food recognition service is temporarily unavailable. Please try again later or contact support.';
         } else if (errorString.includes('providers failed') || errorString.includes('recognize foods')) {
           errorTitle = 'Recognition Failed';
-          errorMessage = 'Could not recognize food in this image. Please try:\n\n• Taking a clearer photo\n• Ensuring good lighting\n• Capturing the food from above\n• Making sure food is visible';
+          errorMessage = 'Could not recognize food in this image. Please try taking a clearer photo with good lighting, capturing the food from above.';
         } else if (errorString.includes('Network') || errorString.includes('fetch') || errorString.includes('CONNECTION')) {
           errorTitle = 'Connection Error';
           errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
@@ -591,30 +608,11 @@ export function ReviewMealScreen({ route, navigation }: any) {
           errorMessage = 'The analysis is taking too long. Please try again with a smaller image.';
         }
 
+        // Store error inline so the screen always shows a visible error state with retry options.
+        // Previously, errors were only shown via Alert.alert which could be dismissed without action,
+        // leaving the screen in a blank state with no way to recover.
+        setAnalysisError({ title: errorTitle, message: errorMessage });
         setLoading(false);
-
-        const canRetry = retryCount < MAX_RETRIES;
-
-        Alert.alert(errorTitle, errorMessage, [
-          ...(canRetry ? [{
-            text: `Try Again (${MAX_RETRIES - retryCount} left)`,
-            onPress: () => {
-              // Reset and retry
-              setRetryCount(prev => prev + 1);
-            },
-          }] : []),
-          {
-            text: 'Go Back',
-            style: 'cancel',
-            onPress: () => {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate('Main', { screen: 'Dashboard' });
-              }
-            },
-          },
-        ]);
       }
     };
 
@@ -629,6 +627,18 @@ export function ReviewMealScreen({ route, navigation }: any) {
   }, [imageFileName, imageMimeType, imageUri, retryCount, isViewingExisting]);
 
   const openGallery = async () => {
+    // On native, show pre-permission modal before accessing photo library
+    if (Platform.OS !== 'web') {
+      const { status: currentStatus } = await ImagePicker.getMediaLibraryPermissionsAsync();
+      if (currentStatus !== 'granted') {
+        setGalleryPermModal(true);
+        return;
+      }
+    }
+    await doOpenGallery();
+  };
+
+  const doOpenGallery = async () => {
     try {
       if (Platform.OS === 'web') {
         const asset = await pickWebImageFile();
@@ -642,7 +652,14 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Gallery permission is required');
+        Alert.alert(
+          'Photo access needed',
+          'Allow photo library access in Settings to select photos.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ]
+        );
         return;
       }
 
@@ -686,33 +703,29 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
       return (
         <SafeAreaView style={styles.container}>
-          <View style={styles.permissionContainer}>
-            {isAwaitingSystemPrompt ? (
-              <>
-                <Text style={styles.permissionTitle}>Camera access</Text>
-                <Text style={styles.permissionSubtitle}>
-                  We need camera access to scan meals and log nutrition instantly. Tap continue to grant permission.
-                </Text>
-                <Pressable onPress={() => cameraPerm.request()} style={styles.permissionPrimaryBtn}>
-                  <Text style={styles.permissionPrimaryBtnText}>Continue</Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <Text style={styles.permissionTitle}>Camera access is off</Text>
-                <Text style={styles.permissionSubtitle}>
-                  To scan a meal with the camera, enable camera access in Settings. You can still review a meal photo from your library right now.
-                </Text>
+          {isAwaitingSystemPrompt ? (
+            /* Apple HIG pre-permission modal — shown before system camera dialog */
+            <PermissionRequestModal
+              visible={true}
+              permissionType="camera"
+              onAllow={() => cameraPerm.request()}
+              onCancel={() => {
+                if (navigation.canGoBack()) navigation.goBack();
+                else navigation.navigate('Main', { screen: 'Dashboard' });
+              }}
+            />
+          ) : (
+            <View style={styles.permissionContainer}>
+              <Text style={styles.permissionTitle}>Camera access is off</Text>
+              <Text style={styles.permissionSubtitle}>
+                To scan a meal with the camera, enable camera access in Settings.
+              </Text>
 
-                <Pressable onPress={cameraPerm.openSettings} style={styles.permissionPrimaryBtn}>
-                  <Text style={styles.permissionPrimaryBtnText}>Open Settings</Text>
-                </Pressable>
-                <Pressable style={styles.permissionSecondaryBtn} onPress={openGallery}>
-                  <Text style={styles.permissionSecondaryBtnText}>Choose from Library</Text>
-                </Pressable>
-              </>
-            )}
-          </View>
+              <Pressable onPress={cameraPerm.openSettings} style={styles.permissionPrimaryBtn}>
+                <Text style={styles.permissionPrimaryBtnText}>Open Settings</Text>
+              </Pressable>
+            </View>
+          )}
         </SafeAreaView>
       );
     }
@@ -935,8 +948,10 @@ export function ReviewMealScreen({ route, navigation }: any) {
         >
           <ArrowLeft size={24} color="#000" />
         </Pressable>
-        <Text style={styles.headerTitle}>{isViewingExisting ? 'Meal Details' : 'Review your meal'}</Text>
-        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {isViewingExisting ? 'Meal Details' : 'Review your meal'}
+        </Text>
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView
@@ -977,7 +992,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
                 ) : (
                   <View style={styles.image} />
                 )}
-                <View style={styles.photoBadgeRow} pointerEvents="none">
+                <View style={[styles.photoBadgeRow, isNarrowPhone && styles.photoBadgeRowCompact]} pointerEvents="none">
                   <View style={styles.photoTag}>
                     <Text style={styles.photoTagText}>Photo ready</Text>
                   </View>
@@ -990,7 +1005,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
           )}
 
           {!isViewingExisting && (
-            <Animated.View style={[styles.imageActionRow, statusAnimatedStyle]}>
+            <Animated.View style={[styles.imageActionRow, isNarrowPhone && styles.stackedActionRow, statusAnimatedStyle]}>
               <Pressable
                 style={styles.imageActionBtn}
                 onPress={handleRetake}
@@ -1044,7 +1059,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
               {total && <NutritionSummaryCard total={total} />}
               <AIDisclaimer />
 
-              <View style={styles.sectionHeader}>
+              <View style={[styles.sectionHeader, isNarrowPhone && styles.sectionHeaderCompact]}>
                 <Text style={styles.sectionTitle}>Detected items</Text>
                 <Text style={styles.sectionCaption}>Adjust portions before saving</Text>
               </View>
@@ -1125,25 +1140,65 @@ export function ReviewMealScreen({ route, navigation }: any) {
               </Text>
             </Animated.View>
           ) : (
-            <Animated.View style={[styles.emptyStateCard, detailsAnimatedStyle]}>
-              <View style={styles.emptyStateIconWrap}>
-                <MagnifyingGlass size={28} color="#B45309" />
-              </View>
-              <Text style={styles.emptyStateTitle}>We could not confirm the meal contents</Text>
-              <Text style={styles.emptyStateBody}>
-                Try a photo with stronger lighting, less background clutter, and the entire plate visible from above.
-              </Text>
-              <View style={styles.emptyActionRow}>
-                <Pressable
-                  style={[styles.inlineActionBtn, styles.inlineActionBtnPrimary]}
-                  onPress={handleRetake}
-                >
-                  <Text style={styles.inlineActionBtnPrimaryText}>Retake photo</Text>
-                </Pressable>
-                <Pressable style={styles.inlineActionBtn} onPress={openGallery}>
-                  <Text style={styles.inlineActionBtnText}>Pick another</Text>
-                </Pressable>
-              </View>
+            <Animated.View style={detailsAnimatedStyle}>
+              {analysisError ? (
+                <View style={styles.errorStateCard}>
+                  <View style={styles.errorStateIconWrap}>
+                    <WarningCircle size={28} color="#DC2626" weight="fill" />
+                  </View>
+                  <Text style={styles.errorStateTitle}>{analysisError.title}</Text>
+                  <Text style={styles.errorStateBody}>{analysisError.message}</Text>
+                  <View style={[styles.emptyActionRow, isNarrowPhone && styles.stackedActionRow]}>
+                    {retryCount < MAX_RETRIES && (
+                    <Pressable
+                      style={[styles.inlineActionBtn, styles.inlineActionBtnPrimary]}
+                      onPress={() => {
+                        setAnalysisError(null);
+                        setRetryCount(prev => prev + 1);
+                        }}
+                      >
+                        <Text style={styles.inlineActionBtnPrimaryText}>
+                          Try Again ({MAX_RETRIES - retryCount} left)
+                        </Text>
+                      </Pressable>
+                    )}
+                    <Pressable
+                      style={[styles.inlineActionBtn, styles.inlineActionBtnPrimary]}
+                      onPress={handleRetake}
+                    >
+                      <Text style={styles.inlineActionBtnPrimaryText}>
+                        {Platform.OS === 'web' ? 'Choose photo' : 'Retake photo'}
+                      </Text>
+                    </Pressable>
+                    <Pressable style={styles.inlineActionBtn} onPress={openGallery}>
+                      <Text style={styles.inlineActionBtnText}>Pick another</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.emptyStateCard}>
+                  <View style={styles.emptyStateIconWrap}>
+                    <MagnifyingGlass size={28} color="#B45309" />
+                  </View>
+                  <Text style={styles.emptyStateTitle}>We could not confirm the meal contents</Text>
+                  <Text style={styles.emptyStateBody}>
+                    Try a photo with stronger lighting, less background clutter, and the entire plate visible from above.
+                  </Text>
+                  <View style={[styles.emptyActionRow, isNarrowPhone && styles.stackedActionRow]}>
+                    <Pressable
+                      style={[styles.inlineActionBtn, styles.inlineActionBtnPrimary]}
+                      onPress={handleRetake}
+                    >
+                      <Text style={styles.inlineActionBtnPrimaryText}>
+                        {Platform.OS === 'web' ? 'Choose photo' : 'Retake photo'}
+                      </Text>
+                    </Pressable>
+                    <Pressable style={styles.inlineActionBtn} onPress={openGallery}>
+                      <Text style={styles.inlineActionBtnText}>Pick another</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
             </Animated.View>
           )}
         </View>
@@ -1232,6 +1287,16 @@ export function ReviewMealScreen({ route, navigation }: any) {
           </Animated.View>
         </Animated.View>
       )}
+      {/* Pre-permission modal for photo library (Pick another flow) */}
+      <PermissionRequestModal
+        visible={galleryPermModal}
+        permissionType="photoLibrary"
+        onAllow={async () => {
+          setGalleryPermModal(false);
+          await doOpenGallery();
+        }}
+        onCancel={() => setGalleryPermModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -1315,9 +1380,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   headerTitle: {
+    flex: 1,
     fontSize: 18,
     fontWeight: '700',
     color: '#0F172A',
+    textAlign: 'center',
+    paddingHorizontal: 12,
+  },
+  headerSpacer: {
+    width: 40,
   },
   content: {
     paddingBottom: 120, // Extra space for absolute positioned bottom bar
@@ -1370,6 +1441,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  photoBadgeRowCompact: {
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+  },
   photoTag: {
     backgroundColor: 'rgba(15,23,42,0.74)',
     paddingHorizontal: 12,
@@ -1416,6 +1492,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#0F172A',
+    flexShrink: 1,
+    textAlign: 'center',
   },
   statusCard: {
     marginHorizontal: 16,
@@ -1581,6 +1659,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
+  sectionHeaderCompact: {
+    alignItems: 'flex-start',
+    flexDirection: 'column',
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
@@ -1624,11 +1706,47 @@ const styles = StyleSheet.create({
     color: '#92400E',
     textAlign: 'center',
   },
+  errorStateCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    backgroundColor: '#FEF2F2',
+    padding: 20,
+    alignItems: 'center',
+    ...CARD_SHADOW,
+  },
+  errorStateIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    backgroundColor: 'rgba(220, 38, 38, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  errorStateTitle: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#991B1B',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  errorStateBody: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#B91C1C',
+    textAlign: 'center',
+  },
   emptyActionRow: {
     width: '100%',
     flexDirection: 'row',
     gap: 12,
     marginTop: 18,
+  },
+  stackedActionRow: {
+    flexDirection: 'column',
   },
   inlineActionBtn: {
     flex: 1,
@@ -1649,11 +1767,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#0F172A',
+    textAlign: 'center',
   },
   inlineActionBtnPrimaryText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+    textAlign: 'center',
   },
   bottomBar: {
     position: 'absolute',

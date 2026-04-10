@@ -49,6 +49,8 @@ dependencies {
 	implementation("com.theokanning.openai-gpt3-java:service:0.18.2")
 	// HTTP client for Claude and Gemini APIs (using OkHttp)
 	implementation("com.squareup.okhttp3:okhttp:4.12.0")
+	// Google Auth for Vertex AI Application Default Credentials
+	implementation("com.google.auth:google-auth-library-oauth2-http:1.23.0")
     implementation("software.amazon.awssdk:s3:2.29.0")
 	// OpenAI Java SDK for embeddings (already have openai-gpt3-java above for chat)
 	// Using OkHttp for embeddings API call to avoid SDK version conflicts

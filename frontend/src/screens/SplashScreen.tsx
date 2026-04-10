@@ -58,12 +58,16 @@ export default function SplashScreen() {
 
   useEffect(() => {
     // Web: restore token first, then route based on auth state.
-    // If user has a valid token → straight to Dashboard (no landing flash).
-    // If not → Landing page.
+    // Show splash animation briefly for a polished transition.
     if (Platform.OS === 'web') {
       (async () => {
-        await restoreToken();
+        const alreadyAuthenticated = useAuthStore.getState().isAuthenticated;
+        if (!alreadyAuthenticated) {
+          await restoreToken();
+        }
         const authenticated = useAuthStore.getState().isAuthenticated;
+        // Show splash for at least 1.2s so the user sees the branded transition
+        await new Promise(r => setTimeout(r, authenticated ? 1200 : 300));
         navigation.reset({
           index: 0,
           routes: [{ name: authenticated ? 'Main' : 'Landing' } as any],

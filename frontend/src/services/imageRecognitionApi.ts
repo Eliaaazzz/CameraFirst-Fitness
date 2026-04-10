@@ -261,33 +261,19 @@ export async function uploadRecipeImage(
 }
 
 /**
- * Search workouts by keyword
+ * Search workouts by keyword.
+ * Uses the server-side search endpoint with caching instead of
+ * fetching the full catalog and filtering client-side.
  */
 export async function searchWorkouts(query: string, level?: string): Promise<WorkoutCard[]> {
   try {
-    const workouts = await get<any[]>('/api/admin/workouts');
-    const lowerQuery = query.toLowerCase();
-    
-    return workouts
-      .filter((w: any) => {
-        const matchesQuery = 
-          w.title?.toLowerCase().includes(lowerQuery) ||
-          w.equipment?.some((e: string) => e.toLowerCase().includes(lowerQuery)) ||
-          w.bodyPart?.some((b: string) => b.toLowerCase().includes(lowerQuery));
-        const matchesLevel = !level || w.level === level;
-        return matchesQuery && matchesLevel;
-      })
-      .slice(0, 20)
-      .map((w: any) => ({
-        id: w.youtubeId || w.id,
-        youtubeId: w.youtubeId,
-        title: w.title,
-        durationMinutes: w.durationMinutes,
-        level: w.level,
-        equipment: w.equipment || [],
-        bodyPart: w.bodyPart || [],
-        viewCount: w.viewCount || 0,
-      }));
+    const results = await api.get<WorkoutSearchApiResult[]>(
+      `/api/v1/search/workouts?query=${encodeURIComponent(query)}&limit=20`
+    );
+    if (!Array.isArray(results)) {
+      return [];
+    }
+    return results.map(mapWorkoutSearchResult);
   } catch (error) {
     console.error('searchWorkouts failed:', error);
     return [];
@@ -295,29 +281,21 @@ export async function searchWorkouts(query: string, level?: string): Promise<Wor
 }
 
 /**
- * Search recipes by keyword
- * Returns recipes with normalized image URLs for all sizes.
+ * Search recipes by keyword.
+ * Uses the server-side text search endpoint with caching instead of
+ * fetching the full catalog and filtering client-side.
  */
 export async function searchRecipes(query: string): Promise<RecipeCard[]> {
   try {
-    // Use admin list and filter client-side (the /api/v1/recipes/search returns 403)
-    const recipes = await get<any[]>('/api/admin/recipes');
-    const lowerQuery = query.toLowerCase();
-    
-    return recipes
-      .filter((r: any) => {
-        // Search in title, ingredients, and tags
-        const titleMatch = r.title?.toLowerCase().includes(lowerQuery);
-        const ingredientMatch = r.ingredients?.some((ing: any) => 
-          ing.name?.toLowerCase().includes(lowerQuery)
-        );
-        const tagMatch = r.tags?.some((tag: string) => 
-          tag.toLowerCase().includes(lowerQuery)
-        );
-        return titleMatch || ingredientMatch || tagMatch;
-      })
-      .slice(0, 20)
-      .map(normalizeRecipeData);
+    const response = await api.get<any>(
+      `/api/v1/recipes/search-text?query=${encodeURIComponent(query)}`
+    );
+    // The endpoint returns { recipes: [...], totalResults, ... }
+    const recipes = Array.isArray(response) ? response : response?.recipes;
+    if (!Array.isArray(recipes)) {
+      return [];
+    }
+    return recipes.map(normalizeRecipeData);
   } catch (error) {
     console.error('searchRecipes failed:', error);
     return [];
@@ -446,15 +424,27 @@ async function getGoalDrivenWorkouts(goal: string): Promise<WorkoutCard[]> {
     return [];
   }
 
-  const queryCache = new Map<string, WorkoutCard[]>();
-  const getResultsForQuery = async (query: string): Promise<WorkoutCard[]> => {
-    if (queryCache.has(query)) {
-      return queryCache.get(query) || [];
+  // Collect all unique queries and fire them in parallel
+  const allQueries = new Set<string>();
+  for (const group of queryPlan) {
+    for (const q of group) {
+      allQueries.add(q);
     }
-    const results = await searchWorkoutByKeyword(query, 20);
-    queryCache.set(query, results);
-    return results;
-  };
+  }
+
+  const queryCache = new Map<string, WorkoutCard[]>();
+  const results = await Promise.all(
+    Array.from(allQueries).map(async (query) => {
+      const res = await searchWorkoutByKeyword(query, 20);
+      return { query, res };
+    })
+  );
+  for (const { query, res } of results) {
+    queryCache.set(query, res);
+  }
+
+  const getResultsForQuery = (query: string): WorkoutCard[] =>
+    queryCache.get(query) || [];
 
   const selected: WorkoutCard[] = [];
   const seenIds = new Set<string>();
@@ -463,7 +453,7 @@ async function getGoalDrivenWorkouts(goal: string): Promise<WorkoutCard[]> {
   for (const queryGroup of queryPlan) {
     let matchedWorkout: WorkoutCard | null = null;
     for (const query of queryGroup) {
-      const queryResults = await getResultsForQuery(query);
+      const queryResults = getResultsForQuery(query);
       matchedWorkout = queryResults.find((workout) => !seenIds.has(workout.id)) ?? null;
       if (matchedWorkout) {
         break;
@@ -483,7 +473,7 @@ async function getGoalDrivenWorkouts(goal: string): Promise<WorkoutCard[]> {
     }
 
     for (const query of queryGroup) {
-      const queryResults = await getResultsForQuery(query);
+      const queryResults = getResultsForQuery(query);
       for (const workout of queryResults) {
         if (seenIds.has(workout.id)) {
           continue;

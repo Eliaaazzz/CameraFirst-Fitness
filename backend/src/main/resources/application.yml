@@ -63,8 +63,11 @@ app:
     api-key: ${ANTHROPIC_API_KEY:}
   gemini:
     api-key: ${GEMINI_API_KEY:}
-    model: ${GEMINI_MODEL:gemini-2.5-flash}
+    model: ${GEMINI_MODEL:gemini-2.0-flash}
     enabled: ${GEMINI_ENABLED:true}
+    use-vertex-ai: ${GEMINI_USE_VERTEX_AI:false}
+    gcp-project-id: ${GEMINI_GCP_PROJECT_ID:gen-lang-client-0295973830}
+    gcp-region: ${GEMINI_GCP_REGION:australia-southeast2}
   google:
     # Comma-separated allowed audiences for Google ID tokens.
     # Example: GOOGLE_CLIENT_ID=web-client-id.apps.googleusercontent.com,ios-client-id.apps.googleusercontent.com,android-client-id.apps.googleusercontent.com

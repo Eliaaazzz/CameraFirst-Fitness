@@ -371,10 +371,19 @@ export default function LoginScreen() {
       }
 
       setIsLoading(false);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main' } as any],
-      });
+      // Show splash screen briefly on web for a polished login transition,
+      // then splash will navigate to Main once auth state is confirmed.
+      if (Platform.OS === 'web') {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Splash' } as any],
+        });
+      } else {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Main' } as any],
+        });
+      }
     } catch (err) {
       setIsLoading(false);
       console.error('[LoginScreen] handleLoginSuccess failed:', err);

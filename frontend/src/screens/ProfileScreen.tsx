@@ -39,6 +39,7 @@ import {
     Alert,
     Image,
     KeyboardAvoidingView,
+    Linking,
     Modal,
     Platform,
     Pressable,
@@ -50,6 +51,7 @@ import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, EditNameModal, SafeAreaWrapper, Text, WheelPicker } from '@/components';
+import { PermissionRequestModal, PermissionType } from '@/components/common/PermissionRequestModal';
 import { StateView } from '@/components/common/StateView';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import useImageCompressor from '@/hooks/useImageCompressor';
@@ -204,6 +206,11 @@ const ProfileScreen = () => {
   // Avatar upload state with high-performance compression
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarCacheKey, setAvatarCacheKey] = useState(Date.now());
+
+  // Apple HIG pre-permission modal state
+  const [permissionModal, setPermissionModal] = useState<{ visible: boolean; type: PermissionType }>({
+    visible: false, type: 'photoLibrary',
+  });
   const avatarUrl = currentUser.data?.profile?.avatarUrl;
 
   // Use the image compressor hook for non-blocking compression
@@ -294,24 +301,46 @@ const ProfileScreen = () => {
   };
 
   const handleAvatarPress = async () => {
-    // Directly open the gallery (camera icon UX expectation)
+    // Show pre-permission modal before accessing photo library (Apple HIG)
+    setPermissionModal({ visible: true, type: 'photoLibrary' });
+  };
+
+  // Called after user taps "Allow" in the pre-permission modal
+  const handleAvatarPermissionAllowed = async () => {
+    setPermissionModal((p) => ({ ...p, visible: false }));
     await pickImage('library');
   };
 
   const pickImage = async (source: 'camera' | 'library') => {
     try {
-      // Request permissions
+      // Request permissions via system dialog
       if (source === 'camera') {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Permission Required', 'Camera permission is needed to take photos.');
+          Alert.alert(
+            'Camera access needed',
+            'Allow camera access in Settings to take photos.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            ]
+          );
           return;
         }
       } else {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Permission Required', 'Photo library permission is needed to select photos.');
-          return;
+        if (Platform.OS !== 'web') {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert(
+              'Photo access needed',
+              'Allow photo library access in Settings to select photos.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Open Settings', onPress: () => Linking.openSettings() },
+              ]
+            );
+            return;
+          }
         }
       }
 
@@ -1632,6 +1661,14 @@ const ProfileScreen = () => {
         onSave={handleUpdateUsername}
         currentName={currentUser.data?.username || ''}
         isLoading={isUpdatingName}
+      />
+
+      {/* Apple HIG pre-permission modal — photo library access for avatar */}
+      <PermissionRequestModal
+        visible={permissionModal.visible}
+        permissionType={permissionModal.type}
+        onAllow={handleAvatarPermissionAllowed}
+        onCancel={() => setPermissionModal((p) => ({ ...p, visible: false }))}
       />
     </SafeAreaWrapper>
   );

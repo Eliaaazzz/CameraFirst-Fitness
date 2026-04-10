@@ -19,8 +19,8 @@
       "backgroundColor": "#F6F2EC"
     },
     "ios": {
-      "bundleIdentifier": "com.elia.aurafitness",
-      "buildNumber": "4",
+      "bundleIdentifier": "com.elia.aurafit",
+      "buildNumber": "5",
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "infoPlist": {

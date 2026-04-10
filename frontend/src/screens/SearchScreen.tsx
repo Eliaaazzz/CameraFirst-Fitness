@@ -1,8 +1,11 @@
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { launchImageLibraryAsync } from 'expo-image-picker';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+    Alert,
     KeyboardAvoidingView,
+    Linking,
     Platform,
     Pressable,
     ScrollView,
@@ -12,10 +15,10 @@ import {
 } from 'react-native';
 
 import { CameraView, SafeAreaWrapper, Text, useSnackbar } from '@/components';
+import { PermissionRequestModal, PermissionType } from '@/components/common/PermissionRequestModal';
 import { RecognitionProcessingHero } from '@/components/common/RecognitionProcessingHero';
 import { useCameraPermission } from '@/hooks/useCameraPermission';
 import { useGalleryPermission } from '@/hooks/useGalleryPermission';
-import { usePermissionHelper } from '@/hooks/usePermissionHelper';
 import { searchRecipes, searchWorkouts, useUploadRecipe, useUploadWorkout } from '@/services';
 import { colors, compressImage, radii, spacing } from '@/utils';
 import { getFriendlyErrorMessage } from '@/utils/errors';
@@ -32,7 +35,6 @@ export const SearchScreen = () => {
   const { showSnackbar } = useSnackbar();
   const cameraPerm = useCameraPermission();
   const galleryPerm = useGalleryPermission();
-  const { requestWithTopSnackbar } = usePermissionHelper();
   
   const [mode, setMode] = useState<SearchMode>('home');
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,6 +42,11 @@ export const SearchScreen = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingPhase, setProcessingPhase] = useState<1 | 2 | 3>(1);
   const [searchType, setSearchType] = useState<'workout' | 'recipe'>('workout');
+
+  // Apple HIG pre-permission modal state
+  const [permissionModal, setPermissionModal] = useState<{ visible: boolean; type: PermissionType; action: 'camera' | 'gallery' }>({
+    visible: false, type: 'camera', action: 'camera',
+  });
 
   const uploadWorkout = useUploadWorkout();
   const uploadRecipe = useUploadRecipe();
@@ -63,31 +70,60 @@ export const SearchScreen = () => {
     };
   }, [isProcessing, mode]);
 
-  // Open camera
+  // Called after user taps "Allow" in the pre-permission modal
+  const handlePermissionAllowed = async () => {
+    const action = permissionModal.action;
+    setPermissionModal((p) => ({ ...p, visible: false }));
+
+    if (action === 'camera') {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status === 'granted') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          setMode('camera');
+        } else {
+          Alert.alert(
+            'Camera access needed',
+            'Allow camera access in Settings to take photos.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            ]
+          );
+        }
+      }
+    } else {
+      // Gallery permission
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(
+            'Photo access needed',
+            'Allow photo library access in Settings to select photos.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            ]
+          );
+          return;
+        }
+      }
+      await doPickImage();
+    }
+  };
+
+  // Open camera — show pre-permission modal first (Apple HIG)
   const handleOpenCamera = async () => {
     if (cameraPerm.state !== 'granted') {
-      const ok = await requestWithTopSnackbar(cameraPerm.request, cameraPerm.refresh, {
-        denied: 'Camera permission required to take photos',
-        granted: 'Camera permission granted',
-        stillDenied: 'Please enable camera permission in settings',
-      });
-      if (!ok) return;
+      setPermissionModal({ visible: true, type: 'camera', action: 'camera' });
+      return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setMode('camera');
   };
 
-  // Pick from gallery
-  const handlePickImage = async () => {
-    if (galleryPerm.state !== 'granted') {
-      const ok = await requestWithTopSnackbar(galleryPerm.request, galleryPerm.refresh, {
-        denied: 'Gallery permission required to select photos',
-        granted: 'Gallery permission granted',
-        stillDenied: 'Please enable gallery permission in settings',
-      });
-      if (!ok) return;
-    }
-
+  // Actual gallery picking logic
+  const doPickImage = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
     const result = await launchImageLibraryAsync({
@@ -103,6 +139,19 @@ export const SearchScreen = () => {
       setCapturedImage(compressed.uri);
       handleProcessImage(compressed.uri);
     }
+  };
+
+  // Pick from gallery — show pre-permission modal first (Apple HIG)
+  const handlePickImage = async () => {
+    if (Platform.OS !== 'web' && galleryPerm.state !== 'granted') {
+      setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' });
+      return;
+    }
+    if (Platform.OS === 'web') {
+      setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' });
+      return;
+    }
+    await doPickImage();
   };
 
   const handleHelpPress = () => {
@@ -405,6 +454,13 @@ export const SearchScreen = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      {/* Apple HIG pre-permission modal */}
+      <PermissionRequestModal
+        visible={permissionModal.visible}
+        permissionType={permissionModal.type}
+        onAllow={handlePermissionAllowed}
+        onCancel={() => setPermissionModal((p) => ({ ...p, visible: false }))}
+      />
     </SafeAreaWrapper>
   );
 };

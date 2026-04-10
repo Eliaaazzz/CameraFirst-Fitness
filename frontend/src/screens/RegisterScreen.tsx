@@ -273,9 +273,10 @@ export default function RegisterScreen() {
       if (!authState.isAuthenticated) throw new Error('Login succeeded but authentication state was not set.');
 
       setIsLoading(false);
+      const destination = data.isNewUser ? 'Onboarding' : (Platform.OS === 'web' ? 'Splash' : 'Main');
       navigation.reset({
         index: 0,
-        routes: [{ name: data.isNewUser ? 'Onboarding' : 'Main' } as any],
+        routes: [{ name: destination } as any],
       });
     } catch (err) {
       setIsLoading(false);

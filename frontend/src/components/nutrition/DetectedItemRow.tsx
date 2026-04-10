@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import { DetectedFood } from '@/services/nutritionApi';
 import { BRAND_COLORS } from '@/utils';
 
@@ -14,6 +14,9 @@ interface DetectedItemRowProps {
  * Uses intuitive units (piece, bowl, serving) from Smart Splitting AI.
  */
 export function DetectedItemRow({ item, onIncrease, onDecrease }: DetectedItemRowProps) {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 390;
+
   // Format display based on unit type
   const getAmountDisplay = () => {
     // For grams, show "100g" format
@@ -31,10 +34,12 @@ export function DetectedItemRow({ item, onIncrease, onDecrease }: DetectedItemRo
     : null;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.info}>
-        <View style={styles.headerRow}>
-          <Text style={styles.name}>{item.name}</Text>
+    <View style={[styles.container, isCompact && styles.containerCompact]}>
+      <View style={[styles.info, isCompact && styles.infoCompact]}>
+        <View style={[styles.headerRow, isCompact && styles.headerRowCompact]}>
+          <Text style={styles.name} numberOfLines={2}>
+            {item.name}
+          </Text>
           {confidencePercent != null && (
             <View style={styles.confidencePill}>
               <Text style={styles.confidenceText}>{confidencePercent}% match</Text>
@@ -42,7 +47,7 @@ export function DetectedItemRow({ item, onIncrease, onDecrease }: DetectedItemRo
           )}
         </View>
 
-        <Text style={styles.serving}>
+        <Text style={styles.serving} numberOfLines={1}>
           {getAmountDisplay()}
           {item.unit && item.unit !== 'g' ? ' detected' : ''}
         </Text>
@@ -60,11 +65,18 @@ export function DetectedItemRow({ item, onIncrease, onDecrease }: DetectedItemRo
         </View>
       </View>
 
-      <View style={styles.amountControl}>
+      <View style={[styles.amountControl, isCompact && styles.amountControlCompact]}>
         <Pressable onPress={onDecrease} style={styles.button}>
           <Text style={styles.buttonText}>-</Text>
         </Pressable>
-        <Text style={styles.amount}>{getAmountDisplay()}</Text>
+        <Text
+          style={[styles.amount, isCompact && styles.amountCompact]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
+        >
+          {getAmountDisplay()}
+        </Text>
         <Pressable onPress={onIncrease} style={styles.button}>
           <Text style={styles.buttonText}>+</Text>
         </Pressable>
@@ -91,16 +103,29 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 2,
   },
+  containerCompact: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 12,
+  },
   info: {
     flex: 1,
     paddingRight: 12,
     gap: 10,
+  },
+  infoCompact: {
+    paddingRight: 0,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
+  },
+  headerRowCompact: {
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap',
   },
   name: {
     fontSize: 16,
@@ -157,6 +182,13 @@ const styles = StyleSheet.create({
     padding: 8,
     gap: 8,
   },
+  amountControlCompact: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
   button: {
     width: 34,
     height: 34,
@@ -178,5 +210,10 @@ const styles = StyleSheet.create({
     minWidth: 72,
     textAlign: 'center',
     color: '#111827',
+  },
+  amountCompact: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 12,
   },
 });

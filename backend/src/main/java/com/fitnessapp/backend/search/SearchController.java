@@ -12,9 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fitnessapp.backend.recipe.entity.Recipe;
-import com.fitnessapp.backend.recipe.repository.RecipeRepository;
 import com.fitnessapp.backend.workout.entity.ExerciseVideo;
-import com.fitnessapp.backend.workout.repository.ExerciseVideoRepository;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -25,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Search API for recipes and workouts.
  * Provides text-based search functionality across content.
+ * Uses SearchService for Caffeine-cached database queries.
  */
 @RestController
 @RequestMapping("/api/v1/search")
@@ -35,8 +34,7 @@ public class SearchController {
 
     private static final CacheControl SEARCH_CACHE = CacheControl.maxAge(10, TimeUnit.MINUTES).cachePrivate();
 
-    private final RecipeRepository recipeRepository;
-    private final ExerciseVideoRepository exerciseVideoRepository;
+    private final SearchService searchService;
 
     /**
      * Search recipes by title, description, or dietary tags.
@@ -64,7 +62,7 @@ public class SearchController {
                 .body(List.of());
         }
 
-        List<Recipe> recipes = recipeRepository.searchByText(query.trim(), Math.min(limit, 50));
+        List<Recipe> recipes = searchService.searchRecipes(query, limit);
 
         List<RecipeSearchResult> results = recipes.stream()
             .map(RecipeSearchResult::fromEntity)
@@ -102,7 +100,7 @@ public class SearchController {
                 .body(List.of());
         }
 
-        List<ExerciseVideo> videos = exerciseVideoRepository.searchByKeyword(query.trim(), Math.min(limit, 50));
+        List<ExerciseVideo> videos = searchService.searchWorkouts(query, limit);
 
         List<WorkoutSearchResult> results = videos.stream()
             .map(WorkoutSearchResult::fromEntity)

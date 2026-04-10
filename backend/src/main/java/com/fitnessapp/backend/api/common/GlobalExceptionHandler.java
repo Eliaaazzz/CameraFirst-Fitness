@@ -1,12 +1,12 @@
 package com.fitnessapp.backend.api.common;
 
 import java.io.InterruptedIOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.net.ConnectException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import org.springframework.http.HttpStatus;
@@ -126,6 +126,7 @@ public class GlobalExceptionHandler {
                         "overloaded",
                         "api key expired",
                         "api_key_invalid",
+                        "failed to get gcp credentials",
                         "transient gemini api error",
                         "502",
                         "503",
@@ -154,7 +155,7 @@ public class GlobalExceptionHandler {
             if (message != null) {
                 String normalized = message.toLowerCase();
                 for (String needle : needles) {
-                    if (normalized.contains(needle)) {
+                    if (normalized.contains(needle.toLowerCase())) {
                         return true;
                     }
                 }

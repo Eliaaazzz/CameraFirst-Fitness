@@ -92,7 +92,8 @@ export function NutritionScreen({ navigation }: any) {
 
   const handleAddPress = async () => {
     if (Platform.OS === 'web') {
-      await handleChooseFromGallery();
+      // Show pre-permission modal on web too (Apple HIG: explain before proceeding)
+      setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' });
       return;
     }
 

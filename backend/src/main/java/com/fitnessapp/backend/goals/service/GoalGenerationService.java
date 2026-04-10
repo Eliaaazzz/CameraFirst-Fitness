@@ -2,6 +2,7 @@ package com.fitnessapp.backend.goals.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.fitnessapp.backend.goals.dto.GenerateGoalsRequest;
 import com.fitnessapp.backend.goals.dto.GenerateGoalsRequest.ActivityLevel;
 import com.fitnessapp.backend.goals.dto.GenerateGoalsRequest.GoalType;
@@ -34,7 +35,7 @@ import java.util.regex.Pattern;
 @Service
 public class GoalGenerationService {
 
-    private static final String DEFAULT_MODEL = "gemini-2.5-flash";
+    private static final String DEFAULT_MODEL = "gemini-2.0-flash";
     private static final int MAX_OUTPUT_TOKENS = 2048;
     private static final int TIMEOUT_SECONDS = 30;
     private static final double MODERATE_T2D_NET_CARB_RISE_MGDL_PER_G = 4.0;
@@ -46,29 +47,41 @@ public class GoalGenerationService {
     private final String apiKey;
     private final String model;
     private final String geminiApiUrl;
+    private final boolean useVertexAi;
 
     public GoalGenerationService(
             ObjectMapper objectMapper,
             @Value("${app.gemini.api-key:}") String apiKey,
-            @Value("${app.gemini.model:gemini-2.5-flash}") String model
+            @Value("${app.gemini.model:gemini-2.0-flash}") String model,
+            @Value("${app.gemini.use-vertex-ai:true}") boolean useVertexAi,
+            @Value("${app.gemini.gcp-project-id:gen-lang-client-0295973830}") String gcpProjectId,
+            @Value("${app.gemini.gcp-region:australia-southeast2}") String gcpRegion
     ) {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
         this.model = (model == null || model.isBlank()) ? DEFAULT_MODEL : model.trim();
-        this.geminiApiUrl =
-                "https://generativelanguage.googleapis.com/v1beta/models/" + this.model + ":generateContent";
+        this.useVertexAi = useVertexAi;
+
+        if (useVertexAi) {
+            this.geminiApiUrl = "https://" + gcpRegion + "-aiplatform.googleapis.com/v1/projects/"
+                    + gcpProjectId + "/locations/" + gcpRegion
+                    + "/publishers/google/models/" + this.model + ":generateContent";
+            log.info("GoalGenerationService initialized (Vertex AI): {} in {}", this.model, gcpRegion);
+        } else {
+            this.geminiApiUrl =
+                    "https://generativelanguage.googleapis.com/v1beta/models/" + this.model + ":generateContent";
+            if (apiKey == null || apiKey.isBlank()) {
+                log.warn("Gemini API key not configured - goal generation will use fallback calculations");
+            } else {
+                log.info("GoalGenerationService initialized (AI Studio): {}", this.model);
+            }
+        }
 
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
                 .readTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
                 .writeTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
                 .build();
-
-        if (apiKey == null || apiKey.isBlank()) {
-            log.warn("Gemini API key not configured - goal generation will use fallback calculations");
-        } else {
-            log.info("GoalGenerationService initialized with Gemini AI model={}", this.model);
-        }
     }
 
     /**
@@ -76,7 +89,7 @@ public class GoalGenerationService {
      * Uses Gemini AI if available, otherwise falls back to calculations.
      */
     public GenerateGoalsResponse generateGoals(GenerateGoalsRequest request) {
-        if (apiKey != null && !apiKey.isBlank()) {
+        if (useVertexAi || (apiKey != null && !apiKey.isBlank())) {
             try {
                 log.info("Generating goals via Gemini AI for {} user, goal: {}",
                         request.getSex(), request.getGoalType());
@@ -94,11 +107,21 @@ public class GoalGenerationService {
         String prompt = buildPrompt(request);
         String requestBody = buildGeminiRequestBody(prompt);
 
-        Request httpRequest = new Request.Builder()
-                .url(geminiApiUrl + "?key=" + apiKey)
+        Request.Builder reqBuilder = new Request.Builder()
                 .addHeader("content-type", "application/json")
-                .post(RequestBody.create(requestBody, MediaType.parse("application/json")))
-                .build();
+                .post(RequestBody.create(requestBody, MediaType.parse("application/json")));
+
+        if (useVertexAi) {
+            GoogleCredentials credentials = GoogleCredentials.getApplicationDefault()
+                    .createScoped("https://www.googleapis.com/auth/cloud-platform");
+            credentials.refreshIfExpired();
+            reqBuilder.url(geminiApiUrl)
+                    .addHeader("Authorization", "Bearer " + credentials.getAccessToken().getTokenValue());
+        } else {
+            reqBuilder.url(geminiApiUrl + "?key=" + apiKey);
+        }
+
+        Request httpRequest = reqBuilder.build();
 
         try (Response response = httpClient.newCall(httpRequest).execute()) {
             if (!response.isSuccessful()) {

@@ -1,3 +1,4 @@
+import * as ImagePicker from 'expo-image-picker';
 import { launchImageLibraryAsync, MediaTypeOptions } from 'expo-image-picker';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Image, Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
@@ -12,11 +13,11 @@ import {
     Text,
     useSnackbar,
 } from '@/components';
+import { PermissionRequestModal, PermissionType } from '@/components/common/PermissionRequestModal';
 import { EquipmentChoice, EquipmentSelectionModal } from '@/components/EquipmentSelectionModal';
 import { useCameraPermission } from '@/hooks/useCameraPermission';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useGalleryPermission } from '@/hooks/useGalleryPermission';
-import { usePermissionHelper } from '@/hooks/usePermissionHelper';
 import { preferenceStorage, useSaveRecipe, useSaveWorkout, useUploadRecipe, useUploadWorkout } from '@/services';
 import { RecipeCard, WorkoutCard } from '@/types';
 import { compressImage, formatDifficulty, formatMinutes, formatNumber } from '@/utils';
@@ -39,7 +40,6 @@ export const CaptureScreen = () => {
   const cameraPerm = useCameraPermission();
   const galleryPerm = useGalleryPermission();
   const { showSnackbar, showTopSnackbar } = useSnackbar();
-  const { requestWithTopSnackbar } = usePermissionHelper();
   const currentUser = useCurrentUser();
   const userId = currentUser.data?.userId;
   const hasRequestedCameraPermissionRef = useRef(false);
@@ -58,6 +58,11 @@ export const CaptureScreen = () => {
   const [workoutResults, setWorkoutResults] = useState<WorkoutCard[]>([]);
   const [recipeResults, setRecipeResults] = useState<RecipeCard[]>([]);
 
+  // Apple HIG pre-permission modal state
+  const [permissionModal, setPermissionModal] = useState<{ visible: boolean; type: PermissionType; action: 'camera' | 'gallery' }>({
+    visible: false, type: 'camera', action: 'camera',
+  });
+
   useEffect(() => {
     if (currentUser.isError) {
       const message = currentUser.error instanceof Error ? currentUser.error.message : 'Failed to load user information';
@@ -69,19 +74,44 @@ export const CaptureScreen = () => {
     });
   }, [currentUser.isError, currentUser.error, showTopSnackbar]);
 
+  // Show pre-permission modal when camera permission is undetermined (Apple HIG)
+  // No longer auto-requests — user must acknowledge the modal first
   useEffect(() => {
-    // Skip camera permission on web — camera is not available
     if (Platform.OS === 'web') return;
-    if (cameraPerm.state !== 'undetermined' || hasRequestedCameraPermissionRef.current) {
-      return;
+    if (cameraPerm.state === 'undetermined' && !hasRequestedCameraPermissionRef.current) {
+      setPermissionModal({ visible: true, type: 'camera', action: 'camera' });
     }
+  }, [cameraPerm.state]);
 
-    hasRequestedCameraPermissionRef.current = true;
-    cameraPerm.request().catch((error) => {
-      console.warn('Camera permission request failed', error);
-      hasRequestedCameraPermissionRef.current = false;
-    });
-  }, [cameraPerm]);
+  const handlePermissionAllowed = async () => {
+    const action = permissionModal.action;
+    setPermissionModal((p) => ({ ...p, visible: false }));
+
+    if (action === 'camera') {
+      hasRequestedCameraPermissionRef.current = true;
+      cameraPerm.request().catch((error) => {
+        console.warn('Camera permission request failed', error);
+        hasRequestedCameraPermissionRef.current = false;
+      });
+    } else {
+      // Gallery permission
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(
+            'Photo access needed',
+            'Allow photo library access in Settings to select photos.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            ]
+          );
+          return;
+        }
+      }
+      await doPickImageFromGallery();
+    }
+  };
 
   const openSettings = () => {
     Linking.openSettings().catch(() => {
@@ -96,19 +126,6 @@ export const CaptureScreen = () => {
     setEquipmentModalVisible(true);
   }, []);
 
-  const ensureGalleryPermission = async (): Promise<boolean> => {
-    if (galleryPerm.state === 'granted') {
-      return true;
-    }
-
-    const ok = await requestWithTopSnackbar(galleryPerm.request, galleryPerm.refresh, {
-      denied: 'Photo library access needed to choose images.',
-      granted: 'Photo library access granted',
-      stillDenied: 'Still denied. You can enable library access in Settings.',
-    });
-    return ok;
-  };
-
   const resizeImageIfNeeded = async (uri: string) => {
     try {
       const { uri: outUri } = await compressImage(uri, { maxDimension: MAX_IMAGE_DIMENSION, quality: 0.8 });
@@ -119,12 +136,8 @@ export const CaptureScreen = () => {
     }
   };
 
-  const pickImageFromGallery = async () => {
-    const granted = await ensureGalleryPermission();
-    if (!granted) {
-      return;
-    }
-
+  /** Actual gallery picking logic (called after permission is granted) */
+  const doPickImageFromGallery = async () => {
     const result = await launchImageLibraryAsync({
       mediaTypes: MediaTypeOptions.Images,
       allowsEditing: true,
@@ -141,6 +154,20 @@ export const CaptureScreen = () => {
     setCapturedImage(uri);
     setWorkoutResults([]);
     setRecipeResults([]);
+  };
+
+  /** Show pre-permission modal before gallery access */
+  const pickImageFromGallery = async () => {
+    if (Platform.OS !== 'web' && galleryPerm.state !== 'granted') {
+      setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' });
+      return;
+    }
+    // On web, show modal too (explain before proceeding)
+    if (Platform.OS === 'web') {
+      setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' });
+      return;
+    }
+    await doPickImageFromGallery();
   };
 
   const handleUploadWorkouts = useCallback(async () => {
@@ -295,21 +322,46 @@ export const CaptureScreen = () => {
   if (!cameraPerm.permission && Platform.OS !== 'web') {
     return (
       <SafeAreaWrapper>
-        <LoadingState label="Requesting camera permission…" />
+        <LoadingState label="Checking camera permission…" />
+        <PermissionRequestModal
+          visible={permissionModal.visible}
+          permissionType={permissionModal.type}
+          onAllow={handlePermissionAllowed}
+          onCancel={() => setPermissionModal((p) => ({ ...p, visible: false }))}
+        />
       </SafeAreaWrapper>
     );
   }
 
   if (!shouldShowCamera) {
     if (cameraPerm.state === 'undetermined' && Platform.OS !== 'web') {
+      // Show pre-permission modal (Apple HIG) instead of auto-requesting
       return (
         <SafeAreaWrapper>
-          <LoadingState label="Opening camera permission…" />
+          <Container style={styles.permissionFallback}>
+            <Card style={styles.permissionFallbackCard}>
+              <Text variant="heading2" weight="bold">
+                Camera access
+              </Text>
+              <Text variant="body" color="rgba(71,85,105,0.94)">
+                Grant camera access to capture equipment or ingredients for AI-powered recommendations.
+              </Text>
+            </Card>
+          </Container>
+          <PermissionRequestModal
+            visible={permissionModal.visible}
+            permissionType={permissionModal.type}
+            onAllow={handlePermissionAllowed}
+            onCancel={() => {
+              setPermissionModal((p) => ({ ...p, visible: false }));
+              if (navigation.canGoBack()) navigation.goBack();
+            }}
+          />
         </SafeAreaWrapper>
       );
     }
 
-    // On web, show a clean gallery-only prompt (no camera settings)
+    // On web, show gallery prompt with pre-permission modal
     if (Platform.OS === 'web') {
       return (
         <SafeAreaWrapper>
@@ -326,6 +378,12 @@ export const CaptureScreen = () => {
               </View>
             </Card>
           </Container>
+          <PermissionRequestModal
+            visible={permissionModal.visible}
+            permissionType={permissionModal.type}
+            onAllow={handlePermissionAllowed}
+            onCancel={() => setPermissionModal((p) => ({ ...p, visible: false }))}
+          />
         </SafeAreaWrapper>
       );
     }
@@ -346,6 +404,12 @@ export const CaptureScreen = () => {
             </View>
           </Card>
         </Container>
+        <PermissionRequestModal
+          visible={permissionModal.visible}
+          permissionType={permissionModal.type}
+          onAllow={handlePermissionAllowed}
+          onCancel={() => setPermissionModal((p) => ({ ...p, visible: false }))}
+        />
       </SafeAreaWrapper>
     );
   }
@@ -406,6 +470,13 @@ export const CaptureScreen = () => {
           </Container>
         </SafeAreaWrapper>
       )}
+      {/* Apple HIG pre-permission modal — gallery access from camera view */}
+      <PermissionRequestModal
+        visible={permissionModal.visible}
+        permissionType={permissionModal.type}
+        onAllow={handlePermissionAllowed}
+        onCancel={() => setPermissionModal((p) => ({ ...p, visible: false }))}
+      />
     </View>
   );
 };

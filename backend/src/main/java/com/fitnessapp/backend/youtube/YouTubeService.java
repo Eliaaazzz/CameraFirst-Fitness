@@ -88,16 +88,38 @@ public class YouTubeService {
         }
     }
 
+    /**
+     * Search YouTube for workout videos.
+     * Results are cached in Redis for 1 hour to avoid redundant YouTube API quota usage.
+     */
     public List<VideoMetadata> searchWorkoutVideos(String query, int maxResults) {
         if (query == null || query.isBlank()) {
             return List.of();
         }
+
+        int desiredResults = Math.max(1, Math.min(MAX_RESULTS, maxResults));
+
+        // Check Redis cache first
+        String searchCacheKey = "yt:search:" + query.trim().toLowerCase().replace(' ', '_') + ":" + desiredResults;
+        if (redisTemplate != null) {
+            try {
+                // Use a list-style lookup via opsForList
+                @SuppressWarnings("unchecked")
+                List<VideoMetadata> cached = (List<VideoMetadata>) (Object) redisTemplate.opsForList().range(searchCacheKey, 0, -1);
+                if (cached != null && !cached.isEmpty()) {
+                    log.debug("YouTube search cache hit for query '{}'", query);
+                    return cached;
+                }
+            } catch (Exception ex) {
+                log.warn("Redis cache read failed for YouTube search, proceeding with API call", ex);
+            }
+        }
+
         if (properties.getApiKey() == null || properties.getApiKey().isBlank()) {
             log.warn("YouTube API key is not configured; search is disabled");
             return List.of();
         }
 
-        int desiredResults = Math.max(1, Math.min(MAX_RESULTS, maxResults));
         try {
             SearchListResponse searchResponse = youtube.search()
                     .list(List.of("id", "snippet"))
@@ -126,11 +148,24 @@ public class YouTubeService {
                     .setId(videoIds)
                     .execute();
 
-            return Optional.ofNullable(videoListResponse.getItems())
+            List<VideoMetadata> results = Optional.ofNullable(videoListResponse.getItems())
                     .orElseGet(ArrayList::new)
                     .stream()
                     .map(this::toMetadata)
                     .collect(Collectors.toList());
+
+            // Cache results in Redis for 1 hour
+            if (redisTemplate != null && !results.isEmpty()) {
+                try {
+                    redisTemplate.delete(searchCacheKey);
+                    redisTemplate.opsForList().rightPushAll(searchCacheKey, results.toArray(new VideoMetadata[0]));
+                    redisTemplate.expire(searchCacheKey, java.time.Duration.ofHours(1));
+                } catch (Exception ex) {
+                    log.warn("Redis cache write failed for YouTube search", ex);
+                }
+            }
+
+            return results;
         } catch (IOException ex) {
             log.error("YouTube search failed for query '{}'", query, ex);
             return List.of();

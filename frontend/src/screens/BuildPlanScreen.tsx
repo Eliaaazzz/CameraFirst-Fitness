@@ -682,7 +682,12 @@ export const BuildPlanScreen = () => {
               <Text variant="body" weight="bold" style={{ color: '#111' }}>Weekly Rhythm</Text>
             </View>
             <Text variant="body" weight="medium" style={{ color: '#374151' }}>
-              {generatedGoals.weeklyActivityPlan.strength_sessions_per_week} strength sessions  ·  {generatedGoals.weeklyActivityPlan.cardio_minutes_per_week} min cardio  ·  {generatedGoals.weeklyActivityPlan.steps_per_day_target.toLocaleString()} steps/day
+              {generatedGoals.weeklyActivityPlan.strength_sessions_per_week}
+              {'\u00A0strength sessions  ·  '}
+              {generatedGoals.weeklyActivityPlan.cardio_minutes_per_week}
+              {'\u00A0min cardio  ·  '}
+              {generatedGoals.weeklyActivityPlan.steps_per_day_target.toLocaleString()}
+              {'\u00A0steps/day'}
             </Text>
           </View>
         )}
