@@ -621,7 +621,7 @@ const DashboardScreen = () => {
         <View style={webStyles.root}>
           <RNScrollView
             style={webStyles.scroll}
-            contentContainerStyle={webStyles.scrollContent}
+            contentContainerStyle={[webStyles.scrollContent, !isDashboardDesktop && webStyles.scrollContentMobile]}
             showsVerticalScrollIndicator={false}
           >
             <View style={[webStyles.heroSection, !isDashboardDesktop && webStyles.heroSectionMobile, isDashboardCompact && webStyles.heroSectionCompact]}>
@@ -2045,6 +2045,9 @@ const webStyles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 120,
+  },
+  scrollContentMobile: {
+    gap: 16,
   },
   heroSection: {
     flexDirection: 'row',

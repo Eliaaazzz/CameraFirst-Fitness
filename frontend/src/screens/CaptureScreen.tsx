@@ -327,7 +327,10 @@ export const CaptureScreen = () => {
           visible={permissionModal.visible}
           permissionType={permissionModal.type}
           onAllow={handlePermissionAllowed}
-          onCancel={() => setPermissionModal((p) => ({ ...p, visible: false }))}
+          onCancel={() => {
+            setPermissionModal((p) => ({ ...p, visible: false }));
+            navigation.navigate('Main', { screen: 'Dashboard' });
+          }}
         />
       </SafeAreaWrapper>
     );
@@ -354,7 +357,7 @@ export const CaptureScreen = () => {
             onAllow={handlePermissionAllowed}
             onCancel={() => {
               setPermissionModal((p) => ({ ...p, visible: false }));
-              if (navigation.canGoBack()) navigation.goBack();
+              navigation.navigate('Main', { screen: 'Dashboard' });
             }}
           />
         </SafeAreaWrapper>

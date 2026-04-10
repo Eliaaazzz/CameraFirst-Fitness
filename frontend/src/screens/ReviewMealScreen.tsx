@@ -282,19 +282,33 @@ export function ReviewMealScreen({ route, navigation }: any) {
     });
   };
 
-  const handleRetake = () => {
+  const handleRetake = async () => {
     if (Platform.OS === 'web') {
       void openGallery();
       return;
     }
 
-    navigation.setParams({
-      openCamera: true,
-      imageUri: undefined,
-      imageMimeType: undefined,
-      imageFileName: undefined,
-      imgWcm: scaleHintCm,
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Camera access needed',
+        'Allow camera access in Settings to retake the photo.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ]
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.65,
     });
+
+    if (!result.canceled && result.assets?.[0]) {
+      applySelectedImage(result.assets[0]);
+    }
   };
 
   // Recalculate total nutrition whenever items change
@@ -710,8 +724,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
               permissionType="camera"
               onAllow={() => cameraPerm.request()}
               onCancel={() => {
-                if (navigation.canGoBack()) navigation.goBack();
-                else navigation.navigate('Main', { screen: 'Dashboard' });
+                navigation.navigate('Main', { screen: 'Dashboard' });
               }}
             />
           ) : (
