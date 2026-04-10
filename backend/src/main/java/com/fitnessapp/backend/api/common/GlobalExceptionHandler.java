@@ -1,5 +1,10 @@
 package com.fitnessapp.backend.api.common;
 
+import java.io.InterruptedIOException;
+import java.net.ConnectException;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -96,21 +101,67 @@ public class GlobalExceptionHandler {
     ) {
         log.error("Food recognition error: {}", ex.getMessage(), ex);
 
-        ErrorCode errorCode;
-        if (ex.getMessage().contains("Rate limit")) {
-            errorCode = ErrorCode.AI_SERVICE_UNAVAILABLE;
-        } else if (ex.getMessage().contains("unavailable")) {
-            errorCode = ErrorCode.AI_SERVICE_UNAVAILABLE;
-        } else if (ex.getMessage().contains("API key expired") || ex.getMessage().contains("API_KEY_INVALID")) {
-            errorCode = ErrorCode.AI_SERVICE_UNAVAILABLE;
-        } else if (ex.getMessage().contains("timeout")) {
-            errorCode = ErrorCode.AI_TIMEOUT;
-        } else {
-            errorCode = ErrorCode.AI_RECOGNITION_FAILED;
-        }
+        ErrorCode errorCode = resolveFoodRecognitionErrorCode(ex);
 
         ApiEnvelope<Void> response = ApiEnvelope.error(errorCode, ex.getMessage(), request.getRequestURI());
         return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
+    }
+
+    private ErrorCode resolveFoodRecognitionErrorCode(FoodRecognitionException ex) {
+        if (hasCause(ex, SocketTimeoutException.class) || chainContains(ex, "timeout", "timed out", "408")) {
+            return ErrorCode.AI_TIMEOUT;
+        }
+
+        if (hasCause(ex, ConnectException.class)
+                || hasCause(ex, SocketException.class)
+                || hasCause(ex, UnknownHostException.class)
+                || hasCause(ex, InterruptedIOException.class)
+                || chainContains(
+                        ex,
+                        "rate limit",
+                        "rate limited",
+                        "429",
+                        "unavailable",
+                        "temporarily unavailable",
+                        "overloaded",
+                        "api key expired",
+                        "api_key_invalid",
+                        "transient gemini api error",
+                        "502",
+                        "503",
+                        "504")) {
+            return ErrorCode.AI_SERVICE_UNAVAILABLE;
+        }
+
+        return ErrorCode.AI_RECOGNITION_FAILED;
+    }
+
+    private boolean hasCause(Throwable throwable, Class<? extends Throwable> type) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (type.isInstance(current)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private boolean chainContains(Throwable throwable, String... needles) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String normalized = message.toLowerCase();
+                for (String needle : needles) {
+                    if (normalized.contains(needle)) {
+                        return true;
+                    }
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     @ExceptionHandler(TimeoutException.class)

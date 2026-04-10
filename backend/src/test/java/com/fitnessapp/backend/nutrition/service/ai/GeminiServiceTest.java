@@ -109,6 +109,24 @@ class GeminiServiceTest {
                 .startsWith((byte) 0xFF, (byte) 0xD8, (byte) 0xFF);
     }
 
+    @Test
+    void testNormalizeContentTypeStripsParametersAndAliasesJpg() {
+        assertThat(GeminiMealAnalysisService.normalizeContentType("image/jpg; charset=binary"))
+                .isEqualTo("image/jpeg");
+        assertThat(GeminiMealAnalysisService.normalizeContentType("image/x-png"))
+                .isEqualTo("image/png");
+    }
+
+    @Test
+    void testInferContentTypeFromFilenameSupportsCommonExtensions() {
+        assertThat(GeminiMealAnalysisService.inferContentTypeFromFilename("meal.HEIC"))
+                .isEqualTo("image/heic");
+        assertThat(GeminiMealAnalysisService.inferContentTypeFromFilename("plate.jpeg"))
+                .isEqualTo("image/jpeg");
+        assertThat(GeminiMealAnalysisService.inferContentTypeFromFilename("unknown.bin"))
+                .isNull();
+    }
+
     private String invokeCompressImage(GeminiMealAnalysisService service, String base64Image, String mediaType)
             throws Exception {
         Method compressImage = GeminiMealAnalysisService.class

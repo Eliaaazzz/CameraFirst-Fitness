@@ -150,6 +150,14 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
 
         String contentType = normalizeContentType(image.getContentType());
         if (contentType == null || !SUPPORTED_IMAGE_TYPES.contains(contentType)) {
+            String inferredContentType = inferContentTypeFromFilename(image.getOriginalFilename());
+            if (SUPPORTED_IMAGE_TYPES.contains(inferredContentType)) {
+                log.warn("Falling back to filename-inferred image type '{}' for upload '{}'",
+                        inferredContentType, image.getOriginalFilename());
+                contentType = inferredContentType;
+            }
+        }
+        if (contentType == null || !SUPPORTED_IMAGE_TYPES.contains(contentType)) {
             throw new IllegalArgumentException("Unsupported image type: " + contentType);
         }
 
@@ -321,11 +329,43 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
         }
     }
 
-    private String normalizeContentType(String mediaType) {
+    static String normalizeContentType(String mediaType) {
         if (mediaType == null || mediaType.isBlank()) {
             return null;
         }
-        return mediaType.toLowerCase().trim();
+        String normalized = mediaType.split(";")[0].trim().toLowerCase();
+        return switch (normalized) {
+            case "image/jpg", "image/pjpeg" -> "image/jpeg";
+            case "image/x-png" -> "image/png";
+            default -> normalized;
+        };
+    }
+
+    static String inferContentTypeFromFilename(String filename) {
+        if (filename == null || filename.isBlank()) {
+            return null;
+        }
+
+        String normalized = filename.toLowerCase().trim();
+        if (normalized.endsWith(".jpg") || normalized.endsWith(".jpeg")) {
+            return "image/jpeg";
+        }
+        if (normalized.endsWith(".png")) {
+            return "image/png";
+        }
+        if (normalized.endsWith(".gif")) {
+            return "image/gif";
+        }
+        if (normalized.endsWith(".webp")) {
+            return "image/webp";
+        }
+        if (normalized.endsWith(".heic")) {
+            return "image/heic";
+        }
+        if (normalized.endsWith(".heif")) {
+            return "image/heif";
+        }
+        return null;
     }
 
     // ==================== API Implementation ====================
