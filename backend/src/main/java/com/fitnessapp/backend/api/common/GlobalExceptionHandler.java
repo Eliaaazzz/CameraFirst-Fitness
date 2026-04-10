@@ -154,7 +154,7 @@ public class GlobalExceptionHandler {
             if (message != null) {
                 String normalized = message.toLowerCase();
                 for (String needle : needles) {
-                    if (normalized.contains(needle.toLowerCase())) {
+                    if (normalized.contains(needle)) {
                         return true;
                     }
                 }
