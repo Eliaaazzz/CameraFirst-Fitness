@@ -94,6 +94,76 @@ const isHeicLikeSource = (mimeType?: string | null, path?: string | null): boole
   return HEIC_MIME_TYPES.has(normalizeRouteMimeType(mimeType)) || looksLikeHeicPath(path);
 };
 
+type WebSelectedImage = {
+  uri: string;
+  mimeType?: string;
+  fileName?: string;
+};
+
+const pickWebImageFile = (): Promise<WebSelectedImage | null> => {
+  if (typeof document === 'undefined' || typeof window === 'undefined' || typeof URL === 'undefined') {
+    return Promise.resolve(null);
+  }
+
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.tabIndex = -1;
+    input.setAttribute('aria-hidden', 'true');
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    input.style.width = '1px';
+    input.style.height = '1px';
+    input.style.opacity = '0';
+    input.style.pointerEvents = 'none';
+
+    let finished = false;
+
+    const cleanup = () => {
+      input.removeEventListener('change', handleChange);
+      window.removeEventListener('focus', handleWindowFocus);
+      if (input.parentNode) {
+        input.parentNode.removeChild(input);
+      }
+    };
+
+    const finish = (value: WebSelectedImage | null) => {
+      if (finished) return;
+      finished = true;
+      cleanup();
+      resolve(value);
+    };
+
+    const handleChange = () => {
+      const file = input.files?.[0];
+      if (!file) {
+        finish(null);
+        return;
+      }
+
+      finish({
+        uri: URL.createObjectURL(file),
+        mimeType: file.type || undefined,
+        fileName: file.name || undefined,
+      });
+    };
+
+    const handleWindowFocus = () => {
+      window.setTimeout(() => {
+        if (!finished && !input.files?.length) {
+          finish(null);
+        }
+      }, 300);
+    };
+
+    input.addEventListener('change', handleChange);
+    window.addEventListener('focus', handleWindowFocus);
+    document.body.appendChild(input);
+    input.click();
+  });
+};
+
 export function ReviewMealScreen({ route, navigation }: any) {
   // Support both new image analysis and viewing/editing saved meals
   const { imageUri, imageMimeType, imageFileName, meal, openCamera, imgWcm } = route.params ?? {};
@@ -108,6 +178,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const queryClient = useQueryClient();
   const hasRequestedCameraPermissionRef = useRef(false);
+  const webObjectUrlRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(!isViewingExisting); // Don't show loading for existing meals
   const [phase, setPhase] = useState<1 | 2 | 3>(1);
   const [items, setItems] = useState<DetectedFood[]>(() => {
@@ -166,6 +237,58 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const hasVisibleTotals = hasMeaningfulNutrition(total);
   const canSaveMeal = hasDetectedResults && hasVisibleTotals;
 
+  const rememberWebObjectUrl = (uri?: string | null) => {
+    if (Platform.OS !== 'web' || typeof URL === 'undefined' || !uri?.startsWith('blob:')) {
+      return;
+    }
+
+    if (webObjectUrlRef.current && webObjectUrlRef.current !== uri) {
+      URL.revokeObjectURL(webObjectUrlRef.current);
+    }
+
+    webObjectUrlRef.current = uri;
+  };
+
+  const prepareSelectedImageForAnalysis = (assetUri: string) => {
+    setLoading(true);
+    setPhase(1);
+    setItems([]);
+    setTotal(null);
+    setSaving(false);
+    setProcessedImageUri(assetUri);
+    setServerImageUrl(undefined);
+    baseNutrition.clear();
+    setShowSuccess(false);
+    successAnim.setValue(0);
+  };
+
+  const applySelectedImage = (asset: { uri: string; mimeType?: string | null; fileName?: string | null }) => {
+    prepareSelectedImageForAnalysis(asset.uri);
+    rememberWebObjectUrl(asset.uri);
+    navigation.setParams({
+      imageUri: asset.uri,
+      imageMimeType: asset.mimeType,
+      imageFileName: asset.fileName,
+      openCamera: false,
+      imgWcm: scaleHintCm,
+    });
+  };
+
+  const handleRetake = () => {
+    if (Platform.OS === 'web') {
+      void openGallery();
+      return;
+    }
+
+    navigation.setParams({
+      openCamera: true,
+      imageUri: undefined,
+      imageMimeType: undefined,
+      imageFileName: undefined,
+      imgWcm: scaleHintCm,
+    });
+  };
+
   // Recalculate total nutrition whenever items change
   useEffect(() => {
     if (items.length === 0) return;
@@ -219,38 +342,43 @@ export function ReviewMealScreen({ route, navigation }: any) {
     Platform.OS === 'web' && !!openCamera && !imageUri && !isViewingExisting
   );
 
+  useEffect(() => {
+    return () => {
+      if (webObjectUrlRef.current && typeof URL !== 'undefined') {
+        URL.revokeObjectURL(webObjectUrlRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      return;
+    }
+
+    setShowWebPermissionModal(!!openCamera && !imageUri && !isViewingExisting);
+  }, [imageUri, isViewingExisting, openCamera]);
+
   const handleWebPermissionAllow = async () => {
     setShowWebPermissionModal(false);
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.82,
-      });
-
-      if (result.canceled || !result.assets?.[0]?.uri) {
+      const asset = await pickWebImageFile();
+      if (!asset?.uri) {
+        navigation.setParams({ openCamera: false });
         setLoading(false);
-        if (navigation.canGoBack()) navigation.goBack();
         return;
       }
 
-      navigation.setParams({
-        imageUri: result.assets[0].uri,
-        imageMimeType: result.assets[0].mimeType,
-        imageFileName: result.assets[0].fileName,
-        openCamera: false,
-      });
+      applySelectedImage(asset);
     } catch {
+      navigation.setParams({ openCamera: false });
       setLoading(false);
-      if (navigation.canGoBack()) navigation.goBack();
     }
   };
 
   const handleWebPermissionCancel = () => {
     setShowWebPermissionModal(false);
+    navigation.setParams({ openCamera: false });
     setLoading(false);
-    if (navigation.canGoBack()) navigation.goBack();
   };
 
   useEffect(() => {
@@ -314,6 +442,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
     // Wait until we have an image URI (camera capture / gallery pick)
     if (!imageUri) {
+      setLoading(false);
       return;
     }
 
@@ -501,32 +630,34 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
   const openGallery = async () => {
     try {
-      if (Platform.OS !== 'web') {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Permission needed', 'Gallery permission is required');
+      if (Platform.OS === 'web') {
+        const asset = await pickWebImageFile();
+        if (!asset?.uri) {
           return;
         }
+
+        applySelectedImage(asset);
+        return;
+      }
+
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Gallery permission is required');
+        return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: Platform.OS === 'web',
+        allowsEditing: false,
         aspect: [4, 3],
-        quality: Platform.OS === 'web' ? 0.82 : 0.65,
+        quality: 0.65,
       });
 
       if (result.canceled || !result.assets?.[0]?.uri) {
         return;
       }
 
-      navigation.setParams({
-        imageUri: result.assets[0].uri,
-        imageMimeType: result.assets[0].mimeType,
-        imageFileName: result.assets[0].fileName,
-        openCamera: false,
-        imgWcm: scaleHintCm,
-      });
+      applySelectedImage(result.assets[0]);
     } catch (err) {
       console.error('Gallery pick failed', err);
       Alert.alert('Error', 'Could not open gallery: ' + (err as Error)?.message);
@@ -862,13 +993,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
             <Animated.View style={[styles.imageActionRow, statusAnimatedStyle]}>
               <Pressable
                 style={styles.imageActionBtn}
-                onPress={() => navigation.setParams({
-                  openCamera: true,
-                  imageUri: undefined,
-                  imageMimeType: undefined,
-                  imageFileName: undefined,
-                  imgWcm: scaleHintCm,
-                })}
+                onPress={handleRetake}
               >
                 <Camera size={18} color="#0F172A" />
                 <Text style={styles.imageActionBtnText}>Retake</Text>
@@ -1011,13 +1136,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
               <View style={styles.emptyActionRow}>
                 <Pressable
                   style={[styles.inlineActionBtn, styles.inlineActionBtnPrimary]}
-                  onPress={() => navigation.setParams({
-                    openCamera: true,
-                    imageUri: undefined,
-                    imageMimeType: undefined,
-                    imageFileName: undefined,
-                    imgWcm: scaleHintCm,
-                  })}
+                  onPress={handleRetake}
                 >
                   <Text style={styles.inlineActionBtnPrimaryText}>Retake photo</Text>
                 </Pressable>
