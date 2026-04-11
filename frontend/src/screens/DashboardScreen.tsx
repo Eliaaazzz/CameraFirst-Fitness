@@ -943,7 +943,7 @@ const DashboardScreen = () => {
               {/* ── PERFORMANCE TODAY — Rings only ── */}
               <View style={[webStyles.section, !isDashboardDesktop && webStyles.sectionMobile, isDashboardCompact && webStyles.sectionCompact]}>
                 <View style={webStyles.sectionHeader}>
-                <View style={[webStyles.sectionEyebrow, webStyles.sectionEyebrowCool]}>
+                <View style={[webStyles.sectionEyebrow, webStyles.sectionEyebrowPink]}>
                   <Text variant="label" weight="bold" style={webStyles.sectionEyebrowText}>
                     Performance
                   </Text>
@@ -2313,6 +2313,9 @@ const webStyles = StyleSheet.create({
     backgroundColor: '#FFF1D7',
   },
   sectionEyebrowCool: {
+    backgroundColor: '#E9F4FF',
+  },
+  sectionEyebrowPink: {
     backgroundColor: '#FCE4EC',
   },
   sectionEyebrowText: {
