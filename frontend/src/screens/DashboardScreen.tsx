@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TourGuideZone, TourScrollView, useTourGuideController, useTourNavigation } from '@/components/tour/TourProvider';
 import type { IconProps } from 'phosphor-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -380,6 +380,18 @@ const DashboardScreen = () => {
       stats.refetch();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loadGeneratedGoals, refresh])
+  );
+
+  // Handle triggerCamera param from camera tab button
+  const route = useRoute<any>();
+  useFocusEffect(
+    useCallback(() => {
+      if (route.params?.triggerCamera) {
+        // Clear the param so it doesn't re-trigger
+        navigation.setParams({ triggerCamera: undefined });
+        handleOpenCamera();
+      }
+    }, [route.params?.triggerCamera])
   );
 
   const handleRefresh = async () => {
@@ -2071,7 +2083,7 @@ const webStyles = StyleSheet.create({
   heroSectionMobile: {
     flexDirection: 'column',
     gap: 28,
-    paddingTop: 32,
+    paddingTop: 0,
     paddingBottom: 0,
   },
   heroSectionCompact: {
