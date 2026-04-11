@@ -8,6 +8,7 @@ import { DarkTheme, DefaultTheme, NavigationContainer, useIsFocused } from '@rea
 import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/stack';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect } from 'react';
 import {
   Platform,
@@ -580,7 +581,16 @@ const MainTabs = () => {
               tabBarButton: isCamera
                 ? () => (
                     <CameraTabButton
-                      onPress={() => navigation.navigate('ReviewMeal', { openCamera: true })}
+                      onPress={async () => {
+                        if (Platform.OS === 'web') {
+                          navigation.navigate('ReviewMeal', { openCamera: true });
+                          return;
+                        }
+                        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+                        if (status === 'granted') {
+                          navigation.navigate('ReviewMeal', { openCamera: true });
+                        }
+                      }}
                       accessibilityLabel="Capture meal photo"
                     />
                   )
@@ -590,7 +600,15 @@ const MainTabs = () => {
               tabPress: (e) => {
                 if (isCamera) {
                   e.preventDefault();
-                  navigation.navigate('ReviewMeal', { openCamera: true });
+                  if (Platform.OS === 'web') {
+                    navigation.navigate('ReviewMeal', { openCamera: true });
+                  } else {
+                    ImagePicker.requestCameraPermissionsAsync().then(({ status }) => {
+                      if (status === 'granted') {
+                        navigation.navigate('ReviewMeal', { openCamera: true });
+                      }
+                    });
+                  }
                 }
                 if (Platform.OS !== 'web') {
                   Haptics.selectionAsync().catch(() => {});

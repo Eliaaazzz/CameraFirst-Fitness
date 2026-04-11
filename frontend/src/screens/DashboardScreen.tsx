@@ -2056,7 +2056,7 @@ const webStyles = StyleSheet.create({
     width: '100%',
   },
   scrollStackMobile: {
-    gap: 32,
+    gap: spacing['3xl'],
   },
   heroSection: {
     flexDirection: 'row',
@@ -2294,8 +2294,8 @@ const webStyles = StyleSheet.create({
     paddingBottom: 40,
   },
   sectionMobile: {
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   sectionCompact: {
     paddingHorizontal: spacing.lg,
