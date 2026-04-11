@@ -2313,7 +2313,7 @@ const webStyles = StyleSheet.create({
     backgroundColor: '#FFF1D7',
   },
   sectionEyebrowCool: {
-    backgroundColor: '#E9F4FF',
+    backgroundColor: '#FCE4EC',
   },
   sectionEyebrowText: {
     color: '#111111',
