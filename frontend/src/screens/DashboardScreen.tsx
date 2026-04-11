@@ -2223,8 +2223,7 @@ const webStyles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   heroActionsMobile: {
-    flexWrap: 'wrap',
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   heroPrimaryCta: {
     flexDirection: 'row',
@@ -2241,6 +2240,8 @@ const webStyles = StyleSheet.create({
   },
   heroPrimaryCtaMobile: {
     flex: 1,
+    flexBasis: 0,
+    paddingHorizontal: 16,
     alignItems: 'center',
   },
   heroPrimaryCtaText: {
@@ -2293,8 +2294,8 @@ const webStyles = StyleSheet.create({
     paddingBottom: 40,
   },
   sectionMobile: {
-    paddingTop: 0,
-    paddingBottom: 0,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
   sectionCompact: {
     paddingHorizontal: spacing.lg,
@@ -2458,6 +2459,7 @@ const webStyles = StyleSheet.create({
   },
   metricStack: {
     gap: 10,
+    marginBottom: 16,
   },
   metricRow: {
     flexDirection: 'row',
