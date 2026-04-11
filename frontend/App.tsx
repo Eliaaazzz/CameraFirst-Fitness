@@ -1,7 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, LogBox, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { MD3LightTheme as PaperLightTheme, Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -12,6 +12,21 @@ import { useVersionCheck } from '@/hooks/useVersionCheck';
 import { AppNavigator } from '@/navigation/AppNavigator';
 import { queryClient } from '@/services';
 import { BRAND_COLORS, getTheme } from '@/utils';
+
+// Suppress noisy warnings that clutter the simulator during testing
+LogBox.ignoreLogs([
+  'Require cycle',
+  'Non-serializable values were found in the navigation state',
+  'VirtualizedLists should never be nested',
+  'Each child in a list should have a unique',
+  'componentWillReceiveProps',
+  'componentWillMount',
+  'AsyncStorage has been extracted',
+  'Sending `onAnimatedValueUpdate`',
+  'Warning: Failed prop type',
+  'source.uri should not be an empty string',
+  'EventEmitter.removeListener',
+]);
 
 // Top-level error boundary to catch and display errors on web
 class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
