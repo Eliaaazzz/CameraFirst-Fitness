@@ -2384,7 +2384,7 @@ const webStyles = StyleSheet.create({
   activityColMobileLast: {
     padding: 24,
     paddingBottom: 8,
-    marginBottom: 32,
+    marginBottom: 0,
   },
   colTitle: {
     color: '#111111',
