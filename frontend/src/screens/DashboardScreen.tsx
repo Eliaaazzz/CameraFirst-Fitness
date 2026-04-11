@@ -647,7 +647,7 @@ const DashboardScreen = () => {
           >
             <View style={[webStyles.scrollStack, !isDashboardDesktop && webStyles.scrollStackMobile]}>
               <View style={[webStyles.heroSection, !isDashboardDesktop && webStyles.heroSectionMobile, isDashboardCompact && webStyles.heroSectionCompact]}>
-                <View style={webStyles.heroLeft}>
+                <View style={[webStyles.heroLeft, !isDashboardDesktop && webStyles.heroLeftMobile]}>
                 <View style={[webStyles.heroEyebrowRow, !isDashboardTablet && webStyles.heroEyebrowRowMobile]}>
                   <View style={webStyles.heroEyebrowChip}>
                     <FlagCheckered size={16} weight="fill" color="#111111" />
@@ -2301,8 +2301,14 @@ const webStyles = StyleSheet.create({
     flex: 1.05,
     paddingTop: 92,
   },
+  heroLeftMobile: {
+    flexBasis: 'auto' as any,
+    flexShrink: 0,
+  },
   heroRightMobile: {
     paddingTop: 0,
+    flexBasis: 'auto' as any,
+    flexShrink: 0,
   },
   suggestionsTitle: {
     color: '#111111',
@@ -2410,6 +2416,8 @@ const webStyles = StyleSheet.create({
     borderBottomWidth: 0,
     marginBottom: spacing.lg,
     paddingBottom: spacing.sm,
+    flexBasis: 'auto' as any,
+    flexShrink: 0,
   },
   activityColMobileSeparated: {
     marginTop: spacing.sm,
@@ -2421,6 +2429,8 @@ const webStyles = StyleSheet.create({
     padding: spacing.xl,
     paddingBottom: spacing.sm,
     marginBottom: 0,
+    flexBasis: 'auto' as any,
+    flexShrink: 0,
   },
   colTitle: {
     color: '#111111',
