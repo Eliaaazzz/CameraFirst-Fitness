@@ -101,7 +101,7 @@ type WebSelectedImage = {
   fileName?: string;
 };
 
-const pickWebImageFile = (): Promise<WebSelectedImage | null> => {
+const pickWebImageFile = (useCamera = false): Promise<WebSelectedImage | null> => {
   if (typeof document === 'undefined' || typeof window === 'undefined' || typeof URL === 'undefined') {
     return Promise.resolve(null);
   }
@@ -110,6 +110,10 @@ const pickWebImageFile = (): Promise<WebSelectedImage | null> => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
+    // On iPad Safari, capture="environment" opens the rear camera directly
+    if (useCamera) {
+      input.setAttribute('capture', 'environment');
+    }
     input.tabIndex = -1;
     input.setAttribute('aria-hidden', 'true');
     input.style.position = 'fixed';
@@ -244,6 +248,10 @@ export function ReviewMealScreen({ route, navigation }: any) {
   // Pre-permission modal for photo library ("Pick another" flow)
   const [galleryPermModal, setGalleryPermModal] = useState(false);
 
+  const navigateToHome = () => {
+    navigation.navigate('Main', { screen: 'Dashboard' });
+  };
+
   const rememberWebObjectUrl = (uri?: string | null) => {
     if (Platform.OS !== 'web' || typeof URL === 'undefined' || !uri?.startsWith('blob:')) {
       return;
@@ -288,12 +296,13 @@ export function ReviewMealScreen({ route, navigation }: any) {
       return;
     }
 
-    // Directly reopen the in-app camera (no system camera / no action sheet)
+    // Directly reopen the in-app camera from review state.
     navigation.setParams({
       imageUri: undefined,
       imageMimeType: undefined,
       imageFileName: undefined,
       openCamera: true,
+      imgWcm: scaleHintCm,
     });
   };
 
@@ -369,10 +378,12 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const handleWebPermissionAllow = async () => {
     setShowWebPermissionModal(false);
     try {
-      const asset = await pickWebImageFile();
+      // When openCamera is true, use capture="environment" so iPad Safari opens the device camera
+      const asset = await pickWebImageFile(!!openCamera);
       if (!asset?.uri) {
         navigation.setParams({ openCamera: false });
         setLoading(false);
+        navigateToHome();
         return;
       }
 
@@ -380,6 +391,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
     } catch {
       navigation.setParams({ openCamera: false });
       setLoading(false);
+      navigateToHome();
     }
   };
 
@@ -387,6 +399,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
     setShowWebPermissionModal(false);
     navigation.setParams({ openCamera: false });
     setLoading(false);
+    navigateToHome();
   };
 
   useEffect(() => {
@@ -687,7 +700,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
       <SafeAreaView style={styles.container}>
         <PermissionRequestModal
           visible={true}
-          permissionType="photoLibrary"
+          permissionType={openCamera ? 'camera' : 'photoLibrary'}
           onAllow={handleWebPermissionAllow}
           onCancel={handleWebPermissionCancel}
         />
@@ -709,9 +722,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
               visible={true}
               permissionType="camera"
               onAllow={() => cameraPerm.request()}
-              onCancel={() => {
-                navigation.navigate('Main', { screen: 'Dashboard' });
-              }}
+              onCancel={navigateToHome}
             />
           ) : (
             <View style={styles.permissionContainer}>
@@ -724,7 +735,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
                 <Text style={styles.permissionPrimaryBtnText}>Open Settings</Text>
               </Pressable>
               <Pressable
-                onPress={() => navigation.navigate('Main', { screen: 'Dashboard' })}
+                onPress={navigateToHome}
                 style={styles.permissionSecondaryBtn}
               >
                 <Text style={styles.permissionSecondaryBtnText}>Go back</Text>

@@ -420,11 +420,8 @@ const DashboardScreen = () => {
   const handleOpenCamera = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
 
-    if (Platform.OS === 'web') {
-      // No hardware camera on web — still show camera modal, action falls back to gallery
-      setPermissionModal({ visible: true, type: 'camera', action: 'gallery' });
-      return;
-    }
+    // iPad shares the web responsive layout but has a real camera —
+    // always use camera type + action so iPad Safari opens the device camera
     setPermissionModal({ visible: true, type: 'camera', action: 'camera' });
   };
 
@@ -435,19 +432,25 @@ const DashboardScreen = () => {
     setPermissionModal((p) => ({ ...p, visible: false }));
 
     if (action === 'camera') {
-      // Request camera permission via system dialog
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status === 'granted') {
+      if (Platform.OS === 'web') {
+        // On web (incl. iPad Safari) skip system permission — navigate directly;
+        // ReviewMealScreen will open the device camera via <input capture>
         navigation.navigate('ReviewMeal', { openCamera: true });
       } else {
-        Alert.alert(
-          'Camera access needed',
-          'Allow camera access in Settings to scan meals.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openSettings() },
-          ]
-        );
+        // Native: request camera permission via system dialog
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status === 'granted') {
+          navigation.navigate('ReviewMeal', { openCamera: true });
+        } else {
+          Alert.alert(
+            'Camera access needed',
+            'Allow camera access in Settings to scan meals.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            ]
+          );
+        }
       }
     } else {
       await handleChooseFromGallery();
