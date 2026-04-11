@@ -230,6 +230,7 @@ const DashboardScreen = () => {
   const isDashboardDesktop = width >= 1024;
   const isDashboardTablet = width >= 720;
   const isDashboardCompact = width < 420;
+  const needsFloatingTabClearance = Platform.OS === 'web' && !isDashboardDesktop;
 
   const { data: nutritionData, isLoading: nutritionLoading, refresh } = useDailyNutrition();
   const goals = useGoals(userId);
@@ -250,6 +251,7 @@ const DashboardScreen = () => {
 
   // Calculate proper bottom padding for tab bar
   const contentBottomPadding = useContentBottomPadding(spacing.lg);
+  const mobileWebBottomInset = needsFloatingTabClearance ? contentBottomPadding + spacing.md : 0;
 
   // Respect accessibility reduce-motion preference
   const reduceMotion = useReducedMotion();
@@ -535,7 +537,7 @@ const DashboardScreen = () => {
   const handleLandingFooterLink = useCallback((linkId: string) => {
     switch (linkId) {
       case 'meal-logging':
-        navigation.navigate('ReviewMeal', { openCamera: true });
+        handleOpenCamera();
         return;
       case 'workout-planning':
       case 'targets':
@@ -635,8 +637,12 @@ const DashboardScreen = () => {
       <SafeAreaWrapper>
         <View style={webStyles.root}>
           <RNScrollView
-            style={webStyles.scroll}
-            contentContainerStyle={[webStyles.scrollContent, !isDashboardDesktop && webStyles.scrollContentMobile]}
+            style={[webStyles.scroll, needsFloatingTabClearance && { marginBottom: mobileWebBottomInset }]}
+            contentContainerStyle={[
+              webStyles.scrollContent,
+              !isDashboardDesktop && webStyles.scrollContentMobile,
+              needsFloatingTabClearance && { paddingBottom: mobileWebBottomInset + spacing.xl },
+            ]}
             showsVerticalScrollIndicator={false}
           >
             <View style={[webStyles.scrollStack, !isDashboardDesktop && webStyles.scrollStackMobile]}>
@@ -873,7 +879,13 @@ const DashboardScreen = () => {
                   </View>
                 </View>
 
-                <View style={[webStyles.activityCol2, !isDashboardDesktop && webStyles.activityColMobile]}>
+                <View
+                  style={[
+                    webStyles.activityCol2,
+                    !isDashboardDesktop && webStyles.activityColMobile,
+                    !isDashboardDesktop && webStyles.activityColMobileSeparated,
+                  ]}
+                >
                   <Text variant="heading4" weight="bold" style={webStyles.colTitle}>
                     Past
                   </Text>
@@ -924,7 +936,13 @@ const DashboardScreen = () => {
                   )}
                 </View>
 
-                <View style={[webStyles.activityCol3, !isDashboardDesktop && webStyles.activityColMobileLast]}>
+                <View
+                  style={[
+                    webStyles.activityCol3,
+                    !isDashboardDesktop && webStyles.activityColMobileLast,
+                    !isDashboardDesktop && webStyles.activityColMobileSeparated,
+                  ]}
+                >
                   <Text variant="heading4" weight="bold" style={webStyles.colTitle}>
                     Services
                   </Text>
@@ -1665,8 +1683,8 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { color: '#111111', fontSize: 20, letterSpacing: -0.5 },
   sectionAction: { color: '#111111', fontSize: 14 },
-  // Mobile content wrapper — uniform 32px gap between sections
-  mobileContentWrapper: { gap: 32 },
+  // Mobile content wrapper — uniform P3 gap between sections
+  mobileContentWrapper: { gap: spacing.lg },
   mobilePerfTitle: {
     color: '#111111',
     fontSize: 28,
@@ -2068,7 +2086,7 @@ const webStyles = StyleSheet.create({
     width: '100%',
   },
   scrollStackMobile: {
-    gap: spacing['3xl'],
+    gap: spacing['2xl'],
   },
   heroSection: {
     flexDirection: 'row',
@@ -2082,7 +2100,7 @@ const webStyles = StyleSheet.create({
   },
   heroSectionMobile: {
     flexDirection: 'column',
-    gap: 28,
+    gap: spacing.xl,
     paddingTop: 0,
     paddingBottom: 0,
   },
@@ -2306,15 +2324,15 @@ const webStyles = StyleSheet.create({
     paddingBottom: 40,
   },
   sectionMobile: {
-    paddingTop: 0,
-    paddingBottom: 0,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
   sectionCompact: {
     paddingHorizontal: spacing.lg,
   },
   sectionHeader: {
-    marginBottom: 28,
-    gap: 10,
+    marginBottom: spacing.xl,
+    gap: spacing.sm,
   },
   sectionEyebrow: {
     alignSelf: 'flex-start',
@@ -2390,12 +2408,18 @@ const webStyles = StyleSheet.create({
   activityColMobile: {
     borderRightWidth: 0,
     borderBottomWidth: 0,
-    marginBottom: 20,
-    paddingBottom: 8,
+    marginBottom: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  activityColMobileSeparated: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: '#ECECEC',
   },
   activityColMobileLast: {
-    padding: 24,
-    paddingBottom: 8,
+    padding: spacing.xl,
+    paddingBottom: spacing.sm,
     marginBottom: 0,
   },
   colTitle: {
@@ -2403,14 +2427,14 @@ const webStyles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 22,
     letterSpacing: -0.4,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   programCard: {
     backgroundColor: '#FFF2D5',
     borderRadius: 18,
-    padding: 20,
+    padding: spacing.xl,
     minHeight: 260,
-    marginBottom: 18,
+    marginBottom: spacing.lg,
     overflow: 'hidden',
     ...(Platform.OS === 'web' && {
       cursor: 'pointer' as any,
@@ -2470,8 +2494,8 @@ const webStyles = StyleSheet.create({
     height: 140,
   },
   metricStack: {
-    gap: 10,
-    marginBottom: 16,
+    gap: spacing.sm,
+    marginBottom: spacing.xl,
   },
   metricRow: {
     flexDirection: 'row',
@@ -2674,15 +2698,15 @@ const webStyles = StyleSheet.create({
   },
   planTabsRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 28,
-    marginBottom: 18,
+    gap: spacing.md,
+    marginTop: spacing.xl,
+    marginBottom: spacing.lg,
   },
   planTabsRowMobile: {
     flexDirection: 'column',
-    gap: 8,
-    marginTop: 18,
-    marginBottom: 12,
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
   },
   planTab: {
     flex: 1,
