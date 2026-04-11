@@ -421,8 +421,8 @@ const DashboardScreen = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
 
     if (Platform.OS === 'web') {
-      // No camera on web — fallback to gallery flow
-      setPermissionModal({ visible: true, type: 'photoLibrary', action: 'gallery' });
+      // No hardware camera on web — still show camera modal, action falls back to gallery
+      setPermissionModal({ visible: true, type: 'camera', action: 'gallery' });
       return;
     }
     setPermissionModal({ visible: true, type: 'camera', action: 'camera' });
@@ -624,8 +624,9 @@ const DashboardScreen = () => {
             contentContainerStyle={[webStyles.scrollContent, !isDashboardDesktop && webStyles.scrollContentMobile]}
             showsVerticalScrollIndicator={false}
           >
-            <View style={[webStyles.heroSection, !isDashboardDesktop && webStyles.heroSectionMobile, isDashboardCompact && webStyles.heroSectionCompact]}>
-              <View style={webStyles.heroLeft}>
+            <View style={[webStyles.scrollStack, !isDashboardDesktop && webStyles.scrollStackMobile]}>
+              <View style={[webStyles.heroSection, !isDashboardDesktop && webStyles.heroSectionMobile, isDashboardCompact && webStyles.heroSectionCompact]}>
+                <View style={webStyles.heroLeft}>
                 <View style={[webStyles.heroEyebrowRow, !isDashboardTablet && webStyles.heroEyebrowRowMobile]}>
                   <View style={webStyles.heroEyebrowChip}>
                     <FlagCheckered size={16} weight="fill" color="#111111" />
@@ -752,20 +753,20 @@ const DashboardScreen = () => {
                 </View>
               </View>
 
-              <View style={[webStyles.heroRight, !isDashboardDesktop && webStyles.heroRightMobile]}>
-                <Text
-                  variant="heading3"
-                  weight="bold"
-                  style={isDashboardCompact ? [webStyles.suggestionsTitle, webStyles.suggestionsTitleCompact] : webStyles.suggestionsTitle}
-                >
-                  Suggestions
-                </Text>
-                <SuggestionGrid cards={suggestionCards} />
+                <View style={[webStyles.heroRight, !isDashboardDesktop && webStyles.heroRightMobile]}>
+                  <Text
+                    variant="heading3"
+                    weight="bold"
+                    style={isDashboardCompact ? [webStyles.suggestionsTitle, webStyles.suggestionsTitleCompact] : webStyles.suggestionsTitle}
+                  >
+                    Suggestions
+                  </Text>
+                  <SuggestionGrid cards={suggestionCards} />
+                </View>
               </View>
-            </View>
 
-            <View style={[webStyles.section, isDashboardCompact && webStyles.sectionCompact]}>
-              <View style={webStyles.sectionHeader}>
+              <View style={[webStyles.section, !isDashboardDesktop && webStyles.sectionMobile, isDashboardCompact && webStyles.sectionCompact]}>
+                <View style={webStyles.sectionHeader}>
                 <View style={[webStyles.sectionEyebrow, webStyles.sectionEyebrowWarm]}>
                   <Text variant="label" weight="bold" style={webStyles.sectionEyebrowText}>
                     Account
@@ -788,7 +789,7 @@ const DashboardScreen = () => {
                   Recent meals, streak progress, and quick access to services.
                 </Text>
               </View>
-              <View style={[webStyles.activityCard, !isDashboardDesktop && webStyles.activityCardMobile]}>
+                <View style={[webStyles.activityCard, !isDashboardDesktop && webStyles.activityCardMobile]}>
                 <View style={[webStyles.activityCol1, !isDashboardDesktop && webStyles.activityColMobile]}>
                   <Text variant="heading4" weight="bold" style={webStyles.colTitle}>
                     Most recent
@@ -933,12 +934,12 @@ const DashboardScreen = () => {
                     </Pressable>
                   ))}
                 </View>
+                </View>
               </View>
-            </View>
 
-            {/* ── PERFORMANCE TODAY — Rings only ── */}
-            <View style={[webStyles.section, isDashboardCompact && webStyles.sectionCompact]}>
-              <View style={webStyles.sectionHeader}>
+              {/* ── PERFORMANCE TODAY — Rings only ── */}
+              <View style={[webStyles.section, !isDashboardDesktop && webStyles.sectionMobile, isDashboardCompact && webStyles.sectionCompact]}>
+                <View style={webStyles.sectionHeader}>
                 <View style={[webStyles.sectionEyebrow, webStyles.sectionEyebrowCool]}>
                   <Text variant="label" weight="bold" style={webStyles.sectionEyebrowText}>
                     Performance
@@ -961,25 +962,25 @@ const DashboardScreen = () => {
                   Track calories, protein, fat, and carbs against your daily targets.
                 </Text>
               </View>
-              {showNutritionLoading ? (
-                <NutritionRingsSkeleton />
-              ) : (
-                <NutritionRingsCard
-                  data={{
-                    calories: { current: nutritionData.calories, target: calorieGoal },
-                    protein: { current: nutritionData.protein.current, target: proteinGoal },
-                    carbs: { current: nutritionData.carbs.current, target: carbsGoal },
-                    fat: { current: nutritionData.fat.current, target: fatGoal },
-                  }}
-                  showFat={true}
-                  onMacroPress={handleMacroSearch}
-                  onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
-                />
-              )}
-            </View>
+                {showNutritionLoading ? (
+                  <NutritionRingsSkeleton />
+                ) : (
+                  <NutritionRingsCard
+                    data={{
+                      calories: { current: nutritionData.calories, target: calorieGoal },
+                      protein: { current: nutritionData.protein.current, target: proteinGoal },
+                      carbs: { current: nutritionData.carbs.current, target: carbsGoal },
+                      fat: { current: nutritionData.fat.current, target: fatGoal },
+                    }}
+                    showFat={true}
+                    onMacroPress={handleMacroSearch}
+                    onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
+                  />
+                )}
+              </View>
 
-            <View style={[webStyles.section, isDashboardCompact && webStyles.sectionCompact]}>
-              <View style={webStyles.sectionHeader}>
+              <View style={[webStyles.section, !isDashboardDesktop && webStyles.sectionMobile, isDashboardCompact && webStyles.sectionCompact]}>
+                <View style={webStyles.sectionHeader}>
                 <View style={[webStyles.sectionEyebrow, webStyles.sectionEyebrowCool]}>
                   <Text variant="label" weight="bold" style={webStyles.sectionEyebrowText}>
                     Weekly planner
@@ -1002,7 +1003,7 @@ const DashboardScreen = () => {
                   Pick a direction now. Targets are calculated using the Mifflin-St Jeor equation — just confirm sex, height, and weight.
                 </Text>
               </View>
-              <View style={[webStyles.planRow, !isDashboardDesktop && webStyles.planRowMobile]}>
+                <View style={[webStyles.planRow, !isDashboardDesktop && webStyles.planRowMobile]}>
                 <View style={[webStyles.planAccentCard, !isDashboardDesktop && webStyles.planAccentCardMobile]}>
                   <View style={webStyles.planBadge}>
                     <Text variant="label" weight="bold" style={webStyles.planBadgeText}>
@@ -1134,6 +1135,7 @@ const DashboardScreen = () => {
                       <Text variant="body" style={webStyles.benefitBody}>Review your week and export nutrition data as CSV with one tap.</Text>
                     </View>
                   </View>
+                </View>
                 </View>
               </View>
             </View>
@@ -2046,7 +2048,11 @@ const webStyles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 120,
   },
-  scrollContentMobile: {
+  scrollContentMobile: {},
+  scrollStack: {
+    width: '100%',
+  },
+  scrollStackMobile: {
     gap: 32,
   },
   heroSection: {
@@ -2063,7 +2069,7 @@ const webStyles = StyleSheet.create({
     flexDirection: 'column',
     gap: 28,
     paddingTop: 32,
-    paddingBottom: 40,
+    paddingBottom: 0,
   },
   heroSectionCompact: {
     paddingHorizontal: spacing.lg,
@@ -2282,6 +2288,10 @@ const webStyles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: 32,
     paddingBottom: 40,
+  },
+  sectionMobile: {
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   sectionCompact: {
     paddingHorizontal: spacing.lg,
