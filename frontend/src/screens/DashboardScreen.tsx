@@ -1648,8 +1648,8 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { color: '#111111', fontSize: 20, letterSpacing: -0.5 },
   sectionAction: { color: '#111111', fontSize: 14 },
-  // Mobile content wrapper — uniform 24px gap between sections
-  mobileContentWrapper: { gap: 16 },
+  // Mobile content wrapper — uniform 32px gap between sections
+  mobileContentWrapper: { gap: 32 },
   mobilePerfTitle: {
     color: '#111111',
     fontSize: 28,
@@ -2047,7 +2047,7 @@ const webStyles = StyleSheet.create({
     paddingBottom: 120,
   },
   scrollContentMobile: {
-    gap: 16,
+    gap: 32,
   },
   heroSection: {
     flexDirection: 'row',

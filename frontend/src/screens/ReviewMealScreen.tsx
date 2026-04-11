@@ -282,33 +282,19 @@ export function ReviewMealScreen({ route, navigation }: any) {
     });
   };
 
-  const handleRetake = async () => {
+  const handleRetake = () => {
     if (Platform.OS === 'web') {
       void openGallery();
       return;
     }
 
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(
-        'Camera access needed',
-        'Allow camera access in Settings to retake the photo.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Open Settings', onPress: () => Linking.openSettings() },
-        ]
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      quality: 0.65,
+    // Directly reopen the in-app camera (no system camera / no action sheet)
+    navigation.setParams({
+      imageUri: undefined,
+      imageMimeType: undefined,
+      imageFileName: undefined,
+      openCamera: true,
     });
-
-    if (!result.canceled && result.assets?.[0]) {
-      applySelectedImage(result.assets[0]);
-    }
   };
 
   // Recalculate total nutrition whenever items change
@@ -736,6 +722,12 @@ export function ReviewMealScreen({ route, navigation }: any) {
 
               <Pressable onPress={cameraPerm.openSettings} style={styles.permissionPrimaryBtn}>
                 <Text style={styles.permissionPrimaryBtnText}>Open Settings</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => navigation.navigate('Main', { screen: 'Dashboard' })}
+                style={styles.permissionSecondaryBtn}
+              >
+                <Text style={styles.permissionSecondaryBtnText}>Go back</Text>
               </Pressable>
             </View>
           )}
