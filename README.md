@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/screenshots/brand/icon.png" alt="Metriful" width="120" />
+<img src="https://raw.githubusercontent.com/Eliaaazzz/Metriful/main/docs/screenshots/brand/icon.png" alt="Metriful" width="120" />
 
 # Metriful
 
@@ -33,13 +33,7 @@
 
 ---
 
-## At a glance
-
-Metriful eliminates the friction of calorie tracking by **replacing manual food databases with camera-first AI logging**. Snap your plate, and Gemini Vision identifies every item, computes macros, and projects a glycemic-load impact — in under 5 seconds, without you typing a word.
-
-The same data feeds an **Apple-Watch-style activity ring system** for protein/carbs/fat, a **personalized goal engine** powered by Gemini LLM, and a **vector-similarity recipe recommender** built on pgvector + OpenAI embeddings. Three AI providers, one product narrative.
-
-> Live on the App Store · Cross-platform (iOS + Web) · Spring Boot 3.3 / Java 21 backend on GCP Cloud Run · PostgreSQL + pgvector + Redis · CI/CD via GitHub Actions
+> Snap your plate → AI macros + glycemic load + personalized goals + recipe recommendations, in under 5 seconds.
 
 ---
 
@@ -52,9 +46,9 @@ The same data feeds an **Apple-Watch-style activity ring system** for protein/ca
     <td align="center"><b>Item-level breakdown</b><br/><sub>Per-item kcal/macros + estimated blood-sugar impact (GL 79).</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/mobile/01-landing.png" alt="Metriful mobile landing" width="280" /></td>
-    <td><img src="docs/screenshots/mobile/02-meal-review.png" alt="AI meal analysis with macros" width="280" /></td>
-    <td><img src="docs/screenshots/mobile/03-detected-items.png" alt="Per-item nutrition breakdown" width="280" /></td>
+    <td><img src="https://raw.githubusercontent.com/Eliaaazzz/Metriful/main/docs/screenshots/mobile/01-landing.png" alt="Metriful mobile landing" width="280" /></td>
+    <td><img src="https://raw.githubusercontent.com/Eliaaazzz/Metriful/main/docs/screenshots/mobile/02-meal-review.png" alt="AI meal analysis with macros" width="280" /></td>
+    <td><img src="https://raw.githubusercontent.com/Eliaaazzz/Metriful/main/docs/screenshots/mobile/03-detected-items.png" alt="Per-item nutrition breakdown" width="280" /></td>
   </tr>
 </table>
 
@@ -65,19 +59,19 @@ The same data feeds an **Apple-Watch-style activity ring system** for protein/ca
     <td><b>Dashboard</b> — Bento-grid landing inspired by Apple WWDC '24 + Linear, with a glass-morphism nav and the same daily-plan flow as iOS.</td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/web/01-dashboard.png" alt="Metriful web dashboard" /></td>
+    <td><img src="https://raw.githubusercontent.com/Eliaaazzz/Metriful/main/docs/screenshots/web/01-dashboard.png" alt="Metriful web dashboard" /></td>
   </tr>
   <tr>
     <td><b>Workouts</b> — YouTube-API-backed exercise library with intelligent search by focus / duration / equipment.</td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/web/02-workouts.png" alt="Metriful workouts library" /></td>
+    <td><img src="https://raw.githubusercontent.com/Eliaaazzz/Metriful/main/docs/screenshots/web/02-workouts.png" alt="Metriful workouts library" /></td>
   </tr>
   <tr>
     <td><b>Recipes</b> — Vector-similarity recommendations using OpenAI embeddings stored in pgvector; "what should I cook tonight" answered against your nutrition history.</td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/web/03-recipes.png" alt="Metriful recipes recommendations" /></td>
+    <td><img src="https://raw.githubusercontent.com/Eliaaazzz/Metriful/main/docs/screenshots/web/03-recipes.png" alt="Metriful recipes recommendations" /></td>
   </tr>
 </table>
 
