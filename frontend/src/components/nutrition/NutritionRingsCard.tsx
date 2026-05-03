@@ -1,17 +1,22 @@
 /**
- * NutritionRingsCard — Clean rings, compact layout, vertical macro bars.
+ * NutritionRingsCard — Apple Fitness-style concentric activity rings.
  *
- * Layout (vertical):
- * - White card, subtle shadow
- * - 270° arc rings (clean — no center text overlap)
- * - P/F/C letters below ring endpoints
- * - Calorie text centered below rings
- * - 3 vertical macro bar columns side by side
- * - FDA citation footnote
+ * Inspired by the Apple Watch Activity / Apple Fitness app rings: three
+ * concentric 360° rings rendered with rounded stroke caps, animated from
+ * 12 o'clock clockwise, with a leading-edge drop shadow when a ring
+ * "closes" (passes 100%) to give the iconic overlap effect.
+ *
+ * Implementation references:
+ *   - notjust.dev "Animated Progress Ring in React Native using SVG and
+ *     Reanimated" — strokeDashoffset technique on AnimatedCircle
+ *   - reactiive.io "Circular Progress Bar Animation with React Native
+ *     Reanimated" — useSharedValue + useAnimatedProps pattern
+ *   - Apple Watch Activity ring shadow trick — render the over-100% slice
+ *     as a second arc with an SVG drop-shadow filter
  */
 import { BookOpen, ArrowSquareOut } from 'phosphor-react-native';
-import React, { useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import React, { useEffect, useId, useMemo } from 'react';
+import { Platform, Pressable, StyleSheet, Text as RNText, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedProps,
@@ -19,7 +24,7 @@ import Animated, {
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, G } from 'react-native-svg';
+import Svg, { Circle, Defs, Filter, FeDropShadow, G } from 'react-native-svg';
 
 import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/components/common/BentoCard';
 import { Text } from '@/components/Text';
@@ -27,141 +32,255 @@ import { NUTRITION_REFERENCES, openExternalUrl } from '@/utils';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-// Types
+// Apple Activity ring palette — Move (red/pink), Exercise (green), Stand (cyan/orange).
+// We map nutrition macros to the Activity hues most users already associate with
+// "primary metric / supporting metric / accent metric".
+const RING = {
+  pink:   '#FA114F', // Protein  — Apple "Move"     hue
+  green:  '#34C759', // Fat      — Apple "Exercise" hue
+  orange: '#FF9F0A', // Carbs    — Apple "Stand"-adjacent
+};
+
+// Geometry — three concentric rings, equal stroke, equal gap.
+const SIZE = 220;
+const CENTER = SIZE / 2;
+const STROKE = 22;
+const GAP = 6;
+const ANIM_DURATION = 1100;
+const ANIM_STAGGER = 140;
+
 interface MacroData { current: number; target: number; }
 export interface NutritionRingsData {
   calories: MacroData; protein: MacroData; carbs: MacroData;
   fat?: MacroData; bloodSugarRise?: number;
 }
 interface NutritionRingsCardProps {
-  data: NutritionRingsData; showFat?: boolean; animated?: boolean;
+  data: NutritionRingsData;
+  showFat?: boolean;
+  animated?: boolean;
   onMacroPress?: (macro: 'calories' | 'protein' | 'carbs' | 'fat') => void;
   onSourcesPress?: () => void;
 }
 
-// Neon colors
-const NEON = {
-  pink:   '#FA114F',
-  green:  '#34C759',
-  orange: '#FF9F0A',
-};
-
-const STROKE = 20;
-const ARC_SWEEP = 0.75;
-
 interface RingDef {
-  key: 'protein' | 'fat' | 'carbs'; letter: string; label: string; unit: string;
-  color: string; trackColor: string; radius: number;
+  key: 'protein' | 'fat' | 'carbs';
+  label: string;
+  unit: string;
+  color: string;
+  trackColor: string;
 }
 
 const RINGS: RingDef[] = [
-  { key: 'protein', letter: 'P', label: 'Protein', unit: 'g', color: NEON.pink, trackColor: 'rgba(250,17,79,0.15)', radius: 82 },
-  { key: 'fat',     letter: 'F', label: 'Fat',     unit: 'g', color: NEON.green, trackColor: 'rgba(52,199,89,0.15)', radius: 60 },
-  { key: 'carbs',   letter: 'C', label: 'Carbs',   unit: 'g', color: NEON.orange, trackColor: 'rgba(255,159,10,0.15)', radius: 38 },
+  { key: 'protein', label: 'Protein', unit: 'g', color: RING.pink,   trackColor: 'rgba(250,17,79,0.15)' },
+  { key: 'fat',     label: 'Fat',     unit: 'g', color: RING.green,  trackColor: 'rgba(52,199,89,0.15)' },
+  { key: 'carbs',   label: 'Carbs',   unit: 'g', color: RING.orange, trackColor: 'rgba(255,159,10,0.15)' },
 ];
 
-// 270° Arc Ring
-function ArcRing({ color, trackColor, radius, percentage, cx, cy, animated, delay }: {
-  color: string; trackColor: string; radius: number; percentage: number;
-  cx: number; cy: number; animated: boolean; delay: number;
+/**
+ * One full 360° ring. Animates strokeDashoffset from full circumference
+ * (empty) to circumference * (1 - clampedProgress). When progress exceeds
+ * 100%, an additional "overflow" arc is rendered with a drop-shadow filter
+ * to mimic the Apple Watch leading-edge overlap effect.
+ */
+function Ring({ color, trackColor, radius, percentage, animated, delay, filterId }: {
+  color: string;
+  trackColor: string;
+  radius: number;
+  percentage: number;
+  animated: boolean;
+  delay: number;
+  filterId: string;
 }) {
-  const circ = 2 * Math.PI * radius;
-  const arcLen = circ * ARC_SWEEP;
-  const target = Math.min(percentage, 100) / 100;
-  const progress = useSharedValue(0);
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(percentage, 100)) / 100;
+  const overflow = Math.max(0, Math.min(percentage - 100, 100)) / 100;
+
+  const baseProgress = useSharedValue(0);
+  const overflowProgress = useSharedValue(0);
 
   useEffect(() => {
-    progress.value = animated
-      ? withDelay(delay, withTiming(target, { duration: 900, easing: Easing.out(Easing.cubic) }))
-      : target;
-  }, [target, animated, delay]);
+    if (animated) {
+      baseProgress.value = withDelay(delay, withTiming(clamped, {
+        duration: ANIM_DURATION,
+        easing: Easing.out(Easing.cubic),
+      }));
+      overflowProgress.value = withDelay(delay + ANIM_DURATION * 0.6, withTiming(overflow, {
+        duration: ANIM_DURATION,
+        easing: Easing.out(Easing.cubic),
+      }));
+    } else {
+      baseProgress.value = clamped;
+      overflowProgress.value = overflow;
+    }
+  }, [animated, clamped, delay, overflow, baseProgress, overflowProgress]);
 
-  const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: arcLen * (1 - progress.value),
+  const baseProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - baseProgress.value),
+  }));
+  const overflowProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - overflowProgress.value),
   }));
 
   return (
-    <G transform={`rotate(135, ${cx}, ${cy})`}>
-      <Circle cx={cx} cy={cy} r={radius} stroke={trackColor} strokeWidth={STROKE} fill="none" strokeLinecap="round" strokeDasharray={[arcLen, circ]} />
-      <AnimatedCircle cx={cx} cy={cy} r={radius} stroke={color} strokeWidth={STROKE} fill="none" strokeLinecap="round" strokeDasharray={[arcLen, circ]} animatedProps={animatedProps} />
-    </G>
+    <>
+      {/* Track — full faint ring */}
+      <Circle
+        cx={CENTER}
+        cy={CENTER}
+        r={radius}
+        stroke={trackColor}
+        strokeWidth={STROKE}
+        fill="none"
+      />
+      {/* Animated foreground arc, 0 → clamped */}
+      <AnimatedCircle
+        cx={CENTER}
+        cy={CENTER}
+        r={radius}
+        stroke={color}
+        strokeWidth={STROKE}
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        animatedProps={baseProps}
+      />
+      {/* Overflow arc — only meaningful when percentage > 100; rides on top
+          with a drop-shadow filter so the leading edge appears to lift off
+          the underlying ring (the Apple Watch "closing the ring" cue). */}
+      {overflow > 0 && (
+        <AnimatedCircle
+          cx={CENTER}
+          cy={CENTER}
+          r={radius}
+          stroke={color}
+          strokeWidth={STROKE}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          animatedProps={overflowProps}
+          filter={`url(#${filterId})`}
+        />
+      )}
+    </>
   );
 }
 
-// Vertical macro bar column
-function MacroColumn({ color, trackColor, label, current, target, unit, percentage, onPress }: {
-  color: string; trackColor: string; label: string; current: number; target: number; unit: string;
-  percentage: number; onPress?: () => void;
-}) {
-  const pct = Math.min(100, Math.max(0, percentage));
-  return (
-    <Pressable style={({ pressed }) => [styles.macroCol, pressed && { opacity: 0.7 }]} onPress={onPress}>
-      <Text style={[styles.macroLabel, { color }]}>{label}</Text>
-      <View style={[styles.vertBarTrack, { backgroundColor: trackColor }]}>
-        <View style={[styles.vertBarFill, { height: `${Math.max(pct, 2)}%`, backgroundColor: color }]} />
-      </View>
-      <Text style={styles.macroValue}>{Math.round(current)}/{target}{unit}</Text>
-      <Text style={[styles.macroPct, { color }]}>{Math.round(pct)}%</Text>
-    </Pressable>
-  );
-}
-
-// Main Component
 export function NutritionRingsCard({ data, showFat = true, animated = true, onMacroPress }: NutritionRingsCardProps) {
-  const rings = showFat ? RINGS : RINGS.filter(r => r.key !== 'fat');
+  // Per-instance prefix prevents SVG <filter> id collisions when the card
+  // is mounted more than once on a single screen (Dashboard renders two).
+  const filterPrefix = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const rings = useMemo(() => (showFat ? RINGS : RINGS.filter(r => r.key !== 'fat')), [showFat]);
+
+  // Outer → inner radii so the largest ring sits on the outside.
+  const radii = useMemo(() => {
+    const outerRadius = (SIZE - STROKE) / 2;
+    return rings.map((_, i) => outerRadius - i * (STROKE + GAP));
+  }, [rings]);
+
   const pcts: Record<string, number> = {
     protein: data.protein.target > 0 ? (data.protein.current / data.protein.target) * 100 : 0,
     fat: data.fat && data.fat.target > 0 ? (data.fat.current / data.fat.target) * 100 : 0,
     carbs: data.carbs.target > 0 ? (data.carbs.current / data.carbs.target) * 100 : 0,
   };
 
+  const calorieText = Math.round(data.calories.current).toLocaleString();
+  const calorieTarget = data.calories.target.toLocaleString();
+
   return (
     <View style={styles.card}>
-      {/* Rings — clean, no overlapping center text */}
-      <View style={styles.ringsContainer} accessible accessibilityRole="summary">
-        <Svg width="100%" height="100%" viewBox="0 0 200 175" preserveAspectRatio="xMidYMid meet">
-          {rings.map((r, i) => (
-            <ArcRing key={r.key} color={r.color} trackColor={r.trackColor} radius={r.radius}
-              percentage={pcts[r.key]} cx={100} cy={100} animated={animated} delay={i * 120} />
-          ))}
+      <View
+        style={styles.ringsContainer}
+        accessible
+        accessibilityRole="summary"
+        accessibilityLabel={`${calorieText} of ${calorieTarget} calories. Protein ${Math.round(pcts.protein)} percent. Fat ${Math.round(pcts.fat)} percent. Carbs ${Math.round(pcts.carbs)} percent.`}
+      >
+        <Svg width="100%" height="100%" viewBox={`0 0 ${SIZE} ${SIZE}`} preserveAspectRatio="xMidYMid meet">
+          {/* Per-ring drop-shadow filters for the over-100% leading edge */}
+          <Defs>
+            {rings.map((r, i) => (
+              <Filter
+                key={`shadow-${r.key}`}
+                id={`ring-shadow-${filterPrefix}-${i}`}
+                x="-25%" y="-25%" width="150%" height="150%"
+              >
+                <FeDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.45" />
+              </Filter>
+            ))}
+          </Defs>
+          {/* Rotate -90° so 0 starts at 12 o'clock and progress fills clockwise */}
+          <G transform={`rotate(-90 ${CENTER} ${CENTER})`}>
+            {rings.map((r, i) => (
+              <Ring
+                key={r.key}
+                color={r.color}
+                trackColor={r.trackColor}
+                radius={radii[i]}
+                percentage={pcts[r.key]}
+                animated={animated}
+                delay={i * ANIM_STAGGER}
+                filterId={`ring-shadow-${filterPrefix}-${i}`}
+              />
+            ))}
+          </G>
         </Svg>
+
+        {/* Center calorie readout — sits inside the innermost ring */}
+        <View
+          style={styles.centerOverlay}
+          pointerEvents="none"
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+        >
+          <RNText style={styles.calorieValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+            {calorieText}
+          </RNText>
+          <RNText style={styles.calorieTarget} numberOfLines={1}>/ {calorieTarget} kcal</RNText>
+        </View>
       </View>
 
-      {/* P / F / C ring labels */}
-      <View style={styles.ringLabels}>
-        {rings.map(r => <Text key={r.key} style={[styles.ringLetter, { color: r.color }]}>{r.letter}</Text>)}
-      </View>
-
-      {/* Calorie text — below rings, no overlap */}
-      <View style={styles.calorieSection}>
-        <Text style={styles.calorieCurrent}>{Math.round(data.calories.current).toLocaleString()}</Text>
-        <Text style={styles.calorieSlash}> / {data.calories.target.toLocaleString()} kcal</Text>
-      </View>
-
-      {/* Vertical macro bar columns */}
-      <View style={styles.macroColumns}>
+      {/* Macro legend — coloured dot + label/value, replaces the old vertical bars */}
+      <View style={styles.legend}>
         {rings.map(r => {
           const d = r.key === 'fat' ? data.fat : data[r.key];
+          const pct = Math.round(pcts[r.key]);
           return (
-            <MacroColumn key={r.key} color={r.color} trackColor={r.trackColor} label={r.label}
-              current={d?.current || 0} target={d?.target || 0} unit={r.unit}
-              percentage={pcts[r.key]} onPress={() => onMacroPress?.(r.key)} />
+            <Pressable
+              key={r.key}
+              onPress={() => onMacroPress?.(r.key)}
+              style={({ pressed }) => [styles.legendItem, pressed && { opacity: 0.7 }]}
+              accessibilityRole="button"
+              accessibilityLabel={`${r.label}: ${Math.round(d?.current ?? 0)} of ${d?.target ?? 0} ${r.unit}, ${pct}%`}
+            >
+              <View style={[styles.legendDot, { backgroundColor: r.color }]} />
+              <View style={styles.legendText}>
+                <Text style={[styles.legendLabel, { color: r.color }]}>{r.label}</Text>
+                <Text style={styles.legendValue}>
+                  {Math.round(d?.current ?? 0)}<Text style={styles.legendValueDim}>/{d?.target ?? 0}{r.unit}</Text>
+                </Text>
+              </View>
+              <Text style={[styles.legendPct, { color: r.color }]}>{pct}%</Text>
+            </Pressable>
           );
         })}
       </View>
 
-      {/* Unified citation area */}
       <View style={styles.citationArea}>
-        <Pressable style={styles.citationRow}
+        <Pressable
+          style={styles.citationRow}
           onPress={() => openExternalUrl(NUTRITION_REFERENCES.fdaDailyValues.url, 'Unable to open', 'Open FDA reference.')}
-          accessibilityRole="link" accessibilityLabel={NUTRITION_REFERENCES.fdaDailyValues.title}>
+          accessibilityRole="link"
+          accessibilityLabel={NUTRITION_REFERENCES.fdaDailyValues.title}
+        >
           <BookOpen size={11} color="#9CA3AF" />
           <Text style={styles.citationText}>Defaults: FDA Daily Values (2,000 kcal · 50g P · 275g C · 78g F)</Text>
           <ArrowSquareOut size={10} color="#9CA3AF" />
         </Pressable>
-        <Pressable style={styles.citationRow}
+        <Pressable
+          style={styles.citationRow}
           onPress={() => openExternalUrl(NUTRITION_REFERENCES.mifflinStJeor.url, 'Unable to open', 'Open Mifflin-St Jeor reference.')}
-          accessibilityRole="link" accessibilityLabel={NUTRITION_REFERENCES.mifflinStJeor.title}>
+          accessibilityRole="link"
+          accessibilityLabel={NUTRITION_REFERENCES.mifflinStJeor.title}
+        >
           <BookOpen size={11} color="#9CA3AF" />
           <Text style={styles.citationText}>Custom goals: Mifflin-St Jeor equation · USDA DRI</Text>
           <ArrowSquareOut size={10} color="#9CA3AF" />
@@ -182,28 +301,105 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  ringsContainer: { width: '100%', maxWidth: 200, aspectRatio: 200 / 175 },
+  ringsContainer: {
+    width: '100%',
+    maxWidth: SIZE,
+    aspectRatio: 1,
+    position: 'relative',
+  },
+  centerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  calorieValue: {
+    color: '#111111',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -1,
+    lineHeight: 30,
+    maxWidth: SIZE * 0.5,
+    textAlign: 'center',
+  },
+  calorieTarget: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    fontWeight: '500',
+    maxWidth: SIZE * 0.5,
+    textAlign: 'center',
+  },
 
-  ringLabels: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 4, marginBottom: 8 },
-  ringLetter: { fontSize: 13, fontWeight: '700' },
+  legend: {
+    width: '100%',
+    maxWidth: 320,
+    marginTop: 18,
+    gap: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 6,
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  legendText: {
+    flex: 1,
+  },
+  legendLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  legendValue: {
+    color: '#111111',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 1,
+  },
+  legendValueDim: {
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  legendPct: {
+    fontSize: 14,
+    fontWeight: '800',
+    minWidth: 44,
+    textAlign: 'right',
+  },
 
-  calorieSection: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 20 },
-  calorieCurrent: { color: '#111111', fontSize: 32, fontWeight: '800', letterSpacing: -1 },
-  calorieSlash: { color: '#9CA3AF', fontSize: 15, fontWeight: '500' },
-
-  macroColumns: { flexDirection: 'row', width: '100%', maxWidth: 320, gap: 20, justifyContent: 'center' },
-  macroCol: { flex: 1, alignItems: 'center', gap: 6 },
-  macroLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
-  vertBarTrack: { width: 28, height: 80, borderRadius: 14, overflow: 'hidden', justifyContent: 'flex-end' },
-  vertBarFill: { width: '100%', borderRadius: 14, minHeight: 2 },
-  macroValue: { color: '#374151', fontSize: 12, fontWeight: '600', textAlign: 'center' },
-  macroPct: { fontSize: 14, fontWeight: '800' },
-
-  citationArea: { width: '100%', marginTop: 20, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.04)', gap: 8 },
-  citationRow: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }) },
-  citationText: { flex: 1, fontSize: 11, fontWeight: '400', color: '#9CA3AF' },
-  citationNote: { fontSize: 11, fontWeight: '400', color: '#9CA3AF', fontStyle: 'italic', marginTop: 2 },
+  citationArea: {
+    width: '100%',
+    marginTop: 20,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.04)',
+    gap: 8,
+  },
+  citationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
+  },
+  citationText: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '400',
+    color: '#9CA3AF',
+  },
+  citationNote: {
+    fontSize: 11,
+    fontWeight: '400',
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
 });
 
 export default NutritionRingsCard;
