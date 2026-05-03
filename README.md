@@ -269,7 +269,7 @@ npm run backend:run
 # Frontend (Expo, choose target)
 npm run frontend:ios     # iOS simulator
 npm run frontend:android # Android emulator
-npm run frontend:web     # browser at localhost:19006
+npm run frontend:web     # browser at localhost:8081
 ```
 
 ### Test
