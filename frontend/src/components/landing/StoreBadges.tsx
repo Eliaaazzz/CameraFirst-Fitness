@@ -16,7 +16,7 @@ import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { openExternalUrl, spacing } from '@/utils';
 
-export const APP_STORE_URL = 'https://apps.apple.com/au/app/metriful/id6760930295';
+export const APP_STORE_URL = 'https://apps.apple.com/app/metriful/id6760930295';
 
 const appStoreBadge = require('@/../assets/store-badges/app-store-badge.svg');
 const googlePlayBadge = require('@/../assets/store-badges/google-play-badge.png');
@@ -38,7 +38,6 @@ interface StoreBadgesProps {
 export function StoreBadges({ playStoreUrl, height = 48, style, align = 'flex-start' }: StoreBadgesProps) {
   const playEnabled = !!playStoreUrl;
   const wrapMinHeight = Math.max(height, MIN_TAP_HEIGHT);
-  const playUrl = playStoreUrl;
 
   return (
     <View
@@ -64,7 +63,7 @@ export function StoreBadges({ playStoreUrl, height = 48, style, align = 'flex-st
 
       <View style={styles.googleColumn}>
         <Pressable
-          onPress={playUrl ? () => void openExternalUrl(playUrl, 'Unable to open Google Play', 'Please try opening Google Play manually.') : undefined}
+          onPress={playStoreUrl ? () => void openExternalUrl(playStoreUrl, 'Unable to open Google Play', 'Please try opening Google Play manually.') : undefined}
           disabled={!playEnabled}
           accessibilityRole={playEnabled ? 'link' : 'image'}
           accessibilityLabel={playEnabled ? 'Get Metriful on Google Play' : 'Metriful on Google Play — coming soon'}
@@ -101,7 +100,7 @@ const styles = StyleSheet.create({
   },
   googleColumn: {
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
   },
   comingSoon: {
     color: 'rgba(255,255,255,0.65)',
