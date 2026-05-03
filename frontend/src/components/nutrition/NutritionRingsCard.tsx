@@ -192,7 +192,7 @@ export function NutritionRingsCard({ data, showFat = true, animated = true, onMa
         style={styles.ringsContainer}
         accessible
         accessibilityRole="summary"
-        accessibilityLabel={`${calorieText} of ${calorieTarget} calories. Protein ${Math.round(pcts.protein)} percent. Fat ${Math.round(pcts.fat)} percent. Carbs ${Math.round(pcts.carbs)} percent.`}
+        accessibilityLabel={`${calorieText} of ${calorieTarget} calories. ${rings.map(r => `${r.label} ${Math.round(pcts[r.key])} percent`).join('. ')}.`}
       >
         <Svg width="100%" height="100%" viewBox={`0 0 ${SIZE} ${SIZE}`} preserveAspectRatio="xMidYMid meet">
           {/* Per-ring drop-shadow filters for the over-100% leading edge */}
