@@ -23,6 +23,7 @@ import { HeroSection } from '@/components/landing/HeroSection';
 import { FeatureGrid } from '@/components/landing/FeatureGrid';
 import ProgramHubSection from '@/components/landing/ProgramHubSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import { StoreBadges } from '@/components/landing/StoreBadges';
 import { Text } from '@/components';
 import { startBackendWarmup } from '@/services/backendWarmup';
 import { useAuthStore } from '@/stores';
@@ -158,6 +159,7 @@ export default function LandingScreen() {
             >
               <Text style={styles.ctaButtonText}>Sign up to start</Text>
             </Pressable>
+            <StoreBadges style={styles.ctaBadges} align={isCompact ? 'center' : 'flex-start'} />
           </View>
         </View>
 
@@ -244,5 +246,8 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 16,
     fontWeight: '700',
+  },
+  ctaBadges: {
+    marginTop: 12,
   },
 });
