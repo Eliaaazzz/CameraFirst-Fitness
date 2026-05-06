@@ -13,6 +13,9 @@ public interface BehaviorInsightRepository extends JpaRepository<BehaviorInsight
 
   Optional<BehaviorInsight> findByUserIdAndBehaviorKey(UUID userId, String behaviorKey);
 
+  /** All insights for a user, regardless of freshness — used by recompute to avoid N+1 lookups. */
+  List<BehaviorInsight> findAllByUserId(UUID userId);
+
   /**
    * Active insights = computed within the freshness window AND not currently
    * dismissed (i.e. {@code dismissed_until} is null or in the past).

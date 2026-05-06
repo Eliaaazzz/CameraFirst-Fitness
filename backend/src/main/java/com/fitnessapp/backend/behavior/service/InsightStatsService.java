@@ -17,9 +17,10 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
@@ -102,10 +103,13 @@ public class InsightStatsService {
    * Recompute every behavior's insight for the user from the last
    * {@link #WINDOW_DAYS} of behavior days. No row is written when the data
    * doesn't pass the {@link #P_VALUE_MAX} / {@link #COHENS_D_MIN} bar.
+   *
+   * <p>Window ends at <em>yesterday</em> (UTC) so an in-progress day cannot
+   * skew either bucket.
    */
   @Transactional
   public int recomputeForUser(UUID userId) {
-    LocalDate to = LocalDate.now(ZoneOffset.UTC);
+    LocalDate to = LocalDate.now(ZoneOffset.UTC).minusDays(1);
     LocalDate from = to.minusDays(WINDOW_DAYS - 1L);
 
     List<UserBehaviorDay> rows = dayRepository.findByUserIdAndDayBetween(userId, from, to);
@@ -119,7 +123,16 @@ public class InsightStatsService {
       byKey.computeIfAbsent(r.getBehaviorKey(), k -> new ArrayList<>()).add(r);
     }
 
+    // Single fetch up-front — avoids the N+1 lookup we used to do inside the loop.
+    Map<String, BehaviorInsight> existingByKey = new HashMap<>();
+    for (BehaviorInsight existing : insightRepository.findAllByUserId(userId)) {
+      existingByKey.put(existing.getBehaviorKey(), existing);
+    }
+
+    Set<Long> toDelete = new HashSet<>();
+    List<BehaviorInsight> toSave = new ArrayList<>();
     int written = 0;
+
     for (String key : registry.all().stream().map(p -> p.key()).toList()) {
       List<UserBehaviorDay> series = byKey.getOrDefault(key, List.of());
       List<Double> yes = new ArrayList<>();
@@ -129,10 +142,11 @@ public class InsightStatsService {
         if (r.isObserved()) yes.add((double) r.getDailyScore());
         else                no.add((double) r.getDailyScore());
       }
+
+      BehaviorInsight existing = existingByKey.get(key);
+
       if (yes.size() < MIN_PER_BUCKET || no.size() < MIN_PER_BUCKET) {
-        // Not enough data yet — drop any stale insight for this behavior
-        insightRepository.findByUserIdAndBehaviorKey(userId, key)
-            .ifPresent(insightRepository::delete);
+        if (existing != null) toDelete.add(existing.getId());
         continue;
       }
 
@@ -141,8 +155,7 @@ public class InsightStatsService {
       double absD  = Math.abs(result.cohensD());
 
       if (result.pValue() > P_VALUE_MAX || absD < COHENS_D_MIN) {
-        insightRepository.findByUserIdAndBehaviorKey(userId, key)
-            .ifPresent(insightRepository::delete);
+        if (existing != null) toDelete.add(existing.getId());
         continue;
       }
 
@@ -150,9 +163,9 @@ public class InsightStatsService {
                         : result.pValue() < P_MED  ? "med"
                         : "low";
 
-      Optional<BehaviorInsight> existing = insightRepository.findByUserIdAndBehaviorKey(userId, key);
-      BehaviorInsight insight = existing.orElseGet(() -> BehaviorInsight.builder()
-          .userId(userId).behaviorKey(key).build());
+      BehaviorInsight insight = existing != null
+          ? existing
+          : BehaviorInsight.builder().userId(userId).behaviorKey(key).build();
       insight.setDeltaScore(BigDecimal.valueOf(delta).setScale(2, RoundingMode.HALF_UP));
       insight.setCohensD(BigDecimal.valueOf(result.cohensD()).setScale(3, RoundingMode.HALF_UP));
       insight.setPValue(BigDecimal.valueOf(result.pValue()).setScale(4, RoundingMode.HALF_UP));
@@ -160,12 +173,17 @@ public class InsightStatsService {
       insight.setSampleNo(no.size());
       insight.setConfidence(confidence);
       insight.setComputedAt(OffsetDateTime.now(ZoneOffset.UTC));
-      insightRepository.save(insight);
+      toSave.add(insight);
       written++;
     }
-    log.info("Insight recompute: user={} wrote {} insights", userId, written);
+
+    if (!toSave.isEmpty()) insightRepository.saveAll(toSave);
+    if (!toDelete.isEmpty()) insightRepository.deleteAllByIdInBatch(toDelete);
+
+    log.info("Insight recompute: user={} wrote={} dropped={}", userId, written, toDelete.size());
     return written;
   }
+
 
   // ===================================================================== mutations
 

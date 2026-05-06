@@ -1,6 +1,7 @@
 package com.fitnessapp.backend.behavior.predicate;
 
 import com.fitnessapp.backend.nutrition.entity.MealLog;
+import java.time.ZoneId;
 import java.util.List;
 
 /**
@@ -19,6 +20,12 @@ public interface BehaviorPredicate {
   /** Short, sentence-case display label, e.g. "Logged breakfast". */
   String label();
 
-  /** True when the day's meals satisfy the behavior. May see an empty list. */
-  boolean evaluate(List<MealLog> dayMeals);
+  /**
+   * True when the day's meals satisfy the behavior. May see an empty list.
+   *
+   * @param zone time-of-day predicates ({@code breakfast_logged}, {@code late_eating})
+   *             evaluate {@code consumedAt.atZoneSameInstant(zone).getHour()}, so the
+   *             caller controls the local-day frame of reference. Must not be {@code null}.
+   */
+  boolean evaluate(List<MealLog> dayMeals, ZoneId zone);
 }

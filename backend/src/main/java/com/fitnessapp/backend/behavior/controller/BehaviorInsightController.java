@@ -18,6 +18,7 @@ import com.fitnessapp.backend.behavior.service.InsightStatsService;
 import com.fitnessapp.backend.security.CurrentUser;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -116,13 +117,30 @@ public class BehaviorInsightController {
     return ResponseEntity.ok(new RecomputeResponse(written));
   }
 
-  /** Backfill 90 days of behavior data for the current user (dev / first run). */
+  /**
+   * Backfill 90 days of behavior data for the current user (dev / first run).
+   * The {@code X-User-Timezone} header (e.g. {@code "America/Los_Angeles"})
+   * controls local-day bucketing for time-of-day predicates; if missing or
+   * invalid we fall back to UTC.
+   */
   @PostMapping("/backfill")
-  public ResponseEntity<BackfillResponse> backfill() {
+  public ResponseEntity<BackfillResponse> backfill(
+      @RequestHeader(value = "X-User-Timezone", required = false) String userTimezone
+  ) {
     UUID userId = currentUser.requireUserId();
-    int days = deriver.backfill(userId, LocalDate.now(ZoneOffset.UTC));
+    ZoneId zone = parseZone(userTimezone);
+    int days = deriver.backfill(userId, LocalDate.now(zone), zone);
     int written = statsService.recomputeForUser(userId);
     return ResponseEntity.ok(new BackfillResponse(days, written));
+  }
+
+  private static ZoneId parseZone(String tz) {
+    if (tz == null || tz.isBlank()) return ZoneOffset.UTC;
+    try {
+      return ZoneId.of(tz.trim());
+    } catch (Exception e) {
+      return ZoneOffset.UTC;
+    }
   }
 
   public record RecomputeResponse(int insightsWritten) {}

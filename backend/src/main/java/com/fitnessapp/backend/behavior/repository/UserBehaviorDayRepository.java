@@ -21,5 +21,15 @@ public interface UserBehaviorDayRepository extends JpaRepository<UserBehaviorDay
 
   void deleteByUserIdAndDayBetween(UUID userId, LocalDate from, LocalDate to);
 
+  /**
+   * Bulk trim of rows older than {@code cutoff} (exclusive). Used by the nightly
+   * scheduler to keep the rolling window bounded across all users in a single SQL
+   * statement (vs N delete queries inside the per-user loop).
+   */
+  @org.springframework.data.jpa.repository.Modifying
+  @org.springframework.transaction.annotation.Transactional
+  @Query("DELETE FROM UserBehaviorDay b WHERE b.day < :cutoff")
+  int deleteByDayBefore(@Param("cutoff") LocalDate cutoff);
+
   void deleteByUserId(UUID userId);
 }

@@ -4,6 +4,8 @@ import com.fitnessapp.backend.nutrition.entity.MealLog;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -70,30 +72,38 @@ public final class DefaultBehaviorPredicates {
     return value == null ? 0.0 : value.setScale(2, RoundingMode.HALF_UP).doubleValue();
   }
 
+  /** Local-zone hour-of-day for the meal's instant. Returns -1 when consumedAt is null. */
+  private static int localHour(MealLog meal, ZoneId zone) {
+    OffsetDateTime t = meal.getConsumedAt();
+    if (t == null) return -1;
+    return t.atZoneSameInstant(zone).getHour();
+  }
+
   // -------- predicates ------------------------------------------------------
 
   static final class BreakfastLogged implements BehaviorPredicate {
     @Override public String key() { return "breakfast_logged"; }
     @Override public String label() { return "Logged breakfast"; }
-    @Override public boolean evaluate(List<MealLog> meals) {
-      return meals.stream().anyMatch(m -> m.getConsumedAt() != null
-          && m.getConsumedAt().getHour() < BREAKFAST_BEFORE_HOUR);
+    @Override public boolean evaluate(List<MealLog> meals, ZoneId zone) {
+      return meals.stream().anyMatch(m -> {
+        int h = localHour(m, zone);
+        return h >= 0 && h < BREAKFAST_BEFORE_HOUR;
+      });
     }
   }
 
   static final class LateEating implements BehaviorPredicate {
     @Override public String key() { return "late_eating"; }
     @Override public String label() { return "Ate after 9pm"; }
-    @Override public boolean evaluate(List<MealLog> meals) {
-      return meals.stream().anyMatch(m -> m.getConsumedAt() != null
-          && m.getConsumedAt().getHour() >= LATE_EATING_AT_OR_AFTER_HOUR);
+    @Override public boolean evaluate(List<MealLog> meals, ZoneId zone) {
+      return meals.stream().anyMatch(m -> localHour(m, zone) >= LATE_EATING_AT_OR_AFTER_HOUR);
     }
   }
 
   static final class MealCount3OrMore implements BehaviorPredicate {
     @Override public String key() { return "meal_count_3_or_more"; }
     @Override public String label() { return "Logged 3+ meals"; }
-    @Override public boolean evaluate(List<MealLog> meals) {
+    @Override public boolean evaluate(List<MealLog> meals, ZoneId zone) {
       return meals.size() >= MIN_MEAL_COUNT;
     }
   }
@@ -101,7 +111,7 @@ public final class DefaultBehaviorPredicates {
   static final class ProteinGoalHit implements BehaviorPredicate {
     @Override public String key() { return "protein_goal_hit"; }
     @Override public String label() { return "Hit 75g protein"; }
-    @Override public boolean evaluate(List<MealLog> meals) {
+    @Override public boolean evaluate(List<MealLog> meals, ZoneId zone) {
       return sumProtein(meals) >= PROTEIN_GOAL_GRAMS;
     }
   }
@@ -109,7 +119,7 @@ public final class DefaultBehaviorPredicates {
   static final class ProteinHigh implements BehaviorPredicate {
     @Override public String key() { return "protein_high"; }
     @Override public String label() { return "Hit 100g protein"; }
-    @Override public boolean evaluate(List<MealLog> meals) {
+    @Override public boolean evaluate(List<MealLog> meals, ZoneId zone) {
       return sumProtein(meals) >= PROTEIN_HIGH_GRAMS;
     }
   }
@@ -117,7 +127,7 @@ public final class DefaultBehaviorPredicates {
   static final class CaloriesInRange implements BehaviorPredicate {
     @Override public String key() { return "calories_in_range"; }
     @Override public String label() { return "Calories in range (1200–2400)"; }
-    @Override public boolean evaluate(List<MealLog> meals) {
+    @Override public boolean evaluate(List<MealLog> meals, ZoneId zone) {
       double cal = sumCalories(meals);
       return cal >= CALORIES_FLOOR && cal <= CALORIES_CEILING;
     }
@@ -126,7 +136,7 @@ public final class DefaultBehaviorPredicates {
   static final class VariedMealTypes implements BehaviorPredicate {
     @Override public String key() { return "varied_meal_types"; }
     @Override public String label() { return "3+ distinct meal types"; }
-    @Override public boolean evaluate(List<MealLog> meals) {
+    @Override public boolean evaluate(List<MealLog> meals, ZoneId zone) {
       Set<String> distinct = meals.stream()
           .map(MealLog::getMealType)
           .filter(s -> s != null && !s.isBlank())
@@ -139,7 +149,7 @@ public final class DefaultBehaviorPredicates {
   static final class ProteinPerMealDecent implements BehaviorPredicate {
     @Override public String key() { return "protein_per_meal_decent"; }
     @Override public String label() { return "Avg ≥20g protein per meal"; }
-    @Override public boolean evaluate(List<MealLog> meals) {
+    @Override public boolean evaluate(List<MealLog> meals, ZoneId zone) {
       if (meals.isEmpty()) return false;
       return (sumProtein(meals) / meals.size()) >= PROTEIN_PER_MEAL_GRAMS;
     }
