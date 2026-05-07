@@ -186,6 +186,52 @@ class SquadServiceTest {
         .isEqualTo(ErrorCode.SQUAD_ACCESS_DENIED);
   }
 
+  @Test
+  void leave_ownerWithRemainingMembers_transfersOwnershipToEarliestJoiner() {
+    Squad squad = squadFixture();           // ownerUserId = userA
+    UUID userC = UUID.randomUUID();
+    when(squadRepository.findById(squadId)).thenReturn(Optional.of(squad));
+    when(squadMemberRepository.existsBySquadIdAndUserId(squadId, userA)).thenReturn(true);
+    when(squadMemberRepository.countBySquadId(squadId)).thenReturn(3L);
+
+    // userC joined before userB → userC should be promoted, not userB
+    SquadMember laterJoiner = SquadMember.builder()
+        .squadId(squadId).userId(userB).role("member")
+        .joinedAt(OffsetDateTime.parse("2026-04-02T10:00:00Z"))
+        .build();
+    SquadMember earliestJoiner = SquadMember.builder()
+        .squadId(squadId).userId(userC).role("member")
+        .joinedAt(OffsetDateTime.parse("2026-04-01T10:00:00Z"))
+        .build();
+    when(squadMemberRepository.findAllBySquadId(squadId))
+        .thenReturn(List.of(laterJoiner, earliestJoiner));
+
+    service.leave(userA, squadId);
+
+    verify(squadMemberRepository).deleteBySquadIdAndUserId(squadId, userA);
+    verify(squadRepository, never()).deleteById(any());
+    assertThat(squad.getOwnerUserId()).isEqualTo(userC);
+    assertThat(earliestJoiner.getRole()).isEqualTo("owner");
+    assertThat(laterJoiner.getRole()).isEqualTo("member");
+    verify(squadMemberRepository).save(earliestJoiner);
+    verify(squadRepository).save(squad);
+  }
+
+  @Test
+  void leave_nonOwnerWithRemainingMembers_doesNotTransferOwnership() {
+    Squad squad = squadFixture();           // ownerUserId = userA
+    when(squadRepository.findById(squadId)).thenReturn(Optional.of(squad));
+    when(squadMemberRepository.existsBySquadIdAndUserId(squadId, userB)).thenReturn(true);
+    when(squadMemberRepository.countBySquadId(squadId)).thenReturn(2L);
+
+    service.leave(userB, squadId);
+
+    verify(squadMemberRepository).deleteBySquadIdAndUserId(squadId, userB);
+    verify(squadRepository, never()).deleteById(any());
+    verify(squadRepository, never()).save(any());
+    assertThat(squad.getOwnerUserId()).isEqualTo(userA);
+  }
+
   // ===================================================================== streak
 
   @Test
