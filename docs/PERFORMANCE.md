@@ -1,8 +1,10 @@
 # Aura Fitness — Performance Report
 
-> **STATUS: SKELETON.** Every number in the tables below is a **placeholder**
-> (`TBD`) to be filled after running the lab. Do not cite these as results until
-> measured.
+> **STATUS: HARNESS READY — NUMBERS PENDING A RUN.** Every number in the tables
+> below is a **placeholder** (`TBD`) until the lab is run. Running the lab needs a
+> live **Docker daemon** (start Docker Desktop), then the commands under "How to
+> reproduce". The backend wiring the experiments depend on (Open items 1-3) is
+> now implemented. Do not cite these as results until measured.
 
 ## Lab architecture
 
@@ -151,10 +153,12 @@ load tool or a k6 `ws` script; not yet scripted in this lab.)
 These block real numbers and require **backend** changes (not part of the lab
 scaffold, which only adds new files):
 
-1. `GEMINI_BASE_URL` override so the backend points at the mock
-   (`GeminiMealAnalysisService` currently hardcodes the Google host).
-2. `micrometer-registry-prometheus` runtime dependency + `/actuator/prometheus`
-   (actuator exposure already lists `prometheus`).
-3. `GEMINI_HEDGE_DELAY_MS` request-hedging implementation (Experiment 1 arms).
-4. Cache-toggle and vector-strategy switches for Experiments 2 and 3.
-5. A WebSocket load driver for Experiment 4.
+1. ✅ DONE — `app.gemini.base-url` (`GEMINI_BASE_URL`) points the backend at the mock.
+2. ✅ DONE — `micrometer-registry-prometheus` added and `/actuator/prometheus` exposed
+   (with custom `aura.gemini.*` / `aura.agent.*` / `aura.social.*` meters).
+3. ✅ DONE — `app.gemini.hedge-delay-ms` (`GEMINI_HEDGE_DELAY_MS`) controls hedging in the
+   shared `GeminiClient` (set high to disable for Arm A, 2000 for Arm B).
+4. PARTIAL — Redis cache toggles via `SPRING_CACHE_TYPE=redis` (Experiment 2). The
+   pgvector-ANN-vs-JVM-cosine switch (Experiment 3) still needs a strategy flag.
+5. ✅ The Go gateway (`gateway/`) is the WebSocket layer with `/metrics`; Experiment 4
+   drives it with a k6 `ws` script (see `gateway/README.md`).
