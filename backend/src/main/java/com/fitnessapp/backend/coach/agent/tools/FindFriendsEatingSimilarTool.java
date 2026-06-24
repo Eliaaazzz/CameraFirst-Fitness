@@ -1,10 +1,13 @@
 package com.fitnessapp.backend.coach.agent.tools;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
@@ -15,7 +18,9 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fitnessapp.backend.coach.agent.AgentTool;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
+import com.fitnessapp.backend.nutrition.repository.MealLogRepository.UserMacroAggregate;
 import com.fitnessapp.backend.social.repository.FollowRepository;
+import com.fitnessapp.backend.user.entity.UserProfile;
 import com.fitnessapp.backend.user.repository.UserProfileRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -66,59 +71,62 @@ public class FindFriendsEatingSimilarTool implements AgentTool {
         OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC);
         OffsetDateTime start = end.minusDays(days);
 
-        double[] mine = macroProfile(userId, start, end);
         ObjectNode out = objectMapper.createObjectNode();
         out.put("days", days);
-        if (isZero(mine)) {
+
+        List<UUID> followees = followRepository.findFolloweeIds(userId).stream()
+                .limit(MAX_FOLLOWEES_SCANNED).toList();
+
+        // Privacy: drop followees who opted out of activity sharing (one batched lookup, no N+1).
+        Set<UUID> allowed = new HashSet<>(followees);
+        for (UserProfile p : userProfileRepository.findAllById(followees)) {
+            if (!p.isShareActivity()) {
+                allowed.remove(p.getUserId());
+            }
+        }
+        List<UUID> candidates = followees.stream().filter(allowed::contains).toList();
+
+        // One aggregate query for the user + all candidates (replaces per-followee sum queries).
+        List<UUID> ids = new ArrayList<>(candidates.size() + 1);
+        ids.add(userId);
+        ids.addAll(candidates);
+        Map<UUID, double[]> profiles = new HashMap<>();
+        for (UserMacroAggregate a : mealLogRepository.aggregateMacrosByUsers(ids, start, end)) {
+            profiles.put(a.getUserId(), new double[]{
+                    a.getTotalCalories() == null ? 0 : a.getTotalCalories(),
+                    a.getTotalProtein() == null ? 0 : a.getTotalProtein().doubleValue(),
+                    a.getTotalCarbs() == null ? 0 : a.getTotalCarbs().doubleValue(),
+                    a.getTotalFat() == null ? 0 : a.getTotalFat().doubleValue()});
+        }
+
+        double[] mine = profiles.get(userId);
+        if (mine == null || isZero(mine)) {
             return out.put("message", "Not enough of your own meal history to compare; log a few meals first.");
         }
 
-        List<UUID> followees = followRepository.findFolloweeIds(userId);
         List<Friend> friends = new ArrayList<>();
-        int scanned = 0;
-        for (UUID followeeId : followees) {
-            if (scanned++ >= MAX_FOLLOWEES_SCANNED) {
-                break;
-            }
-            boolean share = userProfileRepository.findByUserId(followeeId)
-                    .map(p -> p.isShareActivity()).orElse(true);
-            if (!share) {
+        for (UUID candidate : candidates) {
+            double[] theirs = profiles.get(candidate);
+            if (theirs == null || isZero(theirs)) {
                 continue;
             }
-            double[] theirs = macroProfile(followeeId, start, end);
-            if (isZero(theirs)) {
-                continue;
-            }
-            friends.add(new Friend(followeeId, cosine(mine, theirs), theirs));
+            friends.add(new Friend(candidate, cosine(mine, theirs), theirs));
         }
         friends.sort((a, b) -> Double.compare(b.similarity, a.similarity));
 
         ArrayNode arr = out.putArray("friends");
-        friends.stream().limit(limit).forEach(f -> {
+        friends.stream().limit(limit).forEach(fr -> {
             ObjectNode n = arr.addObject();
-            n.put("userId", f.userId.toString());
-            n.put("similarity", round(f.similarity));
+            n.put("userId", fr.userId.toString());
+            n.put("similarity", round(fr.similarity));
             ObjectNode profile = n.putObject("avg_daily");
-            profile.put("calories", Math.round(f.profile[0] / days));
-            profile.put("protein_g", Math.round(f.profile[1] / days));
-            profile.put("carbs_g", Math.round(f.profile[2] / days));
-            profile.put("fat_g", Math.round(f.profile[3] / days));
+            profile.put("calories", Math.round(fr.profile[0] / days));
+            profile.put("protein_g", Math.round(fr.profile[1] / days));
+            profile.put("carbs_g", Math.round(fr.profile[2] / days));
+            profile.put("fat_g", Math.round(fr.profile[3] / days));
         });
         out.put("count", Math.min(friends.size(), limit));
         return out;
-    }
-
-    private double[] macroProfile(UUID uid, OffsetDateTime start, OffsetDateTime end) {
-        Long cal = mealLogRepository.sumCalories(uid, start, end);
-        BigDecimal protein = mealLogRepository.sumProtein(uid, start, end);
-        BigDecimal carbs = mealLogRepository.sumCarbs(uid, start, end);
-        BigDecimal fat = mealLogRepository.sumFat(uid, start, end);
-        return new double[]{
-                cal == null ? 0 : cal,
-                protein == null ? 0 : protein.doubleValue(),
-                carbs == null ? 0 : carbs.doubleValue(),
-                fat == null ? 0 : fat.doubleValue()
-        };
     }
 
     private static boolean isZero(double[] v) {

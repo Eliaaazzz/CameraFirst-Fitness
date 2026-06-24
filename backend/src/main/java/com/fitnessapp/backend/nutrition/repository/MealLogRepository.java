@@ -129,7 +129,29 @@ public interface MealLogRepository extends JpaRepository<MealLog, Long> {
     @Param("start") OffsetDateTime start,
     @Param("end") OffsetDateTime end
   );
-  
+
+  /**
+   * Batch macro aggregate for many users in ONE query (used by find_friends_eating_similar to
+   * avoid an N+1 of per-followee sum queries). Coalesces manual + image-recognized macro columns.
+   */
+  @Query("""
+    SELECT m.userId as userId,
+      SUM(COALESCE(m.calories, 0) + COALESCE(m.totalCalories, 0)) as totalCalories,
+      SUM(COALESCE(m.proteinGrams, 0) + COALESCE(m.totalProtein, 0)) as totalProtein,
+      SUM(COALESCE(m.carbsGrams, 0) + COALESCE(m.totalCarbs, 0)) as totalCarbs,
+      SUM(COALESCE(m.fatGrams, 0) + COALESCE(m.totalFat, 0)) as totalFat
+    FROM MealLog m
+    WHERE m.userId IN :userIds
+      AND m.consumedAt >= :start
+      AND m.consumedAt < :end
+    GROUP BY m.userId
+  """)
+  List<UserMacroAggregate> aggregateMacrosByUsers(
+    @Param("userIds") java.util.Collection<UUID> userIds,
+    @Param("start") OffsetDateTime start,
+    @Param("end") OffsetDateTime end
+  );
+
   // === Projection Interfaces ===
 
   interface MealLogLeaderboardRow {
@@ -149,6 +171,14 @@ public interface MealLogRepository extends JpaRepository<MealLog, Long> {
   
   interface WeeklySummary {
     Long getTotalMeals();
+    Long getTotalCalories();
+    BigDecimal getTotalProtein();
+    BigDecimal getTotalCarbs();
+    BigDecimal getTotalFat();
+  }
+
+  interface UserMacroAggregate {
+    UUID getUserId();
     Long getTotalCalories();
     BigDecimal getTotalProtein();
     BigDecimal getTotalCarbs();
