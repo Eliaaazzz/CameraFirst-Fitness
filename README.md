@@ -8,6 +8,8 @@
 
 **AI-powered nutrition & workout platform** — camera-first meal logging, Apple-Watch-style activity rings, and a three-model AI pipeline that turns a photo of your plate into macro breakdowns, personalized goals, and vector-similar recipe recommendations.
 
+> **🚀 "Aura Coach" refinement:** evolved the one-shot AI calls into a **streaming, tool-calling AI agent** (Gemini function calling · plan→act→observe · SSE), added a **social graph** (follow / activity feed / notifications), a **Go realtime WebSocket gateway** (token streaming + Redis fan-out), a **hybrid recommender** (pgvector content ⊕ collaborative filtering via Reciprocal Rank Fusion), and a **measured, observable backend** (request hedging · Resilience4j · Prometheus/Grafana · a reproducible k6 load lab). → [**Architecture**](docs/ARCHITECTURE.md) · [**Performance lab**](docs/PERFORMANCE.md)
+
 <br />
 
 [![Download on the App Store](https://img.shields.io/badge/Download_on_the-App_Store-000000?style=for-the-badge&logo=apple&logoColor=white)](https://apps.apple.com/app/metriful/id6760930295)
