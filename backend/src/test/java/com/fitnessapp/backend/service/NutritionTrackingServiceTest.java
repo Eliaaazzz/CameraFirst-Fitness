@@ -45,7 +45,8 @@ class NutritionTrackingServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new NutritionTrackingService(mealLogRepository, userProfileRepository, userRepository, userService);
+    service = new NutritionTrackingService(mealLogRepository, userProfileRepository, userRepository, userService,
+        org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class));
     userId = UUID.randomUUID();
   }
 

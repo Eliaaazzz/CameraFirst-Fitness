@@ -79,7 +79,8 @@ class NutritionAutoProfileCreationTest {
         mealLogRepository,
         userProfileRepository,
         userRepository,
-        mock(UserService.class));
+        mock(UserService.class),
+        mock(org.springframework.context.ApplicationEventPublisher.class));
 
     // Clean database
     mealLogRepository.deleteAll();

@@ -89,6 +89,11 @@ public class UserProfile {
   @Column(name = "avatar_file_key", length = 500)
   private String avatarFileKey;
 
+  /** Privacy: whether this user's activity is shared to followers' feeds and similarity search. */
+  @Column(name = "share_activity", nullable = false)
+  @Builder.Default
+  private boolean shareActivity = true;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
 

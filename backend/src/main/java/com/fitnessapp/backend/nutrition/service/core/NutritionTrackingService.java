@@ -8,10 +8,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fitnessapp.backend.nutrition.entity.MealLog;
+import com.fitnessapp.backend.nutrition.event.MealLoggedEvent;
 import com.fitnessapp.backend.nutrition.repository.MealLogRepository;
 import com.fitnessapp.backend.user.entity.User;
 import com.fitnessapp.backend.user.entity.UserProfile;
@@ -38,6 +40,7 @@ public class NutritionTrackingService {
   private final UserProfileRepository userProfileRepository;
   private final UserRepository userRepository;
   private final UserService userService;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
   public MealLog logMeal(MealLog payload) {
@@ -46,9 +49,14 @@ public class NutritionTrackingService {
     }
     MealLog saved = mealLogRepository.save(payload);
 
-    // Note: Streak is now updated on login (via /me endpoint), not on meal logging
-    // This ensures the streak reflects daily app usage, not just meal tracking activity
+    // Fan out a social-feed activity (after-commit) — decoupled via a domain event so a feed
+    // failure can never roll back the meal write.
+    if (saved.getUserId() != null) {
+      eventPublisher.publishEvent(new MealLoggedEvent(
+          saved.getUserId(), saved.getId(), saved.getRecipeName(), saved.getConsumedAt()));
+    }
 
+    // Note: Streak is now updated on login (via /me endpoint), not on meal logging.
     return saved;
   }
 
