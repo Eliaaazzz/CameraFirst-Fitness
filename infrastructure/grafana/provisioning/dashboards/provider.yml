@@ -1,0 +1,15 @@
+apiVersion: 1
+
+providers:
+  - name: aura-lab-dashboards
+    orgId: 1
+    folder: "Aura Lab"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      # Dashboards are mounted read-only into the grafana container at this path
+      # by docker-compose.loadtest.yml.
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

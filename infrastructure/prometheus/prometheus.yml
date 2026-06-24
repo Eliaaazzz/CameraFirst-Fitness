@@ -1,0 +1,37 @@
+# Prometheus config for the Aura Fitness performance lab.
+# Scrapes the lab services on the shared "auralab" Docker network. Service names
+# below resolve via Docker DNS (the compose service name == hostname).
+global:
+  scrape_interval: 5s
+  scrape_timeout: 4s
+  evaluation_interval: 5s
+  external_labels:
+    monitor: aura-loadtest-lab
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: backend
+    # Spring Boot Actuator + micrometer-registry-prometheus.
+    # NOTE: requires the backend to (1) add the micrometer-registry-prometheus
+    # runtime dependency and (2) expose /actuator/prometheus. The actuator
+    # exposure list already includes "prometheus"; the registry dependency is
+    # the missing piece. Until then this target will be DOWN (404) -- expected.
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["backend:8080"]
+
+  - job_name: gemini-mock
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["gemini-mock:8089"]
+
+  - job_name: postgres-exporter
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  - job_name: redis-exporter
+    static_configs:
+      - targets: ["redis-exporter:9121"]

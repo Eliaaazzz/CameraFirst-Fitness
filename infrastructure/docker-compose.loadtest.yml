@@ -1,0 +1,203 @@
+# ==========================================================================
+# Aura Fitness — PERFORMANCE LAB (self-contained)
+# ==========================================================================
+# A fully isolated stack for k6 load tests feeding Prometheus + Grafana.
+#
+# This file is INDEPENDENT of infrastructure/docker-compose.yml:
+#   - All container_names use a "-lab" suffix so they never clash with the
+#     dev stack (fitness-postgres, fitness-redis, fitness-backend, ...).
+#   - All services share a dedicated "auralab" network.
+#   - Postgres/Redis volumes are EPHEMERAL (named volumes, easy to wipe).
+#
+# Validate (does NOT start anything):
+#   cd infrastructure
+#   docker compose -f docker-compose.loadtest.yml config
+#
+# Bring up the lab (no k6 -- it is gated behind the "load" profile):
+#   docker compose -f docker-compose.loadtest.yml up -d --build
+#
+# Run a load test (see loadtest/k6/README.md for all scripts):
+#   docker compose -f docker-compose.loadtest.yml --profile load \
+#     run -e BACKEND_URL=http://backend:8080 k6 \
+#     run --out experimental-prometheus-rw /scripts/hedge_analyze.js
+# ==========================================================================
+
+name: auralab
+
+networks:
+  auralab:
+    driver: bridge
+
+volumes:
+  pg_data_lab:
+  # redis intentionally has no volume -- cache should start cold each run.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: aura-postgres-lab
+    restart: unless-stopped
+    networks: [auralab]
+    environment:
+      POSTGRES_DB: fitness_mvp
+      POSTGRES_USER: fitnessuser
+      POSTGRES_PASSWORD: dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data_lab:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitnessuser -d fitness_mvp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: aura-redis-lab
+    restart: unless-stopped
+    networks: [auralab]
+    ports:
+      - "6379:6379"
+
+  gemini-mock:
+    build:
+      context: ./gemini-mock
+      dockerfile: Dockerfile
+    image: auramock:lab
+    container_name: aura-gemini-mock-lab
+    restart: unless-stopped
+    networks: [auralab]
+    ports:
+      - "8089:8089"
+    environment:
+      # Reproducible latency model -- override per experiment.
+      MOCK_BASE_MS: "600"
+      MOCK_JITTER_MS: "300"
+      MOCK_TAIL_PROB: "0.05"
+      MOCK_TAIL_MIN_MS: "6000"
+      MOCK_TAIL_MAX_MS: "9000"
+      MOCK_FAIL_RATE: "0"
+      MOCK_SEED: "42"
+    # No healthcheck: the runtime image is distroless (no shell/curl/wget), so a
+    # CMD-SHELL probe is impossible. The mock answers GET /healthz for manual
+    # checks; the backend's depends_on uses service_started for gemini-mock.
+
+  backend:
+    # Builds the real Spring Boot app (produces fitness-app.jar, EXPOSE 8080).
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: fitness-backend:lab
+    container_name: aura-backend-lab
+    restart: unless-stopped
+    networks: [auralab]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      gemini-mock:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/fitness_mvp
+      SPRING_DATASOURCE_USERNAME: fitnessuser
+      SPRING_DATASOURCE_PASSWORD: dev_password
+      GEMINI_ENABLED: "true"
+      GEMINI_USE_VERTEX_AI: "false"
+      GEMINI_API_KEY: "mock-key"
+      # --------------------------------------------------------------------
+      # PENDING BACKEND WIRING (the only piece not yet functional):
+      #   The backend currently hardcodes
+      #     https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
+      #   in GeminiMealAnalysisService. To point it at the mock, the backend must
+      #   read an `app.gemini.base-url` property (env GEMINI_BASE_URL) and prefix
+      #   the AI-Studio URL with it. The mock already serves the SAME path shape
+      #   (/v1beta/models/{model}:generateContent), so this is a drop-in swap
+      #   once the property exists.
+      GEMINI_BASE_URL: "http://gemini-mock:8089"
+      # Likewise, /actuator/prometheus needs the micrometer-registry-prometheus
+      # runtime dependency added to backend/build.gradle.kts (the actuator
+      # exposure list already includes "prometheus"). Until both are wired,
+      # the backend is the only service Prometheus cannot fully scrape.
+      # --------------------------------------------------------------------
+    ports:
+      - "8080:8080"
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: aura-postgres-exporter-lab
+    restart: unless-stopped
+    networks: [auralab]
+    environment:
+      DATA_SOURCE_NAME: "postgresql://fitnessuser:dev_password@postgres:5432/fitness_mvp?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redis-exporter:
+    image: oliver006/redis_exporter
+    container_name: aura-redis-exporter-lab
+    restart: unless-stopped
+    networks: [auralab]
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    ports:
+      - "9121:9121"
+    depends_on:
+      redis:
+        condition: service_started
+
+  prometheus:
+    image: prom/prometheus
+    container_name: aura-prometheus-lab
+    restart: unless-stopped
+    networks: [auralab]
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-remote-write-receiver"
+      - "--storage.tsdb.retention.time=2h"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana
+    container_name: aura-grafana-lab
+    restart: unless-stopped
+    networks: [auralab]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+      GF_USERS_DEFAULT_THEME: "dark"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      prometheus:
+        condition: service_started
+
+  # k6 is gated behind the "load" profile so `up` never starts it.
+  # Run it explicitly with `docker compose ... --profile load run ... k6 run ...`.
+  k6:
+    image: grafana/k6
+    container_name: aura-k6-lab
+    profiles: ["load"]
+    networks: [auralab]
+    working_dir: /scripts
+    environment:
+      # k6 remote-writes results into the lab Prometheus.
+      K6_PROMETHEUS_RW_SERVER_URL: "http://prometheus:9090/api/v1/write"
+      BACKEND_URL: "http://backend:8080"
+    volumes:
+      - ./loadtest/k6:/scripts:ro
+    # No default command -- invoke via `docker compose run k6 run /scripts/<file>.js`.
+    entrypoint: ["k6"]
+    command: ["version"]
