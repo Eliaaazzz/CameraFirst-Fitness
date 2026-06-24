@@ -38,6 +38,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -136,10 +137,14 @@ public class GeminiClient {
                 },
                 new ThreadPoolExecutor.CallerRunsPolicy());
 
+        // Rate limits are backpressure, not faults — do not let a 429 trip the breaker.
+        CircuitBreakerConfig cbConfig = CircuitBreakerConfig.custom()
+                .ignoreExceptions(GeminiRateLimitException.class)
+                .build();
         CircuitBreakerRegistry registry = circuitBreakerRegistry.getIfAvailable();
         this.circuitBreaker = registry != null
-                ? registry.circuitBreaker(CIRCUIT_BREAKER_NAME)
-                : CircuitBreaker.ofDefaults(CIRCUIT_BREAKER_NAME);
+                ? registry.circuitBreaker(CIRCUIT_BREAKER_NAME, cbConfig)
+                : CircuitBreaker.of(CIRCUIT_BREAKER_NAME, cbConfig);
 
         log.info("GeminiClient initialized: model={}, transport={}, hedgeDelayMs={}",
                 this.model, useVertexAi ? "vertex" : "studio", hedgeDelayMs);
@@ -176,7 +181,7 @@ public class GeminiClient {
             recordOutcome(request.getCallSite(), outcome, start, hedgeFired.get());
             throw new GeminiException("Gemini temporarily unavailable (circuit open)", e);
         } catch (GeminiException e) {
-            outcome = e.getMessage() != null && e.getMessage().contains("429") ? "rate_limited" : "error";
+            outcome = (e instanceof GeminiRateLimitException) ? "rate_limited" : "error";
             recordOutcome(request.getCallSite(), outcome, start, hedgeFired.get());
             throw e;
         } catch (Exception e) {
@@ -243,43 +248,46 @@ public class GeminiClient {
     // ==================== HTTP / hedging ====================
 
     private String callHedged(String body, AtomicBoolean hedgeFired) {
-        AtomicBoolean settled = new AtomicBoolean(false);
+        CompletableFuture<String> result = new CompletableFuture<>();
+        AtomicInteger failures = new AtomicInteger(0);
 
-        CompletableFuture<String> primary = CompletableFuture.supplyAsync(() -> callOnce(body, false), hedgeExecutor);
+        // Primary fires immediately.
+        hedgeExecutor.execute(() -> attempt(body, false, result, failures));
 
-        CompletableFuture<String> hedge = CompletableFuture
-                .supplyAsync(() -> null, CompletableFuture.delayedExecutor(hedgeDelayMs, TimeUnit.MILLISECONDS))
-                .thenApplyAsync(v -> {
-                    if (settled.get()) {
-                        return null; // primary already done (or 429): do not waste a call
-                    }
-                    hedgeFired.set(true);
-                    log.info("Gemini hedged request fired (primary slow after {}ms)", hedgeDelayMs);
-                    return callOnce(body, true);
-                }, hedgeExecutor);
+        // Hedge fires after the delay, but only if the primary hasn't already settled the result.
+        CompletableFuture.delayedExecutor(hedgeDelayMs, TimeUnit.MILLISECONDS, hedgeExecutor).execute(() -> {
+            if (result.isDone()) {
+                return; // primary already won (success) or was rate-limited — don't waste a call
+            }
+            hedgeFired.set(true);
+            log.info("Gemini hedged request fired (primary slow after {}ms)", hedgeDelayMs);
+            attempt(body, true, result, failures);
+        });
 
         try {
-            return primary.applyToEither(hedge, r -> {
-                settled.set(true);
-                return r;
-            }).exceptionally(ex -> {
-                Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
-                String msg = cause != null ? cause.getMessage() : "unknown";
-                if (msg != null && msg.contains("429")) {
-                    settled.set(true);
-                    log.warn("Gemini rate-limited (429); not retrying the hedge.");
-                }
-                if (cause instanceof GeminiException ge) {
-                    throw new CompletionException(ge);
-                }
-                throw new CompletionException(new GeminiException("Gemini call failed: " + msg, cause));
-            }).join();
+            return result.join();
         } catch (CompletionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof GeminiException ge) {
                 throw ge;
             }
             throw new GeminiException("Gemini call failed", cause);
+        }
+    }
+
+    /**
+     * One hedged attempt. The first SUCCESS completes the shared result; the overall call only fails
+     * once BOTH attempts have failed. A 429 short-circuits immediately so the hedge doesn't pile on.
+     */
+    private void attempt(String body, boolean isRetry, CompletableFuture<String> result, AtomicInteger failures) {
+        try {
+            result.complete(callOnce(body, isRetry)); // first success wins; later completes are no-ops
+        } catch (GeminiRateLimitException e) {
+            result.completeExceptionally(e);
+        } catch (Throwable e) {
+            if (failures.incrementAndGet() >= 2) {
+                result.completeExceptionally(e);
+            }
         }
     }
 
@@ -291,7 +299,7 @@ public class GeminiClient {
             String responseBody = response.body() != null ? response.body().string() : "";
             if (!response.isSuccessful()) {
                 if (response.code() == 429) {
-                    throw new GeminiException("Gemini error 429 (rate limited)");
+                    throw new GeminiRateLimitException("Gemini error 429 (rate limited)");
                 }
                 if (response.code() == 408 || response.code() >= 500) {
                     throw new GeminiException("Gemini transient error " + response.code());
@@ -355,6 +363,12 @@ public class GeminiClient {
             ObjectNode turnNode = contents.addObject();
             turnNode.put("role", turn.getRole() == null ? "user" : turn.getRole());
             ArrayNode parts = turnNode.putArray("parts");
+            if (turn.getFunctionCallName() != null) {
+                ObjectNode fc = parts.addObject().putObject("functionCall");
+                fc.put("name", turn.getFunctionCallName());
+                fc.set("args", turn.getFunctionCallArgs() != null
+                        ? turn.getFunctionCallArgs() : objectMapper.createObjectNode());
+            }
             if (turn.getFunctionResponse() != null) {
                 ObjectNode fr = parts.addObject().putObject("functionResponse");
                 fr.put("name", turn.getFunctionName());

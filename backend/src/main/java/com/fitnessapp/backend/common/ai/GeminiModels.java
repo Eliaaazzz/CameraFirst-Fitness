@@ -37,6 +37,9 @@ public final class GeminiModels {
         private final String functionName;
         /** Function-response turn: the JSON payload returned by the tool. */
         private final JsonNode functionResponse;
+        /** Model function-call turn: the tool the model asked to invoke (must precede its functionResponse). */
+        private final String functionCallName;
+        private final JsonNode functionCallArgs;
 
         public static GeminiTurn user(String text) {
             return GeminiTurn.builder().role("user").text(text).build();
@@ -44,6 +47,10 @@ public final class GeminiModels {
 
         public static GeminiTurn model(String text) {
             return GeminiTurn.builder().role("model").text(text).build();
+        }
+
+        public static GeminiTurn modelFunctionCall(String name, JsonNode args) {
+            return GeminiTurn.builder().role("model").functionCallName(name).functionCallArgs(args).build();
         }
 
         public static GeminiTurn functionResult(String name, JsonNode response) {

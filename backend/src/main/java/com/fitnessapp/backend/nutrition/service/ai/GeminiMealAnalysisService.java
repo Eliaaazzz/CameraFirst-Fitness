@@ -167,7 +167,8 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
 
     @Override
     public boolean isAvailable() {
-        return apiKey != null && !apiKey.isBlank();
+        // Vertex AI uses Application Default Credentials (no API key); AI Studio needs a key.
+        return useVertexAi || (apiKey != null && !apiKey.isBlank());
     }
 
     @Override

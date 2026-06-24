@@ -67,7 +67,8 @@ public class RecommendationRequest {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class UserProfileInput {
 
-        @NotNull(message = "userId is required")
+        // Optional / ignored: the server derives the user id from the authenticated principal
+        // (see RecommendationController). Kept for backwards-compatible request bodies.
         UUID userId;
 
         /**

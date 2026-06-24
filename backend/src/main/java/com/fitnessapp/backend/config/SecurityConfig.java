@@ -27,7 +27,10 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
         "/",
-        "/actuator/**",
+        // Only liveness/readiness are public; /actuator/prometheus + /metrics require auth (API key).
+        "/actuator/health",
+        "/actuator/health/**",
+        "/actuator/info",
         "/swagger-ui.html",
         "/swagger-ui/**",
         "/v3/api-docs/**",
