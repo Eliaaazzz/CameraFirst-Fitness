@@ -1,0 +1,7 @@
+# Build artifacts
+/aura-gateway
+/auragateway
+*.exe
+
+# Local env overrides
+.env

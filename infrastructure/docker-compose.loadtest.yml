@@ -125,6 +125,30 @@ services:
     ports:
       - "8080:8080"
 
+  gateway:
+    # Go WebSocket realtime gateway (aura-gateway): terminates client WebSockets,
+    # proxies the backend coach SSE stream, and fans out social.events from Redis.
+    build:
+      context: ../gateway
+      dockerfile: Dockerfile
+    image: aura-gateway:lab
+    container_name: aura-gateway-lab
+    restart: unless-stopped
+    networks: [auralab]
+    depends_on:
+      backend:
+        condition: service_started
+      redis:
+        condition: service_started
+    environment:
+      # Must match the backend's app.jwt.secret (dev default).
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-production-this-needs-to-be-at-least-256-bits-long}"
+      BACKEND_URL: "http://backend:8080"
+      API_KEY: "fitness-secret-key-123"
+      REDIS_ADDR: "redis:6379"
+    ports:
+      - "8090:8090"
+
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter
     container_name: aura-postgres-exporter-lab
