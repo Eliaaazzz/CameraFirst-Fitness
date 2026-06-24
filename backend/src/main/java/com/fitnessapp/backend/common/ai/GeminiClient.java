@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fitnessapp.backend.common.ai.GeminiModels.FunctionResult;
 import com.fitnessapp.backend.common.ai.GeminiModels.GeminiFunctionCall;
 import com.fitnessapp.backend.common.ai.GeminiModels.GeminiFunctionDeclaration;
 import com.fitnessapp.backend.common.ai.GeminiModels.GeminiRequest;
@@ -207,6 +208,9 @@ public class GeminiClient {
                 try (Response response = streamingClient.newCall(httpRequest).execute()) {
                     if (!response.isSuccessful()) {
                         String err = response.body() != null ? response.body().string() : "";
+                        if (response.code() == 429) {
+                            throw new GeminiRateLimitException("Gemini stream rate limited (429)");
+                        }
                         throw new GeminiException("Gemini stream error " + response.code() + ": " + truncate(err));
                     }
                     if (response.body() == null) {
@@ -373,6 +377,20 @@ public class GeminiClient {
                 ObjectNode fr = parts.addObject().putObject("functionResponse");
                 fr.put("name", turn.getFunctionName());
                 fr.set("response", turn.getFunctionResponse());
+            }
+            if (turn.getFunctionCallList() != null) {
+                for (GeminiFunctionCall call : turn.getFunctionCallList()) {
+                    ObjectNode fc = parts.addObject().putObject("functionCall");
+                    fc.put("name", call.getName());
+                    fc.set("args", call.getArgs() != null ? call.getArgs() : objectMapper.createObjectNode());
+                }
+            }
+            if (turn.getFunctionResultList() != null) {
+                for (FunctionResult fr : turn.getFunctionResultList()) {
+                    ObjectNode node = parts.addObject().putObject("functionResponse");
+                    node.put("name", fr.name());
+                    node.set("response", fr.response() != null ? fr.response() : objectMapper.createObjectNode());
+                }
             }
             if (turn.getInlineImageBase64() != null) {
                 ObjectNode inline = parts.addObject().putObject("inline_data");

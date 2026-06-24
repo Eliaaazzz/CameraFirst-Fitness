@@ -40,6 +40,20 @@ public final class GeminiModels {
         /** Model function-call turn: the tool the model asked to invoke (must precede its functionResponse). */
         private final String functionCallName;
         private final JsonNode functionCallArgs;
+        /** A single model turn may contain MULTIPLE parallel function calls (Gemini returns them together). */
+        @Singular("functionCallItem")
+        private final List<GeminiFunctionCall> functionCallList;
+        /** The matching user turn carries ALL the function responses for those calls. */
+        @Singular("functionResultItem")
+        private final List<FunctionResult> functionResultList;
+
+        public static GeminiTurn modelFunctionCalls(List<GeminiFunctionCall> calls) {
+            return GeminiTurn.builder().role("model").functionCallList(calls).build();
+        }
+
+        public static GeminiTurn functionResults(List<FunctionResult> results) {
+            return GeminiTurn.builder().role("user").functionResultList(results).build();
+        }
 
         public static GeminiTurn user(String text) {
             return GeminiTurn.builder().role("user").text(text).build();
@@ -104,6 +118,10 @@ public final class GeminiModels {
     public static class GeminiFunctionCall {
         private final String name;
         private final JsonNode args;
+    }
+
+    /** The result of executing one tool, paired back to the model in a single user turn. */
+    public record FunctionResult(String name, JsonNode response) {
     }
 
     /** Parsed result of a generate() call. */

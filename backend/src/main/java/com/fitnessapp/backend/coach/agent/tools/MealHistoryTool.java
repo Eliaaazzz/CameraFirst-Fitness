@@ -78,19 +78,19 @@ public class MealHistoryTool implements AgentTool {
         ArrayNode arr = out.putArray("meals");
         int i = 0;
         for (MealLog m : meals) {
-            totalCalories += m.getCalories() == null ? 0 : m.getCalories();
-            totalProtein += asDouble(m.getProteinGrams());
-            totalCarbs += asDouble(m.getCarbsGrams());
-            totalFat += asDouble(m.getFatGrams());
+            totalCalories += caloriesOf(m);
+            totalProtein += proteinOf(m);
+            totalCarbs += carbsOf(m);
+            totalFat += fatOf(m);
             if (i++ < MAX_MEALS_RETURNED) {
                 ObjectNode n = arr.addObject();
                 n.put("name", m.getRecipeName());
                 n.put("meal_type", m.getMealType());
                 n.put("consumed_at", m.getConsumedAt() != null ? m.getConsumedAt().toString() : null);
-                n.put("calories", m.getCalories());
-                n.put("protein_g", asDouble(m.getProteinGrams()));
-                n.put("carbs_g", asDouble(m.getCarbsGrams()));
-                n.put("fat_g", asDouble(m.getFatGrams()));
+                n.put("calories", caloriesOf(m));
+                n.put("protein_g", proteinOf(m));
+                n.put("carbs_g", carbsOf(m));
+                n.put("fat_g", fatOf(m));
             }
         }
         ObjectNode totals = out.putObject("totals");
@@ -106,7 +106,31 @@ public class MealHistoryTool implements AgentTool {
         return out;
     }
 
-    private static double asDouble(BigDecimal v) {
-        return v == null ? 0.0 : v.doubleValue();
+    // Meals come from two sources: manually logged (calories/protein_grams/...) and image-recognized
+    // (total_calories/total_protein/...). Coalesce so the coach sees the real intake either way.
+    private static long caloriesOf(MealLog m) {
+        if (m.getCalories() != null) {
+            return m.getCalories();
+        }
+        return m.getTotalCalories() != null ? m.getTotalCalories() : 0;
+    }
+
+    private static double proteinOf(MealLog m) {
+        return coalesce(m.getProteinGrams(), m.getTotalProtein());
+    }
+
+    private static double carbsOf(MealLog m) {
+        return coalesce(m.getCarbsGrams(), m.getTotalCarbs());
+    }
+
+    private static double fatOf(MealLog m) {
+        return coalesce(m.getFatGrams(), m.getTotalFat());
+    }
+
+    private static double coalesce(BigDecimal primary, BigDecimal fallback) {
+        if (primary != null) {
+            return primary.doubleValue();
+        }
+        return fallback != null ? fallback.doubleValue() : 0.0;
     }
 }

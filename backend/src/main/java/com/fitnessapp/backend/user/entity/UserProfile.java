@@ -94,6 +94,13 @@ public class UserProfile {
   @Builder.Default
   private boolean shareActivity = true;
 
+  /**
+   * Transient marker set by the mapper to the request's shareActivity value (null = field omitted),
+   * so {@link #apply} can update the preference only when the client actually sent it. Not persisted.
+   */
+  @jakarta.persistence.Transient
+  private Boolean shareActivityProvided;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
 
@@ -154,6 +161,9 @@ public class UserProfile {
     }
     if (source.getDailyFatTarget() != null) {
       this.dailyFatTarget = source.getDailyFatTarget();
+    }
+    if (source.getShareActivityProvided() != null) {
+      this.shareActivity = source.getShareActivityProvided();
     }
     // Note: avatarUrl and avatarFileKey are NOT updated here.
     // They should only be updated via UserProfileService.updateAvatar()

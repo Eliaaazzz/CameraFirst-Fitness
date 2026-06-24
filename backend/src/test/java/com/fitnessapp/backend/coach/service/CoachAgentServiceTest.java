@@ -80,4 +80,47 @@ class CoachAgentServiceTest {
         verify(messageRepo, times(2)).save(any());
         verify(registry, times(1)).execute(any(), any(), any());
     }
+
+    @Test
+    void handlesMultipleParallelFunctionCallsInOneTurn() {
+        GeminiClient gemini = mock(GeminiClient.class);
+        AgentToolRegistry registry = mock(AgentToolRegistry.class);
+        ChatSessionRepository sessionRepo = mock(ChatSessionRepository.class);
+        ChatMessageRepository messageRepo = mock(ChatMessageRepository.class);
+
+        when(registry.declarations()).thenReturn(List.of());
+        when(registry.execute(any(), any(), any())).thenReturn(mapper.createObjectNode().put("ok", true));
+        when(sessionRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(messageRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(messageRepo.findBySessionIdOrderByCreatedAtDesc(any(), any())).thenReturn(List.of());
+
+        // One candidate carrying TWO parallel function calls (Gemini can return these together).
+        GeminiResponse twoCalls = GeminiResponse.builder()
+                .functionCall(GeminiFunctionCall.builder().name("get_user_goals")
+                        .args(mapper.createObjectNode()).build())
+                .functionCall(GeminiFunctionCall.builder().name("query_user_meal_history")
+                        .args(mapper.createObjectNode()).build())
+                .finishReason("STOP").build();
+        GeminiResponse done = GeminiResponse.builder().text("").finishReason("STOP").build();
+        when(gemini.generate(any())).thenReturn(twoCalls, done);
+        when(gemini.generateStream(any(), any())).thenAnswer(inv -> {
+            Consumer<String> sink = inv.getArgument(1);
+            sink.accept("done");
+            return "done";
+        });
+
+        CoachAgentService service = new CoachAgentService(
+                gemini, registry, sessionRepo, messageRepo, mapper, new SimpleMeterRegistry());
+
+        List<AgentEvent> events = new ArrayList<>();
+        service.streamChat(UUID.randomUUID(), null, "plan my day", events::add);
+
+        long toolCalls = events.stream().filter(e -> e.type().equals("tool_call")).count();
+        long toolResults = events.stream().filter(e -> e.type().equals("tool_result")).count();
+        assertThat(toolCalls).isEqualTo(2);
+        assertThat(toolResults).isEqualTo(2);
+        verify(registry, times(2)).execute(any(), any(), any());
+        verify(gemini, times(2)).generate(any());
+        verify(gemini, times(1)).generateStream(any(), any());
+    }
 }

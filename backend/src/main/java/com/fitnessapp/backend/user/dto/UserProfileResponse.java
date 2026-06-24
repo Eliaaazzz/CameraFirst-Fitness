@@ -25,6 +25,7 @@ public record UserProfileResponse(
     @JsonInclude(JsonInclude.Include.ALWAYS)
     String avatarUrl,
     OffsetDateTime createdAt,
-    OffsetDateTime updatedAt
+    OffsetDateTime updatedAt,
+    boolean shareActivity
 ) {
 }

@@ -18,7 +18,8 @@ public record UserProfileRequest(
     @Positive(message = "Calories must be positive") Integer dailyCalorieTarget,
     @Positive(message = "Protein target must be positive") Integer dailyProteinTarget,
     @Positive(message = "Carbs target must be positive") Integer dailyCarbsTarget,
-    @Positive(message = "Fat target must be positive") Integer dailyFatTarget
+    @Positive(message = "Fat target must be positive") Integer dailyFatTarget,
+    Boolean shareActivity
 ) {
 }
 

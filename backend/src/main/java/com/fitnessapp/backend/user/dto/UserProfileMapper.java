@@ -19,6 +19,8 @@ public final class UserProfileMapper {
     profile.setDailyProteinTarget(request.dailyProteinTarget());
     profile.setDailyCarbsTarget(request.dailyCarbsTarget());
     profile.setDailyFatTarget(request.dailyFatTarget());
+    profile.setShareActivity(request.shareActivity() != null ? request.shareActivity() : true);
+    profile.setShareActivityProvided(request.shareActivity());
     return profile;
   }
 
@@ -39,6 +41,7 @@ public final class UserProfileMapper {
         profile.getDailyFatTarget(),
         profile.getAvatarUrl(),
         profile.getCreatedAt(),
-        profile.getUpdatedAt());
+        profile.getUpdatedAt(),
+        profile.isShareActivity());
   }
 }

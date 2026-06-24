@@ -107,7 +107,7 @@ class UserProfileControllerTest {
     when(userProfileService.upsertProfile(eq(userId), any(UserProfile.class))).thenReturn(profile);
 
   UserProfileRequest request = new UserProfileRequest(180, new BigDecimal("78.0"), new BigDecimal("18.5"), 1600, FitnessGoal.GAIN_MUSCLE,
-    DietaryPreference.NONE, HealthMode.PREVENTION, 2600, 180, 250, 70);
+    DietaryPreference.NONE, HealthMode.PREVENTION, 2600, 180, 250, 70, null);
 
     mockMvc.perform(put("/api/v1/users/{userId}/profile", userId)
             .contentType(MediaType.APPLICATION_JSON)

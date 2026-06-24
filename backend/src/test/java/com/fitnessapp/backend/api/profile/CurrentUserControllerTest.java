@@ -96,7 +96,7 @@ class CurrentUserControllerTest {
       return payload;
     });
 
-  UserProfileRequest request = new UserProfileRequest(180, new BigDecimal("80.0"), null, null, null, null, null, 2200, 160, 220, 70);
+  UserProfileRequest request = new UserProfileRequest(180, new BigDecimal("80.0"), null, null, null, null, null, 2200, 160, 220, 70, null);
 
     mockMvc.perform(put("/api/v1/me/profile")
             .contentType(MediaType.APPLICATION_JSON)

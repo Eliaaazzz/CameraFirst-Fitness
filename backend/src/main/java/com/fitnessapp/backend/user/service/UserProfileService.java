@@ -52,6 +52,7 @@ public class UserProfileService {
               .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
           UserProfile created = new UserProfile();
           created.setUser(user);
+          created.setShareActivity(true); // default opt-in (new UserProfile() leaves the primitive false)
           return userProfileRepository.save(created);
         });
   }

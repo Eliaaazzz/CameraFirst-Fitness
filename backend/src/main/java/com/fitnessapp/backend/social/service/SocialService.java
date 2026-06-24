@@ -2,13 +2,17 @@ package com.fitnessapp.backend.social.service;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.data.domain.Limit;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.fitnessapp.backend.social.dto.SocialDtos.FeedItemDto;
 import com.fitnessapp.backend.social.dto.SocialDtos.FeedPage;
@@ -65,14 +69,12 @@ public class SocialService {
         if (followerId.equals(followeeId)) {
             throw new IllegalArgumentException("You cannot follow yourself");
         }
-        if (!followRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId)) {
-            OffsetDateTime now = now();
-            followRepository.save(Follow.builder()
-                    .id(UUID.randomUUID()).followerId(followerId).followeeId(followeeId).createdAt(now).build());
+        boolean created = followRepository.insertIgnoreConflict(UUID.randomUUID(), followerId, followeeId) > 0;
+        if (created) {
             notificationRepository.save(Notification.builder()
                     .id(UUID.randomUUID()).userId(followeeId).type(Notification.TYPE_NEW_FOLLOWER)
-                    .actorId(followerId).message("started following you").read(false).createdAt(now).build());
-            eventPublisher.publish(Map.of(
+                    .actorId(followerId).message("started following you").read(false).createdAt(now()).build());
+            publishAfterCommit(Map.of(
                     "type", "notification", "notificationType", Notification.TYPE_NEW_FOLLOWER,
                     "userId", followeeId.toString(), "actorId", followerId.toString()));
             meterRegistry.counter("aura.social.follow").increment();
@@ -108,17 +110,20 @@ public class SocialService {
         int n = clamp(limit == null ? DEFAULT_FEED_LIMIT : limit, 1, MAX_FEED_LIMIT);
         List<FeedItem> items;
         if (beforeCursor == null || beforeCursor.isBlank()) {
-            items = feedItemRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId, Limit.of(n));
+            items = feedItemRepository.findByOwnerIdOrderByCreatedAtDescIdDesc(ownerId, Limit.of(n));
         } else {
-            OffsetDateTime before = OffsetDateTime.parse(beforeCursor);
-            items = feedItemRepository
-                    .findByOwnerIdAndCreatedAtLessThanOrderByCreatedAtDesc(ownerId, before, Limit.of(n));
+            Cursor cursor = decodeCursor(beforeCursor);
+            items = feedItemRepository.findOwnerFeedBefore(ownerId, cursor.ts(), cursor.id(), PageRequest.of(0, n));
         }
         List<FeedItemDto> dtos = items.stream()
                 .map(i -> new FeedItemDto(i.getId(), i.getActorId(), i.getVerb(), i.getObjectType(),
                         i.getObjectId(), i.getSummary(), i.getCreatedAt()))
                 .toList();
-        String nextCursor = dtos.size() == n ? items.get(items.size() - 1).getCreatedAt().toString() : null;
+        String nextCursor = null;
+        if (items.size() == n) {
+            FeedItem last = items.get(items.size() - 1);
+            nextCursor = encodeCursor(last.getCreatedAt(), last.getId());
+        }
         return new FeedPage(dtos, nextCursor);
     }
 
@@ -145,7 +150,7 @@ public class SocialService {
                         .createdAt(now).build())
                 .toList();
         feedItemRepository.saveAll(rows);
-        eventPublisher.publish(Map.of(
+        publishAfterCommit(Map.of(
                 "type", "feed", "actorId", actorId.toString(), "verb", verb,
                 "summary", summary == null ? "" : summary,
                 "recipients", followers.stream().map(UUID::toString).toList()));
@@ -180,5 +185,39 @@ public class SocialService {
 
     private static OffsetDateTime now() {
         return OffsetDateTime.now(ZoneOffset.UTC);
+    }
+
+    /** Emit a realtime event only after the surrounding transaction commits (avoids phantom events). */
+    private void publishAfterCommit(Object event) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    eventPublisher.publish(event);
+                }
+            });
+        } else {
+            eventPublisher.publish(event);
+        }
+    }
+
+    private static String encodeCursor(OffsetDateTime ts, UUID id) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(
+                (ts.toString() + "|" + id).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    private static Cursor decodeCursor(String cursor) {
+        try {
+            String decoded = new String(Base64.getUrlDecoder().decode(cursor),
+                    java.nio.charset.StandardCharsets.UTF_8);
+            int sep = decoded.lastIndexOf('|');
+            return new Cursor(OffsetDateTime.parse(decoded.substring(0, sep)),
+                    UUID.fromString(decoded.substring(sep + 1)));
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid feed cursor");
+        }
+    }
+
+    private record Cursor(OffsetDateTime ts, UUID id) {
     }
 }

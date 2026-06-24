@@ -24,6 +24,7 @@ import com.fitnessapp.backend.coach.repository.ChatMessageRepository;
 import com.fitnessapp.backend.coach.repository.ChatSessionRepository;
 import com.fitnessapp.backend.common.ai.GeminiClient;
 import com.fitnessapp.backend.common.ai.GeminiException;
+import com.fitnessapp.backend.common.ai.GeminiModels.FunctionResult;
 import com.fitnessapp.backend.common.ai.GeminiModels.GeminiFunctionCall;
 import com.fitnessapp.backend.common.ai.GeminiModels.GeminiRequest;
 import com.fitnessapp.backend.common.ai.GeminiModels.GeminiResponse;
@@ -140,22 +141,27 @@ public class CoachAgentService {
                 return iteration;
             }
 
-            for (GeminiFunctionCall call : response.getFunctionCalls()) {
+            List<GeminiFunctionCall> calls = response.getFunctionCalls();
+            // Gemini contract: ONE model turn containing all functionCall parts, then ONE user turn
+            // containing all matching functionResponse parts (not alternating pairs).
+            turns.add(GeminiTurn.modelFunctionCalls(calls));
+            List<FunctionResult> results = new ArrayList<>();
+            for (GeminiFunctionCall call : calls) {
                 ObjectNode callInfo = objectMapper.createObjectNode();
                 callInfo.put("name", call.getName());
                 callInfo.set("args", call.getArgs());
                 sink.accept(AgentEvent.toolCall(callInfo));
                 toolTrace.add(callInfo);
 
-                turns.add(GeminiTurn.modelFunctionCall(call.getName(), call.getArgs()));
                 JsonNode result = toolRegistry.execute(call.getName(), call.getArgs(), userId);
-                turns.add(GeminiTurn.functionResult(call.getName(), result));
+                results.add(new FunctionResult(call.getName(), result));
 
                 ObjectNode resultInfo = objectMapper.createObjectNode();
                 resultInfo.put("name", call.getName());
                 resultInfo.set("result", result);
                 sink.accept(AgentEvent.toolResult(resultInfo));
             }
+            turns.add(GeminiTurn.functionResults(results));
         }
         log.info("Coach agent hit max tool iterations ({})", MAX_TOOL_ITERATIONS);
         return MAX_TOOL_ITERATIONS;

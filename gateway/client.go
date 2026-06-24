@@ -105,7 +105,10 @@ func (c *Client) close() {
 	c.closeOnce.Do(func() {
 		c.cancel()
 		close(c.closing)
-		close(c.send)
+		// c.send is intentionally NOT closed: multiple producers (readPump, the SSE proxy
+		// goroutine, hub fan-out) may still call enqueue concurrently, and closing send could
+		// panic them (send-on-closed-channel — a select can pick the send case even when closing
+		// is also ready). writePump exits on ctx.Done() instead; the buffered frames are GC'd.
 	})
 }
 
@@ -206,6 +209,9 @@ func (c *Client) writePump() {
 				return
 			}
 		case <-c.ctx.Done():
+			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.conn.WriteMessage(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			return
 		}
 	}
