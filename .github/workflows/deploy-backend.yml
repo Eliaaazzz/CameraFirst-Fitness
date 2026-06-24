@@ -14,7 +14,35 @@ env:
   REGION: australia-southeast2
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Set up Gradle (with build caching)
+        uses: gradle/actions/setup-gradle@v4
+
+      # GitHub-hosted runners have Docker, so Testcontainers integration/repository tests run for
+      # real here (the schema, JPA mappings and pgvector queries are exercised) — no -PskipContainerTests.
+      - name: Run full test suite + coverage gate
+        working-directory: backend
+        run: ./gradlew test jacocoTestReport jacocoTestCoverageVerification --no-daemon
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: backend/build/reports/jacoco
+
   build-and-deploy:
+    needs: test
     runs-on: ubuntu-latest
     concurrency:
       group: deploy-backend-${{ github.ref }}
@@ -32,10 +60,6 @@ jobs:
         with:
           java-version: "21"
           distribution: "temurin"
-
-      - name: Run tests
-        working-directory: backend
-        run: ./gradlew test -PskipContainerTests --no-daemon
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2

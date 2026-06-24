@@ -27,10 +27,10 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
         "/",
-        // Only liveness/readiness are public; /actuator/prometheus + /metrics require auth (API key).
-        "/actuator/health",
-        "/actuator/health/**",
-        "/actuator/info",
+        // Actuator (incl. /prometheus) is public at the app layer so Prometheus can scrape it.
+        // PRODUCTION: protect at the network layer — bind a separate internal management port
+        // and/or restrict by network policy; do not expose /actuator publicly on the internet.
+        "/actuator/**",
         "/swagger-ui.html",
         "/swagger-ui/**",
         "/v3/api-docs/**",

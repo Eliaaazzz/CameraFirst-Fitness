@@ -100,6 +100,29 @@ tasks.jacocoTestReport {
     }
 }
 
+// Coverage gate. Scoped to the new agent/recommender core that unit tests cover; expand the
+// includes (or raise to a package/bundle rule) as the Testcontainers integration suite runs in CI.
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.test)
+    violationRules {
+        rule {
+            element = "CLASS"
+            includes = listOf(
+                "com.fitnessapp.backend.recommendation.hybrid.ReciprocalRankFusion",
+                "com.fitnessapp.backend.coach.agent.AgentToolRegistry"
+            )
+            limit {
+                counter = "LINE"
+                minimum = "0.60".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
+}
+
 tasks.named<BootJar>("bootJar") {
     archiveFileName.set("fitness-app.jar")
 }

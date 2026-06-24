@@ -47,10 +47,9 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
     private static final String[] PUBLIC_ENDPOINT_PATTERNS = {
         "/",
-        // Only liveness/readiness are public; /actuator/prometheus + /metrics require the API key.
-        "/actuator/health",
-        "/actuator/health/**",
-        "/actuator/info",
+        // Actuator (incl. /prometheus) is public at the app layer for scraping; protect it at the
+        // network layer in production (separate management port / network policy).
+        "/actuator/**",
         "/swagger-ui.html",
         "/swagger-ui/**",
         "/v3/api-docs/**",
