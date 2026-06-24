@@ -904,6 +904,7 @@ const ProfileScreen = () => {
 
   // Phosphor icon mapping for menu items
   const menuIconMap: Record<string, React.ComponentType<IconProps>> = {
+    'ai-coach': MagicWand,
     'dumbbell': Barbell,
     'book-open-variant': BookOpenText,
     'food-apple': ForkKnife,
@@ -914,6 +915,7 @@ const ProfileScreen = () => {
     'account-remove-outline': UserCircleMinus,
   };
   const menuAccentMap: Record<string, { iconColor: string; iconBg: string }> = {
+    'ai-coach': { iconColor: '#C96A34', iconBg: '#F6EBE2' },
     'dumbbell': { iconColor: '#F97316', iconBg: '#FFF1E5' },
     'book-open-variant': { iconColor: '#2F7A6A', iconBg: '#EAF8F2' },
     'food-apple': { iconColor: '#84A13E', iconBg: '#F1F5E8' },
@@ -1577,6 +1579,12 @@ const ProfileScreen = () => {
           <Text variant="heading3" weight="semibold" style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
             Your Library
           </Text>
+          {renderMenuItem(
+            'ai-coach',
+            'AI Coach',
+            'Chat about your nutrition & goals',
+            () => navigation.navigate('Coach' as any)
+          )}
           {renderMenuItem(
             'dumbbell',
             'Saved Workouts',

@@ -45,6 +45,7 @@ import LandingScreen from '@/screens/LandingScreen';
 import SplashScreen from '@/screens/SplashScreen';
 import { AboutNutritionDataScreen } from '@/screens/AboutNutritionDataScreen';
 import { BuildPlanScreen } from '@/screens/BuildPlanScreen';
+import { CoachScreen } from '@/screens/CoachScreen';
 import { HelpScreen } from '@/screens/HelpScreen';
 import { ManageAccountScreen } from '@/screens/ManageAccountScreen';
 import { WeeklyInsightsScreen } from '@/screens/WeeklyInsightsScreen';
@@ -75,6 +76,7 @@ const SafeSavedWorkoutsScreen = withErrorBoundary(SavedWorkoutsScreen, 'SavedWor
 const SafeSavedRecipesScreen = withErrorBoundary(SavedRecipesScreen, 'SavedRecipes');
 const SafeAboutNutritionDataScreen = withErrorBoundary(AboutNutritionDataScreen, 'AboutNutritionData');
 const SafeBuildPlanScreen = withErrorBoundary(BuildPlanScreen, 'BuildPlan');
+const SafeCoachScreen = withErrorBoundary(CoachScreen, 'Coach');
 const SafeHelpScreen = withErrorBoundary(HelpScreen, 'Help');
 const SafeManageAccountScreen = withErrorBoundary(ManageAccountScreen, 'ManageAccount');
 const SafeOnboardingScreen = withErrorBoundary(OnboardingScreen, 'Onboarding');
@@ -299,6 +301,7 @@ const RecipesStackScreen = createTabStackNavigator([
 // Stack navigator for Profile tab: Profile -> WeeklyInsights / MealHistory / SavedWorkouts / SavedRecipes
 const ProfileStackScreen = createTabStackNavigator([
   { name: 'ProfileMain', component: SafeProfileScreen },
+  { name: 'Coach', component: SafeCoachScreen },
   { name: 'WeeklyInsights', component: SafeWeeklyInsightsScreen },
   { name: 'MealHistory', component: SafeMealHistoryScreen },
   { name: 'SavedWorkouts', component: SafeSavedWorkoutsScreen },
@@ -662,6 +665,11 @@ export const AppNavigator = () => {
           name="BuildPlan"
           component={SafeBuildPlanScreen}
           options={{ cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS }}
+        />
+        <Stack.Screen
+          name="Coach"
+          component={SafeCoachScreen}
+          options={{ cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS }}
         />
       </Stack.Navigator>
     </NavigationContainer>
