@@ -2,8 +2,13 @@ package com.fitnessapp.backend.recommendation;
 
 import com.fitnessapp.backend.api.common.ApiEnvelope;
 import com.fitnessapp.backend.recommendation.dto.RecommendationRequest;
+import com.fitnessapp.backend.recommendation.dto.RecommendationRequest.UserProfileInput;
 import com.fitnessapp.backend.recommendation.dto.RecommendationResponse;
 import com.fitnessapp.backend.recommendation.exception.RecommendationException;
+import com.fitnessapp.backend.security.AuthenticatedUser;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.server.ResponseStatusException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -159,20 +164,40 @@ public class RecommendationController {
     })
     @PostMapping("/generate")
     public ApiEnvelope<RecommendationResponse> generateRecommendations(
-            @Valid @RequestBody RecommendationRequest request) {
+            @Valid @RequestBody RecommendationRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+
+        if (currentUser == null || currentUser.userId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User authentication required");
+        }
+
+        // Security: derive the user id from the authenticated principal, NOT from the request body.
+        // The body's userProfile.userId is untrusted — trusting it would allow IDOR (acting as another user).
+        RecommendationRequest safeRequest = RecommendationRequest.builder()
+                .userProfile(UserProfileInput.builder()
+                        .userId(currentUser.userId())
+                        .goals(request.getUserProfile().getGoals())
+                        .excludedIngredients(request.getUserProfile().getExcludedIngredients())
+                        .build())
+                .limit(request.getLimit())
+                .maxTime(request.getMaxTime())
+                .difficulty(request.getDifficulty())
+                .category(request.getCategory())
+                .goalType(request.getGoalType())
+                .build();
 
         log.info("POST /api/v1/recommendations/generate - userId: {}, goals: {}, limit: {}",
-                request.getUserProfile().getUserId(),
-                request.getUserProfile().getGoals(),
-                request.getLimit());
+                safeRequest.getUserProfile().getUserId(),
+                safeRequest.getUserProfile().getGoals(),
+                safeRequest.getLimit());
 
         // Validate goals are present
-        if (request.getUserProfile().getGoals() == null ||
-                request.getUserProfile().getGoals().isEmpty()) {
+        if (safeRequest.getUserProfile().getGoals() == null ||
+                safeRequest.getUserProfile().getGoals().isEmpty()) {
             throw RecommendationException.goalsMissing();
         }
 
-        RecommendationResponse response = recommendationService.generateRecommendations(request);
+        RecommendationResponse response = recommendationService.generateRecommendations(safeRequest);
 
         log.info("Recommendations generated - id: {}, recipes: {}, workouts: {}",
                 response.getRecommendationId(),

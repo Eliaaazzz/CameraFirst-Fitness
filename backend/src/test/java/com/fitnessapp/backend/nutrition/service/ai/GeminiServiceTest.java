@@ -169,6 +169,8 @@ class GeminiServiceTest {
                 "",
                 false,
                 TEST_PROJECT_ID,
-                TEST_REGION);
+                TEST_REGION,
+                "",        // base-url override (empty = real endpoint)
+                2000L);    // hedge-delay-ms
     }
 }

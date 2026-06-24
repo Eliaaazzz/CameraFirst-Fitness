@@ -30,6 +30,10 @@ configurations {
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
+	// Observability: Prometheus metrics + Resilience4j (circuit breaker / bulkhead / rate limiter)
+	implementation("io.micrometer:micrometer-registry-prometheus")
+	implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
+	implementation("io.github.resilience4j:resilience4j-micrometer:2.2.0")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
@@ -45,8 +49,6 @@ dependencies {
 	implementation("com.google.apis:google-api-services-youtube:v3-rev20230502-2.0.0")
 	implementation("com.google.http-client:google-http-client-jackson2:1.43.3")
     implementation("org.apache.pdfbox:pdfbox:2.0.31")
-	// OpenAI SDK for GPT-4 Vision
-	implementation("com.theokanning.openai-gpt3-java:service:0.18.2")
 	// HTTP client for Claude and Gemini APIs (using OkHttp)
 	implementation("com.squareup.okhttp3:okhttp:4.12.0")
 	// Google Auth for Vertex AI Application Default Credentials

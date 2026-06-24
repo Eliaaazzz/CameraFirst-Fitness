@@ -78,9 +78,9 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
     private static final int RETRY_TIMEOUT_SECONDS = 6;
     private static final int MAX_ATTEMPTS = 2;
     private static final long TRANSIENT_RETRY_DELAY_MS = 200L;
-    // Hedged request: if primary doesn't respond within this time, fire a parallel request.
+    // Hedged request delay is configurable via app.gemini.hedge-delay-ms (default 2000).
     // Most Gemini calls return in <2s; hedging at 2s catches tail latency without wasting API calls.
-    private static final long HEDGE_DELAY_MS = 2000L;
+    // Set the delay very high to DISABLE hedging for the before/after latency experiment.
     private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;
     private static final Set<String> SUPPORTED_IMAGE_TYPES = Set.of(
             "image/jpeg",
@@ -109,6 +109,7 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
     private final boolean useVertexAi;
     private final String gcpProjectId;
     private final String gcpRegion;
+    private final long hedgeDelayMs;
 
     public GeminiMealAnalysisService(
             ObjectMapper objectMapper,
@@ -116,7 +117,9 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
             @Value("${app.gemini.model:gemini-2.0-flash}") String model,
             @Value("${app.gemini.use-vertex-ai:true}") boolean useVertexAi,
             @Value("${app.gemini.gcp-project-id:gen-lang-client-0295973830}") String gcpProjectId,
-            @Value("${app.gemini.gcp-region:australia-southeast2}") String gcpRegion
+            @Value("${app.gemini.gcp-region:australia-southeast2}") String gcpRegion,
+            @Value("${app.gemini.base-url:}") String baseUrlOverride,
+            @Value("${app.gemini.hedge-delay-ms:2000}") long hedgeDelayMs
     ) {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
@@ -124,6 +127,7 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
         this.useVertexAi = useVertexAi;
         this.gcpProjectId = gcpProjectId;
         this.gcpRegion = gcpRegion;
+        this.hedgeDelayMs = hedgeDelayMs;
 
         if (useVertexAi) {
             // Vertex AI: uses Application Default Credentials (Cloud Run service account)
@@ -133,8 +137,11 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
                     + "/publishers/google/models/" + this.model + ":generateContent";
             log.info("✅ GeminiMealAnalysisService initialized (Vertex AI): {} in {}", this.model, gcpRegion);
         } else {
+            String studioBase = (baseUrlOverride == null || baseUrlOverride.isBlank())
+                    ? "https://generativelanguage.googleapis.com"
+                    : baseUrlOverride.trim();
             this.geminiApiUrl =
-                    "https://generativelanguage.googleapis.com/v1beta/models/" + this.model + ":generateContent";
+                    studioBase + "/v1beta/models/" + this.model + ":generateContent";
             if (apiKey == null || apiKey.isBlank()) {
                 log.warn("⚠️ Gemini API key not configured");
             } else {
@@ -257,10 +264,10 @@ public class GeminiMealAnalysisService implements FoodRecognitionProvider {
         // (rate limit), hedging would make it worse — so the hedge checks settled flag.
         CompletableFuture<FoodRecognitionResult> hedge = CompletableFuture
                 .supplyAsync(() -> null,
-                        CompletableFuture.delayedExecutor(HEDGE_DELAY_MS, TimeUnit.MILLISECONDS))
+                        CompletableFuture.delayedExecutor(hedgeDelayMs, TimeUnit.MILLISECONDS))
                 .thenApplyAsync(v -> {
                     if (settled.get()) return null; // primary already done or failed with 429, skip
-                    log.info("Gemini hedged request fired (primary slow after {}ms)", HEDGE_DELAY_MS);
+                    log.info("Gemini hedged request fired (primary slow after {}ms)", hedgeDelayMs);
                     try {
                         return executeApiCall(image, mediaType, metadata, true);
                     } catch (Exception e) {

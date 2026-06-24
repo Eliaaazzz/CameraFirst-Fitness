@@ -1,6 +1,8 @@
 package com.fitnessapp.backend.config;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Collections;
 import java.util.List;
 
@@ -65,10 +67,8 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                 ? "***" + appApiKey.substring(appApiKey.length() - 4)
                 : "NOT CONFIGURED"));
         
-        // Debug: log full API key in development
-        if (appApiKey != null) {
-            logger.debug("Full API key length: " + appApiKey.length());
-            logger.debug("Full API key value: [" + appApiKey + "]");
+        if (appApiKey == null || appApiKey.isBlank()) {
+            logger.warn("APP_API_KEY is not configured - API key authentication will reject all non-public requests");
         }
     }
 
@@ -87,14 +87,10 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         // This is the "Access Card" - must be present in every request
         String requestApiKey = request.getHeader("X-API-Key");
 
-        // Step 3: Strict comparison - direct match with configured value
-        // If Key is empty OR Key doesn't match appApiKey -> reject immediately
-        if (!StringUtils.hasText(requestApiKey) || !requestApiKey.equals(appApiKey)) {
-            logger.warn("API Key mismatch! Received: [" + requestApiKey + "] (length: " + 
-                (requestApiKey != null ? requestApiKey.length() : 0) + 
-                "), Expected: [" + appApiKey + "] (length: " + 
-                (appApiKey != null ? appApiKey.length() : 0) + ")");
-            logger.warn("Request path: " + request.getRequestURI());
+        // Step 3: Constant-time comparison to avoid leaking the key via a timing side-channel.
+        // Never log the actual key values.
+        if (!StringUtils.hasText(requestApiKey) || !constantTimeEquals(requestApiKey, appApiKey)) {
+            logger.warn("API key validation failed for path: " + request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("{\"message\":\"Invalid or disabled API key\"}");
@@ -123,5 +119,17 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
      */
     private boolean isPublicEndpoint(HttpServletRequest request) {
         return publicEndpoints.stream().anyMatch(matcher -> matcher.matches(request));
+    }
+
+    /**
+     * Constant-time comparison to prevent timing attacks on the API key.
+     */
+    private static boolean constantTimeEquals(String a, String b) {
+        if (a == null || b == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+            a.getBytes(StandardCharsets.UTF_8),
+            b.getBytes(StandardCharsets.UTF_8));
     }
 }

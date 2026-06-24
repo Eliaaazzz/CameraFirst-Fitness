@@ -1,8 +1,10 @@
 package com.fitnessapp.backend.goals.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.auth.oauth2.GoogleCredentials;
+import com.fitnessapp.backend.common.ai.GeminiClient;
+import com.fitnessapp.backend.common.ai.GeminiModels.GeminiRequest;
+import com.fitnessapp.backend.common.ai.GeminiModels.GeminiResponse;
+import com.fitnessapp.backend.common.ai.GeminiModels.GeminiTurn;
 import com.fitnessapp.backend.goals.dto.GenerateGoalsRequest;
 import com.fitnessapp.backend.goals.dto.GenerateGoalsRequest.ActivityLevel;
 import com.fitnessapp.backend.goals.dto.GenerateGoalsRequest.GoalType;
@@ -13,15 +15,8 @@ import com.fitnessapp.backend.goals.dto.GenerateGoalsResponse.MacrosGrams;
 import com.fitnessapp.backend.goals.dto.GenerateGoalsResponse.MilestoneItem;
 import com.fitnessapp.backend.goals.dto.GenerateGoalsResponse.WeeklyActivityPlan;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -35,53 +30,17 @@ import java.util.regex.Pattern;
 @Service
 public class GoalGenerationService {
 
-    private static final String DEFAULT_MODEL = "gemini-2.0-flash";
     private static final int MAX_OUTPUT_TOKENS = 2048;
-    private static final int TIMEOUT_SECONDS = 30;
     private static final double MODERATE_T2D_NET_CARB_RISE_MGDL_PER_G = 4.0;
     private static final double MODERATE_T2D_PROTEIN_RISE_MGDL_PER_G = 0.5;
     private static final double ESTIMATED_FIBER_RATIO = 0.10;
 
-    private final OkHttpClient httpClient;
+    private final GeminiClient geminiClient;
     private final ObjectMapper objectMapper;
-    private final String apiKey;
-    private final String model;
-    private final String geminiApiUrl;
-    private final boolean useVertexAi;
 
-    public GoalGenerationService(
-            ObjectMapper objectMapper,
-            @Value("${app.gemini.api-key:}") String apiKey,
-            @Value("${app.gemini.model:gemini-2.0-flash}") String model,
-            @Value("${app.gemini.use-vertex-ai:true}") boolean useVertexAi,
-            @Value("${app.gemini.gcp-project-id:gen-lang-client-0295973830}") String gcpProjectId,
-            @Value("${app.gemini.gcp-region:australia-southeast2}") String gcpRegion
-    ) {
+    public GoalGenerationService(GeminiClient geminiClient, ObjectMapper objectMapper) {
+        this.geminiClient = geminiClient;
         this.objectMapper = objectMapper;
-        this.apiKey = apiKey;
-        this.model = (model == null || model.isBlank()) ? DEFAULT_MODEL : model.trim();
-        this.useVertexAi = useVertexAi;
-
-        if (useVertexAi) {
-            this.geminiApiUrl = "https://" + gcpRegion + "-aiplatform.googleapis.com/v1/projects/"
-                    + gcpProjectId + "/locations/" + gcpRegion
-                    + "/publishers/google/models/" + this.model + ":generateContent";
-            log.info("GoalGenerationService initialized (Vertex AI): {} in {}", this.model, gcpRegion);
-        } else {
-            this.geminiApiUrl =
-                    "https://generativelanguage.googleapis.com/v1beta/models/" + this.model + ":generateContent";
-            if (apiKey == null || apiKey.isBlank()) {
-                log.warn("Gemini API key not configured - goal generation will use fallback calculations");
-            } else {
-                log.info("GoalGenerationService initialized (AI Studio): {}", this.model);
-            }
-        }
-
-        this.httpClient = new OkHttpClient.Builder()
-                .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
-                .readTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
-                .writeTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
-                .build();
     }
 
     /**
@@ -89,7 +48,7 @@ public class GoalGenerationService {
      * Uses Gemini AI if available, otherwise falls back to calculations.
      */
     public GenerateGoalsResponse generateGoals(GenerateGoalsRequest request) {
-        if (useVertexAi || (apiKey != null && !apiKey.isBlank())) {
+        if (geminiClient.isConfigured()) {
             try {
                 log.info("Generating goals via Gemini AI for {} user, goal: {}",
                         request.getSex(), request.getGoalType());
@@ -105,34 +64,15 @@ public class GoalGenerationService {
 
     private GenerateGoalsResponse generateGoalsWithGemini(GenerateGoalsRequest request) throws Exception {
         String prompt = buildPrompt(request);
-        String requestBody = buildGeminiRequestBody(prompt);
-
-        Request.Builder reqBuilder = new Request.Builder()
-                .addHeader("content-type", "application/json")
-                .post(RequestBody.create(requestBody, MediaType.parse("application/json")));
-
-        if (useVertexAi) {
-            GoogleCredentials credentials = GoogleCredentials.getApplicationDefault()
-                    .createScoped("https://www.googleapis.com/auth/cloud-platform");
-            credentials.refreshIfExpired();
-            reqBuilder.url(geminiApiUrl)
-                    .addHeader("Authorization", "Bearer " + credentials.getAccessToken().getTokenValue());
-        } else {
-            reqBuilder.url(geminiApiUrl + "?key=" + apiKey);
-        }
-
-        Request httpRequest = reqBuilder.build();
-
-        try (Response response = httpClient.newCall(httpRequest).execute()) {
-            if (!response.isSuccessful()) {
-                String errorBody = response.body() != null ? response.body().string() : "No error body";
-                log.error("Gemini API error ({}): {}", response.code(), errorBody);
-                throw new RuntimeException("Gemini API error: " + response.code());
-            }
-
-            String responseBody = response.body() != null ? response.body().string() : "";
-            return parseGeminiResponse(responseBody, request);
-        }
+        GeminiResponse response = geminiClient.generate(GeminiRequest.builder()
+                .callSite("goals")
+                .turn(GeminiTurn.user(prompt))
+                .temperature(0.3)
+                .maxOutputTokens(MAX_OUTPUT_TOKENS)
+                .jsonMode(true)
+                .hedge(true)
+                .build());
+        return parseGoalsFromText(response.getText(), request);
     }
 
     private String buildPrompt(GenerateGoalsRequest request) {
@@ -208,46 +148,10 @@ public class GoalGenerationService {
                 activityDesc, goalDescription, diabetesWarning);
     }
 
-    private String buildGeminiRequestBody(String prompt) {
-        String escapedPrompt = prompt.replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
-
-        return String.format("""
-            {
-              "contents": [
-                {
-                  "parts": [
-                    { "text": "%s" }
-                  ]
-                }
-              ],
-              "generationConfig": {
-                "maxOutputTokens": %d,
-                "temperature": 0.3
-              }
-            }
-            """, escapedPrompt, MAX_OUTPUT_TOKENS);
-    }
-
-    private GenerateGoalsResponse parseGeminiResponse(String responseBody, GenerateGoalsRequest request) throws Exception {
-        JsonNode root = objectMapper.readTree(responseBody);
-        JsonNode candidates = root.path("candidates");
-
-        if (!candidates.isArray() || candidates.isEmpty()) {
-            throw new RuntimeException("Invalid response structure from Gemini");
+    private GenerateGoalsResponse parseGoalsFromText(String textContent, GenerateGoalsRequest request) throws Exception {
+        if (textContent == null || textContent.isBlank()) {
+            throw new RuntimeException("Empty response from Gemini");
         }
-
-        JsonNode parts = candidates.get(0).path("content").path("parts");
-        StringBuilder textBuilder = new StringBuilder();
-        for (JsonNode part : parts) {
-            if (part.has("text")) {
-                textBuilder.append(part.get("text").asText());
-            }
-        }
-
-        String textContent = textBuilder.toString().trim();
         log.debug("Gemini raw response: {}", textContent);
 
         // Extract JSON from potential markdown code blocks

@@ -68,6 +68,11 @@ app:
     use-vertex-ai: ${GEMINI_USE_VERTEX_AI:false}
     gcp-project-id: ${GEMINI_GCP_PROJECT_ID:gen-lang-client-0295973830}
     gcp-region: ${GEMINI_GCP_REGION:australia-southeast2}
+    # Override the AI Studio base URL (used for local load-test against the Gemini mock).
+    # Empty = real Google endpoint. Set GEMINI_BASE_URL=http://gemini-mock:8089 in the lab.
+    base-url: ${GEMINI_BASE_URL:}
+    # Hedged-request delay (ms). Set very high to disable hedging for the before/after experiment.
+    hedge-delay-ms: ${GEMINI_HEDGE_DELAY_MS:2000}
   google:
     # Comma-separated allowed audiences for Google ID tokens.
     # Example: GOOGLE_CLIENT_ID=web-client-id.apps.googleusercontent.com,ios-client-id.apps.googleusercontent.com,android-client-id.apps.googleusercontent.com
@@ -101,7 +106,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus,metrics
       base-path: /actuator
   endpoint:
     health:
@@ -214,7 +219,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus,metrics
   health:
     redis:
       enabled: false  # Disable Redis health check
