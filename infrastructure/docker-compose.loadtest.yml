@@ -107,21 +107,13 @@ services:
       GEMINI_ENABLED: "true"
       GEMINI_USE_VERTEX_AI: "false"
       GEMINI_API_KEY: "mock-key"
-      # --------------------------------------------------------------------
-      # PENDING BACKEND WIRING (the only piece not yet functional):
-      #   The backend currently hardcodes
-      #     https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
-      #   in GeminiMealAnalysisService. To point it at the mock, the backend must
-      #   read an `app.gemini.base-url` property (env GEMINI_BASE_URL) and prefix
-      #   the AI-Studio URL with it. The mock already serves the SAME path shape
-      #   (/v1beta/models/{model}:generateContent), so this is a drop-in swap
-      #   once the property exists.
+      # Point the Gemini client at the in-network mock (same /v1beta/models/{model}
+      # path shape). Backend reads this via app.gemini.base-url.
       GEMINI_BASE_URL: "http://gemini-mock:8089"
-      # Likewise, /actuator/prometheus needs the micrometer-registry-prometheus
-      # runtime dependency added to backend/build.gradle.kts (the actuator
-      # exposure list already includes "prometheus"). Until both are wired,
-      # the backend is the only service Prometheus cannot fully scrape.
-      # --------------------------------------------------------------------
+      # Hedge A/B toggle (mapped to app.gemini.hedge-delay-ms). Default 2000 = hedge ON.
+      # For Arm A (effectively OFF) set GEMINI_HEDGE_DELAY_MS=60000 in the shell and
+      # `up -d backend` — must exceed the mock's 9s tail so the primary always wins.
+      GEMINI_HEDGE_DELAY_MS: "${GEMINI_HEDGE_DELAY_MS:-2000}"
     ports:
       - "8080:8080"
 

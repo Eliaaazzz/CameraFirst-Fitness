@@ -63,21 +63,24 @@ The hedge behaviour will be controlled by a **future backend env**
 Workflow:
 
 ```bash
-# Arm A
-GEMINI_HEDGE_DELAY_MS=0 docker compose -f docker-compose.loadtest.yml up -d backend
+# Arm A — hedge effectively OFF. NOTE: delay must be LARGER than the worst-case
+# latency (mock tail max 9s), so the primary always returns before the hedge thread
+# wakes. Do NOT use 0 here: delayedExecutor(0) fires the hedge immediately => the
+# hedge is ALWAYS on, the opposite of what Arm A measures.
+GEMINI_HEDGE_DELAY_MS=60000 docker compose -f docker-compose.loadtest.yml up -d backend
 docker compose -f docker-compose.loadtest.yml --profile load \
   run -e BACKEND_URL=http://backend:8080 k6 run --out experimental-prometheus-rw /scripts/hedge_analyze.js
 
-# Arm B (restart backend with hedging on, re-run the SAME script)
+# Arm B — hedge ON (fires a second call 2s in). Restart backend, re-run the SAME script.
 GEMINI_HEDGE_DELAY_MS=2000 docker compose -f docker-compose.loadtest.yml up -d backend
 docker compose -f docker-compose.loadtest.yml --profile load \
   run -e BACKEND_URL=http://backend:8080 k6 run --out experimental-prometheus-rw /scripts/hedge_analyze.js
 ```
 
-> NOTE: Arms A/B require the pending backend wiring (`GEMINI_BASE_URL` to point
-> at the mock, and `GEMINI_HEDGE_DELAY_MS` to implement hedging). Until then the
-> scripts run but exercise the real Gemini endpoint / no hedging. See
-> `docs/PERFORMANCE.md` and the comments in `docker-compose.loadtest.yml`.
+The backend reads `GEMINI_HEDGE_DELAY_MS` (mapped to `app.gemini.hedge-delay-ms`) and
+`GEMINI_BASE_URL` (points the Gemini client at the in-network mock); both are wired in
+`docker-compose.loadtest.yml`. The k6 script sends `X-API-Key` (dev default
+`fitness-secret-key-123`) so the request reaches the analysis path. See `docs/PERFORMANCE.md`.
 
 ## Tuning the mock per experiment
 

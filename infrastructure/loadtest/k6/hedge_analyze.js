@@ -29,6 +29,9 @@ import { Trend, Rate } from "k6/metrics";
 const IMAGE = open("/scripts/fixture.jpg", "b");
 
 const BACKEND_URL = __ENV.BACKEND_URL || "http://backend:8080";
+// /api/v1/nutrition/analyze is protected by the X-API-Key filter (no JWT/userId needed
+// for stateless image analysis). Dev default matches application.yml app.api-key.
+const API_KEY = __ENV.API_KEY || "fitness-secret-key-123";
 
 // Custom metrics.
 const analyzeLatency = new Trend("aura_analyze_latency_ms", true);
@@ -76,6 +79,7 @@ export function analyze() {
   };
 
   const res = http.post(`${BACKEND_URL}/api/v1/nutrition/analyze`, payload, {
+    headers: { "X-API-Key": API_KEY },
     tags: { name: "analyze" },
     timeout: "30s",
   });
