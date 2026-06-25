@@ -1,10 +1,12 @@
 # Aura Fitness — Performance Report
 
-> **STATUS: Experiment 1 (request hedging) MEASURED on 2026-06-25.** Numbers in
-> Experiment 1 are real lab results (local Docker daemon, mock `MOCK_SEED=42`,
-> two arms each driven with the identical `hedge_analyze.js` at ~40 req/s open
-> model, 9,899 requests per arm). Experiments 2–4 remain `TBD` — the harness is
-> ready; they just need a run. Reproduce with the commands under each experiment.
+> **STATUS: Experiments 1 (request hedging) & 4 (Go WebSocket ceiling) MEASURED on
+> 2026-06-25** on the local Docker lab. Their tables are real results. Experiments
+> 2–3 (Redis cache / pgvector-ANN on the recommend path) are **not yet run**: the
+> recommend endpoint needs a real per-user JWT principal **and** a recipe corpus
+> seeded with embeddings, and the embedding service needs an OpenAI key (or a
+> wired-up mock) — without that seed they would measure an empty corpus, so no
+> numbers are reported rather than misleading ones. The harness for them is ready.
 
 ## Lab architecture
 
@@ -112,7 +114,7 @@ docker compose -f docker-compose.loadtest.yml --profile load \
 
 ---
 
-## Experiment 2 — Redis cache (recommend path)
+## Experiment 2 — Redis cache (recommend path) — NOT RUN (see status note)
 
 Compare recommendation latency with Redis caching enabled vs disabled.
 
@@ -132,7 +134,7 @@ profile), restart `backend`, and re-run `recommend.js` for each arm.
 
 ---
 
-## Experiment 3 — ANN-in-DB (pgvector) vs JVM-side cosine
+## Experiment 3 — ANN-in-DB (pgvector) vs JVM-side cosine — NOT RUN (see status note)
 
 Vector similarity for food/recipe recommendations: pushing the nearest-neighbour
 search into PostgreSQL/pgvector (with an index) vs pulling vectors into the JVM
@@ -151,18 +153,33 @@ strategy between JVM-side and pgvector ANN, restart `backend`, re-run.
 
 ---
 
-## Experiment 4 — Go WebSocket ceiling
+## Experiment 4 — Go WebSocket ceiling (MEASURED 2026-06-25)
 
-Max concurrent WebSocket connections / messages-per-second the backend's
-real-time layer sustains before latency degrades. (Driver TBD — a dedicated WS
-load tool or a k6 `ws` script; not yet scripted in this lab.)
+Per-connection cost of the Go gateway's real-time layer. `ws_ceiling.js` ramps to
+3,000 concurrent **idle** WebSocket connections (each VU mints its own HS256 JWT;
+idle sockets exercise pure connection capacity — `readPump` only starts a backend
+SSE proxy when a client sends a chat message) and the driver
+(`run_ws_ceiling.sh`) samples the gateway's `/metrics` at peak.
 
-| Metric | Baseline | Tuned | Delta |
+- Driver: `run_ws_ceiling.sh` (PEAK_VUS=3000), gateway unconstrained (no mem limit)
+
+| Metric | Idle baseline | At 3,000 connections | Per-connection |
 |---|---|---|---|
-| Max concurrent connections | TBD | TBD | TBD |
-| Messages/s at <100ms p99 | TBD | TBD | TBD |
-| Memory / 1k connections (MB) | TBD | TBD | TBD |
-| CPU at peak (cores) | TBD | TBD | TBD |
+| Concurrent connections | 0 | **3,000** (0 handshake errors) | — |
+| Goroutines | 13 | 6,013 | **2.00 / conn** (read+write pump) |
+| RSS | 19.95 MB | 120.2 MB | **32.6 KB / conn** (≈ 31.9 MB / 1k) |
+| WS handshake latency | — | p50 0.43 ms, p95 0.60 ms, max 24.7 ms | — |
+
+**Reading:** resource use is dead-linear in connection count — exactly 2 goroutines
+per connection (the gorilla read + write pumps) and ~32 KB RSS each — and the
+gateway never showed distress (sub-millisecond handshakes throughout the ramp, zero
+errors). **The 3,000 ceiling was the k6 *client's* limit (3,000 VUs), not the
+gateway's.** After the run, goroutines returned to exactly the 13 baseline and
+`ws_connections_active` to 0 — **no goroutine/connection leak**, confirming the
+gateway's single-writer + explicit-teardown design. Extrapolating the measured
+32.6 KB/conn RSS, a single **256 MiB** instance fits **~7,400 connections**
+(RSS-bound); Cloud Run scales these horizontally. (Stated as a single-instance
+lab figure, not a production cloud number.)
 
 ---
 
