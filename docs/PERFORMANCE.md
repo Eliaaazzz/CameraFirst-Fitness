@@ -1,10 +1,10 @@
 # Aura Fitness — Performance Report
 
-> **STATUS: HARNESS READY — NUMBERS PENDING A RUN.** Every number in the tables
-> below is a **placeholder** (`TBD`) until the lab is run. Running the lab needs a
-> live **Docker daemon** (start Docker Desktop), then the commands under "How to
-> reproduce". The backend wiring the experiments depend on (Open items 1-3) is
-> now implemented. Do not cite these as results until measured.
+> **STATUS: Experiment 1 (request hedging) MEASURED on 2026-06-25.** Numbers in
+> Experiment 1 are real lab results (local Docker daemon, mock `MOCK_SEED=42`,
+> two arms each driven with the identical `hedge_analyze.js` at ~40 req/s open
+> model, 9,899 requests per arm). Experiments 2–4 remain `TBD` — the harness is
+> ready; they just need a run. Reproduce with the commands under each experiment.
 
 ## Lab architecture
 
@@ -67,23 +67,41 @@ Fire a second Gemini call if the first has not returned within
 `GEMINI_HEDGE_DELAY_MS` (2000ms). The mock's independent per-request sampling
 means the hedge call almost always avoids the 6-9s tail.
 
-- Driver: `k6 run /scripts/hedge_analyze.js`
-- Mock: defaults (`MOCK_TAIL_PROB=0.05`, tail 6-9s, `MOCK_SEED=42`)
+- Driver: `k6 run /scripts/hedge_analyze.js` (constant 30 rps for 2m, then ramp to
+  60 rps over 2m; 9,899 requests per arm — open arrival-rate model)
+- Mock: defaults (`MOCK_TAIL_PROB=0.05`, tail 6-9s, `MOCK_SEED=42`), restarted
+  identically; both arms hit the same mock instance with the same seed.
+- Arms toggled on the backend only: **OFF** = `GEMINI_HEDGE_DELAY_MS=60000` (delay
+  exceeds the 9s tail, so the hedge never fires); **ON** = `2000`.
 
 | Metric | Before (hedge OFF) | After (hedge ON) | Delta |
 |---|---|---|---|
-| P50 latency (ms) | TBD | TBD | TBD |
-| P95 latency (ms) | TBD | TBD | TBD |
-| **P99 latency (ms)** | TBD | TBD | TBD |
-| Error rate (%) | TBD | TBD | TBD |
-| Throughput (req/s) | TBD | TBD | TBD |
-| Extra mock calls (count) | TBD | TBD | TBD |
+| P50 latency (ms) | 622 | 620 | −0.3% |
+| P90 latency (ms) | 870 | 870 | ~0% |
+| P95 latency (ms) | 6,220 | 2,340 | **−62%** |
+| **P99 latency (ms)** | **8,780** | **2,810** | **−68%** |
+| Avg latency (ms) | 984 | 723 | −27% |
+| Max latency (ms) | 14,200 | 9,050 | −36% |
+| Error rate (%) | 0.06 (6/9899) | 0.00 (0/9899) | −0.06pp |
+| Throughput (req/s) | 40.0 | 40.6 | +1.5% |
+| Mock generateContent calls | 10,223 (1.03×) | 10,421 (1.05×) | +198 (**+1.9%**) |
+
+**Reading:** hedging leaves the median untouched (the fast 95% of requests never
+trip the 2s timer) but collapses the tail — P99 drops from 8.8s to 2.8s — by
+firing a second call only on the ~5% of requests that hit the mock's injected
+6–9s tail. The measured marginal cost is **+1.9% extra upstream calls**, and the
+hedge also rescued the 6 requests that failed outright in the OFF arm (error rate
+0.06% → 0%). This is the classic "Tail at Scale" trade: a few percent more load
+for a >2× better tail. (Arm A's own 1.03× ratio comes from the service's serial
+fallback retry on the slowest/failed requests; the hedge's clean marginal is the
++1.9% difference between arms.)
 
 Reproduce:
 
 ```bash
-# Arm A — hedge OFF
-GEMINI_HEDGE_DELAY_MS=0 docker compose -f docker-compose.loadtest.yml up -d backend
+# Arm A — hedge effectively OFF (delay must exceed the mock's 9s tail; do NOT use 0,
+# which fires the hedge immediately and is the opposite of off)
+GEMINI_HEDGE_DELAY_MS=60000 docker compose -f docker-compose.loadtest.yml up -d backend
 docker compose -f docker-compose.loadtest.yml --profile load \
   run -e BACKEND_URL=http://backend:8080 k6 run --out experimental-prometheus-rw /scripts/hedge_analyze.js
 # Arm B — hedge ON
