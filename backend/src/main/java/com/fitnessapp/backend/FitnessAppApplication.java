@@ -21,17 +21,12 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
     "com.aura"
 })
 @EnableCaching
+// Scan the whole base package (matching @EntityScan/@ComponentScan above) rather than a
+// hand-maintained allowlist — the old explicit list silently dropped any new repository
+// package (e.g. social, coach), causing UnsatisfiedDependency failures only at context boot.
 @EnableJpaRepositories(basePackages = {
-    "com.fitnessapp.backend.user.repository",
-    "com.fitnessapp.backend.recipe.repository",
-    "com.fitnessapp.backend.nutrition.repository",
-    "com.fitnessapp.backend.workout.repository",
-    "com.fitnessapp.backend.usda.repository",
-    "com.fitnessapp.backend.goals.repository",
-    "com.fitnessapp.backend.repository",
-    "com.fitnessapp.backend.goals.repository",
-    "com.fitnessapp.backend.weight.repository",
-    "com.aura.repository"
+    "com.fitnessapp.backend",
+    "com.aura"
 })
 public class FitnessAppApplication {
 
