@@ -1,0 +1,5 @@
+dish_id,total_calories,image,notes
+cn_kungpao_chicken_001,,cn_kungpao_chicken_001.jpg,"FILL total_calories. Weigh each raw ingredient on a kitchen scale; look up kcal per 100g in CFCT (China Food Composition Tables / 中国食物成分表), then sum. e.g. 150g chicken + 25g peanuts + 12g oil + veg."
+cn_mapo_tofu_001,,cn_mapo_tofu_001.jpg,"FILL total_calories via CFCT. Tofu + minced pork + chili-bean paste + oil. Oil dominates kcal — weigh it precisely."
+cn_egg_fried_rice_001,,cn_egg_fried_rice_001.jpg,"FILL total_calories via CFCT. Cooked rice mass + egg(s) + oil + scallion. Note cooked vs raw rice weight."
+cn_beef_noodle_soup_001,,cn_beef_noodle_soup_001.jpg,"FILL total_calories via CFCT. Noodles (cooked) + beef + broth. Broth kcal is small but not zero."

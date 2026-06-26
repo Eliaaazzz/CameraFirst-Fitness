@@ -1,0 +1,22 @@
+# Never commit datasets, photos, or eval outputs from this directory.
+
+# Images (Nutrition5k rgb.png, self-labeled dish photos, etc.)
+*.png
+*.jpg
+*.jpeg
+
+# Eval run outputs
+calorie-eval-out/
+
+# Downloaded dataset tree
+nutrition5k_dataset/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Generated / downloaded metadata CSVs (e.g. metadata.csv from the converter),
+# but KEEP the small checked-in templates below.
+*.csv
+!sample_metadata.csv
+!chinese_dishes_template.csv
