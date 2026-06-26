@@ -10,7 +10,6 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -80,16 +79,17 @@ public class NutritionKnowledgeSeeder {
         return embedded;
     }
 
-    @Transactional
-    protected void ensureRow(UUID id, NutritionKnowledgeCorpus.Doc doc) {
+    // Both repository.save and repository.updateEmbedding manage their own transactions through the
+    // repository proxy, so these helpers must NOT be @Transactional (self-invocation would bypass the
+    // proxy and leave the @Modifying write with no transaction).
+    private void ensureRow(UUID id, NutritionKnowledgeCorpus.Doc doc) {
         if (!repository.existsById(id)) {
             repository.save(new NutritionKnowledge(id, doc.source(), doc.title(), doc.content(), doc.url(), doc.tags()));
         }
     }
 
     /** Embeds the row if it has no embedding yet. Returns true if it embedded. */
-    @Transactional
-    protected boolean embedRowIfNeeded(UUID id, NutritionKnowledgeCorpus.Doc doc) {
+    private boolean embedRowIfNeeded(UUID id, NutritionKnowledgeCorpus.Doc doc) {
         NutritionKnowledge row = repository.findById(id).orElse(null);
         if (row == null || row.getEmbedding() != null) {
             return false;

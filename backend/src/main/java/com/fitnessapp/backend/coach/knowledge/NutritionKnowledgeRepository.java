@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface NutritionKnowledgeRepository extends JpaRepository<NutritionKnowledge, UUID> {
 
@@ -40,7 +41,10 @@ public interface NutritionKnowledgeRepository extends JpaRepository<NutritionKno
 
     boolean existsBySourceAndTitle(String source, String title);
 
+    // Self-managed transaction: the seeder calls this through the repository proxy (not a self-invoked
+    // @Transactional method), so the @Modifying write always runs inside a transaction.
     @Modifying
+    @Transactional
     @Query(value = "UPDATE nutrition_knowledge SET embedding = CAST(:embedding AS vector), "
             + "embedding_generated_at = :ts WHERE id = :id", nativeQuery = true)
     void updateEmbedding(@Param("id") UUID id, @Param("embedding") String embedding, @Param("ts") OffsetDateTime ts);
