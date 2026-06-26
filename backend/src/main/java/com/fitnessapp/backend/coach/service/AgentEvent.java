@@ -22,6 +22,15 @@ public record AgentEvent(String type, Object data) {
         return new AgentEvent("tool_result", data);
     }
 
+    /**
+     * Result of the post-answer faithfulness check: a groundedness score, the cited sources, and any
+     * claims the verifier could not support. Lets the client show a "grounded / N sources / M unverified"
+     * badge so hallucination risk is visible rather than hidden.
+     */
+    public static AgentEvent groundedness(Object data) {
+        return new AgentEvent("groundedness", data);
+    }
+
     public static AgentEvent done(Object data) {
         return new AgentEvent("done", data);
     }
