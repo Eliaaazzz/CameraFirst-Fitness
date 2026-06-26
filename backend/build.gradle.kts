@@ -64,6 +64,9 @@ dependencies {
 	implementation("com.auth0:java-jwt:4.4.0")
 	implementation("com.fasterxml.jackson.core:jackson-databind")
 	runtimeOnly("org.postgresql:postgresql")
+	// Cloud SQL Java connector: lets Cloud Run reach the Cloud SQL instance over an
+	// IAM-authenticated, TLS tunnel (no public IP / authorized-networks exposure).
+	runtimeOnly("com.google.cloud.sql:postgres-socket-factory:1.21.0")
 	// pgvector type support for Hibernate 6.x
 	implementation("org.hibernate.orm:hibernate-vector:6.5.3.Final")
 	compileOnly("org.projectlombok:lombok")

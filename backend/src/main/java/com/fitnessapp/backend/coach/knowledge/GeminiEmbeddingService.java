@@ -33,13 +33,13 @@ import okhttp3.Response;
 public class GeminiEmbeddingService {
 
     public static final int DIMENSIONS = 768;
-    private static final String MODEL = "text-embedding-004";
     private static final MediaType JSON = MediaType.parse("application/json");
     private static final int MAX_ATTEMPTS = 3;
 
     private final ObjectMapper objectMapper;
     private final String apiKey;
     private final String baseUrl;
+    private final String model;
     private final boolean available;
     private final OkHttpClient http;
 
@@ -47,6 +47,9 @@ public class GeminiEmbeddingService {
             ObjectMapper objectMapper,
             @Value("${app.gemini.api-key:}") String apiKey,
             @Value("${app.gemini.base-url:}") String baseUrl,
+            // gemini-embedding-001 supports outputDimensionality; text-embedding-004 was retired from
+            // the AI-Studio v1beta API. Configurable so a model swap needs no rebuild.
+            @Value("${app.gemini.embedding-model:gemini-embedding-001}") String model,
             @Value("${app.gemini.use-vertex-ai:true}") boolean useVertexAi) {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey == null ? "" : apiKey.trim();
@@ -54,6 +57,7 @@ public class GeminiEmbeddingService {
                 ? "https://generativelanguage.googleapis.com"
                 : baseUrl.trim().replaceAll("/+$", "");
         this.baseUrl = base;
+        this.model = (model == null || model.isBlank()) ? "gemini-embedding-001" : model.trim();
         // Knowledge embeddings use the AI-Studio (API-key) transport; Vertex would need ADC + a
         // different endpoint, which the demo deployment does not configure.
         this.available = !useVertexAi && !this.apiKey.isEmpty();
@@ -62,7 +66,7 @@ public class GeminiEmbeddingService {
                 .readTimeout(20, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .build();
-        log.info("GeminiEmbeddingService available={} (model={}, dims={})", available, MODEL, DIMENSIONS);
+        log.info("GeminiEmbeddingService available={} (model={}, dims={})", available, this.model, DIMENSIONS);
     }
 
     public boolean isAvailable() {
@@ -88,10 +92,12 @@ public class GeminiEmbeddingService {
         }
 
         ObjectNode body = objectMapper.createObjectNode();
-        body.put("model", "models/" + MODEL);
+        body.put("model", "models/" + model);
         ObjectNode content = body.putObject("content");
         content.putArray("parts").addObject().put("text", text);
-        String url = baseUrl + "/v1beta/models/" + MODEL + ":embedContent?key=" + apiKey;
+        // Pin output to our schema's vector(768); gemini-embedding-001 defaults to 3072 otherwise.
+        body.put("outputDimensionality", DIMENSIONS);
+        String url = baseUrl + "/v1beta/models/" + model + ":embedContent?key=" + apiKey;
 
         RuntimeException last = null;
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
