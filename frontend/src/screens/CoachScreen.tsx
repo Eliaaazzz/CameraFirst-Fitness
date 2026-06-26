@@ -17,12 +17,13 @@
  * Wrapped with the app's withErrorBoundary in AppNavigator.
  */
 
-import { ArrowLeft, PaperPlaneRight, Sparkle, Wrench } from 'phosphor-react-native';
+import { ArrowLeft, PaperPlaneRight, SealCheck, Sparkle, Warning, Wrench } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -41,6 +42,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AIDisclaimer, Card, KeyboardAvoidingWrapper, SafeAreaWrapper, Text } from '@/components';
+import { GlassCard } from '@/components/GlassCard';
 import {
   CoachClient,
   describeTool,
@@ -60,6 +62,23 @@ interface ToolActivity {
   done: boolean;
 }
 
+/** A grounded source the answer cited, from the knowledge-base RAG retrieval. */
+interface Citation {
+  citation: number;
+  source: string;
+  title: string;
+  url?: string;
+}
+
+/** Result of the backend faithfulness check — drives the anti-hallucination badge. */
+interface Groundedness {
+  groundedness: number;
+  sourceCount: number;
+  unsupportedCount: number;
+  citations: Citation[];
+  unsupportedClaims: string[];
+}
+
 interface ChatMessage {
   id: string;
   role: ChatRole;
@@ -69,6 +88,8 @@ interface ChatMessage {
   streaming: boolean;
   /** set when this turn ended in an error. */
   error?: string;
+  /** faithfulness verdict for grounded health answers, if the agent ran the check. */
+  groundedness?: Groundedness;
 }
 
 const SUGGESTIONS = [
@@ -152,6 +173,17 @@ export const CoachScreen = () => {
           if (!assistantId) break;
           updateAssistant(assistantId, (m) => ({ ...m, text: m.text + frame.data }));
           scrollToEnd();
+          break;
+        }
+        case 'groundedness': {
+          // The faithfulness check that ran after the answer — surface it so the user
+          // can see the answer is grounded in cited sources (anti-hallucination).
+          if (!assistantId) break;
+          const verdict = parseFrameData<Groundedness>(frame.data);
+          if (verdict) {
+            updateAssistant(assistantId, (m) => ({ ...m, groundedness: verdict }));
+            scrollToEnd();
+          }
           break;
         }
         case 'done': {
@@ -436,6 +468,10 @@ const MessageBubble = ({ message }: { message: ChatMessage }) => {
               <TypingIndicator />
             ) : null}
 
+            {message.groundedness ? (
+              <GroundednessBadge data={message.groundedness} />
+            ) : null}
+
             {message.error ? (
               <Text variant="caption" color={BRAND_COLORS.error} style={styles.bubbleError}>
                 {message.error}
@@ -445,6 +481,95 @@ const MessageBubble = ({ message }: { message: ChatMessage }) => {
         </View>
       )}
     </Animated.View>
+  );
+};
+
+/** #RRGGBB -> rgba() with the given alpha, for translucent accents over glass. */
+function withAlpha(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
+ * Liquid-glass faithfulness badge. Renders the post-answer groundedness verdict as a
+ * translucent, blurred glass card (expo-blur via GlassCard) tinted by state — green when the
+ * answer is grounded in cited sources with no unsupported claims, amber otherwise. Citations are
+ * interactive (tap to open the source). This makes the anti-hallucination check visible instead
+ * of silent.
+ */
+const GroundednessBadge = ({ data }: { data: Groundedness }) => {
+  const verified = data.groundedness >= 0.8 && data.unsupportedCount === 0;
+  const accent = verified ? BRAND_COLORS.success : BRAND_COLORS.warning;
+  const pct = Math.round((data.groundedness ?? 0) * 100);
+  const sourceWord = data.sourceCount === 1 ? 'source' : 'sources';
+  const headline = verified
+    ? `Grounded · ${data.sourceCount} ${sourceWord}`
+    : `${data.sourceCount} ${sourceWord} · ${data.unsupportedCount} unverified`;
+
+  return (
+    <GlassCard
+      intensity={24}
+      style={[styles.groundBadge, { borderColor: withAlpha(accent, 0.4) }]}
+    >
+      <View style={styles.groundInner}>
+        <View style={styles.groundHeader}>
+          {verified ? (
+            <SealCheck size={16} color={accent} weight="fill" />
+          ) : (
+            <Warning size={16} color={accent} weight="fill" />
+          )}
+          <Text variant="label" weight="bold" color={accent} style={styles.groundHeadline}>
+            {headline}
+          </Text>
+          <Text variant="label" color={BRAND_COLORS.textMuted}>
+            {pct}%
+          </Text>
+        </View>
+
+        {data.citations?.length ? (
+          <View style={styles.groundCitations}>
+            {data.citations.map((c) => (
+              <Pressable
+                key={c.citation}
+                onPress={() => c.url && Linking.openURL(c.url).catch(() => undefined)}
+                disabled={!c.url}
+                style={({ pressed }) => [
+                  styles.citationRow,
+                  pressed && c.url ? styles.citationRowPressed : null,
+                ]}
+              >
+                <Text variant="label" weight="bold" color={accent} style={styles.citationIndex}>
+                  [{c.citation}]
+                </Text>
+                <Text
+                  variant="label"
+                  color={BRAND_COLORS.textSecondary}
+                  numberOfLines={1}
+                  style={styles.citationText}
+                >
+                  {c.source}
+                  {c.title ? ` · ${c.title}` : ''}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
+        {data.unsupportedClaims?.length ? (
+          <Text
+            variant="label"
+            color={BRAND_COLORS.warning}
+            numberOfLines={3}
+            style={styles.groundUnsupported}
+          >
+            Unverified: {data.unsupportedClaims.join('; ')}
+          </Text>
+        ) : null}
+      </View>
+    </GlassCard>
   );
 };
 
@@ -606,6 +731,45 @@ const styles = StyleSheet.create({
   },
   bubbleError: {
     marginTop: spacing.xs,
+  },
+  groundBadge: {
+    marginTop: spacing.sm,
+    borderRadius: radii.md,
+  },
+  groundInner: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    gap: spacing.xs,
+  },
+  groundHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  groundHeadline: {
+    flex: 1,
+  },
+  groundCitations: {
+    gap: 2,
+  },
+  citationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: 2,
+  },
+  citationRowPressed: {
+    opacity: 0.6,
+  },
+  citationIndex: {
+    minWidth: 22,
+  },
+  citationText: {
+    flex: 1,
+  },
+  groundUnsupported: {
+    marginTop: 2,
+    fontStyle: 'italic',
   },
   toolChips: {
     flexDirection: 'row',

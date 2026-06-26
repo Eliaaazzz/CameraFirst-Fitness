@@ -30,6 +30,7 @@ export type CoachEventName =
   | 'tool_call'
   | 'tool_result'
   | 'token'
+  | 'groundedness'
   | 'done'
   | 'error'
   | 'social';
