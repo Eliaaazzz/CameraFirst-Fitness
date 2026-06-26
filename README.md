@@ -8,7 +8,9 @@
 
 **AI-powered nutrition & workout platform** — camera-first meal logging, Apple-Watch-style activity rings, and a three-model AI pipeline that turns a photo of your plate into macro breakdowns, personalized goals, and vector-similar recipe recommendations.
 
-> **🚀 "Aura Coach" refinement:** evolved the one-shot AI calls into a **streaming, tool-calling AI agent** (Gemini function calling · plan→act→observe · SSE), added a **social graph** (follow / activity feed / notifications), a **Go realtime WebSocket gateway** (token streaming + Redis fan-out), a **hybrid recommender** (pgvector content ⊕ collaborative filtering via Reciprocal Rank Fusion), and a **measured, observable backend** (request hedging · Resilience4j · Prometheus/Grafana · a reproducible k6 load lab). → [**Architecture**](docs/ARCHITECTURE.md) · [**Performance lab**](docs/PERFORMANCE.md)
+> **🚀 "Aura Coach" refinement** — evolved the one-shot AI calls into a **streaming, tool-calling AI agent** (Gemini function calling · plan→act→observe · SSE) with **anti-hallucination RAG**: health-fact answers are grounded in a cited knowledge base with a retrieval **abstention threshold**, a constrained "cite or abstain" prompt, and a post-answer **faithfulness check** surfaced as a Liquid-Glass *groundedness* badge in the app. Added a **social graph** (follow / feed / notifications), a **Go realtime WebSocket gateway** (token streaming + Redis fan-out), and a **hybrid recommender** (pgvector content ⊕ collaborative filtering via Reciprocal Rank Fusion).
+>
+> **Measured & deployed** — request hedging cuts meal-analysis **P99 from 8.78s → 2.81s (−68%)** for +1.9% extra calls; the Go gateway sustains **3,000 concurrent WebSockets at ~2 goroutines + 32 KB RSS each**, leak-free. Both services run **live on GCP Cloud Run + Cloud SQL (pgvector, via the IAM connector — no public DB)**. → [**Architecture**](docs/ARCHITECTURE.md) · [**Performance**](docs/PERFORMANCE.md) · [**Deployment + live URLs**](docs/DEPLOYMENT.md) · [**Evals**](infrastructure/eval)
 
 <br />
 
@@ -215,6 +217,14 @@ Every UI component is modeled after a proven pattern from a top-tier consumer ap
 ---
 
 ## Engineering highlights
+
+### AI agent & systems engineering — *Aura Coach refinement*
+- Built a **streaming, tool-calling AI agent** — a bounded plan→act→observe loop over Gemini function calling with **7 tools** scoped to the authenticated user (meal history, goals, hybrid recipe RAG, "friends eating similar", grounded knowledge), conversation memory in Postgres, and token-by-token SSE.
+- Engineered **anti-hallucination RAG** for health facts: a curated, citable knowledge corpus (`gemini-embedding-001` → HNSW `pgvector`) behind a retrieval **abstention threshold**, a constrained "cite `[n]` or abstain" prompt, and a post-answer **faithfulness verification** pass that scores each claim against its sources and emits a `groundedness` event (rendered as a Liquid-Glass badge in-app). Reproducible faithfulness eval reports `grounded_rate` / `abstain_rate`.
+- Hardened the Gemini path with **request hedging** (Google "Tail at Scale"), Resilience4j circuit breaking, and Micrometer token/cost/latency meters → measured **P99 −68% (8.78s → 2.81s)** for +1.9% extra calls in a reproducible k6 lab.
+- Added a **Go realtime WebSocket gateway** (gorilla/websocket) that terminates client WS, proxies the agent's SSE token stream, and fans out social events over Redis Pub/Sub — measured **3,000 concurrent connections at ~2 goroutines + ~32 KB RSS each**, leak-free (extrapolates ~7,400 / 256 MiB).
+- Designed the app's first **social graph** (follow / activity feed / notifications · cursor pagination · fan-out-on-write) and a **hybrid recommender** (pgvector content ⊕ collaborative filtering, fused via Reciprocal Rank Fusion).
+- Promoted CI from a container-test-skipping pipeline to **real Testcontainers integration tests + an 80% JaCoCo coverage gate**; deployed both services to **Cloud Run + Cloud SQL `pgvector` via the IAM connector** (no public DB).
 
 ### AI / ML
 - Integrated **three AI providers** (Gemini Vision, Gemini LLM, OpenAI Embeddings) into a single pipeline — photo → recognition → nutrition computation → personalized recommendations — with each provider chosen for its cost / capability fit, not vendor lock-in.
