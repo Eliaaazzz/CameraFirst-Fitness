@@ -73,6 +73,7 @@ const illustrationRecipes = require('@/../assets/illustrations/cooking.svg');
 const illustrationWeekly = require('@/../assets/illustrations/data-trends.svg');
 const illustrationTargets = require('@/../assets/illustrations/healthy-habit.svg');
 const illustrationHistory = require('@/../assets/illustrations/fruit-salad.svg');
+const illustrationCoach = require('@/../assets/illustrations/brand-motion-coach.svg');
 
 // Smart time-based greeting
 const getTimeGreeting = (): string => {
@@ -581,6 +582,7 @@ const DashboardScreen = () => {
   // ============================================================================
   const renderSharedDashboard = () => {
     const suggestionCards = [
+      { title: 'AI Coach', illustration: illustrationCoach, backgroundColor: '#EDE7FF', onPress: () => navigation.navigate('Coach' as any) },
       { title: 'Log meal', illustration: illustrationScanMeal, backgroundColor: '#FBE4D6', onPress: handleAddFood },
       { title: 'Workouts', illustration: illustrationWorkouts, backgroundColor: '#DDEEFF', onPress: () => navigation.navigate('Main', { screen: 'Workouts' } as any) },
       { title: 'Recipes', illustration: illustrationRecipes, backgroundColor: '#D4F5E9', onPress: () => navigation.navigate('Main', { screen: 'Recipes' } as any) },
@@ -589,6 +591,13 @@ const DashboardScreen = () => {
       { title: 'History', illustration: illustrationHistory, backgroundColor: '#F2E9FF', onPress: () => navigation.navigate('Main', { screen: 'Profile', params: { screen: 'MealHistory' } } as any) },
     ];
     const serviceCards = [
+      {
+        title: 'AI Coach',
+        body: 'Ask about your nutrition and goals — get grounded, cited answers.',
+        illustration: illustrationCoach,
+        onPress: () => navigation.navigate('Coach' as any),
+        backgroundColor: '#EDE7FF',   // Violet — premium AI accent
+      },
       {
         title: 'Meal logging',
         body: 'Scan, review, and log meals with a faster photo-first flow.',
