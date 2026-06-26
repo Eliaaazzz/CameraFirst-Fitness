@@ -11,6 +11,7 @@ import {
   CalendarBlank,
   CaretDown,
   CaretUp,
+  ChatCircleDots,
   ClockCounterClockwise,
   Lifebuoy,
   Question,
@@ -102,6 +103,12 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
     });
   }, [navigation, runMenuAction]);
 
+  const openCoach = useCallback(() => {
+    runMenuAction(() => {
+      navigation.navigate('Coach' as any);
+    });
+  }, [navigation, runMenuAction]);
+
   const handleNavPress = (key: NavKey) => {
     if (key === 'Home') { goToMain('Dashboard'); return; }
     if (key === 'Workouts') { goToMain('Workouts'); return; }
@@ -186,6 +193,16 @@ export function AuthenticatedNav({ currentRouteName: externalRouteName }: Authen
 
         {/* Right actions */}
         <View style={styles.actions}>
+          <Pressable
+            onPress={openCoach}
+            style={({ pressed }) => [styles.utilityAction, pressed && styles.faded]}
+            accessibilityRole="button"
+            accessibilityLabel="Open AI Coach chat"
+          >
+            <ChatCircleDots size={18} weight="fill" color="#7C3AED" />
+            <Text variant="body" weight="semibold" style={styles.utilityText}>Coach</Text>
+          </Pressable>
+
           <Pressable
             onPress={openHelpScreen}
             style={({ pressed }) => [styles.utilityAction, pressed && styles.faded]}
