@@ -3,8 +3,8 @@
  *
  * Backs the basic / fallback camera (expo-camera), which has NO access to the depth
  * sensor. Real LiDAR/ToF depth is read by VisionCameraView through the native
- * frame-processor plugin (`__getDepthAtCenter`) and converted to a real-world scale
- * by `estimateImageWidthCm`.
+ * frame-processor plugin (`__getDepthAtCenter`); converting that depth to a real-world
+ * img_w_cm is a separate, not-yet-implemented step (see native-depth-plugin/README.md).
  *
  * Because expo-camera cannot read the depth sensor, this hook does NOT fabricate a
  * distance — it reports `null` unless the user sets one manually — and only drives
