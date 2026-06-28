@@ -23,14 +23,14 @@ export interface DeviceCapabilities {
   estimatedAccuracy: string; // e.g., "< 1%", "< 5%", "< 15%"
 }
 
-// iPhone models with LiDAR (Pro models from iPhone 12 onwards)
+// iPhone models with LiDAR — ONLY the Pro / Pro Max line carries a LiDAR scanner.
+// (The standard iPhone 13 / 13 mini have no LiDAR and must not be listed here.)
 const LIDAR_IPHONE_MODELS = [
   'iPhone13,3', 'iPhone13,4', // iPhone 12 Pro, Pro Max
   'iPhone14,2', 'iPhone14,3', // iPhone 13 Pro, Pro Max
-  'iPhone14,4', 'iPhone14,5', // iPhone 13 mini, iPhone 13 (no LiDAR but check)
   'iPhone15,2', 'iPhone15,3', // iPhone 14 Pro, Pro Max
   'iPhone16,1', 'iPhone16,2', // iPhone 15 Pro, Pro Max
-  'iPhone17,1', 'iPhone17,2', // iPhone 16 Pro, Pro Max (future)
+  'iPhone17,1', 'iPhone17,2', // iPhone 16 Pro, Pro Max
 ];
 
 // iPad Pro models with LiDAR (2020+)
@@ -49,13 +49,12 @@ const TOF_ANDROID_MODELS = [
 ];
 
 function checkLiDARSupport(modelId: string): boolean {
-  if (Platform.OS === 'ios') {
-    // Check if it's a Pro model
-    return LIDAR_IPHONE_MODELS.some(model => modelId.includes(model)) ||
-           LIDAR_IPAD_MODELS.some(model => modelId.includes(model)) ||
-           modelId.toLowerCase().includes('pro');
-  }
-  return false;
+  if (Platform.OS !== 'ios') return false;
+  // Exact model-id membership. Device.modelId is the hardware identifier (e.g.
+  // 'iPhone15,2'), so the old `modelId.includes('pro')` heuristic never matched a
+  // real device AND, if fed a model NAME instead, would have falsely flagged the
+  // LiDAR-less iPhone 11 Pro / 2018 iPad Pro. Exact match avoids both.
+  return LIDAR_IPHONE_MODELS.includes(modelId) || LIDAR_IPAD_MODELS.includes(modelId);
 }
 
 function checkToFSupport(modelId: string, modelName: string): boolean {
@@ -158,7 +157,9 @@ export function useDeviceCapabilities(): DeviceCapabilities {
 export function getTierDescription(tier: DeviceTier): string {
   switch (tier) {
     case 'lidar':
-      return 'Pro Accuracy (LiDAR)';
+      // This tier covers BOTH iOS LiDAR and Android ToF, so the label stays
+      // sensor-agnostic — a Galaxy S23 Ultra (ToF) is not a LiDAR device.
+      return 'Pro Accuracy (Depth Sensor)';
     case 'standard_ar':
       return 'Standard Accuracy (AR)';
     case 'basic':

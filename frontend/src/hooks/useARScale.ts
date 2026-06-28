@@ -31,6 +31,14 @@ interface ARScaleNative {
 const Native: ARScaleNative | undefined =
   Platform.OS === 'ios' ? (NativeModules.ARScaleModule as ARScaleNative | undefined) : undefined;
 
+// Plausible real-world image-width window for a food close-up. A plane raycast that
+// lands on something other than the table (e.g. a far wall) produces a wildly
+// out-of-range width; rather than feed the backend a fabricated scale we drop it and
+// let the caller fall back to the plate-reference default. (±cm bounds documented in
+// native-depth-plugin/README.md.)
+const MIN_PLAUSIBLE_IMG_W_CM = 12;
+const MAX_PLAUSIBLE_IMG_W_CM = 90;
+
 export interface UseARScale {
   /** Native module present AND device reports ARWorldTracking support. */
   supported: boolean;
@@ -56,7 +64,10 @@ export function useARScale(enabled = true): UseARScale {
     }
     return () => {
       alive = false;
-      if (started.current) Native?.stop().catch(() => {});
+      if (started.current) {
+        Native?.stop().catch(() => {});
+        started.current = false; // keep the start-guard in sync so a later start() can restart
+      }
     };
   }, [enabled]);
 
@@ -74,7 +85,14 @@ export function useARScale(enabled = true): UseARScale {
     if (!Native) return null;
     try {
       const m = await Native.measure();
-      const v = m.hasScale && typeof m.imgWcm === 'number' && isFinite(m.imgWcm) ? m.imgWcm : null;
+      const finite =
+        m.hasScale && typeof m.imgWcm === 'number' && isFinite(m.imgWcm) ? m.imgWcm : null;
+      // Plausibility gate: only a value inside the food-framing window is trusted;
+      // anything else degrades to the plate fallback rather than fabricating a scale.
+      const v =
+        finite !== null && finite >= MIN_PLAUSIBLE_IMG_W_CM && finite <= MAX_PLAUSIBLE_IMG_W_CM
+          ? finite
+          : null;
       if (v !== null) setImgWcm(v);
       return v;
     } catch {
