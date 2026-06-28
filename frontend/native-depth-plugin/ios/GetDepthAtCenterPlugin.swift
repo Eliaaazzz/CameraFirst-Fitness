@@ -10,9 +10,10 @@
 //  AVDepthData is NEVER attached to that video buffer. Depth is delivered separately
 //  by AVCaptureDepthDataOutput, paired with video through AVCaptureDataOutputSynchronizer.
 //  So this plugin does NOT try to read depth off the frame buffer. Instead your capture
-//  session's synchronizer delegate pushes each AVDepthData into `DepthStore.shared`
-//  (keyed by presentation timestamp), and the plugin reads the freshest depth that
-//  matches the current frame — the iOS analogue of the Android `DepthBridge`.
+//  session's synchronizer delegate pushes the latest AVDepthData (plus its presentation
+//  timestamp) into `DepthStore.shared`, and the plugin reads it back only if it is fresh
+//  enough to pair with the current frame — the iOS analogue of the Android `DepthBridge`.
+//  (DepthStore keeps just the most recent sample, not a timestamp-indexed history.)
 //
 //  VisionCamera v4 plugin API.
 //

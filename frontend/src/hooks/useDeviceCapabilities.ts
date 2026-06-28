@@ -35,9 +35,10 @@ const LIDAR_IPHONE_MODELS = [
 
 // iPad Pro models with LiDAR (2020+)
 const LIDAR_IPAD_MODELS = [
-  'iPad8,9', 'iPad8,10', 'iPad8,11', 'iPad8,12', // iPad Pro 2020
-  'iPad13,4', 'iPad13,5', 'iPad13,6', 'iPad13,7', // iPad Pro 2021
-  'iPad14,3', 'iPad14,4', 'iPad14,5', 'iPad14,6', // iPad Pro 2022
+  'iPad8,9', 'iPad8,10', 'iPad8,11', 'iPad8,12', // iPad Pro 2020 (11" 2nd gen / 12.9" 4th gen)
+  'iPad13,4', 'iPad13,5', 'iPad13,6', 'iPad13,7', // iPad Pro 2021 11" 3rd gen
+  'iPad13,8', 'iPad13,9', 'iPad13,10', 'iPad13,11', // iPad Pro 2021 12.9" 5th gen (M1)
+  'iPad14,3', 'iPad14,4', 'iPad14,5', 'iPad14,6', // iPad Pro 2022 (11" 4th gen / 12.9" 6th gen)
 ];
 
 // Android models known to have ToF sensors

@@ -15,24 +15,30 @@ instead of guessing. There are two independent sources, by device tier:
 
 ## What is actually wired today (read this before trusting the diagrams)
 
-- **`standard_ar` AR path — wired in JS, one device-side step remaining.**
-  `ARScaleModule.measure()` → `useARScale` (with a finiteness + 12–90cm plausibility
-  gate) → the capture screen passes `imgWcm` via `navigation.setParams(...)` →
-  `ReviewMealScreen` reads `route.params.imgWcm` (`ReviewMealScreen.tsx`) → sends
-  `img_w_cm` to the backend. The only missing piece is mounting the AR calibration
-  step on the capture screen (needs a real device — see below).
-- **`lidar`/`ToF` depth path — native template only; the JS conversion is NOT
-  implemented yet.** `useDepthCamera` exposes a `DepthResult` with `distanceCm`, but
-  **there is no `distance → img_w_cm` conversion in JS**, `DepthResult` does not carry
-  `fx`, and `CaptureMetadata` does not carry `imgWcm`. To finish this path you must add
-  the conversion and thread `imgWcm` into the same `route.params.imgWcm` the AR path
-  uses (see "Completing the LiDAR path"). Until then the depth plugin can run but its
-  scale never reaches the backend, and the app uses the 35cm plate default — safe, just
-  not yet adding LiDAR scale.
+Only the **sink** is wired end-to-end: `ReviewMealScreen` reads `route.params.imgWcm`
+(`ReviewMealScreen.tsx`) and sends it to the backend as `img_w_cm`, defaulting to the
+35cm plate width when absent. Everything that would *produce* a measured `imgWcm` is
+still a template / unwired:
+
+- **`standard_ar` AR path — native template + JS hook exist; NOT yet called.**
+  `ARScaleModule.swift` (template) and `useARScale` (with a finiteness + 12–90cm
+  plausibility gate) are in place, but **nothing in the app calls `useARScale` or sets
+  `route.params.imgWcm`** — `grep` finds no caller. Remaining work: (a) build the native
+  module into the app (real device), AND (b) write the JS glue on the capture screen
+  (`useARScale().measure()` → `navigation.setParams({ imgWcm })`).
+- **`lidar`/`ToF` depth path — native template only; no JS conversion at all.**
+  `useDepthCamera` exposes a `DepthResult` with `distanceCm`, but **there is no
+  `distance → img_w_cm` conversion in JS**, `DepthResult` does not carry `fx`, and
+  `CaptureMetadata` does not carry `imgWcm`. Remaining work: build the native plugin,
+  add the conversion (see "Completing the LiDAR path"), and thread `imgWcm` into the same
+  `route.params.imgWcm` sink.
+
+So today every meal uses the 35cm plate default — safe, just not yet adding real scale.
 
 ```
-standard_ar:  ARScaleModule.measure() → useARScale(imgWcm) → setParams → ReviewMealScreen → img_w_cm  ✅ wired (JS)
-lidar/ToF:    __getDepthAtCenter(frame) → useDepthCamera(DepthResult.distanceCm) → [ ⚠ no img_w_cm conversion yet ]
+sink (wired):  route.params.imgWcm → ReviewMealScreen → img_w_cm  (defaults to 35cm)
+standard_ar:   ARScaleModule.measure() → useARScale(imgWcm) → [ ⚠ no caller; setParams glue unwritten ] ┐
+lidar/ToF:     __getDepthAtCenter(frame) → useDepthCamera(distanceCm) → [ ⚠ no img_w_cm conversion ]    ┴▶ route.params.imgWcm
 ```
 
 ## The contract (what the depth plugin must return)
@@ -129,8 +135,11 @@ via `FrameProcessorPluginRegistry.addFrameProcessorPlugin("getDepthAtCenter", ..
 - Depth path (after wiring the conversion): log the computed `imgWcm` where you set
   `route.params.imgWcm` — `CaptureMetadata` itself carries only
   `{ distanceCm, confidence, accuracy, deviceTier }` today.
-- Backend `GeminiMealAnalysisService` logs the prompt context; confirm
-  `"img_w_cm": <measured>` appears instead of the 35cm default.
+- Confirm the value reaches the backend: inspect the outbound nutrition request
+  (`nutritionApi.ts` sends `img_w_cm`) and check it carries the measured value, not the
+  35cm default. (The backend reads `img_w_cm` for portion/scale reasoning, but
+  `GeminiMealAnalysisService` does not log the request body, so verify it client-side or
+  via your API gateway logs.)
 
 ---
 
