@@ -603,6 +603,13 @@ const MainTabs = () => {
   );
 };
 
+// F11 — Floating workout session strip mounted at navigator root.
+const WorkoutSessionStripRoot = () => {
+  // Lazy import to keep the navigator file lean.
+  const { WorkoutSessionStrip } = require('@/components/WorkoutSessionStrip') as typeof import('@/components/WorkoutSessionStrip');
+  return <WorkoutSessionStrip bottomInset={96} />;
+};
+
 export const AppNavigator = () => {
   // Always use light mode
   return (
@@ -664,6 +671,8 @@ export const AppNavigator = () => {
           options={{ cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS }}
         />
       </Stack.Navigator>
+      {/* F11 — Floating workout session strip; renders only when a session is active. */}
+      <WorkoutSessionStripRoot />
     </NavigationContainer>
   );
 };

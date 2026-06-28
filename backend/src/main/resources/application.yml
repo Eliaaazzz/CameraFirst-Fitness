@@ -17,9 +17,15 @@ spring:
     type: caffeine
 
 usda:
-  api:
-    key: ${USDA_API_KEY:}
-    base-url: https://api.nal.usda.gov/fdc/v1
+  enabled: ${USDA_ENABLED:true}
+  api-key: ${USDA_API_KEY:}
+  base-url: https://api.nal.usda.gov/fdc
+  cache:
+    l1:
+      maximum-size: 2000
+      expire-after-write: 12h
+    l2:
+      ttl: 7d
 
 # Cloudflare R2 Storage
 r2:
@@ -68,6 +74,9 @@ app:
     use-vertex-ai: ${GEMINI_USE_VERTEX_AI:false}
     gcp-project-id: ${GEMINI_GCP_PROJECT_ID:gen-lang-client-0295973830}
     gcp-region: ${GEMINI_GCP_REGION:australia-southeast2}
+    # Controlled generation (responseSchema) for guaranteed, stably-ordered JSON output.
+    # On by default; set to false only if a future model rejects the schema.
+    structured-output: ${GEMINI_STRUCTURED_OUTPUT:true}
   google:
     # Comma-separated allowed audiences for Google ID tokens.
     # Example: GOOGLE_CLIENT_ID=web-client-id.apps.googleusercontent.com,ios-client-id.apps.googleusercontent.com,android-client-id.apps.googleusercontent.com

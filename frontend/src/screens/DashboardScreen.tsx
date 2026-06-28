@@ -28,7 +28,7 @@ import Animated, {
 import { Barbell, Camera, CameraPlus, CaretRight, ChartLine, Drop, EnvelopeSimple, Fire, FlagCheckered, Grains, ImageSquare, Leaf, PencilSimple, PersonSimpleRun, Scales, Sneaker, Target, User } from 'phosphor-react-native';
 import { Image } from 'expo-image';
 import { ScrollView as RNScrollView } from 'react-native';
-import { BentoCard, SafeAreaWrapper, Text } from '@/components';
+import { AchievementsCard, AdaptiveHomeHero, BentoCard, ChallengesCard, DetailBottomSheet, FriendsFeedCard, LogAgainCard, SafeAreaWrapper, Text, WeeklySummaryCard } from '@/components';
 import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/components/common/BentoCard';
 import { PermissionRequestModal, PermissionType } from '@/components/common/PermissionRequestModal';
 import { StateView } from '@/components/common/StateView';
@@ -43,7 +43,8 @@ import WelcomeTourCard from '@/components/WelcomeTourCard';
 import { SNAP_MEAL_STEP, TODAYS_NUTRITION_STEP } from '@/config/tourSteps';
 import useCurrentUser from '@/hooks/useCurrentUser';
 import { useDailyNutrition } from '@/hooks/useDailyNutrition';
-import { useWeeklyInsights } from '@/hooks/useMealHistory';
+import { useMealHistory, useReLogMeal, useWeeklyInsights } from '@/hooks/useMealHistory';
+import { useAchievements } from '@/hooks/useAchievements';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useTourStatus } from '@/hooks/useTourStatus';
 import { GeneratedGoals, getActiveGoal, GoalType } from '@/services/geminiApi';
@@ -242,6 +243,44 @@ const DashboardScreen = () => {
 
   // Weekly insights for trend chart (web only)
   const weeklyInsights = useWeeklyInsights(undefined, true);
+
+  // F3 — "Log again" feed: pull last 7 days of meals, dedupe by name, surface top 3 most-recent.
+  const _sevenDaysAgo = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().split('T')[0];
+  }, []);
+  const reLogHistory = useMealHistory({ page: 0, size: 20, startDate: _sevenDaysAgo, sort: 'consumedAt,desc' }, true);
+  const reLogMeal = useReLogMeal('me');
+  const [reLogInFlight, setReLogInFlight] = useState<number | null>(null);
+  const logAgainMeals = useMemo(() => {
+    const all = reLogHistory.data?.content ?? [];
+    const seen = new Set<string>();
+    const out: typeof all = [];
+    for (const m of all) {
+      const key = (m.foodItems?.[0]?.displayName || m.mealType || '').toLowerCase().trim();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(m);
+      if (out.length >= 3) break;
+    }
+    return out;
+  }, [reLogHistory.data]);
+  const handleReLog = useCallback(async (meal: typeof logAgainMeals[number]) => {
+    setReLogInFlight(meal.id);
+    try {
+      await reLogMeal.mutateAsync(meal);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } finally {
+      setReLogInFlight(null);
+    }
+  }, [reLogMeal]);
+
+  // F6 — Achievements V2
+  const achievements = useAchievements({
+    currentStreak: currentUser.data?.currentStreak,
+  });
+  const [achievementDetail, setAchievementDetail] = useState<typeof achievements[number] | null>(null);
 
   // Tour guide controller and navigation
   const { canStart, start, eventEmitter } = useTourGuideController();
@@ -782,6 +821,45 @@ const DashboardScreen = () => {
                   >
                     Suggestions
                   </Text>
+                  {/* F5 — Adaptive Home Hero (time-of-day morphing) */}
+                  <AdaptiveHomeHero
+                    userName={currentUser.data?.profile?.displayName?.split(' ')[0]}
+                    caloriesConsumed={nutritionData.calories}
+                    caloriesTarget={calorieGoal}
+                    proteinConsumed={nutritionData.protein.current}
+                    proteinTarget={proteinGoal}
+                    mealsLoggedToday={nutritionData.meals.length}
+                    onPrimaryAction={handleAddFood}
+                    onSecondaryAction={() => navigation.navigate('Main', { screen: 'Recipes' } as any)}
+                  />
+
+                  {/* F3 — Log again (Uber Eats reorder pattern) */}
+                  <LogAgainCard
+                    meals={logAgainMeals}
+                    isLoading={reLogHistory.isLoading}
+                    onReLog={handleReLog}
+                    inFlightMealId={reLogInFlight}
+                  />
+
+                  {/* F6 — Achievements V2 (Strava badge wall) */}
+                  <AchievementsCard
+                    achievements={achievements}
+                    onTap={(a) => setAchievementDetail(a)}
+                  />
+
+                  {/* F8 — Weekly Summary (Sunday recap) */}
+                  <WeeklySummaryCard
+                    insights={weeklyInsights.data}
+                    isLoading={weeklyInsights.isLoading}
+                    userName={currentUser.data?.profile?.displayName?.split(' ')[0]}
+                  />
+
+                  {/* F9 — Friends Activity Feed (Strava style) */}
+                  <FriendsFeedCard limit={4} />
+
+                  {/* F10 — Challenges (joinable with XP) */}
+                  <ChallengesCard limit={3} />
+
                   <SuggestionGrid cards={suggestionCards} />
                 </View>
               </View>
@@ -1354,7 +1432,66 @@ const DashboardScreen = () => {
     />
   );
 
-  return renderSharedDashboard();
+  return (
+    <>
+      {renderSharedDashboard()}
+      <DetailBottomSheet
+        visible={!!achievementDetail}
+        onClose={() => setAchievementDetail(null)}
+        title={achievementDetail?.label}
+        maxHeightRatio={0.55}
+      >
+        {achievementDetail ? (
+          <View style={{ alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md }}>
+            <View
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: 48,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: achievementDetail.unlocked ? '#FFF3D6' : 'rgba(17,17,17,0.06)',
+                borderWidth: 3,
+                borderColor: achievementDetail.unlocked ? '#F8C24F' : 'rgba(17,17,17,0.10)',
+              }}
+            >
+              <Text style={{ fontSize: 40 }}>
+                {achievementDetail.unlocked ? achievementDetail.emoji : '🔒'}
+              </Text>
+            </View>
+            <Text variant="heading3" weight="bold" style={{ textAlign: 'center' }}>
+              {achievementDetail.label}
+            </Text>
+            <Text variant="body" style={{ textAlign: 'center', color: '#666' }}>
+              {achievementDetail.description}
+            </Text>
+            <View
+              style={{
+                width: '90%',
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: 'rgba(17,17,17,0.08)',
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  width: `${Math.round(achievementDetail.progress * 100)}%`,
+                  height: '100%',
+                  backgroundColor: '#F97316',
+                }}
+              />
+            </View>
+            <Text variant="caption" weight="semibold" style={{ color: '#666' }}>
+              {achievementDetail.unlocked
+                ? 'Unlocked'
+                : `${Math.round(achievementDetail.progress * 100)}% complete`}
+            </Text>
+          </View>
+        ) : null}
+      </DetailBottomSheet>
+    </>
+  );
 };
 
 const styles = StyleSheet.create({

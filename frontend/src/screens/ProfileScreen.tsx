@@ -50,7 +50,9 @@ import {
 import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Card, EditNameModal, SafeAreaWrapper, Text, WheelPicker } from '@/components';
+import { Button, Card, ConsistencyHeatmap, DayHistorySheet, EditNameModal, PersonalRecordsCard, SafeAreaWrapper, Text, WheelPicker } from '@/components';
+import { usePersonalRecords } from '@/hooks/usePersonalRecords';
+import { useConsistencyCells } from '@/hooks/useConsistencyCells';
 import { PermissionRequestModal, PermissionType } from '@/components/common/PermissionRequestModal';
 import { StateView } from '@/components/common/StateView';
 import useCurrentUser from '@/hooks/useCurrentUser';
@@ -1404,6 +1406,15 @@ const ProfileScreen = () => {
 
   const displayName = currentUser.data?.username || userEmail?.split('@')[0] || 'User';
   const currentStreak = currentUser.data?.currentStreak || 0;
+
+  // F7 — Personal records
+  const personalRecords = usePersonalRecords(currentStreak);
+
+  // F13 — Consistency heatmap
+  const heatmapCells = useConsistencyCells(12);
+
+  // F14 — Day history sheet
+  const [dayDetail, setDayDetail] = useState<string | undefined>(undefined);
   const goalTypeLabel = generatedGoals?.goalType
     ? GOAL_OPTIONS.find(g => g.value === generatedGoals.goalType)?.label
     : null;
@@ -1503,6 +1514,16 @@ const ProfileScreen = () => {
           </View>
           <Text variant="caption" style={styles.email}>{userEmail}</Text>
         </Animated.View>
+
+        {/* F7 — Personal Records (Strava-style PR grid) */}
+        <PersonalRecordsCard records={personalRecords} />
+
+        {/* F13 — Consistency heatmap (GitHub style) */}
+        <ConsistencyHeatmap
+          cells={heatmapCells}
+          weeks={12}
+          onDayPress={(cell) => setDayDetail(cell.date)}
+        />
 
         {/* Goals Status */}
         {generatedGoals ? (
@@ -1662,6 +1683,9 @@ const ProfileScreen = () => {
         currentName={currentUser.data?.username || ''}
         isLoading={isUpdatingName}
       />
+
+      {/* F14 — Day history sheet */}
+      <DayHistorySheet date={dayDetail} onClose={() => setDayDetail(undefined)} />
 
       {/* Apple HIG pre-permission modal — photo library access for avatar */}
       <PermissionRequestModal
