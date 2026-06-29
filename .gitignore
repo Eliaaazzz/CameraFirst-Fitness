@@ -130,3 +130,6 @@ current-login.png
 google-apple-current.png
 tmp-*.png
 .expo/
+
+# 本地工作笔记,不入公开仓库
+docs/项目拷打文档.md

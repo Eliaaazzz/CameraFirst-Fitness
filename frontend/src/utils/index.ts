@@ -6,6 +6,7 @@ export * from './imageHelpers';
 export * from './materialMotion';
 export * from './nutritionReferences';
 export * from './responsive';
+export * from './scale';
 export * from './spoonacular';
 export * from './system';
 export * from './theme';

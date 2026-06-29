@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Envelope, Lightning, Lock, ShieldCheck } from 'phosphor-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
@@ -32,6 +32,7 @@ import {
 import { Image } from 'expo-image';
 import { Text } from '@/components';
 import { startBackendWarmup } from '@/services/backendWarmup';
+import { storeGoogleOAuthState } from '@/services/webGoogleRedirect';
 import { api } from '../services/apiClient';
 import { queryClient } from '../services/queryClient';
 import { useAuthStore } from '../stores';
@@ -239,6 +240,7 @@ const SocialButton: React.FC<SocialButtonProps> = ({ onPress, disabled }) => {
 // ============================================================================
 export default function LoginScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const insets = useSafeAreaInsets();
   const webGoogleHandoffStarted = React.useRef(false);
 
@@ -251,6 +253,15 @@ export default function LoginScreen() {
   // Auth state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Surface a Google sign-in failure routed here from the Splash boot handler
+  // (the web redirect is completed on Splash, so the error can't be set inline).
+  useEffect(() => {
+    if ((route.params as { authError?: string } | undefined)?.authError === 'google') {
+      setError('Google sign-in could not be completed. Please try again.');
+      navigation.setParams({ authError: undefined } as never);
+    }
+  }, [route.params, navigation]);
   const [showEmailLogin, setShowEmailLogin] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -558,7 +569,7 @@ export default function LoginScreen() {
     if (!shouldStartGoogle || webGoogleHandoffStarted.current) return;
 
     webGoogleHandoffStarted.current = true;
-    sessionStorage.setItem('google_oauth_state', googleRequest.state ?? '');
+    storeGoogleOAuthState(googleRequest.state);
 
     const cleanUrl = `${window.location.pathname}${window.location.hash || ''}`;
     window.history.replaceState(null, '', cleanUrl);
@@ -586,9 +597,9 @@ export default function LoginScreen() {
       }
 
       // Safari blocks window.open() called from async functions.
-      // Use a full-page redirect instead and manually handle the response
-      // from the URL hash when the page reloads (see useEffect above).
-      sessionStorage.setItem('google_oauth_state', googleRequest.state ?? '');
+      // Use a full-page redirect instead; the response is completed on the Splash
+      // boot screen after Google redirects back (see services/webGoogleRedirect).
+      storeGoogleOAuthState(googleRequest.state);
       window.location.href = googleRequest.url;
       return;
     }

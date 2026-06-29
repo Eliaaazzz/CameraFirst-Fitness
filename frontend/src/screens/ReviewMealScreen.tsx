@@ -4,8 +4,10 @@ import { RecognitionProcessingHero } from '@/components/common/RecognitionProces
 import { DetectedItemRow } from '@/components/nutrition/DetectedItemRow';
 import { NutritionSummaryCard } from '@/components/nutrition/NutritionSummaryCard';
 import { CameraView } from '@/components/CameraView';
+import { VisionCameraView } from '@/components/VisionCameraView';
 import useImageCompressor from '@/hooks/useImageCompressor';
 import { useCameraPermission } from '@/hooks/useCameraPermission';
+import { useDeviceCapabilities } from '@/hooks/useDeviceCapabilities';
 import nutritionApi, {
   DetectedFood,
   TotalNutrition,
@@ -177,6 +179,11 @@ export function ReviewMealScreen({ route, navigation }: any) {
   const shouldShowCamera = !!openCamera && !imageUri && !isViewingExisting && Platform.OS !== 'web';
 
   const cameraPerm = useCameraPermission();
+  const capabilities = useDeviceCapabilities();
+  // Use the depth-aware camera only on devices with a real depth sensor (LiDAR/ToF);
+  // everything else (and web) keeps the existing basic camera. Safe either way: when no
+  // real depth is available the computed imgWcm is null and we fall back to scaleHintCm.
+  const useDepthCapture = Platform.OS !== 'web' && (capabilities.hasLiDAR || capabilities.hasToF);
   const scaleHintCm = typeof imgWcm === 'number' ? imgWcm : DEFAULT_MEAL_IMAGE_WIDTH_CM;
 
   const insets = useSafeAreaInsets();
@@ -746,27 +753,47 @@ export function ReviewMealScreen({ route, navigation }: any) {
       );
     }
 
+    const handleCameraCancel = () => {
+      if (navigation.canGoBack()) navigation.goBack();
+      else navigation.navigate('Main', { screen: 'Dashboard' });
+    };
+
     return (
       <View style={styles.cameraContainer}>
-        <CameraView
-          onCapture={(uri) => navigation.setParams({
-            imageUri: uri,
-            imageMimeType: undefined,
-            imageFileName: undefined,
-            openCamera: false,
-            imgWcm: scaleHintCm,
-          })}
-          onCancel={() => {
-            if (navigation.canGoBack()) navigation.goBack();
-            else navigation.navigate('Main', { screen: 'Dashboard' });
-          }}
-          onGalleryPress={openGallery}
-          guideText="Align food here"
-          processing={false}
-          showReticle
-          captureButtonVariant="glass"
-          autoUsePhoto
-        />
+        {useDepthCapture ? (
+          <VisionCameraView
+            onCapture={(uri, metadata) => navigation.setParams({
+              imageUri: uri,
+              imageMimeType: undefined,
+              imageFileName: undefined,
+              openCamera: false,
+              // Use the depth-derived real-world width when available; otherwise fall back.
+              imgWcm: typeof metadata?.imgWcm === 'number' ? metadata.imgWcm : scaleHintCm,
+            })}
+            onCancel={handleCameraCancel}
+            onGalleryPress={openGallery}
+            guideText="Align food here"
+            processing={false}
+            autoUsePhoto
+          />
+        ) : (
+          <CameraView
+            onCapture={(uri) => navigation.setParams({
+              imageUri: uri,
+              imageMimeType: undefined,
+              imageFileName: undefined,
+              openCamera: false,
+              imgWcm: scaleHintCm,
+            })}
+            onCancel={handleCameraCancel}
+            onGalleryPress={openGallery}
+            guideText="Align food here"
+            processing={false}
+            showReticle
+            captureButtonVariant="glass"
+            autoUsePhoto
+          />
+        )}
       </View>
     );
   }
