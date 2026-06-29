@@ -33,7 +33,8 @@ import { Button, LoadingSpinner, Text } from '@/components';
 import { MagicReticle, ReticleState } from '@/components/MagicReticle';
 import { getTierDescription, DeviceTier } from '@/hooks/useDeviceCapabilities';
 import { DepthResult } from '@/hooks/useDepthCamera';
-import { spacing } from '@/utils';
+import { spacing, estimateImageWidthCm } from '@/utils';
+import { useLidarScale } from '@/hooks/useLidarScale';
 
 // Conditionally import VisionCamera (only on native)
 let Camera: any = null;
@@ -63,6 +64,12 @@ export interface CaptureMetadata {
   confidence: number;
   accuracy: string;
   deviceTier: DeviceTier;
+  /** Real-world image width (cm) derived from depth; sent to backend as img_w_cm. */
+  imgWcm?: number | null;
+  /** On-device LiDAR portion geometry; feeds the backend calorie corrector when present. */
+  volumeCm3?: number | null;
+  areaCm2?: number | null;
+  meanHCm?: number | null;
 }
 
 export interface VisionCameraViewProps {
@@ -147,6 +154,10 @@ export const VisionCameraView: React.FC<VisionCameraViewProps> = ({
       }
     },
   });
+
+  // On-demand LiDAR scale (real depth at capture time). Primary source of img_w_cm on LiDAR devices;
+  // the live frame-processor depth is only a UI hint and cannot read real depth in VisionCamera.
+  const lidar = useLidarScale();
 
   // Request permission on mount
   useEffect(() => {
@@ -233,15 +244,34 @@ export const VisionCameraView: React.FC<VisionCameraViewProps> = ({
 
       const photoUri = Platform.OS === 'ios' ? photo.path : `file://${photo.path}`;
 
-      // Build metadata
+      // Take one REAL LiDAR depth reading now (primary). Falls back to the live frame-processor hint,
+      // then to null (backend uses its default plate width). Never blocks/throws the capture.
+      const lidarScale = await lidar.measure();
       const depth = depthCamera.currentDepth;
+
+      const imgWcm =
+        lidarScale.imgWidthCm ??
+        estimateImageWidthCm({
+          distanceCm: depth?.distanceCm,
+          fxPx: depth?.fx,
+          frameWidthPx: depth?.width,
+          horizontalFovDeg: depth?.horizontalFovDeg,
+        });
+      const distanceCm = lidarScale.distanceCm ?? depth?.distanceCm ?? null;
+      const usedLidar = lidarScale.imgWidthCm != null;
       const metadata: CaptureMetadata = {
-        distanceCm: depth?.distanceCm ?? null,
-        confidence: depth?.confidence ?? 0,
-        accuracy: depthCamera.supportsDepth
+        distanceCm,
+        confidence: usedLidar ? lidarScale.confidence : depth?.confidence ?? 0,
+        accuracy: usedLidar
+          ? '±1cm (LiDAR)'
+          : depthCamera.supportsDepth
           ? (depthCamera.deviceTier === 'lidar' ? '±1cm' : '±3cm')
           : '±5cm (estimated)',
         deviceTier: depthCamera.deviceTier,
+        imgWcm,
+        volumeCm3: lidarScale.geometry?.volumeCm3 ?? null,
+        areaCm2: lidarScale.geometry?.areaCm2 ?? null,
+        meanHCm: lidarScale.geometry?.meanHCm ?? null,
       };
 
       if (autoUsePhoto) {
@@ -257,7 +287,7 @@ export const VisionCameraView: React.FC<VisionCameraViewProps> = ({
     } finally {
       setIsCapturing(false);
     }
-  }, [isCapturing, flashMode, depthCamera, autoUsePhoto, onCapture]);
+  }, [isCapturing, flashMode, depthCamera, lidar, autoUsePhoto, onCapture]);
 
   // Use captured photo
   const handleUsePhoto = useCallback(() => {
