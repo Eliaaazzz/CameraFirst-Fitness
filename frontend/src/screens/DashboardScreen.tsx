@@ -823,7 +823,7 @@ const DashboardScreen = () => {
                   </Text>
                   {/* F5 — Adaptive Home Hero (time-of-day morphing) */}
                   <AdaptiveHomeHero
-                    userName={currentUser.data?.username?.split(' ')[0]}
+                    userName={currentUser.data?.profile?.displayName?.split(' ')[0]}
                     caloriesConsumed={nutritionData.calories}
                     caloriesTarget={calorieGoal}
                     proteinConsumed={nutritionData.protein.current}
@@ -851,7 +851,7 @@ const DashboardScreen = () => {
                   <WeeklySummaryCard
                     insights={weeklyInsights.data}
                     isLoading={weeklyInsights.isLoading}
-                    userName={currentUser.data?.username?.split(' ')[0]}
+                    userName={currentUser.data?.profile?.displayName?.split(' ')[0]}
                   />
 
                   {/* F9 — Friends Activity Feed (Strava style) */}
