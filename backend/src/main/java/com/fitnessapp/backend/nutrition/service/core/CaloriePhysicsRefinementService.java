@@ -2,6 +2,7 @@ package com.fitnessapp.backend.nutrition.service.core;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -135,38 +136,45 @@ public class CaloriePhysicsRefinementService {
             return result;
         }
 
+        List<RecognizedFood> scaledItems = new ArrayList<>(items.size());
         for (RecognizedFood item : items) {
-            applyScale(item, scale);
+            scaledItems.add(scaledCopy(item, scale));
         }
 
         log.info("Physics portion-refine: volume={}cm3 dens={}g/cm3 flashKcal={} physicsKcal={} scale={} items={}",
                 round1(volume), round3(massWeightedDensity), Math.round(flashKcal),
                 Math.round(physicsKcal), round3(scale), items.size());
-        return result;
+        // Return a NEW result with scaled copies; never mutate the provider's output (avoids
+        // corrupting any caller/cache that holds the original reference).
+        return result.toBuilder().items(scaledItems).build();
     }
 
-    private void applyScale(RecognizedFood item, double scale) {
+    /** Return a portion-scaled copy of {@code item}, leaving the original untouched. */
+    private RecognizedFood scaledCopy(RecognizedFood item, double scale) {
         if (item == null) {
-            return;
+            return null;
         }
+        RecognizedFood.RecognizedFoodBuilder b = item.toBuilder();
         Integer grams = item.getEstimatedGrams();
         if (grams != null && grams > 0) {
-            item.setEstimatedGrams(Math.max(1, (int) Math.round(grams * scale)));
+            b.estimatedGrams(Math.max(1, (int) Math.round(grams * scale)));
         }
         NutritionInfo n = item.getNutrition();
-        if (n == null) {
-            return;
+        if (n != null) {
+            b.nutrition(n.toBuilder()
+                    .calories(scaleValue(n.getCalories(), scale, 0))
+                    .protein(scaleValue(n.getProtein(), scale, 1))
+                    .fat(scaleValue(n.getFat(), scale, 1))
+                    .carbs(scaleValue(n.getCarbs(), scale, 1))
+                    .fiber(scaleValue(n.getFiber(), scale, 1))
+                    .sugar(scaleValue(n.getSugar(), scale, 1))
+                    .netCarbs(scaleValue(n.getNetCarbs(), scale, 1))
+                    .sugarCubes(scaleValue(n.getSugarCubes(), scale, 1))
+                    // Glycemic index is intensive (portion-independent); glycemic load scales with net carbs.
+                    .glycemicLoad(scaleValue(n.getGlycemicLoad(), scale, 1))
+                    .build());
         }
-        n.setCalories(scaleValue(n.getCalories(), scale, 0));
-        n.setProtein(scaleValue(n.getProtein(), scale, 1));
-        n.setFat(scaleValue(n.getFat(), scale, 1));
-        n.setCarbs(scaleValue(n.getCarbs(), scale, 1));
-        n.setFiber(scaleValue(n.getFiber(), scale, 1));
-        n.setSugar(scaleValue(n.getSugar(), scale, 1));
-        n.setNetCarbs(scaleValue(n.getNetCarbs(), scale, 1));
-        n.setSugarCubes(scaleValue(n.getSugarCubes(), scale, 1));
-        // Glycemic index is intensive (unaffected by portion); glycemic load scales with net carbs.
-        n.setGlycemicLoad(scaleValue(n.getGlycemicLoad(), scale, 1));
+        return b.build();
     }
 
     private static BigDecimal scaleValue(BigDecimal value, double scale, int decimals) {

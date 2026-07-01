@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
  * Uses Smart Splitting with intuitive units (piece, bowl, serving).
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class RecognizedFood {

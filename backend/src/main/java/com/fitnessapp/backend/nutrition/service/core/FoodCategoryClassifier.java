@@ -44,20 +44,24 @@ public class FoodCategoryClassifier {
             Map.entry(FoodDensityCategory.BEVERAGE, List.of(
                     "juice", "smoothie", "latte", "coffee", "espresso", "soda", "cola", "tea",
                     "cocktail", "beer", "wine", "lemonade", "shake")),
+            // Protein mains and snacks are checked before dairy/fruit so a composite name keyed on
+            // its snack/protein noun wins over an incidental dairy/fruit ingredient word — e.g.
+            // "cheese crackers" -> SNACK (not DAIRY) and "apple chips" -> SNACK (not FRUIT), while
+            // MEAT stays ahead of SNACK so "crab cake"/"egg roll" -> MEAT (not SNACK).
+            Map.entry(FoodDensityCategory.MEAT_MAIN, List.of(
+                    "chicken", "beef", "steak", "pork", "bacon", "sausage", "ham", "turkey",
+                    "lamb", "fish", "salmon", "tuna", "shrimp", "prawn", "crab", "tofu", "egg",
+                    "meatloaf", "meatball", "nugget", "fillet", "filet")),
+            Map.entry(FoodDensityCategory.SNACK, List.of(
+                    "chip", "crisp", "cracker", "puff", "nut", "almond", "cashew", "peanut", "cookie",
+                    "biscuit", "muffin", "croissant", "donut", "doughnut", "pastry", "popcorn",
+                    "pretzel", "granola", "bar", "cake", "brownie", "roll")),
             Map.entry(FoodDensityCategory.DAIRY, List.of(
                     "milk", "yogurt", "yoghurt", "cheese", "cream cheese", "cottage")),
             Map.entry(FoodDensityCategory.FRUIT, List.of(
                     "apple", "banana", "berry", "strawberry", "blueberry", "raspberry", "grape",
                     "grapefruit", "melon", "watermelon", "orange", "peach", "pear", "mango",
                     "pineapple", "kiwi", "plum", "cherry", "avocado", "fruit")),
-            Map.entry(FoodDensityCategory.MEAT_MAIN, List.of(
-                    "chicken", "beef", "steak", "pork", "bacon", "sausage", "ham", "turkey",
-                    "lamb", "fish", "salmon", "tuna", "shrimp", "prawn", "crab", "tofu", "egg",
-                    "meatloaf", "meatball", "nugget", "fillet", "filet")),
-            Map.entry(FoodDensityCategory.SNACK, List.of(
-                    "chip", "crisp", "cracker", "nut", "almond", "cashew", "peanut", "cookie",
-                    "biscuit", "muffin", "croissant", "donut", "doughnut", "pastry", "popcorn",
-                    "pretzel", "granola", "bar", "cake", "brownie", "roll")),
             Map.entry(FoodDensityCategory.CARB_STAPLE, List.of(
                     "rice", "pasta", "noodle", "spaghetti", "bread", "toast", "bagel", "bun",
                     "potato", "fries", "mashed", "tortilla", "pancake", "waffle", "oatmeal",

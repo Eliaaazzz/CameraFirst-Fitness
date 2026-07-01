@@ -64,6 +64,21 @@ class FoodCategoryClassifierTest {
     }
 
     @Test
+    @DisplayName("snacks/proteins beat incidental dairy/fruit words; meat beats snack")
+    void compositePrecedenceOverIngredientWords() {
+        // Gemini review: a snack keyed on its snack noun must beat an incidental dairy/fruit word.
+        assertThat(classifier.classify("cheese crackers")).isEqualTo(FoodDensityCategory.SNACK);
+        assertThat(classifier.classify("cheese puffs")).isEqualTo(FoodDensityCategory.SNACK);
+        assertThat(classifier.classify("apple chips")).isEqualTo(FoodDensityCategory.SNACK);
+        // but plain dairy/fruit still resolve correctly
+        assertThat(classifier.classify("cheddar cheese")).isEqualTo(FoodDensityCategory.DAIRY);
+        assertThat(classifier.classify("sliced apple")).isEqualTo(FoodDensityCategory.FRUIT);
+        // and MEAT stays ahead of SNACK for savoury cake/roll items
+        assertThat(classifier.classify("crab cake")).isEqualTo(FoodDensityCategory.MEAT_MAIN);
+        assertThat(classifier.classify("egg roll")).isEqualTo(FoodDensityCategory.MEAT_MAIN);
+    }
+
+    @Test
     @DisplayName("unknown / null / blank names fall back to GENERIC")
     void unknownFallsBackToGeneric() {
         assertThat(classifier.classify(null)).isEqualTo(FoodDensityCategory.GENERIC);
