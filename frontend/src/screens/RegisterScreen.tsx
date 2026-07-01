@@ -31,6 +31,7 @@ import { Text } from '@/components';
 import { api } from '@/services/apiClient';
 import { startBackendWarmup } from '@/services/backendWarmup';
 import { queryClient } from '@/services/queryClient';
+import { storeGoogleOAuthState } from '@/services/webGoogleRedirect';
 import { useAuthStore } from '@/stores';
 import { BRAND_COLORS, EXPERIENCE_COLORS, radii, spacing } from '@/utils';
 
@@ -393,7 +394,7 @@ export default function RegisterScreen() {
     const search = new URLSearchParams(window.location.search);
     if (search.get('auth') !== 'google' || webGoogleHandoffStarted.current) return;
     webGoogleHandoffStarted.current = true;
-    sessionStorage.setItem('google_oauth_state', googleRequest.state ?? '');
+    storeGoogleOAuthState(googleRequest.state);
     window.history.replaceState(null, '', `${window.location.pathname}${window.location.hash || ''}`);
     window.location.href = googleRequest.url;
   }, [googleRequest]);
@@ -437,7 +438,7 @@ export default function RegisterScreen() {
         window.location.href = `${canonicalWebOrigin}${window.location.pathname || '/'}?auth=google`;
         return;
       }
-      sessionStorage.setItem('google_oauth_state', googleRequest.state ?? '');
+      storeGoogleOAuthState(googleRequest.state);
       window.location.href = googleRequest.url;
       return;
     }

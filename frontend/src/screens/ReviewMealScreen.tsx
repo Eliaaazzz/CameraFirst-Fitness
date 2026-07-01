@@ -4,8 +4,10 @@ import { RecognitionProcessingHero } from '@/components/common/RecognitionProces
 import { DetectedItemRow } from '@/components/nutrition/DetectedItemRow';
 import { NutritionSummaryCard } from '@/components/nutrition/NutritionSummaryCard';
 import { CameraView } from '@/components/CameraView';
+import { VisionCameraView } from '@/components/VisionCameraView';
 import useImageCompressor from '@/hooks/useImageCompressor';
 import { useCameraPermission } from '@/hooks/useCameraPermission';
+import { useDeviceCapabilities } from '@/hooks/useDeviceCapabilities';
 import nutritionApi, {
   DetectedFood,
   TotalNutrition,
@@ -171,13 +173,21 @@ const pickWebImageFile = (useCamera = false): Promise<WebSelectedImage | null> =
 
 export function ReviewMealScreen({ route, navigation }: any) {
   // Support both new image analysis and viewing/editing saved meals
-  const { imageUri, imageMimeType, imageFileName, meal, openCamera, imgWcm } = route.params ?? {};
+  const { imageUri, imageMimeType, imageFileName, meal, openCamera, imgWcm, volumeCm3 } = route.params ?? {};
   const isViewingExisting = !!meal;
   // On web, camera is not available — skip camera UI and auto-open gallery
   const shouldShowCamera = !!openCamera && !imageUri && !isViewingExisting && Platform.OS !== 'web';
 
   const cameraPerm = useCameraPermission();
+  const capabilities = useDeviceCapabilities();
+  // Use the depth-aware camera only on devices with a real depth sensor (LiDAR/ToF);
+  // everything else (and web) keeps the existing basic camera. Safe either way: when no
+  // real depth is available the computed imgWcm is null and we fall back to scaleHintCm.
+  const useDepthCapture = Platform.OS !== 'web' && (capabilities.hasLiDAR || capabilities.hasToF);
   const scaleHintCm = typeof imgWcm === 'number' ? imgWcm : DEFAULT_MEAL_IMAGE_WIDTH_CM;
+  // Absolute LiDAR food volume (cm³) captured at photo time; enables geometric portion refinement
+  // on the backend. Undefined for gallery photos / non-depth devices, where the backend no-ops.
+  const volumeHintCm = typeof volumeCm3 === 'number' && volumeCm3 > 0 ? volumeCm3 : undefined;
 
   const insets = useSafeAreaInsets();
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
@@ -287,6 +297,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
       imageFileName: asset.fileName,
       openCamera: false,
       imgWcm: scaleHintCm,
+      // Gallery images carry no depth — clear any stale LiDAR volume from a prior capture.
+      volumeCm3: null,
     });
   };
 
@@ -303,6 +315,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
       imageFileName: undefined,
       openCamera: true,
       imgWcm: scaleHintCm,
+      // Reset LiDAR volume on retake; the next capture supplies a fresh reading (or none).
+      volumeCm3: null,
     });
   };
 
@@ -542,7 +556,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
         try {
           response = await nutritionApi.analyzeFoodImage(
             uploadUri,
-            { img_w_cm: scaleHintCm },
+            { img_w_cm: scaleHintCm, volume_cm3: volumeHintCm },
             { sourceMimeType: uploadMimeType, sourceFileName: uploadFileName }
           );
         } catch (analysisError) {
@@ -561,7 +575,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
           uploadFileName = imageFileName;
           response = await nutritionApi.analyzeFoodImage(
             imageUri,
-            { img_w_cm: scaleHintCm },
+            { img_w_cm: scaleHintCm, volume_cm3: volumeHintCm },
             { sourceMimeType: uploadMimeType, sourceFileName: uploadFileName }
           );
         }
@@ -746,27 +760,51 @@ export function ReviewMealScreen({ route, navigation }: any) {
       );
     }
 
+    const handleCameraCancel = () => {
+      if (navigation.canGoBack()) navigation.goBack();
+      else navigation.navigate('Main', { screen: 'Dashboard' });
+    };
+
     return (
       <View style={styles.cameraContainer}>
-        <CameraView
-          onCapture={(uri) => navigation.setParams({
-            imageUri: uri,
-            imageMimeType: undefined,
-            imageFileName: undefined,
-            openCamera: false,
-            imgWcm: scaleHintCm,
-          })}
-          onCancel={() => {
-            if (navigation.canGoBack()) navigation.goBack();
-            else navigation.navigate('Main', { screen: 'Dashboard' });
-          }}
-          onGalleryPress={openGallery}
-          guideText="Align food here"
-          processing={false}
-          showReticle
-          captureButtonVariant="glass"
-          autoUsePhoto
-        />
+        {useDepthCapture ? (
+          <VisionCameraView
+            onCapture={(uri, metadata) => navigation.setParams({
+              imageUri: uri,
+              imageMimeType: undefined,
+              imageFileName: undefined,
+              openCamera: false,
+              // Use the depth-derived real-world width when available; otherwise fall back.
+              imgWcm: typeof metadata?.imgWcm === 'number' ? metadata.imgWcm : scaleHintCm,
+              // Absolute LiDAR food volume for geometric portion refinement (null on non-depth captures).
+              volumeCm3: typeof metadata?.volumeCm3 === 'number' ? metadata.volumeCm3 : null,
+            })}
+            onCancel={handleCameraCancel}
+            onGalleryPress={openGallery}
+            guideText="Align food here"
+            processing={false}
+            autoUsePhoto
+          />
+        ) : (
+          <CameraView
+            onCapture={(uri) => navigation.setParams({
+              imageUri: uri,
+              imageMimeType: undefined,
+              imageFileName: undefined,
+              openCamera: false,
+              imgWcm: scaleHintCm,
+              // Basic (non-depth) camera has no LiDAR volume — never refine on stale volume.
+              volumeCm3: null,
+            })}
+            onCancel={handleCameraCancel}
+            onGalleryPress={openGallery}
+            guideText="Align food here"
+            processing={false}
+            showReticle
+            captureButtonVariant="glass"
+            autoUsePhoto
+          />
+        )}
       </View>
     );
   }
