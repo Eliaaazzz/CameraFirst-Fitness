@@ -173,7 +173,7 @@ const pickWebImageFile = (useCamera = false): Promise<WebSelectedImage | null> =
 
 export function ReviewMealScreen({ route, navigation }: any) {
   // Support both new image analysis and viewing/editing saved meals
-  const { imageUri, imageMimeType, imageFileName, meal, openCamera, imgWcm } = route.params ?? {};
+  const { imageUri, imageMimeType, imageFileName, meal, openCamera, imgWcm, volumeCm3 } = route.params ?? {};
   const isViewingExisting = !!meal;
   // On web, camera is not available — skip camera UI and auto-open gallery
   const shouldShowCamera = !!openCamera && !imageUri && !isViewingExisting && Platform.OS !== 'web';
@@ -185,6 +185,9 @@ export function ReviewMealScreen({ route, navigation }: any) {
   // real depth is available the computed imgWcm is null and we fall back to scaleHintCm.
   const useDepthCapture = Platform.OS !== 'web' && (capabilities.hasLiDAR || capabilities.hasToF);
   const scaleHintCm = typeof imgWcm === 'number' ? imgWcm : DEFAULT_MEAL_IMAGE_WIDTH_CM;
+  // Absolute LiDAR food volume (cm³) captured at photo time; enables geometric portion refinement
+  // on the backend. Undefined for gallery photos / non-depth devices, where the backend no-ops.
+  const volumeHintCm = typeof volumeCm3 === 'number' && volumeCm3 > 0 ? volumeCm3 : undefined;
 
   const insets = useSafeAreaInsets();
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
@@ -549,7 +552,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
         try {
           response = await nutritionApi.analyzeFoodImage(
             uploadUri,
-            { img_w_cm: scaleHintCm },
+            { img_w_cm: scaleHintCm, volume_cm3: volumeHintCm },
             { sourceMimeType: uploadMimeType, sourceFileName: uploadFileName }
           );
         } catch (analysisError) {
@@ -568,7 +571,7 @@ export function ReviewMealScreen({ route, navigation }: any) {
           uploadFileName = imageFileName;
           response = await nutritionApi.analyzeFoodImage(
             imageUri,
-            { img_w_cm: scaleHintCm },
+            { img_w_cm: scaleHintCm, volume_cm3: volumeHintCm },
             { sourceMimeType: uploadMimeType, sourceFileName: uploadFileName }
           );
         }
@@ -769,6 +772,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
               openCamera: false,
               // Use the depth-derived real-world width when available; otherwise fall back.
               imgWcm: typeof metadata?.imgWcm === 'number' ? metadata.imgWcm : scaleHintCm,
+              // Absolute LiDAR food volume for geometric portion refinement (null on non-depth captures).
+              volumeCm3: typeof metadata?.volumeCm3 === 'number' ? metadata.volumeCm3 : null,
             })}
             onCancel={handleCameraCancel}
             onGalleryPress={openGallery}

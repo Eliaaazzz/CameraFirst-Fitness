@@ -56,6 +56,10 @@ export interface FoodRecognitionResponse {
 export interface FoodRecognitionRequestMetadata {
   img_w_cm?: number;
   real_world_width_cm?: number;
+  /** Absolute LiDAR-measured food volume (cm³); enables geometric portion refinement server-side. */
+  volume_cm3?: number;
+  area_cm2?: number;
+  mean_h_cm?: number;
 }
 
 export interface AnalyzeFoodImageOptions {
