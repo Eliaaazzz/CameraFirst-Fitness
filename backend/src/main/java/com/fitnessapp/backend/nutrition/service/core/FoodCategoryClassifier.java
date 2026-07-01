@@ -30,7 +30,7 @@ public class FoodCategoryClassifier {
                     "olive oil", "butter", "margarine", "mayo", "mayonnaise", "dressing",
                     "vinaigrette", "gravy", "ghee", "lard", "aioli")),
             Map.entry(FoodDensityCategory.MIXED_DISH, List.of(
-                    "fried rice", "stir fry", "stir-fry", "buddha bowl", "poke bowl", "bento",
+                    "fried rice", "stir fry", "buddha bowl", "poke bowl", "bento",
                     "burrito", "wrap", "casserole", "paella", "risotto", "biryani", "pilaf",
                     "jambalaya", "curry", "hash")),
             Map.entry(FoodDensityCategory.LIQUID_SOUP, List.of(
@@ -47,9 +47,9 @@ public class FoodCategoryClassifier {
             Map.entry(FoodDensityCategory.DAIRY, List.of(
                     "milk", "yogurt", "yoghurt", "cheese", "cream cheese", "cottage")),
             Map.entry(FoodDensityCategory.FRUIT, List.of(
-                    "apple", "banana", "berry", "berries", "strawberr", "blueberr", "grape",
-                    "melon", "watermelon", "orange", "peach", "pear", "mango", "pineapple",
-                    "kiwi", "plum", "cherry", "avocado", "fruit")),
+                    "apple", "banana", "berry", "strawberry", "blueberry", "raspberry", "grape",
+                    "grapefruit", "melon", "watermelon", "orange", "peach", "pear", "mango",
+                    "pineapple", "kiwi", "plum", "cherry", "avocado", "fruit")),
             Map.entry(FoodDensityCategory.MEAT_MAIN, List.of(
                     "chicken", "beef", "steak", "pork", "bacon", "sausage", "ham", "turkey",
                     "lamb", "fish", "salmon", "tuna", "shrimp", "prawn", "crab", "tofu", "egg",
@@ -77,11 +77,11 @@ public class FoodCategoryClassifier {
         String name = foodName.toLowerCase().trim().replace('-', ' ');
         String[] tokens = name.split("[^a-z]+");
         for (Map.Entry<FoodDensityCategory, List<String>> entry : KEYWORDS) {
-            for (String kw : entry.getValue()) {
-                // Short cues (≤3 chars: "tea", "egg", "ham", "nut", "bar", "pho") must match a whole
-                // word — otherwise "tea" hides inside "steak"/"steamed". Longer cues use substring so
-                // prefixes ("strawberr") still catch plurals.
-                boolean hit = kw.length() <= 3 ? matchesToken(tokens, kw) : name.contains(kw);
+            for (String cue : entry.getValue()) {
+                // Multi-word cues ("olive oil", "fried rice") match as a substring; single-word cues
+                // match on WHOLE words only, so "butter" doesn't fire on "butterfly" and "tea" doesn't
+                // hide inside "steak". Regular plurals are handled so "chip"→"chips" etc. still match.
+                boolean hit = cue.indexOf(' ') >= 0 ? name.contains(cue) : matchesWord(tokens, cue);
                 if (hit) {
                     return entry.getKey();
                 }
@@ -90,14 +90,17 @@ public class FoodCategoryClassifier {
         return FoodDensityCategory.GENERIC;
     }
 
-    /** True if any token equals the keyword, or its singular (trailing "s" stripped) does. */
-    private static boolean matchesToken(String[] tokens, String kw) {
+    /** True if any token equals the cue or a regular plural of it (cats, boxes, berries, fries). */
+    private static boolean matchesWord(String[] tokens, String cue) {
         for (String t : tokens) {
-            if (t.equals(kw)) {
+            if (t.isEmpty()) {
+                continue;
+            }
+            if (t.equals(cue) || t.equals(cue + "s") || t.equals(cue + "es")) {
                 return true;
             }
-            if (t.length() > 1 && t.endsWith("s") && t.substring(0, t.length() - 1).equals(kw)) {
-                return true;
+            if (cue.endsWith("y") && t.equals(cue.substring(0, cue.length() - 1) + "ies")) {
+                return true; // berry→berries, cherry→cherries, fry→fries
             }
         }
         return false;

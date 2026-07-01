@@ -88,6 +88,27 @@ class CaloriePhysicsRefinementServiceTest {
     // --- correction math ---
 
     @Test
+    @DisplayName("no-op on an implausibly tiny volume reading (noise)")
+    void noOpOnTinyVolume() {
+        // A near-zero bad reading must not silently clamp to min-scale.
+        FoodRecognitionResult r = result(food("Steak", 200, 400));
+        service.refine(r, volume(0.001));
+        assertThat(kcal(r.getItems().get(0))).isEqualTo(400);
+        assertThat(r.getItems().get(0).getEstimatedGrams()).isEqualTo(200);
+    }
+
+    @Test
+    @DisplayName("inconsistent clamp config (min > max) resets to safe defaults")
+    void hardensInvalidClampConfig() {
+        CaloriePhysicsRefinementService bad =
+                new CaloriePhysicsRefinementService(new FoodCategoryClassifier(), true, 0.5, 1.32, 3.0, 2.0);
+        FoodRecognitionResult r = result(food("Cake", 100, 100));
+        bad.refine(r, volume(100000.0));
+        // Runaway scale must clamp to the reset default max (2.5 → 250), never exceed it.
+        assertThat(kcal(r.getItems().get(0))).isEqualTo(250);
+    }
+
+    @Test
     @DisplayName("scales DOWN when the model over-estimates portion (small volume)")
     void scalesDownOnOverEstimate() {
         // Steak (density 1.02), flash 200g/400kcal (2.0 kcal/g), volume 100cm3.

@@ -57,6 +57,9 @@ public class CaloriePhysicsRefinementService {
     /** Below this relative change, skip rewriting the estimate to avoid needless rounding churn. */
     private static final double SCALE_EPSILON = 0.005;
 
+    /** A whole-meal scene volume below this (cm³) is treated as a noise reading and skipped. */
+    private static final double MIN_VOLUME_CM3 = 2.0;
+
     public CaloriePhysicsRefinementService(
             FoodCategoryClassifier classifier,
             @Value("${app.nutrition.physics-refine.enabled:true}") boolean enabled,
@@ -66,10 +69,16 @@ public class CaloriePhysicsRefinementService {
             @Value("${app.nutrition.physics-refine.max-scale:2.5}") double maxScale) {
         this.classifier = classifier;
         this.enabled = enabled;
-        this.blendWeight = clamp(blendWeight, 0.0, 1.0);
-        this.volumeBias = volumeBias > 0 ? volumeBias : 1.0;
-        this.minScale = minScale > 0 ? minScale : 0.4;
-        this.maxScale = maxScale >= this.minScale ? maxScale : 2.5;
+        this.blendWeight = Double.isFinite(blendWeight) ? clamp(blendWeight, 0.0, 1.0) : 0.5;
+        this.volumeBias = (Double.isFinite(volumeBias) && volumeBias > 0) ? volumeBias : 1.32;
+        double lo = (Double.isFinite(minScale) && minScale > 0) ? minScale : 0.4;
+        double hi = (Double.isFinite(maxScale) && maxScale > 0) ? maxScale : 2.5;
+        if (hi < lo) { // inconsistent pair (e.g. min=3, max=2) → reset both to safe defaults
+            lo = 0.4;
+            hi = 2.5;
+        }
+        this.minScale = lo;
+        this.maxScale = hi;
     }
 
     /**
@@ -81,7 +90,7 @@ public class CaloriePhysicsRefinementService {
             return result;
         }
         Double volume = metadata.resolveVolumeCm3();
-        if (volume == null) {
+        if (volume == null || volume < MIN_VOLUME_CM3) {
             return result;
         }
         List<RecognizedFood> items = result.getItems();

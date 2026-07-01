@@ -297,6 +297,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
       imageFileName: asset.fileName,
       openCamera: false,
       imgWcm: scaleHintCm,
+      // Gallery images carry no depth — clear any stale LiDAR volume from a prior capture.
+      volumeCm3: null,
     });
   };
 
@@ -313,6 +315,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
       imageFileName: undefined,
       openCamera: true,
       imgWcm: scaleHintCm,
+      // Reset LiDAR volume on retake; the next capture supplies a fresh reading (or none).
+      volumeCm3: null,
     });
   };
 
@@ -789,6 +793,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
               imageFileName: undefined,
               openCamera: false,
               imgWcm: scaleHintCm,
+              // Basic (non-depth) camera has no LiDAR volume — never refine on stale volume.
+              volumeCm3: null,
             })}
             onCancel={handleCameraCancel}
             onGalleryPress={openGallery}

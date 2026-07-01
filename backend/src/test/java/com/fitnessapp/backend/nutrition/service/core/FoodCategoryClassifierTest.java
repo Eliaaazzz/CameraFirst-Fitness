@@ -32,10 +32,26 @@ class FoodCategoryClassifierTest {
         "Almond handful, SNACK",
         "Orange juice, BEVERAGE",
         "Minced garlic, GARNISH",
-        "Fried rice, MIXED_DISH"
+        "Fried rice, MIXED_DISH",
+        "Butterfly shrimp, MEAT_MAIN",
+        "Grapefruit half, FRUIT",
+        "Blueberries, FRUIT",
+        "Chicken nuggets, MEAT_MAIN"
     })
     void classifiesCommonFoods(String name, String expected) {
         assertThat(classifier.classify(name)).isEqualTo(FoodDensityCategory.valueOf(expected));
+    }
+
+    @Test
+    @DisplayName("whole-word matching avoids substring false positives")
+    void avoidsSubstringFalsePositives() {
+        // "butter" must not fire on "butterfly"; "steak" must not fire on the "tea" cue.
+        assertThat(classifier.classify("butterfly shrimp")).isEqualTo(FoodDensityCategory.MEAT_MAIN);
+        assertThat(classifier.classify("grilled steak")).isEqualTo(FoodDensityCategory.MEAT_MAIN);
+        assertThat(classifier.classify("steamed white rice")).isEqualTo(FoodDensityCategory.CARB_STAPLE);
+        // regular plurals still match their singular cue
+        assertThat(classifier.classify("potato chips")).isEqualTo(FoodDensityCategory.SNACK);
+        assertThat(classifier.classify("scrambled eggs")).isEqualTo(FoodDensityCategory.MEAT_MAIN);
     }
 
     @Test
