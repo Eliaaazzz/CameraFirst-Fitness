@@ -1,5 +1,7 @@
 package com.fitnessapp.backend.nutrition.dto;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -52,6 +54,15 @@ public class FoodRecognitionRequestMetadata {
   @JsonProperty("mean_h_cm")
   private Double meanHCm;
 
+  /**
+   * Per-item segmented food regions (LiDAR + on-device Vision instance masks). When present with
+   * localized foods, the backend refines each food's portion independently
+   * ({@code PerItemPortionRefinementService}); otherwise their volumes still feed the scene-level
+   * correction as a cleaner, food-only total. Absent on non-depth devices, web, or gallery photos.
+   */
+  @JsonProperty("items")
+  private List<DepthItem> items;
+
   @JsonIgnore
   public Double resolveImageWidthCm() {
     if (imageWidthCm != null) return imageWidthCm;
@@ -68,6 +79,20 @@ public class FoodRecognitionRequestMetadata {
       return volumeCm3;
     }
     return null;
+  }
+
+  /**
+   * The usable per-item depth masks (positive volume), or an empty list when the client sent none.
+   * Never returns {@code null}, so callers can iterate without a guard.
+   */
+  @JsonIgnore
+  public List<DepthItem> resolveDepthItems() {
+    if (items == null || items.isEmpty()) {
+      return List.of();
+    }
+    return items.stream()
+        .filter(i -> i != null && i.hasPositiveVolume())
+        .toList();
   }
 }
 

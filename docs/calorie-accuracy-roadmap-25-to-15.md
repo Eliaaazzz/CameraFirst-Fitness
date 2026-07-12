@@ -354,3 +354,109 @@ error)=+0.12; npx tracks object size, not sampling).
    flash-weighted, so common foods keep flash's win and large/dense portions get the geometry fix.
 5. Ship one global volume-bias constant (~1.32×) fit on any benchmark — it generalizes; **no
    per-user/per-domain calibration.**
+
+---
+
+## 11. MEASURED: per-item segmentation does NOT beat whole-plate on N5k (2026-07-09)
+
+**Question.** Does per-item decomposition (segment each food → per-item volume × per-food density ×
+per-item energy density) beat the shipped whole-plate correction (one volume × one blended density) on
+**mixed** plates? Nutrition5k is the only public set with per-ingredient ground truth, so it answers this.
+
+**Harness** (`n5k_peritem_eval.py`, session scratchpad; Vertex `gemini-2.5-flash`, thinking-off, project
+`gen-lang-client-0295973830` / `us-central1`): per dish, flash returns foods with `{name, grams,
+calories, normalized bounding box}`; RealSense overhead depth (uint16 mm) → table plane (border median)
+→ integrate height-above-plane. Whole-plate volume, and per-item volume with **each food pixel assigned
+to exactly one food** (smallest containing box — a non-overlapping, mask-like partition, so coarse
+overlapping boxes don't double-count). Density LUT keyed to the food name (same categories as the
+backend classifier). Each method fits **one global volume→mass scale** (median-unbiased) so the
+comparison is scale-fair. n=100 mixed dishes (≥3 ingredients).
+
+**Result — median calorie APE (n=100):**
+
+| method | median cal APE | median mass APE |
+|---|---|---|
+| raw flash | 26.1% | — |
+| **whole-plate geomean(flash, physics) — SHIPPED** | **16.2%** | 23.2% |
+| per-item geomean | 23.3% | 27.9% |
+| per-item pure physics | 39.3% | — |
+| oracle (perfect total mass × flash energy density) | 9.9% | — |
+
+Stratified by item count, **whole-plate wins in both buckets**: ≤3 foods 16.1% vs 22.9%; ≥4 foods
+18.9% vs 24.0%.
+
+**Why per-item loses.** With the exclusive-pixel partition, per-item **mass** (27.9%) nearly matches
+whole-plate (23.2%) — the volume split itself is fine. The gap is the **energy-density step**: per-item
+multiplies each item's mass by *its own* kcal/g, so any pixel mis-assigned to a high-energy item (fatty
+meat ≈5 kcal/g) blows up the calories, while whole-plate's single blended density averages it out.
+Flash's per-item calorie *split* is also noisier than its total. Decomposition pays off only when
+per-gram **and** mass are each estimated cleanly (Google's 9.5% per-gram); the per-item mass assignment
+on a piled cafeteria plate is not clean enough for the energy-density multiply to earn its keep.
+
+**Decision.** Ship the whole-plate geomean; default the per-item path **OFF**
+(`app.nutrition.physics-refine.per-item-enabled=false`). The per-item vertical (backend
+`PerItemPortionRefinementService` + on-device Vision instance masks + `DepthItem`/`BoundingBox` DTOs) is
+kept **behind the flag** for the case it was built for — few, well-separated, density-diverse items with
+clean instance masks — but that is not what N5k mixed plates are, and per-item geometry is **not** the
+lever to sub-16%.
+
+**Caveats.** (a) Partition = flash bounding boxes, not clean Vision/SAM instance masks; masks would
+tighten per-item mass (~5-pt gap) but not the energy-density amplification (~7-pt kcal gap), so they
+are unlikely to flip the verdict — untested. (b) Global scale fit in-domain, so absolute numbers are
+optimistic; the per-item-vs-whole **comparison** is the robust takeaway, not the 16%. (c) N5k overhead
+cafeteria plates, small portions. (d) The real levers to beat ~16% remain §4/§5/§8: semantic USDA
+density retrieval (DietAI24, −63% MAE, *your* stack), the per-day KPI, or an in-domain RGB-D
+specialist — **not** per-item geometry.
+
+---
+
+## 12. MEASURED: learned fusion on top of the geomean (2026-07-12) — shipped w=0.75 / e^b=0.862
+
+**Question.** The shipped 50:50 geomean assumes flash and physics are equally reliable everywhere.
+Does a *learned* fusion — (a) a global log-space weight+bias, (b) a Huber log-residual model, (c) a
+dynamically gated weight `w(x)` — beat it, and does any of them reach **<20% per-meal median APE
+cross-domain**? Trained on N5k cafe1 (n=100), tested **zero-shot** on cafe2 (n=60, different
+kitchen/rig — the production proxy). Flash outputs from the cached 2026-07-09 Vertex run (no new API
+calls). Harness: `fusion_eval.py` / `fusion_stack.py` (session scratchpad).
+
+**Ladder — median calorie APE (signed bias / P90 in parens):**
+
+| model | cafe1 5-fold CV | cafe2 ZERO-SHOT |
+|---|---|---|
+| raw flash | 26.1% (+23% / 89%) | 39.9% (+17% / 100%) |
+| physics only | 24.6% | 42.8% |
+| geomean 50:50 (shipped) | 17.7% (+13% / 63%) | 30.5% (+12% / 108%) |
+| **E: global weight+bias (w=0.75 flash, e^b=0.862)** | 18.8% (+1% / 50%) | **27.7% (−2% / 77%)** |
+| F: Huber log-residual (11 features, on geomean) | 17.9% (−3% / 49%) | 29.4% |
+| G: dynamic gated `w(x)=σ(θᵀx)` + bias term | 18.2% | 29.1% |
+| H: GBDT challenger (depth 2, strong reg) | 17.1% | 29.5% |
+| E × Huber residual stacked (core+depth-quality feats) | 18.2% | **26.3%** |
+| oracle (perfect mass × flash energy density) | — | 15.9% |
+
+**Per-day (cafe2 zero-shot, 400 simulated days):** geomean 3-meal 20.6% / 4-meal 18.7% / 5-meal 16.3%
+→ **E-fusion 18.9% / 16.3% / 14.2%** (Huber variant similar: 17.2 / 16.7 / 15.8).
+
+**Findings.**
+1. **The simplest learned model transfers best.** The 2-parameter global fit
+   `log y = b + 0.75·log flash + 0.25·log physics` captures most of the achievable gain
+   (30.5→27.7 zero-shot) and — unlike every feature-based model — cannot memorize cafe1. The bias
+   `e^b = 0.862` mostly cancels flash's systematic over-estimation (raw bias +17…23%), which is a
+   *model* property, so it ports across domains: cafe2 signed bias goes +11.9% → −1.9%.
+2. **Feature models add ~1.4pt at best** (stacked Huber 26.3%) and the useful extra features are
+   depth-quality fractions the phone module doesn't emit yet; kept as an offline result, not shipped.
+3. **Per-meal <20% cross-domain is NOT reached by any fusion** — cafe2's inputs are too weak
+   (flash 39.9%, physics 42.8%, oracle floor 15.9%). Fusion can only re-weight information that's
+   there; §8's floor stands. **Per-day <20% is comfortably met** (14–19%), now with margin.
+4. In-domain (cafe1 CV) the learned models trade ~1pt of median for a large tail win
+   (P90 63%→50%, bias +13%→−2%): fewer catastrophic estimates for the same headline number.
+
+**Shipped.** `CaloriePhysicsRefinementService`: `blend-weight` default 0.5→**0.75**, new
+`fusion-bias` (log-space intercept, default **0.862**, hardened to fall back to neutral 1.0 outside
+[0.5, 2.0]). Backend suite 436 tests green. Env overrides: `NUTRITION_PHYSICS_BLEND_WEIGHT`,
+`NUTRITION_PHYSICS_FUSION_BIAS`.
+
+**Caveats.** (a) w=0.75 was learned where physics volume is noisy (RealSense + assumed fx); if
+production iPhone-LiDAR volume proves SF45-grade (§10.4), the optimal weight shifts back toward
+physics — revisit after the real-device mixed-plate eval. (b) Two N5k cafeterias only; MF3D/SF45
+caches were lost, so cross-*dataset* validation of these two constants is pending. (c) Per-day
+numbers are meal-resampling simulations, not real user-day logs.

@@ -10,6 +10,22 @@
  */
 import { Platform } from 'react-native';
 
+/**
+ * One on-device segmented food region: an absolute LiDAR volume integrated over a single Vision
+ * instance mask, plus the mask's normalized centroid so the backend can assign it to the matching
+ * food for per-item portion refinement. Present only on iOS 17+ LiDAR captures.
+ */
+export interface LidarRegion {
+  /** integrated food volume for this region, cm³ */
+  volumeCm3: number;
+  /** region footprint area, cm² */
+  areaCm2: number;
+  /** normalized centroid X [0,1], top-left origin */
+  cx: number;
+  /** normalized centroid Y [0,1], top-left origin */
+  cy: number;
+}
+
 export interface LidarReading {
   hasDepth: boolean;
   /** camera-to-subject distance in centimeters */
@@ -24,7 +40,7 @@ export interface LidarReading {
   confidence?: number;
   accuracy?: 'absolute' | 'relative';
   // --- on-device portion geometry (feeds the calorie corrector) ---
-  /** integrated food volume above the plate plane, cm³ */
+  /** integrated food volume above the plate plane, cm³ (whole scene, food-only) */
   volumeCm3?: number;
   /** food footprint area, cm² */
   areaCm2?: number;
@@ -32,6 +48,8 @@ export interface LidarReading {
   meanHCm?: number;
   /** number of food depth pixels */
   npx?: number;
+  /** per-item segmented regions (iOS 17+); enables per-item portion refinement server-side */
+  items?: LidarRegion[];
   /** why depth was unavailable, when hasDepth=false */
   reason?: string;
 }

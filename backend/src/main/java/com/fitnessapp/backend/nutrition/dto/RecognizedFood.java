@@ -40,4 +40,12 @@ public class RecognizedFood {
 
   // Nutrition info for this food item
   private NutritionInfo nutrition;
+
+  /**
+   * Optional normalized (0..1) location of this food in the image, emitted by the vision model
+   * when it localizes. Lets the backend assign an on-device depth mask to this food for per-item
+   * portion refinement ({@code PerItemPortionRefinementService}); absent → scene-level fallback.
+   */
+  @JsonProperty("bounding_box")
+  private BoundingBox boundingBox;
 }

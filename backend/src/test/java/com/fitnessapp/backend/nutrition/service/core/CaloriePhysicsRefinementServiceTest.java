@@ -16,9 +16,14 @@ import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 @DisplayName("CaloriePhysicsRefinementService Tests")
 class CaloriePhysicsRefinementServiceTest {
 
-    // Default production-like config: blendWeight 0.5, volumeBias 1.32, clamp [0.4, 2.5].
+    // Plain 50:50 geomean with a neutral fusion bias — keeps the long-standing math expectations
+    // below independent of the learned-fusion defaults (covered by their own tests).
     private final CaloriePhysicsRefinementService service =
-            new CaloriePhysicsRefinementService(new FoodCategoryClassifier(), true, 0.5, 1.32, 0.4, 2.5);
+            new CaloriePhysicsRefinementService(new FoodCategoryClassifier(), true, 0.5, 1.0, 1.32, 0.4, 2.5);
+
+    // Learned-fusion production defaults (application.yml): w=0.75 on flash, e^b=0.862.
+    private final CaloriePhysicsRefinementService learned =
+            new CaloriePhysicsRefinementService(new FoodCategoryClassifier(), true, 0.75, 0.862, 1.32, 0.4, 2.5);
 
     // --- helpers ---
     private static RecognizedFood food(String name, int grams, int kcal) {
@@ -71,7 +76,7 @@ class CaloriePhysicsRefinementServiceTest {
     @DisplayName("no-op when disabled by config")
     void noOpWhenDisabled() {
         CaloriePhysicsRefinementService disabled =
-                new CaloriePhysicsRefinementService(new FoodCategoryClassifier(), false, 0.5, 1.32, 0.4, 2.5);
+                new CaloriePhysicsRefinementService(new FoodCategoryClassifier(), false, 0.5, 1.0, 1.32, 0.4, 2.5);
         FoodRecognitionResult r = result(food("Steak", 200, 400));
         assertThat(kcal(disabled.refine(r, volume(100.0)).getItems().get(0))).isEqualTo(400);
     }
@@ -149,7 +154,7 @@ class CaloriePhysicsRefinementServiceTest {
     @DisplayName("inconsistent clamp config (min > max) resets to safe defaults")
     void hardensInvalidClampConfig() {
         CaloriePhysicsRefinementService bad =
-                new CaloriePhysicsRefinementService(new FoodCategoryClassifier(), true, 0.5, 1.32, 3.0, 2.0);
+                new CaloriePhysicsRefinementService(new FoodCategoryClassifier(), true, 0.5, 1.0, 1.32, 3.0, 2.0);
         FoodRecognitionResult out = bad.refine(result(food("Cake", 100, 100)), volume(100000.0));
         assertThat(kcal(out.getItems().get(0))).isEqualTo(250);
     }
@@ -175,16 +180,48 @@ class CaloriePhysicsRefinementServiceTest {
         assertThat(kcal(out.getItems().get(1))).isEqualTo(249);
     }
 
+    // --- learned fusion (w=0.75, e^b=0.862; docs/calorie-accuracy-roadmap-25-to-15.md §12) ---
+
+    @Test
+    @DisplayName("learned fusion: flash-heavy weight plus bias intercept")
+    void learnedFusionDefaults() {
+        // Steak 200g/400kcal, volume 100cm³: physicsKcal=154.55,
+        // blended = 0.862 × 400^0.75 × 154.55^0.25 = 271.8 → scale 0.6796.
+        FoodRecognitionResult out = learned.refine(result(food("Grilled steak", 200, 400)), volume(100.0));
+        assertThat(kcal(out.getItems().get(0))).isEqualTo(272);
+        assertThat(out.getItems().get(0).getEstimatedGrams()).isEqualTo(136);
+    }
+
+    @Test
+    @DisplayName("learned fusion corrects less aggressively toward physics than 50:50")
+    void learnedFusionIsFlashHeavier() {
+        FoodRecognitionResult in = result(food("Grilled steak", 200, 400));
+        int fifty = kcal(service.refine(in, volume(100.0)).getItems().get(0));   // 249
+        int learnedKcal = kcal(learned.refine(in, volume(100.0)).getItems().get(0)); // 272
+        assertThat(learnedKcal).isGreaterThan(fifty).isLessThan(400);
+    }
+
+    @Test
+    @DisplayName("out-of-band fusion-bias falls back to neutral 1.0, not the learned default")
+    void hardensInvalidFusionBias() {
+        for (double bad : new double[]{0.0, -1.0, 0.2, 5.0, Double.NaN, Double.POSITIVE_INFINITY}) {
+            CaloriePhysicsRefinementService s =
+                    new CaloriePhysicsRefinementService(new FoodCategoryClassifier(), true, 0.5, bad, 1.32, 0.4, 2.5);
+            FoodRecognitionResult out = s.refine(result(food("Grilled steak", 200, 400)), volume(100.0));
+            assertThat(kcal(out.getItems().get(0))).as("bias=%s", bad).isEqualTo(249); // same as neutral
+        }
+    }
+
     @Test
     @DisplayName("weight=1.0 keeps the model estimate (pure flash), weight=0.0 is pure physics")
     void blendWeightExtremes() {
         CaloriePhysicsRefinementService pureFlash =
-                new CaloriePhysicsRefinementService(new FoodCategoryClassifier(), true, 1.0, 1.32, 0.1, 5.0);
+                new CaloriePhysicsRefinementService(new FoodCategoryClassifier(), true, 1.0, 1.0, 1.32, 0.1, 5.0);
         assertThat(kcal(pureFlash.refine(result(food("Steak", 200, 400)), volume(100.0)).getItems().get(0)))
                 .isEqualTo(400); // unchanged
 
         CaloriePhysicsRefinementService purePhysics =
-                new CaloriePhysicsRefinementService(new FoodCategoryClassifier(), true, 0.0, 1.32, 0.1, 5.0);
+                new CaloriePhysicsRefinementService(new FoodCategoryClassifier(), true, 0.0, 1.0, 1.32, 0.1, 5.0);
         assertThat(kcal(purePhysics.refine(result(food("Steak", 200, 400)), volume(100.0)).getItems().get(0)))
                 .isEqualTo(155); // physicsKcal ≈ 154.5 → 155
     }

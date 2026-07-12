@@ -18,7 +18,7 @@ import com.fitnessapp.backend.nutrition.dto.FoodRecognitionRequestMetadata;
 import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 import com.fitnessapp.backend.nutrition.exception.FoodRecognitionException;
-import com.fitnessapp.backend.nutrition.service.core.CaloriePhysicsRefinementService;
+import com.fitnessapp.backend.nutrition.service.core.PerItemPortionRefinementService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,12 +34,12 @@ public class FoodRecognitionService {
 
     private final List<FoodRecognitionProvider> providers;
     private final Executor asyncExecutor;
-    private final CaloriePhysicsRefinementService physicsRefinement;
+    private final PerItemPortionRefinementService physicsRefinement;
 
     public FoodRecognitionService(
             List<FoodRecognitionProvider> providers,
             @Qualifier("foodRecognitionExecutor") Executor foodRecognitionExecutor,
-            CaloriePhysicsRefinementService physicsRefinement
+            PerItemPortionRefinementService physicsRefinement
     ) {
         this.providers = providers.stream()
                 .sorted(Comparator.comparingInt(FoodRecognitionProvider::getPriority))
@@ -92,7 +92,8 @@ public class FoodRecognitionService {
 
             try {
                 FoodRecognitionResult result = provider.recognizeFoods(image, metadata);
-                // Geometric portion refinement using the LiDAR volume in metadata (no-op without it).
+                // Geometric portion refinement from LiDAR depth in metadata: per-item when the
+                // client sent segmented masks + localized foods, else scene-level. No-op without depth.
                 result = physicsRefinement.refine(result, metadata);
                 long durationMs = (System.nanoTime() - providerStart) / 1_000_000;
                 log.info("✅ Provider '{}' succeeded with {} items",

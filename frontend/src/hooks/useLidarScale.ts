@@ -7,7 +7,7 @@
  * web, or Expo Go, so the backend uses its default plate-width assumption instead of a fabricated one.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { isLidarAvailable, measureLidar, type LidarReading } from '../../modules/metriful-lidar';
+import { isLidarAvailable, measureLidar, type LidarReading, type LidarRegion } from '../../modules/metriful-lidar';
 import { estimateImageWidthCm } from '../utils/scale';
 
 export interface LidarScaleResult {
@@ -18,6 +18,8 @@ export interface LidarScaleResult {
   accuracy: LidarReading['accuracy'] | null;
   /** on-device portion geometry the calorie corrector consumes (null when no real depth) */
   geometry: { volumeCm3: number; areaCm2: number; meanHCm: number; npx: number } | null;
+  /** per-item segmented regions for per-item portion refinement (null when unavailable) */
+  items: LidarRegion[] | null;
   /** raw native reading for debugging */
   raw: LidarReading | null;
 }
@@ -28,6 +30,7 @@ const EMPTY: LidarScaleResult = {
   confidence: 0,
   accuracy: null,
   geometry: null,
+  items: null,
   raw: null,
 };
 
@@ -63,6 +66,13 @@ export function useLidarScale() {
             npx: reading.npx ?? 0,
           }
         : null;
+    // Keep only well-formed regions with positive volume; the backend ignores the rest anyway.
+    const items =
+      Array.isArray(reading.items) && reading.items.length > 0
+        ? reading.items.filter(
+            (r) => r != null && typeof r.volumeCm3 === 'number' && r.volumeCm3 > 0,
+          )
+        : null;
 
     return {
       imgWidthCm,
@@ -70,6 +80,7 @@ export function useLidarScale() {
       confidence: reading.confidence ?? 0,
       accuracy: reading.accuracy ?? null,
       geometry,
+      items: items && items.length > 0 ? items : null,
       raw: reading,
     };
   }, []);

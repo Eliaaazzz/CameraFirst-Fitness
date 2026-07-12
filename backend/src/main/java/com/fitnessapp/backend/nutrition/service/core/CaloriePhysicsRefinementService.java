@@ -1,7 +1,5 @@
 package com.fitnessapp.backend.nutrition.service.core;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionRequestMetadata;
 import com.fitnessapp.backend.nutrition.dto.FoodRecognitionResult;
-import com.fitnessapp.backend.nutrition.dto.NutritionInfo;
 import com.fitnessapp.backend.nutrition.dto.RecognizedFood;
 
 import lombok.extern.slf4j.Slf4j;
@@ -32,9 +29,18 @@ import lombok.extern.slf4j.Slf4j;
  * <pre>
  *   physicsMass  = (volume_cm3 / volumeBias) × massWeightedDensity(items)
  *   physicsKcal  = physicsMass × sceneEnergyDensity            // sceneEnergyDensity = ΣkcalΣ / ΣmassΣ
- *   blendedKcal  = flashKcal^w × physicsKcal^(1-w)             // geometric mean, w = blendWeight
+ *   blendedKcal  = fusionBias × flashKcal^w × physicsKcal^(1-w) // weighted geomean + log-space intercept
  *   scale        = clamp(blendedKcal / flashKcal, minScale, maxScale)
  * </pre>
+ *
+ * <p><b>Fusion weights are learned, not assumed.</b> The blend weight and {@code fusionBias} come
+ * from fitting {@code log y = b + w·log flash + (1−w)·log physics} on N5k cafe1 (n=100) and testing
+ * zero-shot on cafe2 (n=60, different kitchen/rig — the production proxy). The learned fusion
+ * (w=0.75 on flash, e^b=0.862) beat the fixed 50:50 geomean cross-domain: median APE 30.5%→27.7%,
+ * signed bias +11.9%→−1.9%, P90 107.7%→76.5% (docs/calorie-accuracy-roadmap-25-to-15.md §12).
+ * The bias term mostly corrects the vision model's systematic calorie over-estimation, which is a
+ * property of the model — it transfers across domains; both parameters are global constants, not
+ * per-domain fits.
  * and multiplies every item's grams and mass-proportional nutrition by {@code scale}. Energy density
  * per item is preserved (identity and kcal/g are the model's strengths); only portion is corrected.
  *
@@ -51,6 +57,7 @@ public class CaloriePhysicsRefinementService {
     private final FoodCategoryClassifier classifier;
     private final boolean enabled;
     private final double blendWeight;   // weight on the model's own calorie estimate, in [0, 1]
+    private final double fusionBias;    // log-space intercept e^b of the learned fusion, applied to blendedKcal
     private final double volumeBias;    // geometric-volume → true-volume divisor (>0)
     private final double minScale;
     private final double maxScale;
@@ -64,13 +71,18 @@ public class CaloriePhysicsRefinementService {
     public CaloriePhysicsRefinementService(
             FoodCategoryClassifier classifier,
             @Value("${app.nutrition.physics-refine.enabled:true}") boolean enabled,
-            @Value("${app.nutrition.physics-refine.blend-weight:0.5}") double blendWeight,
+            @Value("${app.nutrition.physics-refine.blend-weight:0.75}") double blendWeight,
+            @Value("${app.nutrition.physics-refine.fusion-bias:0.862}") double fusionBias,
             @Value("${app.nutrition.physics-refine.volume-bias:1.32}") double volumeBias,
             @Value("${app.nutrition.physics-refine.min-scale:0.4}") double minScale,
             @Value("${app.nutrition.physics-refine.max-scale:2.5}") double maxScale) {
         this.classifier = classifier;
         this.enabled = enabled;
-        this.blendWeight = Double.isFinite(blendWeight) ? clamp(blendWeight, 0.0, 1.0) : 0.5;
+        this.blendWeight = Double.isFinite(blendWeight) ? clamp(blendWeight, 0.0, 1.0) : 0.75;
+        // A wild bias would silently rescale every meal; outside a sane band fall back to
+        // neutral 1.0 (no bias) rather than the learned default.
+        this.fusionBias = (Double.isFinite(fusionBias) && fusionBias >= 0.5 && fusionBias <= 2.0)
+                ? fusionBias : 1.0;
         this.volumeBias = (Double.isFinite(volumeBias) && volumeBias > 0) ? volumeBias : 1.32;
         double lo = (Double.isFinite(minScale) && minScale > 0) ? minScale : 0.4;
         double hi = (Double.isFinite(maxScale) && maxScale > 0) ? maxScale : 2.5;
@@ -127,8 +139,9 @@ public class CaloriePhysicsRefinementService {
             return result;
         }
 
-        // Geometric mean of two partially-independent calorie estimates (model vs geometry).
-        double blendedKcal = Math.exp(blendWeight * Math.log(flashKcal)
+        // Learned fusion of two partially-independent calorie estimates (model vs geometry):
+        // weighted geometric mean plus a log-space intercept (see class javadoc for the fit).
+        double blendedKcal = fusionBias * Math.exp(blendWeight * Math.log(flashKcal)
                 + (1.0 - blendWeight) * Math.log(physicsKcal));
         double scale = clamp(blendedKcal / flashKcal, minScale, maxScale);
 
@@ -138,7 +151,7 @@ public class CaloriePhysicsRefinementService {
 
         List<RecognizedFood> scaledItems = new ArrayList<>(items.size());
         for (RecognizedFood item : items) {
-            scaledItems.add(scaledCopy(item, scale));
+            scaledItems.add(PortionScaling.scaledCopy(item, scale));
         }
 
         log.info("Physics portion-refine: volume={}cm3 dens={}g/cm3 flashKcal={} physicsKcal={} scale={} items={}",
@@ -147,41 +160,6 @@ public class CaloriePhysicsRefinementService {
         // Return a NEW result with scaled copies; never mutate the provider's output (avoids
         // corrupting any caller/cache that holds the original reference).
         return result.toBuilder().items(scaledItems).build();
-    }
-
-    /** Return a portion-scaled copy of {@code item}, leaving the original untouched. */
-    private RecognizedFood scaledCopy(RecognizedFood item, double scale) {
-        if (item == null) {
-            return null;
-        }
-        RecognizedFood.RecognizedFoodBuilder b = item.toBuilder();
-        Integer grams = item.getEstimatedGrams();
-        if (grams != null && grams > 0) {
-            b.estimatedGrams(Math.max(1, (int) Math.round(grams * scale)));
-        }
-        NutritionInfo n = item.getNutrition();
-        if (n != null) {
-            b.nutrition(n.toBuilder()
-                    .calories(scaleValue(n.getCalories(), scale, 0))
-                    .protein(scaleValue(n.getProtein(), scale, 1))
-                    .fat(scaleValue(n.getFat(), scale, 1))
-                    .carbs(scaleValue(n.getCarbs(), scale, 1))
-                    .fiber(scaleValue(n.getFiber(), scale, 1))
-                    .sugar(scaleValue(n.getSugar(), scale, 1))
-                    .netCarbs(scaleValue(n.getNetCarbs(), scale, 1))
-                    .sugarCubes(scaleValue(n.getSugarCubes(), scale, 1))
-                    // Glycemic index is intensive (portion-independent); glycemic load scales with net carbs.
-                    .glycemicLoad(scaleValue(n.getGlycemicLoad(), scale, 1))
-                    .build());
-        }
-        return b.build();
-    }
-
-    private static BigDecimal scaleValue(BigDecimal value, double scale, int decimals) {
-        if (value == null) {
-            return null;
-        }
-        return value.multiply(BigDecimal.valueOf(scale)).setScale(decimals, RoundingMode.HALF_UP);
     }
 
     private static double grams(RecognizedFood item) {
