@@ -39,12 +39,13 @@ export const WeeklySummaryCard: React.FC<WeeklySummaryCardProps> = ({
     if (!stats) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     const prefix = userName ? `${userName}'s week` : 'My week';
+    // Privacy-safe by default: consistency + achievements only — no calorie numbers
+    // leave the app unless the user chooses to share them from a meal's own share sheet.
     const message = [
-      `${prefix} on AuraFitness:`,
+      `${prefix} on Metriful:`,
       `• ${stats.totalMeals} meals logged`,
       `• ${stats.onTarget}/7 days on-target`,
       `• Protein PR: ${stats.bestProtein}g`,
-      `• Daily avg: ${stats.avgCals} kcal`,
     ].join('\n');
     try {
       await RNShare.share({ message });

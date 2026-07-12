@@ -25,9 +25,9 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({
-  title = `Track meals,\nclose rings,\nown your day`,
-  body = `${APP_NAME} turns meal photos into macro breakdowns, builds personalized targets, and surfaces your progress through vivid daily rings.`,
-  primaryCtaLabel = 'Start tracking',
+  title = `Snap a meal.\nGet an editable\nnutrition estimate.`,
+  body = `Depth-aware portions, itemized macros, and a clear next step. ${APP_NAME} shows every food it found — grams, calories, confidence — so you can fix anything in one tap.`,
+  primaryCtaLabel = 'Scan your first meal',
   secondaryCtaLabel = 'Log in to see your recent activity',
   onGetStarted,
   onLogin,

@@ -607,7 +607,11 @@ const MainTabs = () => {
 const WorkoutSessionStripRoot = () => {
   // Lazy import to keep the navigator file lean.
   const { WorkoutSessionStrip } = require('@/components/WorkoutSessionStrip') as typeof import('@/components/WorkoutSessionStrip');
-  return <WorkoutSessionStrip bottomInset={96} />;
+  const { usePostWorkoutStore } = require('@/stores/usePostWorkoutStore') as typeof import('@/stores/usePostWorkoutStore');
+  const recordFinish = usePostWorkoutStore((s) => s.recordFinish);
+  // Finishing a session feeds the training→nutrition loop: the Dashboard offers a
+  // recovery-meal log for the next 2 hours (see RecoveryMealCard).
+  return <WorkoutSessionStrip bottomInset={96} onFinish={recordFinish} />;
 };
 
 export const AppNavigator = () => {

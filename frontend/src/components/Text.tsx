@@ -1,6 +1,6 @@
 import { colors, typography } from '@/utils';
 import React, { PropsWithChildren } from 'react';
-import { Platform, StyleProp, Text as RNText, TextStyle } from 'react-native';
+import { Platform, StyleProp, Text as RNText, TextProps as RNTextProps, TextStyle } from 'react-native';
 
 type TextVariant =
   | 'hero'
@@ -15,7 +15,18 @@ type TextVariant =
   | 'metricSmall';
 type TextWeight = 'regular' | 'medium' | 'semibold' | 'bold';
 
-export interface TextProps {
+export interface TextProps
+  extends Pick<
+    RNTextProps,
+    | 'accessibilityLabel'
+    | 'accessibilityRole'
+    | 'accessibilityHint'
+    | 'accessibilityLiveRegion'
+    | 'accessible'
+    | 'testID'
+    | 'adjustsFontSizeToFit'
+    | 'minimumFontScale'
+  > {
   variant?: TextVariant;
   color?: string;
   weight?: TextWeight;

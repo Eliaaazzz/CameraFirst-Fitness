@@ -35,6 +35,7 @@ import { getTierDescription, DeviceTier } from '@/hooks/useDeviceCapabilities';
 import { DepthResult } from '@/hooks/useDepthCamera';
 import { spacing, estimateImageWidthCm } from '@/utils';
 import { useLidarScale } from '@/hooks/useLidarScale';
+import type { LidarRegion } from '../../modules/metriful-lidar';
 
 // Conditionally import VisionCamera (only on native)
 let Camera: any = null;
@@ -70,6 +71,8 @@ export interface CaptureMetadata {
   volumeCm3?: number | null;
   areaCm2?: number | null;
   meanHCm?: number | null;
+  /** Per-item segmented regions; enables per-item portion refinement server-side. */
+  items?: LidarRegion[] | null;
 }
 
 export interface VisionCameraViewProps {
@@ -272,6 +275,7 @@ export const VisionCameraView: React.FC<VisionCameraViewProps> = ({
         volumeCm3: lidarScale.geometry?.volumeCm3 ?? null,
         areaCm2: lidarScale.geometry?.areaCm2 ?? null,
         meanHCm: lidarScale.geometry?.meanHCm ?? null,
+        items: lidarScale.items ?? null,
       };
 
       if (autoUsePhoto) {
@@ -313,6 +317,24 @@ export const VisionCameraView: React.FC<VisionCameraViewProps> = ({
   const distanceDisplay = depthCamera.currentDepth && formatDistance
     ? formatDistance(depthCamera.currentDepth)
     : '--';
+
+  // Capture-time depth-quality hint: tell the user NOW (not after a failed analysis)
+  // whether portions will be measured or estimated, and how to fix the framing.
+  const depthHint = useMemo(() => {
+    if (!depthCamera.supportsDepth) {
+      return { text: 'Depth: not available — portions estimated from photo', tone: 'neutral' as const };
+    }
+    switch (reticleState) {
+      case 'ready':
+        return { text: 'Depth: Good — portions will be measured', tone: 'good' as const };
+      case 'too_close':
+        return { text: 'Too close — move back a little', tone: 'warn' as const };
+      case 'too_far':
+        return { text: 'Too far — move closer to the plate', tone: 'warn' as const };
+      default:
+        return { text: 'Finding depth — hold steady over the plate', tone: 'neutral' as const };
+    }
+  }, [depthCamera.supportsDepth, reticleState]);
 
   // Permission not granted
   if (!hasPermission) {
@@ -420,6 +442,21 @@ export const VisionCameraView: React.FC<VisionCameraViewProps> = ({
           </Text>
         </View>
       )}
+
+      {/* Depth-quality hint (announced to screen readers as it changes) */}
+      <View style={styles.depthHintWrap} pointerEvents="none" accessibilityLiveRegion="polite">
+        <View
+          style={[
+            styles.depthHint,
+            depthHint.tone === 'good' && styles.depthHintGood,
+            depthHint.tone === 'warn' && styles.depthHintWarn,
+          ]}
+        >
+          <Text style={styles.depthHintText} accessibilityLabel={depthHint.text}>
+            {depthHint.text}
+          </Text>
+        </View>
+      </View>
 
       {/* Bottom controls */}
       <View style={styles.bottomControls}>
@@ -565,6 +602,34 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
     borderRadius: 999,
+  },
+  depthHintWrap: {
+    position: 'absolute',
+    bottom: 140,
+    left: spacing.lg,
+    right: spacing.lg,
+    alignItems: 'center',
+  },
+  depthHint: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  depthHintGood: {
+    backgroundColor: 'rgba(22,101,52,0.72)',
+    borderColor: 'rgba(134,239,172,0.5)',
+  },
+  depthHintWarn: {
+    backgroundColor: 'rgba(146,64,14,0.72)',
+    borderColor: 'rgba(253,230,138,0.5)',
+  },
+  depthHintText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   bottomControls: {
     position: 'absolute',

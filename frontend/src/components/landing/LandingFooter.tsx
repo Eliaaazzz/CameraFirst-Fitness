@@ -177,7 +177,7 @@ export function LandingFooter({ onGetStarted, onLogin, showFinalCTA = true, onLi
         </View>
 
         <Text variant="caption" style={styles.legal}>
-          © 2026 {APP_NAME}. Privacy · Accessibility · Terms
+          © 2026 {APP_NAME} by Aura Fitness. Privacy · Accessibility · Terms
         </Text>
       </View>
     </View>

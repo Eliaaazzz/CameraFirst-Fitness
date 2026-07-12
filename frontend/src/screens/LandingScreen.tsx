@@ -17,6 +17,7 @@ import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, useWindowDimensio
 import { useNavigation } from '@react-navigation/native';
 
 import AccountSplitSection from '@/components/landing/AccountSplitSection';
+import AccuracySection from '@/components/landing/AccuracySection';
 import AIStepsSection from '@/components/landing/AIStepsSection';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { HeroSection } from '@/components/landing/HeroSection';
@@ -126,6 +127,11 @@ export default function LandingScreen() {
           <AIStepsSection />
         </View>
 
+        {/* 3b. How accuracy works — trust is a landing-page feature, not a FAQ */}
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]} onLayout={handleSectionLayout('accuracy')}>
+          <AccuracySection />
+        </View>
+
         {/* 4. Account Split */}
         <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]}>
           <AccountSplitSection onLogin={navigateLogin} onSignup={navigateSignup} />
@@ -148,16 +154,16 @@ export default function LandingScreen() {
                     : [styles.ctaTitle, styles.ctaTitleMobile]
               }
             >
-              Start tracking your nutrition today
+              Scan your first meal today
             </Text>
             <Text style={isCompact ? [styles.ctaBody, styles.ctaBodyCompact] : styles.ctaBody}>
-              Sign up and log your first meal in under 30 seconds. No credit card required.
+              See an editable, depth-aware nutrition estimate in seconds. Free to start — no credit card required.
             </Text>
             <Pressable
               onPress={navigateSignup}
               style={({ pressed }) => [styles.ctaButton, isCompact && styles.ctaButtonCompact, pressed && { opacity: 0.85 }]}
             >
-              <Text style={styles.ctaButtonText}>Sign up to start</Text>
+              <Text style={styles.ctaButtonText}>Scan your first meal</Text>
             </Pressable>
             <StoreBadges style={styles.ctaBadges} align={isCompact ? 'center' : 'flex-start'} />
           </View>

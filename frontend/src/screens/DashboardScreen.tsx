@@ -33,6 +33,11 @@ import { BENTO_CARD_STYLES, BENTO_CARD_WEB_STYLES, MOBILE_CARD_STYLES } from '@/
 import { PermissionRequestModal, PermissionType } from '@/components/common/PermissionRequestModal';
 import { StateView } from '@/components/common/StateView';
 import { DailyScoreCard, DailyTasksCard, DashboardWidgets, NutritionInsightsCard, QuickActionsCard, StreakBadge, SuggestionGrid, WelcomeBar } from '@/components/dashboard';
+import { RecoveryMealCard } from '@/components/dashboard/RecoveryMealCard';
+import { ScanStatusChip } from '@/components/dashboard/ScanStatusChip';
+import { StreakSafetyCard } from '@/components/dashboard/StreakSafetyCard';
+import { WeeklyCheckinCard } from '@/components/dashboard/WeeklyCheckinCard';
+import { buildRingInsight, RingMacro } from '@/utils/ringInsight';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { ScreenLayout } from '@/components/layout';
 import { WeightLogModal } from '@/components/weight';
@@ -281,6 +286,8 @@ const DashboardScreen = () => {
     currentStreak: currentUser.data?.currentStreak,
   });
   const [achievementDetail, setAchievementDetail] = useState<typeof achievements[number] | null>(null);
+  // Ring tap → where / why / what's-next sheet (rings as action entries, not gauges)
+  const [ringDetail, setRingDetail] = useState<RingMacro | null>(null);
 
   // Tour guide controller and navigation
   const { canStart, start, eventEmitter } = useTourGuideController();
@@ -685,6 +692,10 @@ const DashboardScreen = () => {
             showsVerticalScrollIndicator={false}
           >
             <View style={[webStyles.scrollStack, !isDashboardDesktop && webStyles.scrollStackMobile]}>
+              {/* Background meal-scan tracker (Uber Eats order-status pattern) */}
+              <ScanStatusChip />
+              {/* Training→nutrition bridge: shown for 2h after a finished workout session */}
+              <RecoveryMealCard onLogMeal={handleAddFood} />
               <View style={[webStyles.heroSection, !isDashboardDesktop && webStyles.heroSectionMobile, isDashboardCompact && webStyles.heroSectionCompact]}>
                 <View style={[webStyles.heroLeft, !isDashboardDesktop && webStyles.heroLeftMobile]}>
                 <View style={[webStyles.heroEyebrowRow, !isDashboardTablet && webStyles.heroEyebrowRowMobile]}>
@@ -833,6 +844,9 @@ const DashboardScreen = () => {
                     onSecondaryAction={() => navigation.navigate('Main', { screen: 'Recipes' } as any)}
                   />
 
+                  {/* Streak with safety rails: pause for trips/illness, fresh-start zero copy */}
+                  <StreakSafetyCard streak={currentUser.data?.currentStreak ?? 0} />
+
                   {/* F3 — Log again (Uber Eats reorder pattern) */}
                   <LogAgainCard
                     meals={logAgainMeals}
@@ -846,6 +860,9 @@ const DashboardScreen = () => {
                     achievements={achievements}
                     onTap={(a) => setAchievementDetail(a)}
                   />
+
+                  {/* Weekly check-in (MacroFactor pattern): facts + user-approved target change */}
+                  <WeeklyCheckinCard insights={weeklyInsights.data} proteinGoal={proteinGoal} />
 
                   {/* F8 — Weekly Summary (Sunday recap) */}
                   <WeeklySummaryCard
@@ -1084,7 +1101,7 @@ const DashboardScreen = () => {
                       fat: { current: nutritionData.fat.current, target: fatGoal },
                     }}
                     showFat={true}
-                    onMacroPress={handleMacroSearch}
+                    onMacroPress={(macro) => setRingDetail(macro)}
                     onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
                   />
                 )}
@@ -1408,7 +1425,7 @@ const DashboardScreen = () => {
             bloodSugarRise: nutritionData.bloodSugarRise,
           }}
           showFat={true}
-          onMacroPress={handleMacroSearch}
+          onMacroPress={(macro) => setRingDetail(macro)}
           onSourcesPress={() => navigation.navigate('AboutNutritionData' as any)}
         />
       )}
@@ -1489,6 +1506,54 @@ const DashboardScreen = () => {
             </Text>
           </View>
         ) : null}
+      </DetailBottomSheet>
+
+      {/* Ring detail: where / why / what's next (rings as action entries, Whoop/Oura pattern) */}
+      <DetailBottomSheet
+        visible={!!ringDetail}
+        onClose={() => setRingDetail(null)}
+        title={ringDetail ? buildRingInsight(nutritionData, ringDetail).title : undefined}
+        maxHeightRatio={0.55}
+      >
+        {ringDetail ? (() => {
+          const insight = buildRingInsight(nutritionData, ringDetail);
+          return (
+            <View style={{ gap: spacing.md, paddingVertical: spacing.sm }}>
+              <View style={{ gap: 4 }}>
+                <Text variant="label" weight="bold" style={{ color: '#9A8F80' }}>WHERE YOU ARE</Text>
+                <Text variant="heading3" weight="bold">{insight.whereLine}</Text>
+              </View>
+              <View style={{ gap: 4 }}>
+                <Text variant="label" weight="bold" style={{ color: '#9A8F80' }}>WHY</Text>
+                <Text variant="body" style={{ color: '#3E3C38' }}>{insight.whyLine}</Text>
+              </View>
+              <View style={{ gap: 4 }}>
+                <Text variant="label" weight="bold" style={{ color: '#9A8F80' }}>NEXT</Text>
+                <Text variant="body" style={{ color: '#3E3C38' }}>{insight.nextLine}</Text>
+              </View>
+              <Pressable
+                onPress={() => {
+                  const macro = ringDetail;
+                  setRingDetail(null);
+                  if (macro) handleMacroSearch(macro);
+                }}
+                style={{
+                  minHeight: 46,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: 'rgba(17,17,17,0.12)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#FFFFFF',
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Find recipes for ${ringDetail}`}
+              >
+                <Text variant="body" weight="semibold">Find matching recipes</Text>
+              </Pressable>
+            </View>
+          );
+        })() : null}
       </DetailBottomSheet>
     </>
   );
