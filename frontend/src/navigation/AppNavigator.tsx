@@ -49,6 +49,7 @@ import { HelpScreen } from '@/screens/HelpScreen';
 import { ManageAccountScreen } from '@/screens/ManageAccountScreen';
 import { WeeklyInsightsScreen } from '@/screens/WeeklyInsightsScreen';
 import { WorkoutsScreen } from '@/screens/WorkoutsScreen';
+import InsightsScreen from '@/screens/InsightsScreen';
 import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive, useSidebarVisible } from '@/utils';
 
 // Wrap screens with ErrorBoundary to prevent white screen crashes
@@ -78,6 +79,7 @@ const SafeBuildPlanScreen = withErrorBoundary(BuildPlanScreen, 'BuildPlan');
 const SafeHelpScreen = withErrorBoundary(HelpScreen, 'Help');
 const SafeManageAccountScreen = withErrorBoundary(ManageAccountScreen, 'ManageAccount');
 const SafeOnboardingScreen = withErrorBoundary(OnboardingScreen, 'Onboarding');
+const SafeInsightsScreen = withErrorBoundary(InsightsScreen, 'Insights');
 
 const Tab = createBottomTabNavigator();
 // Use createStackNavigator instead of createNativeStackNavigator for Web compatibility
@@ -672,6 +674,11 @@ export const AppNavigator = () => {
         <Stack.Screen
           name="BuildPlan"
           component={SafeBuildPlanScreen}
+          options={{ cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS }}
+        />
+        <Stack.Screen
+          name="Insights"
+          component={SafeInsightsScreen}
           options={{ cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS }}
         />
       </Stack.Navigator>
