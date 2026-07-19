@@ -14,6 +14,7 @@
 
 import React, { useCallback, useEffect, useRef } from 'react';
 import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 
 import AccountSplitSection from '@/components/landing/AccountSplitSection';
@@ -24,11 +25,14 @@ import { HeroSection } from '@/components/landing/HeroSection';
 import { FeatureGrid } from '@/components/landing/FeatureGrid';
 import ProgramHubSection from '@/components/landing/ProgramHubSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import { Corner } from '@/components/landing/ScanReceipt';
 import { StoreBadges } from '@/components/landing/StoreBadges';
 import { Text } from '@/components';
 import { startBackendWarmup } from '@/services/backendWarmup';
 import { useAuthStore } from '@/stores';
-import { APP_PAGE_PATHS, SUPPORT_EMAIL_URL, openAppPage, openExternalUrl } from '@/utils';
+import { APP_PAGE_PATHS, LANDING_COLORS, LANDING_TYPE, SUPPORT_EMAIL_URL, openAppPage, openExternalUrl } from '@/utils';
+
+const ctaIllustration = require('@/../assets/illustrations/hero-healthy-eating.svg');
 
 const NAV_SECTION_MAP: Record<string, string> = {
   Track: 'featureGrid',
@@ -142,30 +146,45 @@ export default function LandingScreen() {
           <ProgramHubSection />
         </View>
 
-        {/* 6. CTA Banner */}
-        <View style={[styles.ctaBanner, { paddingHorizontal: pagePadding }, isCompact && styles.ctaBannerCompact]}>
-          <View style={[styles.ctaBannerInner, { maxWidth }]}>
-            <Text
-              style={
-                isDesktop
-                  ? styles.ctaTitle
-                  : isCompact
-                    ? [styles.ctaTitle, styles.ctaTitleMobile, styles.ctaTitleCompact]
-                    : [styles.ctaTitle, styles.ctaTitleMobile]
-              }
-            >
-              Scan your first meal today
-            </Text>
-            <Text style={isCompact ? [styles.ctaBody, styles.ctaBodyCompact] : styles.ctaBody}>
-              See an editable, depth-aware nutrition estimate in seconds. Free to start — no credit card required.
-            </Text>
-            <Pressable
-              onPress={navigateSignup}
-              style={({ pressed }) => [styles.ctaButton, isCompact && styles.ctaButtonCompact, pressed && { opacity: 0.85 }]}
-            >
-              <Text style={styles.ctaButtonText}>Scan your first meal</Text>
-            </Pressable>
-            <StoreBadges style={styles.ctaBadges} align={isCompact ? 'center' : 'flex-start'} />
+        {/* 6. CTA Banner — contained ink panel with viewfinder corners + polaroid */}
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]}>
+          <View style={[styles.ctaPanel, isCompact && styles.ctaPanelCompact, isDesktop && styles.ctaPanelDesktop]}>
+            <Corner position="tl" color={LANDING_COLORS.copperOnDark} />
+            <Corner position="tr" color={LANDING_COLORS.copperOnDark} />
+            <Corner position="bl" color={LANDING_COLORS.copperOnDark} />
+            <Corner position="br" color={LANDING_COLORS.copperOnDark} />
+
+            <View style={styles.ctaCopy}>
+              <Text
+                style={
+                  isDesktop
+                    ? styles.ctaTitle
+                    : isCompact
+                      ? [styles.ctaTitle, styles.ctaTitleMobile, styles.ctaTitleCompact]
+                      : [styles.ctaTitle, styles.ctaTitleMobile]
+                }
+              >
+                Scan your first meal today.
+              </Text>
+              <Text style={isCompact ? [styles.ctaBody, styles.ctaBodyCompact] : styles.ctaBody}>
+                See an itemized, editable estimate in seconds — and one concrete next step for the rest of the day.
+              </Text>
+              <Pressable
+                onPress={navigateSignup}
+                style={({ pressed }) => [styles.ctaButton, isCompact && styles.ctaButtonCompact, pressed && styles.ctaButtonPressed]}
+              >
+                <Text style={styles.ctaButtonText}>Scan your first meal</Text>
+              </Pressable>
+              <Text style={styles.ctaNote}>Free to start, no card needed.</Text>
+              <StoreBadges style={styles.ctaBadges} align={isCompact ? 'center' : 'flex-start'} />
+            </View>
+
+            {!isCompact && (
+              <View style={styles.polaroid}>
+                <Image source={ctaIllustration} style={styles.polaroidImage} contentFit="contain" />
+                <Text style={styles.polaroidCaption}>lunch, logged — back to eating</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -185,7 +204,7 @@ export default function LandingScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: LANDING_COLORS.bg,
   },
   scroll: { flex: 1 },
   scrollContent: { alignItems: 'center' },
@@ -195,65 +214,123 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
 
-  // CTA Banner — Uber-style full-width black section
-  ctaBanner: {
+  // CTA Banner — contained ink panel (mirrors the static landing's ctapanel)
+  ctaPanel: {
+    position: 'relative',
+    overflow: 'hidden',
     width: '100%',
-    backgroundColor: '#000000',
-    paddingVertical: 80,
+    backgroundColor: LANDING_COLORS.panel,
+    borderRadius: 24,
+    paddingHorizontal: 54,
+    paddingVertical: 52,
+    gap: 36,
+    marginVertical: 40,
+  },
+  ctaPanelDesktop: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 44,
   },
-  ctaBannerCompact: {
-    paddingVertical: 56,
+  ctaPanelCompact: {
+    paddingHorizontal: 26,
+    paddingVertical: 38,
+    marginVertical: 24,
   },
-  ctaBannerInner: {
-    width: '100%',
-    gap: 20,
+  ctaCopy: {
+    flex: 1,
+    gap: 14,
+    alignItems: 'flex-start',
   },
   ctaTitle: {
-    color: '#FFFFFF',
-    fontSize: 52,
-    fontWeight: '700',
-    letterSpacing: -2,
-    lineHeight: 56,
+    color: LANDING_COLORS.textOnDark,
+    fontFamily: LANDING_TYPE.display,
+    fontSize: 44,
+    fontWeight: '800',
+    letterSpacing: -1.6,
+    lineHeight: 48,
   },
   ctaTitleMobile: {
-    fontSize: 36,
-    lineHeight: 40,
-    letterSpacing: -1.2,
+    fontSize: 34,
+    lineHeight: 38,
+    letterSpacing: -1.1,
   },
   ctaTitleCompact: {
-    fontSize: 30,
-    lineHeight: 34,
-    letterSpacing: -1,
+    fontSize: 28,
+    lineHeight: 32,
+    letterSpacing: -0.8,
   },
   ctaBody: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 18,
-    lineHeight: 28,
+    color: LANDING_COLORS.textOnDarkMuted,
+    fontFamily: LANDING_TYPE.body,
+    fontSize: 16.5,
+    lineHeight: 26,
     maxWidth: 520,
   },
   ctaBodyCompact: {
-    fontSize: 16,
+    fontSize: 15.5,
     lineHeight: 24,
   },
   ctaButton: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: LANDING_COLORS.copperOnDark,
     paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: 15,
+    borderRadius: 12,
     marginTop: 8,
+  },
+  ctaButtonPressed: {
+    backgroundColor: LANDING_COLORS.copperOnDarkPress,
   },
   ctaButtonCompact: {
     alignSelf: 'stretch',
     alignItems: 'center',
   },
   ctaButtonText: {
-    color: '#000000',
+    color: '#171310',
+    fontFamily: LANDING_TYPE.body,
     fontSize: 16,
     fontWeight: '700',
   },
+  ctaNote: {
+    color: LANDING_COLORS.textOnDarkFaint,
+    fontFamily: LANDING_TYPE.mono,
+    fontSize: 11.5,
+    letterSpacing: 0.3,
+  },
   ctaBadges: {
-    marginTop: 12,
+    marginTop: 10,
+  },
+
+  // Polaroid — the original hero illustration as a "snapshot" (paper card, slight tilt)
+  polaroid: {
+    width: 288,
+    backgroundColor: LANDING_COLORS.bg,
+    borderRadius: 14,
+    paddingHorizontal: 13,
+    paddingTop: 13,
+    paddingBottom: 10,
+    transform: [{ rotate: '-2.2deg' }],
+    alignSelf: 'center',
+    ...(typeof document !== 'undefined'
+      ? ({ boxShadow: '0 20px 48px rgba(0,0,0,0.3)' } as any)
+      : {
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: 14 },
+          shadowRadius: 28,
+          shadowOpacity: 0.3,
+          elevation: 8,
+        }),
+  },
+  polaroidImage: {
+    width: '100%',
+    height: 240,
+    borderRadius: 7,
+  },
+  polaroidCaption: {
+    paddingTop: 9,
+    textAlign: 'center',
+    fontFamily: LANDING_TYPE.mono,
+    fontSize: 11.5,
+    color: LANDING_COLORS.textMuted,
   },
 });
