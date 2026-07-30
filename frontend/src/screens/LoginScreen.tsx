@@ -31,6 +31,7 @@ import {
 } from '@env';
 import { Image } from 'expo-image';
 import { Text } from '@/components';
+import { trackEvent } from '@/services/analytics';
 import { startBackendWarmup } from '@/services/backendWarmup';
 import { storeGoogleOAuthState } from '@/services/webGoogleRedirect';
 import { api } from '../services/apiClient';
@@ -346,7 +347,7 @@ export default function LoginScreen() {
     email: string;
     isNewUser?: boolean;
     user?: { userId: string; username: string; currentStreak: number; level: string; timeBucket: number };
-  }) => {
+  }, method: 'google' | 'apple' | 'password') => {
     try {
       // Clear React Query cache
       queryClient.clear();
@@ -380,6 +381,8 @@ export default function LoginScreen() {
       if (!authState.isAuthenticated) {
         throw new Error('Login succeeded but authentication state was not set. Please try again.');
       }
+
+      trackEvent(data.isNewUser ? 'sign_up' : 'login', { method });
 
       setIsLoading(false);
       // Show splash screen briefly on web for a polished login transition,
@@ -416,7 +419,7 @@ export default function LoginScreen() {
           loginType: 'GOOGLE',
           idToken,
         }, { timeout: 60000 }); // 60s for GCP cold start
-        await handleLoginSuccess(data);
+        await handleLoginSuccess(data, 'google');
         return;
       } catch (err: any) {
         lastError = err;
@@ -452,7 +455,7 @@ export default function LoginScreen() {
           ...(nonce ? { nonce } : {}),
           ...(authorizationCode ? { authorizationCode } : {}),
         }, { timeout: 60000 }); // 60s for GCP cold start
-        await handleLoginSuccess(data);
+        await handleLoginSuccess(data, 'apple');
         return;
       } catch (err: any) {
         lastError = err;
@@ -820,7 +823,7 @@ export default function LoginScreen() {
         email: email.trim(),
         password: password.trim(),
       }, { timeout: 60000 });
-      await handleLoginSuccess(data);
+      await handleLoginSuccess(data, 'password');
     } catch (err: any) {
       setIsLoading(false);
       setError(err instanceof Error ? err.message : 'Sign-in failed. Please check your credentials.');

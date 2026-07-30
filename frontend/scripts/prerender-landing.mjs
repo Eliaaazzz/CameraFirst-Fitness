@@ -18,7 +18,7 @@
  * Idempotent: re-running replaces the previously injected blocks (comment markers).
  */
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
-import { resolve, dirname, join } from 'node:path';
+import { resolve, dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -295,7 +295,7 @@ const CONTENT = `<div id="prerender" data-prerender="metriful">
 
   /* footer */
   #prerender .foot{margin-top:44px;border-top:1px solid var(--line)}
-  #prerender .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:32px;padding:52px 24px 36px}
+  #prerender .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr;gap:32px;padding:52px 24px 36px}
   @media (max-width:860px){#prerender .foot-grid{grid-template-columns:1fr 1fr}}
   @media (max-width:520px){#prerender .foot-grid{grid-template-columns:1fr}}
   #prerender .f-brand p{margin:12px 0 0;font-size:13.5px;line-height:1.6;color:var(--muted);max-width:26ch}
@@ -318,6 +318,7 @@ const CONTENT = `<div id="prerender" data-prerender="metriful">
     <a class="brand" href="/"><span class="brand-tick"></span>Metriful <span class="byline">by Aura Fitness</span></a>
     <nav class="nav-links" aria-label="Site">
       <a class="mono-link" href="#accuracy">Accuracy</a>
+      <a class="mono-link" href="/about.html">About</a>
       <a class="mono-link" href="/support.html">Support</a>
       <a class="navcta" href="${APP_STORE_URL}">App Store ↗</a>
     </nav>
@@ -325,6 +326,25 @@ const CONTENT = `<div id="prerender" data-prerender="metriful">
 </header>
 
 <main>
+  <!-- CTA panel is the very first section on purpose: the App Store download
+       entry must be the first thing visitors see (mirrors the React landing). -->
+  <section class="wrap sect">
+    <div class="ctapanel">
+      <i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i>
+      <div class="cta-copy">
+        <h2>Scan your first meal today.</h2>
+        <p>See an itemized, editable estimate in seconds — and one concrete next step for the rest of the day.</p>
+        <a class="btn onpanel" href="${APP_STORE_URL}">Download on the App Store</a>
+        <span class="panel-note">Free to start, no card needed.</span>
+        <a class="panel-mail" href="mailto:support@aurafitness.org">Questions? support@aurafitness.org</a>
+      </div>
+      <figure class="polaroid">
+        <img src="/illustrations/hero-healthy-eating.svg" alt="" width="500" height="500" loading="lazy" />
+        <figcaption>lunch, logged — back to eating</figcaption>
+      </figure>
+    </div>
+  </section>
+
   <section class="wrap hero">
     <div>
       <p class="eyebrow">Photo → editable estimate</p>
@@ -425,22 +445,6 @@ const CONTENT = `<div id="prerender" data-prerender="metriful">
     </div>
   </section>
 
-  <section class="wrap sect">
-    <div class="ctapanel">
-      <i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i>
-      <div class="cta-copy">
-        <h2>Scan your first meal today.</h2>
-        <p>See an itemized, editable estimate in seconds — and one concrete next step for the rest of the day.</p>
-        <a class="btn onpanel" href="${APP_STORE_URL}">Download on the App Store</a>
-        <span class="panel-note">Free to start, no card needed.</span>
-        <a class="panel-mail" href="mailto:support@aurafitness.org">Questions? support@aurafitness.org</a>
-      </div>
-      <figure class="polaroid">
-        <img src="/illustrations/hero-healthy-eating.svg" alt="" width="500" height="500" loading="lazy" />
-        <figcaption>lunch, logged — back to eating</figcaption>
-      </figure>
-    </div>
-  </section>
 </main>
 
 <footer class="foot">
@@ -454,6 +458,12 @@ const CONTENT = `<div id="prerender" data-prerender="metriful">
       <a href="#flow">How it works</a>
       <a href="#accuracy">Accuracy</a>
       <a href="/release-notes.html">Release notes</a>
+    </nav>
+    <nav class="f-col" aria-label="Company">
+      <h4>Company</h4>
+      <a href="/about.html">About us</a>
+      <a href="/about.html#team">The team</a>
+      <a href="/about.html#contact">Contact</a>
     </nav>
     <nav class="f-col" aria-label="Support">
       <h4>Support</h4>
@@ -477,6 +487,91 @@ const NOSCRIPT =
   '<noscript><p style="margin:12px 20px;color:#6b7280;font:14px system-ui">' +
   'The interactive app needs JavaScript — but everything above is real. ' +
   `Get Metriful on the <a href="${APP_STORE_URL}">App Store</a>.</p></noscript>`;
+
+/* ── Google Analytics 4 ─────────────────────────────────────────────────────
+ * The measurement ID comes from the same env files the app bundle reads
+ * (react-native-dotenv): the FIRST existing of .env.local > .env.production >
+ * .env wins outright — files are not merged — mirroring babel.config.js
+ * getEnvPath in production mode. A non-empty EXPO_PUBLIC_GA_MEASUREMENT_ID
+ * process env var (e.g. set in CI) overrides the files. Empty/missing → no
+ * snippet is injected and the runtime service (src/services/analytics.ts)
+ * no-ops too, so analytics stays fully off until an ID is configured.
+ */
+const GA_START = '<!--METRIFUL-GA:START-->';
+const GA_END = '<!--METRIFUL-GA:END-->';
+
+function readGaMeasurementId() {
+  let raw = (process.env.EXPO_PUBLIC_GA_MEASUREMENT_ID ?? '').trim();
+  if (!raw) {
+    for (const file of ['.env.local', '.env.production', '.env']) {
+      const envPath = resolve(here, '..', file);
+      if (!existsSync(envPath)) continue;
+      const match = readFileSync(envPath, 'utf8').match(/^\s*EXPO_PUBLIC_GA_MEASUREMENT_ID\s*=(.*)$/m);
+      raw = (match?.[1] ?? '').trim().replace(/^["']|["']$/g, '');
+      break; // first existing file decides, exactly like the app build
+    }
+  }
+  // The id lands inside a URL and a JS string literal — only accept the plain
+  // "G-XXXXXXXXXX" charset so a bad value can't break (or inject into) the HTML.
+  if (raw && !/^[A-Za-z0-9-]+$/.test(raw)) {
+    console.warn(`prerender-landing: EXPO_PUBLIC_GA_MEASUREMENT_ID "${raw}" does not look like a G-XXXX id — skipping GA injection.`);
+    return '';
+  }
+  return raw;
+}
+
+/* The gtag config auto-sends the initial page_view, so the landing and the
+ * static pages are measured even when no JS app ever hydrates. In-app screen
+ * changes are tracked by src/services/analytics.ts, which reuses this snippet.
+ * The click listener catches App Store taps in the prerendered/static HTML;
+ * after hydration those anchors are gone (React renders its own buttons and
+ * tracks them itself), so nothing double-fires. */
+const gaSnippet = (id) => `${GA_START}
+    <script>
+      /* Stash + strip an OAuth return fragment (#…id_token=…) synchronously,
+         BEFORE gtag.js — or any future tag — can observe location.href: the
+         fragment carries a base64-decodable JWT (email/name/sub). Login still
+         completes because src/services/webGoogleRedirect.ts consumes the stash
+         (key literal must stay in sync with GOOGLE_OAUTH_RETURN_HASH_KEY). */
+      (function () {
+        var h = location.hash;
+        if (h && h.indexOf('id_token=') !== -1) {
+          try { sessionStorage.setItem('google_oauth_return_hash', h); } catch (err) {}
+          history.replaceState(null, '', location.pathname + location.search);
+        }
+      })();
+    </script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=${id}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      /* page_location must never include the #fragment: OAuth redirects land
+         with #id_token=<JWT> in the hash, and gtag.js (async, small) usually
+         executes before the app bundle (defer, large) strips it. */
+      gtag('config', '${id}', { page_location: location.origin + location.pathname + location.search });
+      document.addEventListener('click', function (e) {
+        var t = e.target;
+        var a = t && t.closest ? t.closest('a[href*="apps.apple.com"]') : null;
+        if (a) gtag('event', 'app_store_click', { placement: 'static_html' });
+      }, true);
+    </script>
+    ${GA_END}`;
+
+/** Strip any previously injected GA block, then add the current one (marker-based, idempotent). */
+function withGaSnippet(pageHtml, id) {
+  const start = pageHtml.indexOf(GA_START);
+  if (start !== -1) {
+    const end = pageHtml.indexOf(GA_END, start);
+    if (end === -1) {
+      console.error('prerender-landing: found GA START marker without END — refusing to edit.');
+      process.exit(1);
+    }
+    pageHtml = pageHtml.slice(0, start) + pageHtml.slice(end + GA_END.length);
+  }
+  if (!id) return pageHtml;
+  return pageHtml.replace('</head>', `${gaSnippet(id)}\n  </head>`);
+}
 
 if (!existsSync(target)) {
   console.error(`prerender-landing: ${target} not found — run "expo export --platform web" first.`);
@@ -526,10 +621,15 @@ html = html.slice(0, insertAt) + START + CONTENT + END + html.slice(insertAt);
 // 4. Friendlier noscript
 html = html.replace(/<noscript>[\s\S]*?<\/noscript>/, NOSCRIPT);
 
+// 5. Google Analytics head snippet (no-op until a measurement ID is configured).
+const gaId = readGaMeasurementId();
+html = withGaSnippet(html, gaId);
+if (gaId) console.log(`prerender-landing: injected GA4 snippet (${gaId})`);
+
 writeFileSync(target, html);
 console.log(`prerender-landing: injected static landing + SEO meta into ${target}`);
 
-// 5. Patch `import.meta` out of the exported bundles. Expo serves them as CLASSIC
+// 6. Patch `import.meta` out of the exported bundles. Expo serves them as CLASSIC
 //    <script defer> tags, where `import.meta` is a parse error — the whole app then
 //    never boots and visitors only ever see the static prerender above. (Culprit:
 //    zustand's devtools middleware checks `import.meta.env.MODE`.) Replacing the
@@ -545,6 +645,24 @@ if (existsSync(bundleDir)) {
       writeFileSync(bundlePath, patched);
       const n = (src.length - src.replaceAll('import.meta', '').length) / 'import.meta'.length;
       console.log(`prerender-landing: patched ${n} import.meta usage(s) in ${file} (classic-script compat)`);
+    }
+  }
+}
+
+// 7. GA into the sibling static pages (support/privacy/… — present once the CI
+//    "Copy public assets" step has copied frontend/public into dist). Same
+//    snippet, same markers, idempotent. No React app runs on these pages, so
+//    their page_view + App-Store clicks come entirely from the snippet.
+if (gaId) {
+  const distDir = dirname(target);
+  for (const file of readdirSync(distDir)) {
+    if (!file.endsWith('.html') || file === basename(target)) continue;
+    const pagePath = join(distDir, file);
+    const src = readFileSync(pagePath, 'utf8');
+    const out = withGaSnippet(src, gaId);
+    if (out !== src) {
+      writeFileSync(pagePath, out);
+      console.log(`prerender-landing: injected GA4 snippet into ${file}`);
     }
   }
 }

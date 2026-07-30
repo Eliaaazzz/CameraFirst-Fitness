@@ -12,6 +12,7 @@ import { VisionCameraView } from '@/components/VisionCameraView';
 import { useCameraPermission } from '@/hooks/useCameraPermission';
 import { useDailyNutrition } from '@/hooks/useDailyNutrition';
 import { useDeviceCapabilities } from '@/hooks/useDeviceCapabilities';
+import { trackEvent } from '@/services/analytics';
 import nutritionApi, {
   DetectedFood,
   TotalNutrition,
@@ -932,6 +933,8 @@ export function ReviewMealScreen({ route, navigation }: any) {
         imageUrl: serverImageUrl || processedImageUri,
       });
       setSavedMealId(savedMeal?.id ?? null);
+
+      trackEvent('meal_logged', { source: 'scan', item_count: items.length });
 
       // Immediate value: what's left today (computed from the pre-save snapshot so the
       // just-saved meal isn't double counted) and ONE concrete next step.

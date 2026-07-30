@@ -20,11 +20,21 @@
  */
 import { Platform } from 'react-native';
 
+import { trackEvent } from './analytics';
 import { api } from './apiClient';
 import { queryClient } from './queryClient';
 import { useAuthStore, type UserInfo } from '@/stores/useAuthStore';
 
 const GOOGLE_OAUTH_STATE_KEY = 'google_oauth_state';
+
+/**
+ * Where the GA head snippet (scripts/prerender-landing.mjs) stashes the OAuth
+ * return fragment after stripping it from the URL — synchronously, BEFORE
+ * gtag.js or any other script can observe a location.href that carries the
+ * decodable id_token JWT. Login still completes because readHashParams()
+ * consumes this stash. Keep the string literal in that script in sync.
+ */
+const GOOGLE_OAUTH_RETURN_HASH_KEY = 'google_oauth_return_hash';
 
 /**
  * Result of attempting to complete a Google redirect at boot.
@@ -60,15 +70,27 @@ function isWebRuntime(): boolean {
 }
 
 function readHashParams(): URLSearchParams | null {
+  // Live URL hash first — dev servers and any build without the GA head
+  // snippet still deliver the OAuth return directly on the URL.
   const hash = window.location.hash;
-  if (!hash || hash.length < 2) return null;
-  return new URLSearchParams(hash.substring(1));
+  if (hash && hash.length >= 2) return new URLSearchParams(hash.substring(1));
+
+  // Otherwise consume the fragment the GA head snippet stashed before
+  // stripping it from the URL. Single-use: removed on read so a re-render or
+  // back-navigation can't replay the token (same contract as the URL strip).
+  const stashed = sessionStorage.getItem(GOOGLE_OAUTH_RETURN_HASH_KEY);
+  if (stashed && stashed.length >= 2) {
+    sessionStorage.removeItem(GOOGLE_OAUTH_RETURN_HASH_KEY);
+    return new URLSearchParams(stashed.substring(1));
+  }
+  return null;
 }
 
 /** Strip OAuth artifacts from the URL + sessionStorage so a token can't be replayed. */
 function clearGoogleRedirectArtifacts(): void {
   window.history.replaceState(null, '', window.location.pathname + window.location.search);
   sessionStorage.removeItem(GOOGLE_OAUTH_STATE_KEY);
+  sessionStorage.removeItem(GOOGLE_OAUTH_RETURN_HASH_KEY);
 }
 
 /** True when the current URL requests starting Google login (post origin handoff). */
@@ -156,6 +178,7 @@ export async function resolveWebGoogleRedirect(): Promise<WebGoogleRedirectOutco
       queryClient.clear();
       await useAuthStore.getState().signIn(data.token, buildUserInfo(data));
       if (useAuthStore.getState().isAuthenticated) {
+        trackEvent(data.isNewUser ? 'sign_up' : 'login', { method: 'google' });
         return { kind: 'authenticated', isNewUser: Boolean(data.isNewUser) };
       }
       return { kind: 'failed' };

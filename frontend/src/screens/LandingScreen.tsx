@@ -3,12 +3,13 @@
  *
  * Sections (Uber order):
  * 1. Nav (black) — LandingNav
- * 2. Hero — headline left + illustration right
- * 3. Feature grid — 6 capability cards (Discover)
- * 4. AI Steps — how the AI pipeline works
- * 5. Account split CTA
- * 6. Program hub
- * 7. CTA banner (black)
+ * 2. CTA banner (black) — the very first section on purpose: the download entry
+ *    (scan CTA + store badges) must be visible before any scrolling
+ * 3. Hero — headline left + illustration right
+ * 4. Feature grid — 6 capability cards (Discover)
+ * 5. AI Steps — how the AI pipeline works
+ * 6. Account split CTA
+ * 7. Program hub
  * 8. Footer
  */
 
@@ -38,7 +39,6 @@ const NAV_SECTION_MAP: Record<string, string> = {
   Track: 'featureGrid',
   Programs: 'programHub',
   Reports: 'aiSteps',
-  About: 'footer',
 };
 
 export default function LandingScreen() {
@@ -77,6 +77,10 @@ export default function LandingScreen() {
   }, []);
 
   const handleNavPress = useCallback((item: string) => {
+    if (item === 'About') {
+      void openAppPage(APP_PAGE_PATHS.about);
+      return;
+    }
     const sectionKey = NAV_SECTION_MAP[item];
     if (sectionKey) scrollToSection(sectionKey);
   }, [scrollToSection]);
@@ -93,7 +97,7 @@ export default function LandingScreen() {
       case 'help-centre': case 'export-data': navigation.navigate('Help'); return;
       case 'data-sources': navigation.navigate('AboutNutritionData'); return;
       case 'release-notes': void openAppPage(APP_PAGE_PATHS.releaseNotes); return;
-      case 'about': scrollToSection('footer'); return;
+      case 'about': void openAppPage(APP_PAGE_PATHS.about); return;
       case 'contact': void openExternalUrl(SUPPORT_EMAIL_URL, 'Unable to open email', 'Please email support@aurafitness.org.'); return;
       case 'privacy-policy': void openAppPage(APP_PAGE_PATHS.privacy); return;
       case 'terms-of-service': void openAppPage(APP_PAGE_PATHS.terms); return;
@@ -116,37 +120,8 @@ export default function LandingScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 1. Hero */}
-        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]}>
-          <HeroSection onGetStarted={navigateSignup} onLogin={navigateLogin} />
-        </View>
-
-        {/* 2. Feature Grid (6 cards — Discover) */}
-        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]} onLayout={handleSectionLayout('featureGrid')}>
-          <FeatureGrid onExplore={navigateSignup} />
-        </View>
-
-        {/* 3. AI Steps */}
-        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]} onLayout={handleSectionLayout('aiSteps')}>
-          <AIStepsSection />
-        </View>
-
-        {/* 3b. How accuracy works — trust is a landing-page feature, not a FAQ */}
-        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]} onLayout={handleSectionLayout('accuracy')}>
-          <AccuracySection />
-        </View>
-
-        {/* 4. Account Split */}
-        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]}>
-          <AccountSplitSection onLogin={navigateLogin} onSignup={navigateSignup} />
-        </View>
-
-        {/* 5. Program Hub */}
-        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]} onLayout={handleSectionLayout('programHub')}>
-          <ProgramHubSection />
-        </View>
-
-        {/* 6. CTA Banner — contained ink panel with viewfinder corners + polaroid */}
+        {/* 1. CTA Banner — the very first section on purpose: the download entry
+            (scan CTA + store badges) must be the first thing visitors see. */}
         <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]}>
           <View style={[styles.ctaPanel, isCompact && styles.ctaPanelCompact, isDesktop && styles.ctaPanelDesktop]}>
             <Corner position="tl" color={LANDING_COLORS.copperOnDark} />
@@ -186,6 +161,36 @@ export default function LandingScreen() {
               </View>
             )}
           </View>
+        </View>
+
+        {/* 2. Hero */}
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]}>
+          <HeroSection onGetStarted={navigateSignup} onLogin={navigateLogin} />
+        </View>
+
+        {/* 3. Feature Grid (6 cards — Discover) */}
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]} onLayout={handleSectionLayout('featureGrid')}>
+          <FeatureGrid onExplore={navigateSignup} />
+        </View>
+
+        {/* 4. AI Steps */}
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]} onLayout={handleSectionLayout('aiSteps')}>
+          <AIStepsSection />
+        </View>
+
+        {/* 4b. How accuracy works — trust is a landing-page feature, not a FAQ */}
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]} onLayout={handleSectionLayout('accuracy')}>
+          <AccuracySection />
+        </View>
+
+        {/* 5. Account Split */}
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]}>
+          <AccountSplitSection onLogin={navigateLogin} onSignup={navigateSignup} />
+        </View>
+
+        {/* 6. Program Hub */}
+        <View style={[styles.sectionWrap, { maxWidth, paddingHorizontal: pagePadding }]} onLayout={handleSectionLayout('programHub')}>
+          <ProgramHubSection />
         </View>
 
         {/* 7. Footer */}

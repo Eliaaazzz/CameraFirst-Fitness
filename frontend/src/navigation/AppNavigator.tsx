@@ -49,6 +49,7 @@ import { HelpScreen } from '@/screens/HelpScreen';
 import { ManageAccountScreen } from '@/screens/ManageAccountScreen';
 import { WeeklyInsightsScreen } from '@/screens/WeeklyInsightsScreen';
 import { WorkoutsScreen } from '@/screens/WorkoutsScreen';
+import { recordInitialScreen, trackScreenView } from '@/services/analytics';
 import { BRAND_COLORS, TAB_ICON_SIZE, useResponsive, useSidebarVisible } from '@/utils';
 
 // Wrap screens with ErrorBoundary to prevent white screen crashes
@@ -617,7 +618,14 @@ const WorkoutSessionStripRoot = () => {
 export const AppNavigator = () => {
   // Always use light mode
   return (
-    <NavigationContainer ref={navigationRef} theme={LightNavigationTheme}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={LightNavigationTheme}
+      // GA4 screen tracking: seed with the initial route (its page load is
+      // already counted by the head snippet), then log each screen change.
+      onReady={() => recordInitialScreen(navigationRef.getCurrentRoute()?.name)}
+      onStateChange={() => trackScreenView(navigationRef.getCurrentRoute()?.name)}
+    >
       <Stack.Navigator
         initialRouteName="Splash"
         screenOptions={webCompatibleStackScreenOptions}
