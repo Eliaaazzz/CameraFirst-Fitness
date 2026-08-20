@@ -842,6 +842,7 @@ const DashboardScreen = () => {
                     mealsLoggedToday={nutritionData.meals.length}
                     onPrimaryAction={handleAddFood}
                     onSecondaryAction={() => navigation.navigate('Main', { screen: 'Recipes' } as any)}
+                    compact={isDashboardCompact}
                   />
 
                   {/* Streak with safety rails: pause for trips/illness, fresh-start zero copy */}
