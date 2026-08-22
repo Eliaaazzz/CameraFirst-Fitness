@@ -11,3 +11,4 @@ export * from './spoonacular';
 export * from './system';
 export * from './theme';
 export * from './layout';
+export * from './badgeArt';
