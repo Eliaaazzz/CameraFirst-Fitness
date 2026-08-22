@@ -1,5 +1,5 @@
 import { Text } from '@/components';
-import { BRAND_COLORS, colors, radii, spacing, springPresets } from '@/utils';
+import { colors, radii, spacing, springPresets } from '@/utils';
 import { CaretRight, Coffee, MoonStars, SunDim, Sun } from 'phosphor-react-native';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -104,7 +104,7 @@ export const AdaptiveHomeHero: React.FC<AdaptiveHomeHeroProps> = ({
               : 'Snap or pick a high-protein breakfast to win the morning.',
           primaryLabel: mealsLoggedToday > 0 ? 'Log a meal' : 'Snap breakfast',
           secondaryLabel: 'Browse recipes',
-          icon: <Coffee size={28} color={BRAND_COLORS.primaryDark} weight="fill" />,
+          icon: <Coffee size={28} color="#111111" weight="fill" />,
         };
       case 'afternoon':
         return {
@@ -119,7 +119,7 @@ export const AdaptiveHomeHero: React.FC<AdaptiveHomeHeroProps> = ({
               : 'Stay on plan with a balanced lunch or smart snack.',
           primaryLabel: 'Log a meal',
           secondaryLabel: 'Find a snack',
-          icon: <Sun size={28} color={BRAND_COLORS.primaryDark} weight="fill" />,
+          icon: <Sun size={28} color="#111111" weight="fill" />,
         };
       case 'evening':
         return {
@@ -134,7 +134,7 @@ export const AdaptiveHomeHero: React.FC<AdaptiveHomeHeroProps> = ({
               : 'Log dinner to wrap up today’s plan.',
           primaryLabel: 'Log dinner',
           secondaryLabel: 'Browse recipes',
-          icon: <SunDim size={28} color={BRAND_COLORS.primaryDark} weight="fill" />,
+          icon: <SunDim size={28} color="#111111" weight="fill" />,
         };
       case 'night':
       default:
@@ -150,7 +150,7 @@ export const AdaptiveHomeHero: React.FC<AdaptiveHomeHeroProps> = ({
               : 'A quick meal log now keeps your week complete.',
           primaryLabel: 'Log a meal',
           secondaryLabel: 'Browse recipes',
-          icon: <MoonStars size={28} color={BRAND_COLORS.primaryDark} weight="fill" />,
+          icon: <MoonStars size={28} color="#111111" weight="fill" />,
         };
     }
   }, [slot, nameBit, mealsLoggedToday, remainingCals, remainingProtein, dailyScore]);
@@ -257,16 +257,10 @@ export const AdaptiveHomeHero: React.FC<AdaptiveHomeHeroProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: BRAND_COLORS.glassFillStrong,
-    borderColor: colors.light.border,
-    borderWidth: 1,
-    borderRadius: radii.sm,
+    backgroundColor: '#F6F6F6',
+    borderRadius: 12,
     padding: spacing.xl,
     marginBottom: spacing.md,
-    ...(Platform.OS === 'web' && {
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-    }),
   },
   containerCompact: {
     padding: spacing.lg,
@@ -290,7 +284,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 3,
     borderRadius: radii.full,
-    backgroundColor: BRAND_COLORS.primary,
+    backgroundColor: '#111111',
   },
   greeting: {
     color: colors.light.textSecondary,
@@ -307,7 +301,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: radii.md,
-    backgroundColor: BRAND_COLORS.primaryTint,
+    backgroundColor: '#EAEAEA',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -353,7 +347,7 @@ const styles = StyleSheet.create({
   },
   focusRing: {
     ...(Platform.OS === 'web' && {
-      outlineColor: BRAND_COLORS.primary,
+      outlineColor: '#111111',
       outlineOffset: 3,
       outlineStyle: 'solid',
       outlineWidth: 2,

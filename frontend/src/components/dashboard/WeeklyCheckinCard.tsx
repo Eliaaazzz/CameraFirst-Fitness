@@ -83,7 +83,7 @@ export function WeeklyCheckinCard({ insights, proteinGoal }: WeeklyCheckinCardPr
     <View style={styles.card} accessibilityLabel="Weekly check-in">
       <View style={styles.headerRow}>
         <View style={styles.iconWrap}>
-          <CalendarCheck size={18} color={BRAND_COLORS.primaryDark} weight="duotone" />
+          <CalendarCheck size={18} color="#111111" weight="duotone" />
         </View>
         <Text variant="caption" weight="bold" style={styles.eyebrow}>
           WEEKLY CHECK-IN
@@ -181,10 +181,8 @@ export function WeeklyCheckinCard({ insights, proteinGoal }: WeeklyCheckinCardPr
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
-    backgroundColor: BRAND_COLORS.surfaceElevated,
+    borderRadius: 12,
+    backgroundColor: '#F6F6F6',
     padding: spacing.lg,
     gap: spacing.sm,
     marginBottom: spacing.md,
@@ -198,12 +196,12 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 10,
-    backgroundColor: BRAND_COLORS.primaryTint,
+    backgroundColor: '#EAEAEA',
     alignItems: 'center',
     justifyContent: 'center',
   },
   eyebrow: {
-    color: BRAND_COLORS.primaryDark,
+    color: '#111111',
     letterSpacing: 1,
   },
   bodyText: {
@@ -216,8 +214,8 @@ const styles = StyleSheet.create({
     color: BRAND_COLORS.textSecondary,
   },
   suggestionBlock: {
-    borderRadius: 14,
-    backgroundColor: BRAND_COLORS.surface,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
     padding: spacing.md,
     gap: 4,
   },
@@ -239,8 +237,8 @@ const styles = StyleSheet.create({
   acceptBtn: {
     flex: 1,
     minHeight: 46,
-    borderRadius: 12,
-    backgroundColor: BRAND_COLORS.primary,
+    borderRadius: 8,
+    backgroundColor: '#111111',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -250,10 +248,8 @@ const styles = StyleSheet.create({
   keepBtn: {
     flex: 1,
     minHeight: 46,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
-    backgroundColor: BRAND_COLORS.surfaceElevated,
+    borderRadius: 8,
+    backgroundColor: '#EAEAEA',
     alignItems: 'center',
     justifyContent: 'center',
   },

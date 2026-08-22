@@ -50,7 +50,7 @@ export function StreakSafetyCard({ streak }: StreakSafetyCardProps) {
             accessibilityRole="button"
             accessibilityLabel="Resume streak now"
           >
-            <PlayCircle size={24} color={BRAND_COLORS.primary} weight="duotone" />
+            <PlayCircle size={24} color="#111111" weight="duotone" />
           </Pressable>
         </View>
       </View>
@@ -117,10 +117,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
-    backgroundColor: BRAND_COLORS.surface,
+    borderRadius: 12,
+    backgroundColor: '#F6F6F6',
     padding: spacing.md,
   },
   pausedTitle: {
@@ -151,9 +149,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 12,
     justifyContent: 'center',
-    backgroundColor: BRAND_COLORS.surface,
-    borderWidth: 1,
-    borderColor: BRAND_COLORS.border,
+    backgroundColor: '#F3F3F3',
   },
   pauseChipText: {
     color: BRAND_COLORS.textPrimary,
